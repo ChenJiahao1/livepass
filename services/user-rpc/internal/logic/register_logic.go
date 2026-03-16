@@ -15,6 +15,8 @@ import (
 	"damai-go/services/user-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type RegisterLogic struct {
@@ -33,13 +35,13 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 
 func (l *RegisterLogic) Register(in *pb.RegisterReq) (*pb.BoolResp, error) {
 	if in.Mobile == "" || in.Password == "" {
-		return nil, xerr.ErrInvalidParam
+		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
 	_, err := l.svcCtx.DUserModel.FindOneByMobile(l.ctx, in.Mobile)
 	switch {
 	case err == nil:
-		return nil, errors.New("user already exists")
+		return nil, status.Error(codes.AlreadyExists, "user already exists")
 	case !errors.Is(err, model.ErrNotFound):
 		return nil, err
 	}

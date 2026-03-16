@@ -9,6 +9,9 @@ import (
 	"damai-go/services/user-rpc/internal/config"
 	"damai-go/services/user-rpc/internal/svc"
 	"damai-go/services/user-rpc/pb"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const testMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_user?parseTime=true"
@@ -69,6 +72,27 @@ func TestRegisterRejectsDuplicateMobile(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatalf("expected duplicate mobile error")
+	}
+	if status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("expected already exists code, got %s", status.Code(err))
+	}
+}
+
+func TestRegisterRejectsInvalidArgument(t *testing.T) {
+	resetDUserTable(t)
+
+	svcCtx := newTestServiceContext()
+	l := NewRegisterLogic(context.Background(), svcCtx)
+
+	_, err := l.Register(&pb.RegisterReq{
+		Mobile:   "",
+		Password: "123456",
+	})
+	if err == nil {
+		t.Fatalf("expected invalid argument error")
+	}
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument code, got %s", status.Code(err))
 	}
 }
 
