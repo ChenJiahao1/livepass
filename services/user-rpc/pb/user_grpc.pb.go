@@ -19,14 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserRpc_Register_FullMethodName        = "/user.UserRpc/Register"
-	UserRpc_Login_FullMethodName           = "/user.UserRpc/Login"
-	UserRpc_GetUserById_FullMethodName     = "/user.UserRpc/GetUserById"
-	UserRpc_UpdateUser_FullMethodName      = "/user.UserRpc/UpdateUser"
-	UserRpc_ListTicketUsers_FullMethodName = "/user.UserRpc/ListTicketUsers"
-	UserRpc_AddTicketUser_FullMethodName   = "/user.UserRpc/AddTicketUser"
-	UserRpc_GetCaptcha_FullMethodName      = "/user.UserRpc/GetCaptcha"
-	UserRpc_VerifyCaptcha_FullMethodName   = "/user.UserRpc/VerifyCaptcha"
+	UserRpc_Register_FullMethodName                 = "/user.UserRpc/Register"
+	UserRpc_Login_FullMethodName                    = "/user.UserRpc/Login"
+	UserRpc_GetUserById_FullMethodName              = "/user.UserRpc/GetUserById"
+	UserRpc_GetUserByMobile_FullMethodName          = "/user.UserRpc/GetUserByMobile"
+	UserRpc_Logout_FullMethodName                   = "/user.UserRpc/Logout"
+	UserRpc_UpdateUser_FullMethodName               = "/user.UserRpc/UpdateUser"
+	UserRpc_UpdatePassword_FullMethodName           = "/user.UserRpc/UpdatePassword"
+	UserRpc_UpdateEmail_FullMethodName              = "/user.UserRpc/UpdateEmail"
+	UserRpc_UpdateMobile_FullMethodName             = "/user.UserRpc/UpdateMobile"
+	UserRpc_Authentication_FullMethodName           = "/user.UserRpc/Authentication"
+	UserRpc_ListTicketUsers_FullMethodName          = "/user.UserRpc/ListTicketUsers"
+	UserRpc_AddTicketUser_FullMethodName            = "/user.UserRpc/AddTicketUser"
+	UserRpc_DeleteTicketUser_FullMethodName         = "/user.UserRpc/DeleteTicketUser"
+	UserRpc_GetUserAndTicketUserList_FullMethodName = "/user.UserRpc/GetUserAndTicketUserList"
 )
 
 // UserRpcClient is the client API for UserRpc service.
@@ -36,11 +42,17 @@ type UserRpcClient interface {
 	Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*BoolResp, error)
 	Login(ctx context.Context, in *LoginReq, opts ...grpc.CallOption) (*LoginResp, error)
 	GetUserById(ctx context.Context, in *GetUserByIdReq, opts ...grpc.CallOption) (*UserInfo, error)
+	GetUserByMobile(ctx context.Context, in *GetUserByMobileReq, opts ...grpc.CallOption) (*UserInfo, error)
+	Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*BoolResp, error)
 	UpdateUser(ctx context.Context, in *UpdateUserReq, opts ...grpc.CallOption) (*BoolResp, error)
+	UpdatePassword(ctx context.Context, in *UpdatePasswordReq, opts ...grpc.CallOption) (*BoolResp, error)
+	UpdateEmail(ctx context.Context, in *UpdateEmailReq, opts ...grpc.CallOption) (*BoolResp, error)
+	UpdateMobile(ctx context.Context, in *UpdateMobileReq, opts ...grpc.CallOption) (*BoolResp, error)
+	Authentication(ctx context.Context, in *AuthenticationReq, opts ...grpc.CallOption) (*BoolResp, error)
 	ListTicketUsers(ctx context.Context, in *ListTicketUsersReq, opts ...grpc.CallOption) (*ListTicketUsersResp, error)
 	AddTicketUser(ctx context.Context, in *AddTicketUserReq, opts ...grpc.CallOption) (*BoolResp, error)
-	GetCaptcha(ctx context.Context, in *GetCaptchaReq, opts ...grpc.CallOption) (*CaptchaResp, error)
-	VerifyCaptcha(ctx context.Context, in *VerifyCaptchaReq, opts ...grpc.CallOption) (*BoolResp, error)
+	DeleteTicketUser(ctx context.Context, in *DeleteTicketUserReq, opts ...grpc.CallOption) (*BoolResp, error)
+	GetUserAndTicketUserList(ctx context.Context, in *GetUserAndTicketUserListReq, opts ...grpc.CallOption) (*GetUserAndTicketUserListResp, error)
 }
 
 type userRpcClient struct {
@@ -81,10 +93,70 @@ func (c *userRpcClient) GetUserById(ctx context.Context, in *GetUserByIdReq, opt
 	return out, nil
 }
 
+func (c *userRpcClient) GetUserByMobile(ctx context.Context, in *GetUserByMobileReq, opts ...grpc.CallOption) (*UserInfo, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserInfo)
+	err := c.cc.Invoke(ctx, UserRpc_GetUserByMobile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userRpcClient) Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, UserRpc_Logout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userRpcClient) UpdateUser(ctx context.Context, in *UpdateUserReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BoolResp)
 	err := c.cc.Invoke(ctx, UserRpc_UpdateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userRpcClient) UpdatePassword(ctx context.Context, in *UpdatePasswordReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, UserRpc_UpdatePassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userRpcClient) UpdateEmail(ctx context.Context, in *UpdateEmailReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, UserRpc_UpdateEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userRpcClient) UpdateMobile(ctx context.Context, in *UpdateMobileReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, UserRpc_UpdateMobile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userRpcClient) Authentication(ctx context.Context, in *AuthenticationReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, UserRpc_Authentication_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -111,20 +183,20 @@ func (c *userRpcClient) AddTicketUser(ctx context.Context, in *AddTicketUserReq,
 	return out, nil
 }
 
-func (c *userRpcClient) GetCaptcha(ctx context.Context, in *GetCaptchaReq, opts ...grpc.CallOption) (*CaptchaResp, error) {
+func (c *userRpcClient) DeleteTicketUser(ctx context.Context, in *DeleteTicketUserReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CaptchaResp)
-	err := c.cc.Invoke(ctx, UserRpc_GetCaptcha_FullMethodName, in, out, cOpts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, UserRpc_DeleteTicketUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *userRpcClient) VerifyCaptcha(ctx context.Context, in *VerifyCaptchaReq, opts ...grpc.CallOption) (*BoolResp, error) {
+func (c *userRpcClient) GetUserAndTicketUserList(ctx context.Context, in *GetUserAndTicketUserListReq, opts ...grpc.CallOption) (*GetUserAndTicketUserListResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BoolResp)
-	err := c.cc.Invoke(ctx, UserRpc_VerifyCaptcha_FullMethodName, in, out, cOpts...)
+	out := new(GetUserAndTicketUserListResp)
+	err := c.cc.Invoke(ctx, UserRpc_GetUserAndTicketUserList_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -138,11 +210,17 @@ type UserRpcServer interface {
 	Register(context.Context, *RegisterReq) (*BoolResp, error)
 	Login(context.Context, *LoginReq) (*LoginResp, error)
 	GetUserById(context.Context, *GetUserByIdReq) (*UserInfo, error)
+	GetUserByMobile(context.Context, *GetUserByMobileReq) (*UserInfo, error)
+	Logout(context.Context, *LogoutReq) (*BoolResp, error)
 	UpdateUser(context.Context, *UpdateUserReq) (*BoolResp, error)
+	UpdatePassword(context.Context, *UpdatePasswordReq) (*BoolResp, error)
+	UpdateEmail(context.Context, *UpdateEmailReq) (*BoolResp, error)
+	UpdateMobile(context.Context, *UpdateMobileReq) (*BoolResp, error)
+	Authentication(context.Context, *AuthenticationReq) (*BoolResp, error)
 	ListTicketUsers(context.Context, *ListTicketUsersReq) (*ListTicketUsersResp, error)
 	AddTicketUser(context.Context, *AddTicketUserReq) (*BoolResp, error)
-	GetCaptcha(context.Context, *GetCaptchaReq) (*CaptchaResp, error)
-	VerifyCaptcha(context.Context, *VerifyCaptchaReq) (*BoolResp, error)
+	DeleteTicketUser(context.Context, *DeleteTicketUserReq) (*BoolResp, error)
+	GetUserAndTicketUserList(context.Context, *GetUserAndTicketUserListReq) (*GetUserAndTicketUserListResp, error)
 	mustEmbedUnimplementedUserRpcServer()
 }
 
@@ -162,8 +240,26 @@ func (UnimplementedUserRpcServer) Login(context.Context, *LoginReq) (*LoginResp,
 func (UnimplementedUserRpcServer) GetUserById(context.Context, *GetUserByIdReq) (*UserInfo, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserById not implemented")
 }
+func (UnimplementedUserRpcServer) GetUserByMobile(context.Context, *GetUserByMobileReq) (*UserInfo, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserByMobile not implemented")
+}
+func (UnimplementedUserRpcServer) Logout(context.Context, *LogoutReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
+}
 func (UnimplementedUserRpcServer) UpdateUser(context.Context, *UpdateUserReq) (*BoolResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUser not implemented")
+}
+func (UnimplementedUserRpcServer) UpdatePassword(context.Context, *UpdatePasswordReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdatePassword not implemented")
+}
+func (UnimplementedUserRpcServer) UpdateEmail(context.Context, *UpdateEmailReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateEmail not implemented")
+}
+func (UnimplementedUserRpcServer) UpdateMobile(context.Context, *UpdateMobileReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateMobile not implemented")
+}
+func (UnimplementedUserRpcServer) Authentication(context.Context, *AuthenticationReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method Authentication not implemented")
 }
 func (UnimplementedUserRpcServer) ListTicketUsers(context.Context, *ListTicketUsersReq) (*ListTicketUsersResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTicketUsers not implemented")
@@ -171,11 +267,11 @@ func (UnimplementedUserRpcServer) ListTicketUsers(context.Context, *ListTicketUs
 func (UnimplementedUserRpcServer) AddTicketUser(context.Context, *AddTicketUserReq) (*BoolResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddTicketUser not implemented")
 }
-func (UnimplementedUserRpcServer) GetCaptcha(context.Context, *GetCaptchaReq) (*CaptchaResp, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetCaptcha not implemented")
+func (UnimplementedUserRpcServer) DeleteTicketUser(context.Context, *DeleteTicketUserReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTicketUser not implemented")
 }
-func (UnimplementedUserRpcServer) VerifyCaptcha(context.Context, *VerifyCaptchaReq) (*BoolResp, error) {
-	return nil, status.Error(codes.Unimplemented, "method VerifyCaptcha not implemented")
+func (UnimplementedUserRpcServer) GetUserAndTicketUserList(context.Context, *GetUserAndTicketUserListReq) (*GetUserAndTicketUserListResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserAndTicketUserList not implemented")
 }
 func (UnimplementedUserRpcServer) mustEmbedUnimplementedUserRpcServer() {}
 func (UnimplementedUserRpcServer) testEmbeddedByValue()                 {}
@@ -252,6 +348,42 @@ func _UserRpc_GetUserById_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserRpc_GetUserByMobile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserByMobileReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).GetUserByMobile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_GetUserByMobile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).GetUserByMobile(ctx, req.(*GetUserByMobileReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserRpc_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogoutReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).Logout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_Logout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).Logout(ctx, req.(*LogoutReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserRpc_UpdateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateUserReq)
 	if err := dec(in); err != nil {
@@ -266,6 +398,78 @@ func _UserRpc_UpdateUser_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserRpcServer).UpdateUser(ctx, req.(*UpdateUserReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserRpc_UpdatePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePasswordReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).UpdatePassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_UpdatePassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).UpdatePassword(ctx, req.(*UpdatePasswordReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserRpc_UpdateEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateEmailReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).UpdateEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_UpdateEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).UpdateEmail(ctx, req.(*UpdateEmailReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserRpc_UpdateMobile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMobileReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).UpdateMobile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_UpdateMobile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).UpdateMobile(ctx, req.(*UpdateMobileReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserRpc_Authentication_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthenticationReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).Authentication(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_Authentication_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).Authentication(ctx, req.(*AuthenticationReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -306,38 +510,38 @@ func _UserRpc_AddTicketUser_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserRpc_GetCaptcha_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCaptchaReq)
+func _UserRpc_DeleteTicketUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTicketUserReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserRpcServer).GetCaptcha(ctx, in)
+		return srv.(UserRpcServer).DeleteTicketUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserRpc_GetCaptcha_FullMethodName,
+		FullMethod: UserRpc_DeleteTicketUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserRpcServer).GetCaptcha(ctx, req.(*GetCaptchaReq))
+		return srv.(UserRpcServer).DeleteTicketUser(ctx, req.(*DeleteTicketUserReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserRpc_VerifyCaptcha_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VerifyCaptchaReq)
+func _UserRpc_GetUserAndTicketUserList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserAndTicketUserListReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserRpcServer).VerifyCaptcha(ctx, in)
+		return srv.(UserRpcServer).GetUserAndTicketUserList(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserRpc_VerifyCaptcha_FullMethodName,
+		FullMethod: UserRpc_GetUserAndTicketUserList_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserRpcServer).VerifyCaptcha(ctx, req.(*VerifyCaptchaReq))
+		return srv.(UserRpcServer).GetUserAndTicketUserList(ctx, req.(*GetUserAndTicketUserListReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -362,8 +566,32 @@ var UserRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserRpc_GetUserById_Handler,
 		},
 		{
+			MethodName: "GetUserByMobile",
+			Handler:    _UserRpc_GetUserByMobile_Handler,
+		},
+		{
+			MethodName: "Logout",
+			Handler:    _UserRpc_Logout_Handler,
+		},
+		{
 			MethodName: "UpdateUser",
 			Handler:    _UserRpc_UpdateUser_Handler,
+		},
+		{
+			MethodName: "UpdatePassword",
+			Handler:    _UserRpc_UpdatePassword_Handler,
+		},
+		{
+			MethodName: "UpdateEmail",
+			Handler:    _UserRpc_UpdateEmail_Handler,
+		},
+		{
+			MethodName: "UpdateMobile",
+			Handler:    _UserRpc_UpdateMobile_Handler,
+		},
+		{
+			MethodName: "Authentication",
+			Handler:    _UserRpc_Authentication_Handler,
 		},
 		{
 			MethodName: "ListTicketUsers",
@@ -374,12 +602,12 @@ var UserRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserRpc_AddTicketUser_Handler,
 		},
 		{
-			MethodName: "GetCaptcha",
-			Handler:    _UserRpc_GetCaptcha_Handler,
+			MethodName: "DeleteTicketUser",
+			Handler:    _UserRpc_DeleteTicketUser_Handler,
 		},
 		{
-			MethodName: "VerifyCaptcha",
-			Handler:    _UserRpc_VerifyCaptcha_Handler,
+			MethodName: "GetUserAndTicketUserList",
+			Handler:    _UserRpc_GetUserAndTicketUserList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

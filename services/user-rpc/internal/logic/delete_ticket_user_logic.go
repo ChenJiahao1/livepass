@@ -9,22 +9,20 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type VerifyCaptchaLogic struct {
+type DeleteTicketUserLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
 }
 
-func NewVerifyCaptchaLogic(ctx context.Context, svcCtx *svc.ServiceContext) *VerifyCaptchaLogic {
-	return &VerifyCaptchaLogic{
+func NewDeleteTicketUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DeleteTicketUserLogic {
+	return &DeleteTicketUserLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,
 		Logger: logx.WithContext(ctx),
 	}
 }
 
-func (l *VerifyCaptchaLogic) VerifyCaptcha(in *pb.VerifyCaptchaReq) (*pb.BoolResp, error) {
-	// todo: add your logic here and delete this line
-
+func (l *DeleteTicketUserLogic) DeleteTicketUser(in *pb.DeleteTicketUserReq) (*pb.BoolResp, error) {
 	return &pb.BoolResp{}, nil
 }
