@@ -18,11 +18,19 @@
 - 当前阶段默认采用单库单表实现，先不做分库分表
 - 数据库表结构设计与实现优先参考原 Java 项目已有表定义
 - `go-zero` 服务按服务类型组织：HTTP 服务使用 `services/*-api/`，gRPC 服务使用 `services/*-rpc/`
+- 涉及 `go-zero` 服务开发时，使用 `zero-skills`
 - 公共能力放在 `pkg/`，禁止把具体业务规则放入公共包
 - 各服务的命名使用简洁英文，和 Java 项目语义保持一致
 - 目录结构按 `go-zero` 生成结果扩展，不沿用 Java 的 `*-service` 目录形式
 - `gateway` 作为 HTTP 入口服务，归入 `services/gateway-api/`
 - `agents` 是预留的 Python 独立组件，不纳入 `go-zero` 服务目录规范，保留根级目录
+
+## Codex 本地上下文
+
+- 当前项目的 Codex 本地补充上下文位于 `.codex/`
+- 执行 go-zero 相关任务时，先遵守本文件，再参考 `.codex/README.md`
+- `.codex/ai-context/` 中的静态规则仅补充 go-zero 工作流、模式和 goctl 用法，不覆盖本文件的项目约束
+- `zero-skills` 通过全局 skills 提供，本仓库内不重复 vendoring skills
 
 ## 业务命名
 
@@ -95,36 +103,6 @@ damai-go/
     └── README.md
 ```
 
-## 首期范围
-
-首期只实现用户服务，优先创建：
-
-```text
-damai-go/
-├── pkg/
-├── deploy/
-├── sql/user/
-├── services/
-│   ├── user-api/
-│   └── user-rpc/
-└── agents/
-    ├── app/
-    ├── config/
-    ├── tests/
-    ├── pyproject.toml
-    └── README.md
-```
-
-其中 `agents/` 仅作为 Python 智能客服组件的预留骨架，首期不实现具体业务能力。
-
-用户域首期覆盖：
-
-- 注册
-- 登录
-- 用户信息查询与修改
-- 购票人管理
-- 验证码能力
-
 ## user 服务分层
 
 ### user-api
@@ -160,10 +138,3 @@ damai-go/
 - `pay`：支付、回调、退款
 - `customize`：规则、广播、扩展配置
 - `agents`：基于 Python 实现的智能客服组件，通过内部服务契约获取业务数据
-
-## 实施原则
-
-- 先做 `user`，再扩展其他域
-- 先搭骨架，再补充业务
-- 先统一命名和结构，再逐个服务实现
-- 在没有明确必要时，不提前抽象复杂公共层
