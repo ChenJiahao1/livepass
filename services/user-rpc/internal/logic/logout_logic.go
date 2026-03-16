@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 
+	"damai-go/pkg/xjwt"
 	"damai-go/services/user-rpc/internal/svc"
 	"damai-go/services/user-rpc/pb"
 
@@ -24,5 +25,19 @@ func NewLogoutLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogoutLogi
 }
 
 func (l *LogoutLogic) Logout(in *pb.LogoutReq) (*pb.BoolResp, error) {
-	return &pb.BoolResp{}, nil
+	secret, err := channelSecret(l.svcCtx, in.Code)
+	if err != nil {
+		return nil, err
+	}
+	claims, err := xjwt.ParseToken(in.Token, secret)
+	if err != nil {
+		return nil, err
+	}
+	if l.svcCtx.Redis != nil {
+		if _, err := l.svcCtx.Redis.DelCtx(l.ctx, loginStateKey(claims.UserID)); err != nil {
+			return nil, err
+		}
+	}
+
+	return &pb.BoolResp{Success: true}, nil
 }

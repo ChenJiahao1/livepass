@@ -2,7 +2,9 @@ package logic
 
 import (
 	"context"
+	"errors"
 
+	"damai-go/services/user-rpc/internal/model"
 	"damai-go/services/user-rpc/internal/svc"
 	"damai-go/services/user-rpc/pb"
 
@@ -24,7 +26,13 @@ func NewListTicketUsersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *L
 }
 
 func (l *ListTicketUsersLogic) ListTicketUsers(in *pb.ListTicketUsersReq) (*pb.ListTicketUsersResp, error) {
-	// todo: add your logic here and delete this line
-
-	return &pb.ListTicketUsersResp{}, nil
+	list, err := l.svcCtx.DTicketUserModel.FindByUserId(l.ctx, in.UserId)
+	if err != nil && !errors.Is(err, model.ErrNotFound) {
+		return nil, err
+	}
+	resp := &pb.ListTicketUsersResp{}
+	for _, item := range list {
+		resp.List = append(resp.List, buildTicketUserInfo(item))
+	}
+	return resp, nil
 }

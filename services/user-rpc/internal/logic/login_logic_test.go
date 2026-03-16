@@ -2,7 +2,6 @@ package logic
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	red "github.com/redis/go-redis/v9"
@@ -102,18 +101,6 @@ func TestLoginRejectsWrongPassword(t *testing.T) {
 	if status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("expected unauthenticated code, got %s", status.Code(err))
 	}
-}
-
-func loginStateKey(userID int64) string {
-	return fmt.Sprintf("user:login:token:%d", userID)
-}
-
-func mobileFailKey(mobile string) string {
-	return "user:login:fail:mobile:" + mobile
-}
-
-func emailFailKey(email string) string {
-	return "user:login:fail:email:" + email
 }
 
 func newRedisClient(t *testing.T) *red.Client {

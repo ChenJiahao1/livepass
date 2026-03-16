@@ -24,5 +24,8 @@ func NewDeleteTicketUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *DeleteTicketUserLogic) DeleteTicketUser(in *pb.DeleteTicketUserReq) (*pb.BoolResp, error) {
-	return &pb.BoolResp{}, nil
+	if err := l.svcCtx.DTicketUserModel.Delete(l.ctx, in.Id); err != nil {
+		return nil, err
+	}
+	return &pb.BoolResp{Success: true}, nil
 }
