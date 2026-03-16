@@ -1,0 +1,21 @@
+type (
+	ListTicketUsersReq {
+		UserID int64 `form:"userId"`
+	}
+
+	TicketUserInfo {
+		ID int64 `json:"id"`
+		Name string `json:"name"`
+		IdNumber string `json:"idNumber,optional"`
+	}
+
+	TicketUserListResp {
+		List []TicketUserInfo `json:"list"`
+	}
+
+	AddTicketUserReq {
+		UserID int64 `json:"userId"`
+		Name string `json:"name"`
+		IdNumber string `json:"idNumber"`
+	}
+)

@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "./pb";
+
+message Empty {}
+
+message BoolResp {
+  bool success = 1;
+}
+
+message UserInfo {
+  int64 userId = 1;
+  string mobile = 2;
+  string name = 3;
+}
+
+message TicketUserInfo {
+  int64 id = 1;
+  string name = 2;
+  string idNumber = 3;
+}
+
+message RegisterReq {
+  string mobile = 1;
+  string password = 2;
+}
+
+message LoginReq {
+  string mobile = 1;
+  string password = 2;
+}
+
+message LoginResp {
+  int64 userId = 1;
+  string token = 2;
+}
+
+message GetUserByIdReq {
+  int64 userId = 1;
+}
+
+message UpdateUserReq {
+  int64 userId = 1;
+  string name = 2;
+}
+
+message ListTicketUsersReq {
+  int64 userId = 1;
+}
+
+message ListTicketUsersResp {
+  repeated TicketUserInfo list = 1;
+}
+
+message AddTicketUserReq {
+  int64 userId = 1;
+  string name = 2;
+  string idNumber = 3;
+}
+
+message GetCaptchaReq {
+  string scene = 1;
+}
+
+message CaptchaResp {
+  string captchaId = 1;
+  string content = 2;
+}
+
+message VerifyCaptchaReq {
+  string captchaId = 1;
+  string answer = 2;
+}
+
+service UserRpc {
+  rpc Register(RegisterReq) returns (BoolResp);
+  rpc Login(LoginReq) returns (LoginResp);
+  rpc GetUserById(GetUserByIdReq) returns (UserInfo);
+  rpc UpdateUser(UpdateUserReq) returns (BoolResp);
+  rpc ListTicketUsers(ListTicketUsersReq) returns (ListTicketUsersResp);
+  rpc AddTicketUser(AddTicketUserReq) returns (BoolResp);
+  rpc GetCaptcha(GetCaptchaReq) returns (CaptchaResp);
+  rpc VerifyCaptcha(VerifyCaptchaReq) returns (BoolResp);
+}

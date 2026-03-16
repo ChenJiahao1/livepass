@@ -1,0 +1,35 @@
+type (
+	BoolResp {
+		Success bool `json:"success"`
+	}
+
+	UserRegisterReq {
+		Mobile string `json:"mobile"`
+		Password string `json:"password"`
+	}
+
+	UserLoginReq {
+		Mobile string `json:"mobile"`
+		Password string `json:"password"`
+	}
+
+	UserLoginResp {
+		UserID int64 `json:"userId"`
+		Token string `json:"token"`
+	}
+
+	GetUserByIDReq {
+		UserID int64 `form:"userId"`
+	}
+
+	UserInfoResp {
+		UserID int64 `json:"userId"`
+		Mobile string `json:"mobile"`
+		Name string `json:"name,optional"`
+	}
+
+	UpdateUserReq {
+		UserID int64 `json:"userId"`
+		Name string `json:"name,optional"`
+	}
+)

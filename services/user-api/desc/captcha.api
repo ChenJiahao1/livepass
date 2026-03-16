@@ -1,0 +1,15 @@
+type (
+	GetCaptchaReq {
+		Scene string `form:"scene,optional"`
+	}
+
+	CaptchaResp {
+		CaptchaID string `json:"captchaId"`
+		Content string `json:"content"`
+	}
+
+	VerifyCaptchaReq {
+		CaptchaID string `json:"captchaId"`
+		Answer string `json:"answer"`
+	}
+)
