@@ -25,6 +25,13 @@
 - `gateway` 作为 HTTP 入口服务，归入 `services/gateway-api/`
 - `agents` 是预留的 Python 独立组件，不纳入 `go-zero` 服务目录规范，保留根级目录
 
+## Codex 本地上下文
+
+- 当前项目的 Codex 本地补充上下文位于 `.codex/`
+- 执行 go-zero 相关任务时，先遵守本文件，再参考 `.codex/README.md`
+- `.codex/ai-context/` 中的静态规则仅补充 go-zero 工作流、模式和 goctl 用法，不覆盖本文件的项目约束
+- `zero-skills` 通过全局 skills 提供，本仓库内不重复 vendoring skills
+
 ## 业务命名
 
 - 用户服务：`user`
