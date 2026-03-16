@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"damai-go/pkg/xredis"
 	"damai-go/services/user-rpc/internal/config"
 	"damai-go/services/user-rpc/internal/model"
 
@@ -8,15 +9,27 @@ import (
 )
 
 type ServiceContext struct {
-	Config     config.Config
-	DUserModel model.DUserModel
+	Config           config.Config
+	Redis            *xredis.Client
+	DUserModel       model.DUserModel
+	DUserMobileModel model.DUserMobileModel
+	DUserEmailModel  model.DUserEmailModel
+	DTicketUserModel model.DTicketUserModel
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
 	conn := sqlx.NewMysql(c.MySQL.DataSource)
+	var rds *xredis.Client
+	if c.Redis.Host != "" {
+		rds = xredis.MustNew(c.Redis)
+	}
 
 	return &ServiceContext{
-		Config:     c,
-		DUserModel: model.NewDUserModel(conn),
+		Config:           c,
+		Redis:            rds,
+		DUserModel:       model.NewDUserModel(conn),
+		DUserMobileModel: model.NewDUserMobileModel(conn),
+		DUserEmailModel:  model.NewDUserEmailModel(conn),
+		DTicketUserModel: model.NewDTicketUserModel(conn),
 	}
 }
