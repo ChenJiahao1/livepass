@@ -3,28 +3,45 @@ package logic
 import (
 	"context"
 	"database/sql"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
+	"time"
 
-	"damai-go/pkg/xmysql"
-	"damai-go/services/user-rpc/internal/config"
-	"damai-go/services/user-rpc/internal/svc"
-	"damai-go/services/user-rpc/pb"
-
+	red "github.com/redis/go-redis/v9"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"damai-go/pkg/xid"
+	"damai-go/pkg/xmysql"
+	"damai-go/pkg/xredis"
+	"damai-go/services/user-rpc/internal/config"
+	"damai-go/services/user-rpc/internal/model"
+	"damai-go/services/user-rpc/internal/svc"
+	"damai-go/services/user-rpc/pb"
 )
 
-const testMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_user?parseTime=true"
+const (
+	testMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_user?parseTime=true"
+	testRedisAddr       = "127.0.0.1:6379"
+	testChannelCode     = "0001"
+	testChannelSecret   = "local-user-secret-0001"
+)
 
 func TestRegisterInsertsUser(t *testing.T) {
-	resetDUserTable(t)
+	svcCtx := newTestServiceContext(t)
+	resetUserDomainState(t)
 
-	svcCtx := newTestServiceContext()
 	l := NewRegisterLogic(context.Background(), svcCtx)
 
 	resp, err := l.Register(&pb.RegisterReq{
-		Mobile:   "13800000000",
-		Password: "123456",
+		Mobile:          "13800000000",
+		Password:        "123456",
+		ConfirmPassword: "123456",
+		Mail:            "user@example.com",
+		MailStatus:      1,
 	})
 	if err != nil {
 		t.Fatalf("Register returned error: %v", err)
@@ -43,32 +60,43 @@ func TestRegisterInsertsUser(t *testing.T) {
 	if !user.Password.Valid {
 		t.Fatalf("expected stored password")
 	}
-	expectedHash := md5Hex("123456")
-	if user.Password.String != expectedHash {
-		t.Fatalf("unexpected password hash: got %s want %s", user.Password.String, expectedHash)
+	if user.Password.String != md5Hex("123456") {
+		t.Fatalf("unexpected password hash: %s", user.Password.String)
 	}
 	if user.Id == 0 {
 		t.Fatalf("expected non-zero user id")
 	}
+
+	mobileMapping, err := svcCtx.DUserMobileModel.FindOneByMobile(context.Background(), "13800000000")
+	if err != nil {
+		t.Fatalf("FindOneByMobile on mapping returned error: %v", err)
+	}
+	if mobileMapping.UserId != user.Id {
+		t.Fatalf("unexpected mobile mapping user id: %d", mobileMapping.UserId)
+	}
+
+	emailMapping, err := svcCtx.DUserEmailModel.FindOneByEmail(context.Background(), "user@example.com")
+	if err != nil {
+		t.Fatalf("FindOneByEmail returned error: %v", err)
+	}
+	if emailMapping.UserId != user.Id {
+		t.Fatalf("unexpected email mapping user id: %d", emailMapping.UserId)
+	}
 }
 
 func TestRegisterRejectsDuplicateMobile(t *testing.T) {
-	resetDUserTable(t)
-
-	svcCtx := newTestServiceContext()
-	l := NewRegisterLogic(context.Background(), svcCtx)
-
-	_, err := l.Register(&pb.RegisterReq{
+	svcCtx := newTestServiceContext(t)
+	resetUserDomainState(t)
+	mustSeedUser(t, svcCtx, userSeed{
 		Mobile:   "13800000001",
 		Password: "123456",
 	})
-	if err != nil {
-		t.Fatalf("first Register returned error: %v", err)
-	}
 
-	_, err = l.Register(&pb.RegisterReq{
-		Mobile:   "13800000001",
-		Password: "abcdef",
+	l := NewRegisterLogic(context.Background(), svcCtx)
+	_, err := l.Register(&pb.RegisterReq{
+		Mobile:          "13800000001",
+		Password:        "abcdef",
+		ConfirmPassword: "abcdef",
 	})
 	if err == nil {
 		t.Fatalf("expected duplicate mobile error")
@@ -78,15 +106,15 @@ func TestRegisterRejectsDuplicateMobile(t *testing.T) {
 	}
 }
 
-func TestRegisterRejectsInvalidArgument(t *testing.T) {
-	resetDUserTable(t)
+func TestRegisterRejectsConfirmPasswordMismatch(t *testing.T) {
+	svcCtx := newTestServiceContext(t)
+	resetUserDomainState(t)
 
-	svcCtx := newTestServiceContext()
 	l := NewRegisterLogic(context.Background(), svcCtx)
-
 	_, err := l.Register(&pb.RegisterReq{
-		Mobile:   "",
-		Password: "123456",
+		Mobile:          "13800000002",
+		Password:        "123456",
+		ConfirmPassword: "654321",
 	})
 	if err == nil {
 		t.Fatalf("expected invalid argument error")
@@ -96,15 +124,27 @@ func TestRegisterRejectsInvalidArgument(t *testing.T) {
 	}
 }
 
-func newTestServiceContext() *svc.ServiceContext {
+func newTestServiceContext(t *testing.T) *svc.ServiceContext {
+	t.Helper()
 	return svc.NewServiceContext(config.Config{
 		MySQL: xmysql.Config{
 			DataSource: testMySQLDataSource,
 		},
+		Redis: xredis.Config{
+			Host: testRedisAddr,
+			Type: "node",
+		},
+		UserAuth: config.UserAuthConfig{
+			TokenExpire:    time.Hour,
+			LoginFailLimit: 2,
+			ChannelMap: map[string]string{
+				testChannelCode: testChannelSecret,
+			},
+		},
 	})
 }
 
-func resetDUserTable(t *testing.T) {
+func resetUserDomainState(t *testing.T) {
 	t.Helper()
 
 	db, err := sql.Open("mysql", testMySQLDataSource)
@@ -113,29 +153,145 @@ func resetDUserTable(t *testing.T) {
 	}
 	defer db.Close()
 
-	dropDDL := `DROP TABLE IF EXISTS d_user;`
-	createDDL := `CREATE TABLE d_user (
-  id BIGINT NOT NULL COMMENT '主键id',
-  name VARCHAR(256) DEFAULT NULL COMMENT '用户名字',
-  rel_name VARCHAR(256) DEFAULT NULL COMMENT '用户真实名字',
-  mobile VARCHAR(512) NOT NULL COMMENT '手机号',
-  gender INT NOT NULL DEFAULT 1 COMMENT '1:男 2:女',
-  password VARCHAR(512) DEFAULT NULL COMMENT '密码',
-  email_status TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否邮箱认证 1:已验证 0:未验证',
-  email VARCHAR(256) DEFAULT NULL COMMENT '邮箱地址',
-  rel_authentication_status TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否实名认证 1:已验证 0:未验证',
-  id_number VARCHAR(512) DEFAULT NULL COMMENT '身份证号码',
-  address VARCHAR(256) DEFAULT NULL COMMENT '收货地址',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  edit_time DATETIME DEFAULT NULL COMMENT '编辑时间',
-  status TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1:正常 0:删除',
-  PRIMARY KEY (id),
-  KEY idx_d_user_mobile (mobile)
-);`
-	if _, err := db.Exec(dropDDL); err != nil {
-		t.Fatalf("drop d_user table error: %v", err)
+	for _, ddlPath := range []string{
+		"sql/user/d_ticket_user.sql",
+		"sql/user/d_user_email.sql",
+		"sql/user/d_user_mobile.sql",
+		"sql/user/d_user.sql",
+	} {
+		execSQLFile(t, db, ddlPath)
 	}
-	if _, err := db.Exec(createDDL); err != nil {
-		t.Fatalf("reset d_user table error: %v", err)
+
+	rdb := red.NewClient(&red.Options{Addr: testRedisAddr})
+	defer rdb.Close()
+	if err := rdb.FlushDB(context.Background()).Err(); err != nil {
+		t.Fatalf("FlushDB error: %v", err)
 	}
+}
+
+type userSeed struct {
+	Name        string
+	Mobile      string
+	Email       string
+	Password    string
+	EmailStatus int64
+	RelName     string
+	IdNumber    string
+	Address     string
+}
+
+func mustSeedUser(t *testing.T, svcCtx *svc.ServiceContext, seed userSeed) *model.DUser {
+	t.Helper()
+
+	now := time.Now()
+	user := &model.DUser{
+		Id:       xid.New(),
+		Name:     nullString(seed.Name),
+		Mobile:   seed.Mobile,
+		Gender:   1,
+		Password: sql.NullString{String: md5Hex(seed.Password), Valid: seed.Password != ""},
+		Email:    nullString(seed.Email),
+		EmailStatus: func() int64 {
+			if seed.Email != "" && seed.EmailStatus == 0 {
+				return 1
+			}
+			return seed.EmailStatus
+		}(),
+		RelName:                 nullString(seed.RelName),
+		IdNumber:                nullString(seed.IdNumber),
+		Address:                 nullString(seed.Address),
+		RelAuthenticationStatus: boolToInt64(seed.RelName != "" && seed.IdNumber != ""),
+		EditTime:                sql.NullTime{Time: now, Valid: true},
+		Status:                  1,
+	}
+	if _, err := svcCtx.DUserModel.Insert(context.Background(), user); err != nil {
+		t.Fatalf("insert d_user error: %v", err)
+	}
+
+	mobile := &model.DUserMobile{
+		Id:       xid.New(),
+		UserId:   user.Id,
+		Mobile:   seed.Mobile,
+		EditTime: sql.NullTime{Time: now, Valid: true},
+		Status:   1,
+	}
+	if _, err := svcCtx.DUserMobileModel.Insert(context.Background(), mobile); err != nil {
+		t.Fatalf("insert d_user_mobile error: %v", err)
+	}
+
+	if seed.Email != "" {
+		email := &model.DUserEmail{
+			Id:          xid.New(),
+			UserId:      user.Id,
+			Email:       seed.Email,
+			EmailStatus: user.EmailStatus,
+			EditTime:    sql.NullTime{Time: now, Valid: true},
+			Status:      1,
+		}
+		if _, err := svcCtx.DUserEmailModel.Insert(context.Background(), email); err != nil {
+			t.Fatalf("insert d_user_email error: %v", err)
+		}
+	}
+
+	return user
+}
+
+func mustSeedTicketUser(t *testing.T, svcCtx *svc.ServiceContext, userID int64, relName string, idType int64, idNumber string) *model.DTicketUser {
+	t.Helper()
+
+	ticketUser := &model.DTicketUser{
+		Id:       xid.New(),
+		UserId:   userID,
+		RelName:  relName,
+		IdType:   idType,
+		IdNumber: idNumber,
+		EditTime: sql.NullTime{Time: time.Now(), Valid: true},
+		Status:   1,
+	}
+	if _, err := svcCtx.DTicketUserModel.Insert(context.Background(), ticketUser); err != nil {
+		t.Fatalf("insert d_ticket_user error: %v", err)
+	}
+
+	return ticketUser
+}
+
+func execSQLFile(t *testing.T, db *sql.DB, relativePath string) {
+	t.Helper()
+
+	content, err := os.ReadFile(filepath.Join(projectRoot(t), relativePath))
+	if err != nil {
+		t.Fatalf("ReadFile %s error: %v", relativePath, err)
+	}
+
+	for _, stmt := range strings.Split(string(content), ";") {
+		stmt = strings.TrimSpace(stmt)
+		if stmt == "" {
+			continue
+		}
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("exec %s error: %v\nstatement: %s", relativePath, err, stmt)
+		}
+	}
+}
+
+func projectRoot(t *testing.T) string {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("runtime.Caller failed")
+	}
+
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", ".."))
+}
+
+func nullString(value string) sql.NullString {
+	return sql.NullString{String: value, Valid: value != ""}
+}
+
+func boolToInt64(value bool) int64 {
+	if value {
+		return 1
+	}
+	return 0
 }
