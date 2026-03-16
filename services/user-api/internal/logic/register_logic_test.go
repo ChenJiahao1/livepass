@@ -59,7 +59,31 @@ func (f *fakeUserRPC) GetUserById(ctx context.Context, in *userrpc.GetUserByIdRe
 	panic("unexpected call")
 }
 
+func (f *fakeUserRPC) GetUserByMobile(ctx context.Context, in *userrpc.GetUserByMobileReq, opts ...grpc.CallOption) (*userrpc.UserInfo, error) {
+	panic("unexpected call")
+}
+
+func (f *fakeUserRPC) Logout(ctx context.Context, in *userrpc.LogoutReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {
+	panic("unexpected call")
+}
+
 func (f *fakeUserRPC) UpdateUser(ctx context.Context, in *userrpc.UpdateUserReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {
+	panic("unexpected call")
+}
+
+func (f *fakeUserRPC) UpdatePassword(ctx context.Context, in *userrpc.UpdatePasswordReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {
+	panic("unexpected call")
+}
+
+func (f *fakeUserRPC) UpdateEmail(ctx context.Context, in *userrpc.UpdateEmailReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {
+	panic("unexpected call")
+}
+
+func (f *fakeUserRPC) UpdateMobile(ctx context.Context, in *userrpc.UpdateMobileReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {
+	panic("unexpected call")
+}
+
+func (f *fakeUserRPC) Authentication(ctx context.Context, in *userrpc.AuthenticationReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {
 	panic("unexpected call")
 }
 
@@ -71,10 +95,10 @@ func (f *fakeUserRPC) AddTicketUser(ctx context.Context, in *userrpc.AddTicketUs
 	panic("unexpected call")
 }
 
-func (f *fakeUserRPC) GetCaptcha(ctx context.Context, in *userrpc.GetCaptchaReq, opts ...grpc.CallOption) (*userrpc.CaptchaResp, error) {
+func (f *fakeUserRPC) DeleteTicketUser(ctx context.Context, in *userrpc.DeleteTicketUserReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {
 	panic("unexpected call")
 }
 
-func (f *fakeUserRPC) VerifyCaptcha(ctx context.Context, in *userrpc.VerifyCaptchaReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {
+func (f *fakeUserRPC) GetUserAndTicketUserList(ctx context.Context, in *userrpc.GetUserAndTicketUserListReq, opts ...grpc.CallOption) (*userrpc.GetUserAndTicketUserListResp, error) {
 	panic("unexpected call")
 }
