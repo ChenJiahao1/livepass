@@ -1,2 +1,3 @@
 CREATE DATABASE IF NOT EXISTS damai_user CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS damai_program CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS damai_order CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
