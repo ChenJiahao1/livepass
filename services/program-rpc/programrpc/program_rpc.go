@@ -14,6 +14,8 @@ import (
 )
 
 type (
+	AutoAssignAndFreezeSeatsReq      = pb.AutoAssignAndFreezeSeatsReq
+	AutoAssignAndFreezeSeatsResp     = pb.AutoAssignAndFreezeSeatsResp
 	Empty                            = pb.Empty
 	GetProgramDetailReq              = pb.GetProgramDetailReq
 	ListHomeProgramsReq              = pb.ListHomeProgramsReq
@@ -28,6 +30,9 @@ type (
 	ProgramListInfo                  = pb.ProgramListInfo
 	ProgramPageResp                  = pb.ProgramPageResp
 	ProgramSimpleInfo                = pb.ProgramSimpleInfo
+	ReleaseSeatFreezeReq             = pb.ReleaseSeatFreezeReq
+	ReleaseSeatFreezeResp            = pb.ReleaseSeatFreezeResp
+	SeatInfo                         = pb.SeatInfo
 	TicketCategoryDetailInfo         = pb.TicketCategoryDetailInfo
 	TicketCategoryDetailListResp     = pb.TicketCategoryDetailListResp
 	TicketCategoryInfo               = pb.TicketCategoryInfo
@@ -38,6 +43,8 @@ type (
 		PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 		GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
 		ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
+		AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
+		ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
 	}
 
 	defaultProgramRpc struct {
@@ -74,4 +81,14 @@ func (m *defaultProgramRpc) GetProgramDetail(ctx context.Context, in *GetProgram
 func (m *defaultProgramRpc) ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.ListTicketCategoriesByProgram(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.AutoAssignAndFreezeSeats(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.ReleaseSeatFreeze(ctx, in, opts...)
 }

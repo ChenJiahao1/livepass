@@ -24,6 +24,8 @@ const (
 	ProgramRpc_PagePrograms_FullMethodName                  = "/program.ProgramRpc/PagePrograms"
 	ProgramRpc_GetProgramDetail_FullMethodName              = "/program.ProgramRpc/GetProgramDetail"
 	ProgramRpc_ListTicketCategoriesByProgram_FullMethodName = "/program.ProgramRpc/ListTicketCategoriesByProgram"
+	ProgramRpc_AutoAssignAndFreezeSeats_FullMethodName      = "/program.ProgramRpc/AutoAssignAndFreezeSeats"
+	ProgramRpc_ReleaseSeatFreeze_FullMethodName             = "/program.ProgramRpc/ReleaseSeatFreeze"
 )
 
 // ProgramRpcClient is the client API for ProgramRpc service.
@@ -35,6 +37,8 @@ type ProgramRpcClient interface {
 	PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 	GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
 	ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
+	AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
+	ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
 }
 
 type programRpcClient struct {
@@ -95,6 +99,26 @@ func (c *programRpcClient) ListTicketCategoriesByProgram(ctx context.Context, in
 	return out, nil
 }
 
+func (c *programRpcClient) AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AutoAssignAndFreezeSeatsResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_AutoAssignAndFreezeSeats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReleaseSeatFreezeResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_ReleaseSeatFreeze_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProgramRpcServer is the server API for ProgramRpc service.
 // All implementations must embed UnimplementedProgramRpcServer
 // for forward compatibility.
@@ -104,6 +128,8 @@ type ProgramRpcServer interface {
 	PagePrograms(context.Context, *PageProgramsReq) (*ProgramPageResp, error)
 	GetProgramDetail(context.Context, *GetProgramDetailReq) (*ProgramDetailInfo, error)
 	ListTicketCategoriesByProgram(context.Context, *ListTicketCategoriesByProgramReq) (*TicketCategoryDetailListResp, error)
+	AutoAssignAndFreezeSeats(context.Context, *AutoAssignAndFreezeSeatsReq) (*AutoAssignAndFreezeSeatsResp, error)
+	ReleaseSeatFreeze(context.Context, *ReleaseSeatFreezeReq) (*ReleaseSeatFreezeResp, error)
 	mustEmbedUnimplementedProgramRpcServer()
 }
 
@@ -128,6 +154,12 @@ func (UnimplementedProgramRpcServer) GetProgramDetail(context.Context, *GetProgr
 }
 func (UnimplementedProgramRpcServer) ListTicketCategoriesByProgram(context.Context, *ListTicketCategoriesByProgramReq) (*TicketCategoryDetailListResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTicketCategoriesByProgram not implemented")
+}
+func (UnimplementedProgramRpcServer) AutoAssignAndFreezeSeats(context.Context, *AutoAssignAndFreezeSeatsReq) (*AutoAssignAndFreezeSeatsResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method AutoAssignAndFreezeSeats not implemented")
+}
+func (UnimplementedProgramRpcServer) ReleaseSeatFreeze(context.Context, *ReleaseSeatFreezeReq) (*ReleaseSeatFreezeResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReleaseSeatFreeze not implemented")
 }
 func (UnimplementedProgramRpcServer) mustEmbedUnimplementedProgramRpcServer() {}
 func (UnimplementedProgramRpcServer) testEmbeddedByValue()                    {}
@@ -240,6 +272,42 @@ func _ProgramRpc_ListTicketCategoriesByProgram_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProgramRpc_AutoAssignAndFreezeSeats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AutoAssignAndFreezeSeatsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).AutoAssignAndFreezeSeats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_AutoAssignAndFreezeSeats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).AutoAssignAndFreezeSeats(ctx, req.(*AutoAssignAndFreezeSeatsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_ReleaseSeatFreeze_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReleaseSeatFreezeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).ReleaseSeatFreeze(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_ReleaseSeatFreeze_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).ReleaseSeatFreeze(ctx, req.(*ReleaseSeatFreezeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProgramRpc_ServiceDesc is the grpc.ServiceDesc for ProgramRpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +334,14 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListTicketCategoriesByProgram",
 			Handler:    _ProgramRpc_ListTicketCategoriesByProgram_Handler,
+		},
+		{
+			MethodName: "AutoAssignAndFreezeSeats",
+			Handler:    _ProgramRpc_AutoAssignAndFreezeSeats_Handler,
+		},
+		{
+			MethodName: "ReleaseSeatFreeze",
+			Handler:    _ProgramRpc_ReleaseSeatFreeze_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
