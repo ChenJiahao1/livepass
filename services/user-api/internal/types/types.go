@@ -5,7 +5,14 @@ package types
 
 type AddTicketUserReq struct {
 	UserID   int64  `json:"userId"`
-	Name     string `json:"name"`
+	RelName  string `json:"relName"`
+	IdType   int64  `json:"idType"`
+	IdNumber string `json:"idNumber"`
+}
+
+type AuthenticationReq struct {
+	ID       int64  `json:"id"`
+	RelName  string `json:"relName"`
 	IdNumber string `json:"idNumber"`
 }
 
@@ -13,46 +20,75 @@ type BoolResp struct {
 	Success bool `json:"success"`
 }
 
-type CaptchaResp struct {
-	CaptchaID string `json:"captchaId"`
-	Content   string `json:"content"`
+type DeleteTicketUserReq struct {
+	ID int64 `json:"id"`
 }
 
-type GetCaptchaReq struct {
-	Scene string `form:"scene,optional"`
+type GetUserAndTicketUserListReq struct {
+	UserID int64 `json:"userId"`
+}
+
+type GetUserAndTicketUserListResp struct {
+	UserVo           UserVo         `json:"userVo"`
+	TicketUserVoList []TicketUserVo `json:"ticketUserVoList"`
 }
 
 type GetUserByIDReq struct {
-	UserID int64 `form:"userId"`
+	ID int64 `json:"id"`
+}
+
+type GetUserByMobileReq struct {
+	Mobile string `json:"mobile"`
 }
 
 type ListTicketUsersReq struct {
-	UserID int64 `form:"userId"`
-}
-
-type TicketUserInfo struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	IdNumber string `json:"idNumber,optional"`
+	UserID int64 `json:"userId"`
 }
 
 type TicketUserListResp struct {
-	List []TicketUserInfo `json:"list"`
+	List []TicketUserVo `json:"list"`
+}
+
+type TicketUserVo struct {
+	ID       int64  `json:"id"`
+	UserID   int64  `json:"userId"`
+	RelName  string `json:"relName,optional"`
+	IdType   int64  `json:"idType,optional"`
+	IdNumber string `json:"idNumber,optional"`
+}
+
+type UpdateEmailReq struct {
+	ID          int64  `json:"id"`
+	Email       string `json:"email"`
+	EmailStatus int64  `json:"emailStatus,optional"`
+}
+
+type UpdateMobileReq struct {
+	ID     int64  `json:"id"`
+	Mobile string `json:"mobile"`
+}
+
+type UpdatePasswordReq struct {
+	ID       int64  `json:"id"`
+	Password string `json:"password"`
 }
 
 type UpdateUserReq struct {
-	UserID int64  `json:"userId"`
-	Name   string `json:"name,optional"`
+	ID      int64  `json:"id"`
+	Name    string `json:"name,optional"`
+	Gender  int64  `json:"gender,optional"`
+	Mobile  string `json:"mobile,optional"`
+	Address string `json:"address,optional"`
 }
 
-type UserInfoResp struct {
-	UserID int64  `json:"userId"`
+type UserExistReq struct {
 	Mobile string `json:"mobile"`
-	Name   string `json:"name,optional"`
 }
 
 type UserLoginReq struct {
-	Mobile   string `json:"mobile"`
+	Code     string `json:"code"`
+	Mobile   string `json:"mobile,optional"`
+	Email    string `json:"email,optional"`
 	Password string `json:"password"`
 }
 
@@ -61,12 +97,28 @@ type UserLoginResp struct {
 	Token  string `json:"token"`
 }
 
-type UserRegisterReq struct {
-	Mobile   string `json:"mobile"`
-	Password string `json:"password"`
+type UserLogoutReq struct {
+	Code  string `json:"code"`
+	Token string `json:"token"`
 }
 
-type VerifyCaptchaReq struct {
-	CaptchaID string `json:"captchaId"`
-	Answer    string `json:"answer"`
+type UserRegisterReq struct {
+	Mobile          string `json:"mobile"`
+	Password        string `json:"password"`
+	ConfirmPassword string `json:"confirmPassword"`
+	Mail            string `json:"mail,optional"`
+	MailStatus      int64  `json:"mailStatus,optional"`
+}
+
+type UserVo struct {
+	ID                      int64  `json:"id"`
+	Name                    string `json:"name,optional"`
+	RelName                 string `json:"relName,optional"`
+	Gender                  int64  `json:"gender,optional"`
+	Mobile                  string `json:"mobile,optional"`
+	EmailStatus             int64  `json:"emailStatus,optional"`
+	Email                   string `json:"email,optional"`
+	RelAuthenticationStatus int64  `json:"relAuthenticationStatus,optional"`
+	IdNumber                string `json:"idNumber,optional"`
+	Address                 string `json:"address,optional"`
 }

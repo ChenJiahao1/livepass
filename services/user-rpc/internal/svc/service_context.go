@@ -20,8 +20,8 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	conn := sqlx.NewMysql(c.MySQL.DataSource)
 	var rds *xredis.Client
-	if c.Redis.Host != "" {
-		rds = xredis.MustNew(c.Redis)
+	if c.StoreRedis.Host != "" {
+		rds = xredis.MustNew(c.StoreRedis)
 	}
 
 	return &ServiceContext{

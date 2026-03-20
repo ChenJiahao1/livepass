@@ -39,6 +39,10 @@ message RegisterReq {
   int64 mailStatus = 5;
 }
 
+message ExistReq {
+  string mobile = 1;
+}
+
 message LoginReq {
   string code = 1;
   string mobile = 2;
@@ -124,6 +128,7 @@ message GetUserAndTicketUserListResp {
 
 service UserRpc {
   rpc Register(RegisterReq) returns (BoolResp);
+  rpc Exist(ExistReq) returns (BoolResp);
   rpc Login(LoginReq) returns (LoginResp);
   rpc GetUserById(GetUserByIdReq) returns (UserInfo);
   rpc GetUserByMobile(GetUserByMobileReq) returns (UserInfo);

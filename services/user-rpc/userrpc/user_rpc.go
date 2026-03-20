@@ -19,6 +19,7 @@ type (
 	BoolResp                     = pb.BoolResp
 	DeleteTicketUserReq          = pb.DeleteTicketUserReq
 	Empty                        = pb.Empty
+	ExistReq                     = pb.ExistReq
 	GetUserAndTicketUserListReq  = pb.GetUserAndTicketUserListReq
 	GetUserAndTicketUserListResp = pb.GetUserAndTicketUserListResp
 	GetUserByIdReq               = pb.GetUserByIdReq
@@ -38,6 +39,7 @@ type (
 
 	UserRpc interface {
 		Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*BoolResp, error)
+		Exist(ctx context.Context, in *ExistReq, opts ...grpc.CallOption) (*BoolResp, error)
 		Login(ctx context.Context, in *LoginReq, opts ...grpc.CallOption) (*LoginResp, error)
 		GetUserById(ctx context.Context, in *GetUserByIdReq, opts ...grpc.CallOption) (*UserInfo, error)
 		GetUserByMobile(ctx context.Context, in *GetUserByMobileReq, opts ...grpc.CallOption) (*UserInfo, error)
@@ -67,6 +69,11 @@ func NewUserRpc(cli zrpc.Client) UserRpc {
 func (m *defaultUserRpc) Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	client := pb.NewUserRpcClient(m.cli.Conn())
 	return client.Register(ctx, in, opts...)
+}
+
+func (m *defaultUserRpc) Exist(ctx context.Context, in *ExistReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewUserRpcClient(m.cli.Conn())
+	return client.Exist(ctx, in, opts...)
 }
 
 func (m *defaultUserRpc) Login(ctx context.Context, in *LoginReq, opts ...grpc.CallOption) (*LoginResp, error) {

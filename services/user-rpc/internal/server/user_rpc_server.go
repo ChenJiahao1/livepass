@@ -28,6 +28,11 @@ func (s *UserRpcServer) Register(ctx context.Context, in *pb.RegisterReq) (*pb.B
 	return l.Register(in)
 }
 
+func (s *UserRpcServer) Exist(ctx context.Context, in *pb.ExistReq) (*pb.BoolResp, error) {
+	l := logic.NewExistLogic(ctx, s.svcCtx)
+	return l.Exist(in)
+}
+
 func (s *UserRpcServer) Login(ctx context.Context, in *pb.LoginReq) (*pb.LoginResp, error) {
 	l := logic.NewLoginLogic(ctx, s.svcCtx)
 	return l.Login(in)

@@ -12,16 +12,16 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func GetCaptchaHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func DeleteTicketUserHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GetCaptchaReq
+		var req types.DeleteTicketUserReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
 
-		l := logic.NewGetCaptchaLogic(r.Context(), svcCtx)
-		resp, err := l.GetCaptcha(&req)
+		l := logic.NewDeleteTicketUserLogic(r.Context(), svcCtx)
+		resp, err := l.DeleteTicketUser(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

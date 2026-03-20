@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	UserRpc_Register_FullMethodName                 = "/user.UserRpc/Register"
+	UserRpc_Exist_FullMethodName                    = "/user.UserRpc/Exist"
 	UserRpc_Login_FullMethodName                    = "/user.UserRpc/Login"
 	UserRpc_GetUserById_FullMethodName              = "/user.UserRpc/GetUserById"
 	UserRpc_GetUserByMobile_FullMethodName          = "/user.UserRpc/GetUserByMobile"
@@ -40,6 +41,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserRpcClient interface {
 	Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*BoolResp, error)
+	Exist(ctx context.Context, in *ExistReq, opts ...grpc.CallOption) (*BoolResp, error)
 	Login(ctx context.Context, in *LoginReq, opts ...grpc.CallOption) (*LoginResp, error)
 	GetUserById(ctx context.Context, in *GetUserByIdReq, opts ...grpc.CallOption) (*UserInfo, error)
 	GetUserByMobile(ctx context.Context, in *GetUserByMobileReq, opts ...grpc.CallOption) (*UserInfo, error)
@@ -67,6 +69,16 @@ func (c *userRpcClient) Register(ctx context.Context, in *RegisterReq, opts ...g
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BoolResp)
 	err := c.cc.Invoke(ctx, UserRpc_Register_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userRpcClient) Exist(ctx context.Context, in *ExistReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, UserRpc_Exist_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +220,7 @@ func (c *userRpcClient) GetUserAndTicketUserList(ctx context.Context, in *GetUse
 // for forward compatibility.
 type UserRpcServer interface {
 	Register(context.Context, *RegisterReq) (*BoolResp, error)
+	Exist(context.Context, *ExistReq) (*BoolResp, error)
 	Login(context.Context, *LoginReq) (*LoginResp, error)
 	GetUserById(context.Context, *GetUserByIdReq) (*UserInfo, error)
 	GetUserByMobile(context.Context, *GetUserByMobileReq) (*UserInfo, error)
@@ -233,6 +246,9 @@ type UnimplementedUserRpcServer struct{}
 
 func (UnimplementedUserRpcServer) Register(context.Context, *RegisterReq) (*BoolResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedUserRpcServer) Exist(context.Context, *ExistReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method Exist not implemented")
 }
 func (UnimplementedUserRpcServer) Login(context.Context, *LoginReq) (*LoginResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
@@ -308,6 +324,24 @@ func _UserRpc_Register_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserRpcServer).Register(ctx, req.(*RegisterReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserRpc_Exist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExistReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).Exist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_Exist_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).Exist(ctx, req.(*ExistReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -556,6 +590,10 @@ var UserRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Register",
 			Handler:    _UserRpc_Register_Handler,
+		},
+		{
+			MethodName: "Exist",
+			Handler:    _UserRpc_Exist_Handler,
 		},
 		{
 			MethodName: "Login",

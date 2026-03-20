@@ -16,7 +16,7 @@ type UserAuthConfig struct {
 
 type Config struct {
 	zrpc.RpcServerConf
-	MySQL    xmysql.Config
-	Redis    xredis.Config
-	UserAuth UserAuthConfig
+	MySQL      xmysql.Config
+	StoreRedis xredis.Config `json:"StoreRedis,optional"`
+	UserAuth   UserAuthConfig
 }

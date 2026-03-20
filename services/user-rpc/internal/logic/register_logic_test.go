@@ -124,13 +124,45 @@ func TestRegisterRejectsConfirmPasswordMismatch(t *testing.T) {
 	}
 }
 
+func TestExistReturnsSuccessWhenMobileMissing(t *testing.T) {
+	svcCtx := newTestServiceContext(t)
+	resetUserDomainState(t)
+
+	l := NewExistLogic(context.Background(), svcCtx)
+	resp, err := l.Exist(&pb.ExistReq{Mobile: "13800000009"})
+	if err != nil {
+		t.Fatalf("Exist returned error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatalf("expected success response")
+	}
+}
+
+func TestExistRejectsDuplicateMobile(t *testing.T) {
+	svcCtx := newTestServiceContext(t)
+	resetUserDomainState(t)
+	mustSeedUser(t, svcCtx, userSeed{
+		Mobile:   "13800000010",
+		Password: "123456",
+	})
+
+	l := NewExistLogic(context.Background(), svcCtx)
+	_, err := l.Exist(&pb.ExistReq{Mobile: "13800000010"})
+	if err == nil {
+		t.Fatalf("expected already exists error")
+	}
+	if status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("expected already exists code, got %s", status.Code(err))
+	}
+}
+
 func newTestServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
 	return svc.NewServiceContext(config.Config{
 		MySQL: xmysql.Config{
 			DataSource: testMySQLDataSource,
 		},
-		Redis: xredis.Config{
+		StoreRedis: xredis.Config{
 			Host: testRedisAddr,
 			Type: "node",
 		},

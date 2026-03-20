@@ -13,23 +13,23 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type GetUserByIDLogic struct {
+type GetUserByMobileLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetUserByIDLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserByIDLogic {
-	return &GetUserByIDLogic{
+func NewGetUserByMobileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserByMobileLogic {
+	return &GetUserByMobileLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetUserByIDLogic) GetUserByID(req *types.GetUserByIDReq) (resp *types.UserVo, err error) {
-	rpcResp, err := l.svcCtx.UserRpc.GetUserById(l.ctx, &userrpc.GetUserByIdReq{
-		Id: req.ID,
+func (l *GetUserByMobileLogic) GetUserByMobile(req *types.GetUserByMobileReq) (resp *types.UserVo, err error) {
+	rpcResp, err := l.svcCtx.UserRpc.GetUserByMobile(l.ctx, &userrpc.GetUserByMobileReq{
+		Mobile: req.Mobile,
 	})
 	if err != nil {
 		return nil, err

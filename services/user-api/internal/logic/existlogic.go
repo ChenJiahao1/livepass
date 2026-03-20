@@ -13,27 +13,23 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type RegisterLogic struct {
+type ExistLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegisterLogic {
-	return &RegisterLogic{
+func NewExistLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ExistLogic {
+	return &ExistLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *RegisterLogic) Register(req *types.UserRegisterReq) (resp *types.BoolResp, err error) {
-	rpcResp, err := l.svcCtx.UserRpc.Register(l.ctx, &userrpc.RegisterReq{
-		Mobile:          req.Mobile,
-		Password:        req.Password,
-		ConfirmPassword: req.ConfirmPassword,
-		Mail:            req.Mail,
-		MailStatus:      req.MailStatus,
+func (l *ExistLogic) Exist(req *types.UserExistReq) (resp *types.BoolResp, err error) {
+	rpcResp, err := l.svcCtx.UserRpc.Exist(l.ctx, &userrpc.ExistReq{
+		Mobile: req.Mobile,
 	})
 	if err != nil {
 		return nil, err

@@ -13,27 +13,24 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type RegisterLogic struct {
+type UpdatePasswordLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegisterLogic {
-	return &RegisterLogic{
+func NewUpdatePasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdatePasswordLogic {
+	return &UpdatePasswordLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *RegisterLogic) Register(req *types.UserRegisterReq) (resp *types.BoolResp, err error) {
-	rpcResp, err := l.svcCtx.UserRpc.Register(l.ctx, &userrpc.RegisterReq{
-		Mobile:          req.Mobile,
-		Password:        req.Password,
-		ConfirmPassword: req.ConfirmPassword,
-		Mail:            req.Mail,
-		MailStatus:      req.MailStatus,
+func (l *UpdatePasswordLogic) UpdatePassword(req *types.UpdatePasswordReq) (resp *types.BoolResp, err error) {
+	rpcResp, err := l.svcCtx.UserRpc.UpdatePassword(l.ctx, &userrpc.UpdatePasswordReq{
+		Id:       req.ID,
+		Password: req.Password,
 	})
 	if err != nil {
 		return nil, err
