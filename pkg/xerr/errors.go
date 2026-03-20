@@ -15,4 +15,10 @@ var (
 	ErrMobileAlreadyUsed  = errors.New("mobile already used")
 	ErrEmailAlreadyUsed   = errors.New("email already used")
 	ErrTicketUserExists   = errors.New("ticket user already exists")
+
+	ErrProgramShowTimeNotFound       = errors.New("program show time not found")
+	ErrProgramTicketCategoryNotFound = errors.New("program ticket category not found")
+	ErrSeatInventoryInsufficient     = errors.New("seat inventory insufficient")
+	ErrSeatFreezeNotFound            = errors.New("seat freeze not found")
+	ErrSeatFreezeRequestConflict     = errors.New("seat freeze request conflict")
 )

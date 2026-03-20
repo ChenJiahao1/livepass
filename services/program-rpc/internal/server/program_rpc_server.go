@@ -47,3 +47,13 @@ func (s *ProgramRpcServer) ListTicketCategoriesByProgram(ctx context.Context, in
 	l := logic.NewListTicketCategoriesByProgramLogic(ctx, s.svcCtx)
 	return l.ListTicketCategoriesByProgram(in)
 }
+
+func (s *ProgramRpcServer) AutoAssignAndFreezeSeats(ctx context.Context, in *pb.AutoAssignAndFreezeSeatsReq) (*pb.AutoAssignAndFreezeSeatsResp, error) {
+	l := logic.NewAutoAssignAndFreezeSeatsLogic(ctx, s.svcCtx)
+	return l.AutoAssignAndFreezeSeats(in)
+}
+
+func (s *ProgramRpcServer) ReleaseSeatFreeze(ctx context.Context, in *pb.ReleaseSeatFreezeReq) (*pb.ReleaseSeatFreezeResp, error) {
+	l := logic.NewReleaseSeatFreezeLogic(ctx, s.svcCtx)
+	return l.ReleaseSeatFreeze(in)
+}
