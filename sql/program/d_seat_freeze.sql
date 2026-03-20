@@ -6,7 +6,7 @@ CREATE TABLE `d_seat_freeze` (
   `program_id` bigint NOT NULL COMMENT 'program id',
   `ticket_category_id` bigint NOT NULL COMMENT 'ticket category id',
   `seat_count` int NOT NULL COMMENT 'frozen seat count',
-  `freeze_status` tinyint NOT NULL COMMENT '1 frozen, 2 released, 3 expired',
+  `freeze_status` tinyint NOT NULL COMMENT '1 frozen, 2 released, 3 expired, 4 confirmed',
   `expire_time` datetime NOT NULL COMMENT 'freeze expire time',
   `release_reason` varchar(128) DEFAULT NULL COMMENT 'release reason',
   `release_time` datetime DEFAULT NULL COMMENT 'released at',

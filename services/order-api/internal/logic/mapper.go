@@ -112,3 +112,31 @@ func mapOrderTicketInfoList(list []*orderrpc.OrderTicketInfo) []types.OrderTicke
 
 	return resp
 }
+
+func mapPayOrderResp(resp *orderrpc.PayOrderResp) *types.PayOrderResp {
+	if resp == nil {
+		return &types.PayOrderResp{}
+	}
+
+	return &types.PayOrderResp{
+		OrderNumber: resp.OrderNumber,
+		OrderStatus: resp.OrderStatus,
+		PayBillNo:   resp.PayBillNo,
+		PayStatus:   resp.PayStatus,
+		PayTime:     resp.PayTime,
+	}
+}
+
+func mapPayCheckResp(resp *orderrpc.PayCheckResp) *types.PayCheckResp {
+	if resp == nil {
+		return &types.PayCheckResp{}
+	}
+
+	return &types.PayCheckResp{
+		OrderNumber: resp.OrderNumber,
+		OrderStatus: resp.OrderStatus,
+		PayBillNo:   resp.PayBillNo,
+		PayStatus:   resp.PayStatus,
+		PayTime:     resp.PayTime,
+	}
+}

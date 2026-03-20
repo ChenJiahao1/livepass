@@ -26,9 +26,10 @@ type AutoAssignAndFreezeSeatsLogic struct {
 }
 
 const (
-	seatFreezeStatusFrozen   int64 = 1
-	seatFreezeStatusReleased int64 = 2
-	seatFreezeStatusExpired  int64 = 3
+	seatFreezeStatusFrozen    int64 = 1
+	seatFreezeStatusReleased  int64 = 2
+	seatFreezeStatusExpired   int64 = 3
+	seatFreezeStatusConfirmed int64 = 4
 )
 
 func NewAutoAssignAndFreezeSeatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AutoAssignAndFreezeSeatsLogic {
@@ -123,7 +124,7 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 			EditTime:         now,
 			Status:           1,
 		}
-		if _, err := seatFreezeModel.Insert(ctx, freeze); err != nil {
+		if _, err := seatFreezeModel.InsertWithSession(ctx, session, freeze); err != nil {
 			return err
 		}
 

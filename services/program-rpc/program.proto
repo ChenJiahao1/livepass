@@ -165,6 +165,14 @@ message ReleaseSeatFreezeResp {
   bool success = 1;
 }
 
+message ConfirmSeatFreezeReq {
+  string freezeToken = 1;
+}
+
+message ConfirmSeatFreezeResp {
+  bool success = 1;
+}
+
 message ProgramDetailInfo {
   int64 id = 1;
   int64 programGroupId = 2;
@@ -230,4 +238,5 @@ service ProgramRpc {
   rpc ListTicketCategoriesByProgram(ListTicketCategoriesByProgramReq) returns (TicketCategoryDetailListResp);
   rpc AutoAssignAndFreezeSeats(AutoAssignAndFreezeSeatsReq) returns (AutoAssignAndFreezeSeatsResp);
   rpc ReleaseSeatFreeze(ReleaseSeatFreezeReq) returns (ReleaseSeatFreezeResp);
+  rpc ConfirmSeatFreeze(ConfirmSeatFreezeReq) returns (ConfirmSeatFreezeResp);
 }

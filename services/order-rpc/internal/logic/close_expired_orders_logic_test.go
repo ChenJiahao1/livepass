@@ -8,7 +8,7 @@ import (
 )
 
 func TestCloseExpiredOrdersClosesOnlyExpiredUnpaidRows(t *testing.T) {
-	svcCtx, programRPC, _ := newOrderTestServiceContext(t)
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	seedOrderFixtures(
 		t,

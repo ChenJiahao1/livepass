@@ -8,7 +8,7 @@ import (
 )
 
 func TestCancelOrderCancelsOwnerUnpaidOrder(t *testing.T) {
-	svcCtx, programRPC, _ := newOrderTestServiceContext(t)
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	seedOrderFixtures(t, svcCtx, orderFixture{
 		ID:          8001,
@@ -51,7 +51,7 @@ func TestCancelOrderCancelsOwnerUnpaidOrder(t *testing.T) {
 }
 
 func TestCancelOrderIsIdempotentForAlreadyCancelledOrder(t *testing.T) {
-	svcCtx, programRPC, _ := newOrderTestServiceContext(t)
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	seedOrderFixtures(t, svcCtx, orderFixture{
 		ID:              8001,

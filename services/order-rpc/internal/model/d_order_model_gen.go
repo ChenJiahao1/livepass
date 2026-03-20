@@ -51,11 +51,12 @@ type (
 		TakeTicketMode          string       `db:"take_ticket_mode"`           // take ticket mode
 		TicketCount             int64        `db:"ticket_count"`               // ticket count
 		OrderPrice              float64      `db:"order_price"`                // order total price
-		OrderStatus             int64        `db:"order_status"`               // 1 unpaid, 2 cancelled
+		OrderStatus             int64        `db:"order_status"`               // 1 unpaid, 2 cancelled, 3 paid
 		FreezeToken             string       `db:"freeze_token"`               // seat freeze token
 		OrderExpireTime         time.Time    `db:"order_expire_time"`          // order expire time
 		CreateOrderTime         time.Time    `db:"create_order_time"`          // order created at
 		CancelOrderTime         sql.NullTime `db:"cancel_order_time"`          // order cancelled at
+		PayOrderTime            sql.NullTime `db:"pay_order_time"`             // order paid at
 		CreateTime              time.Time    `db:"create_time"`                // created at
 		EditTime                time.Time    `db:"edit_time"`                  // updated at
 		Status                  int64        `db:"status"`                     // 1 active, 0 deleted
@@ -104,14 +105,14 @@ func (m *defaultDOrderModel) FindOneByOrderNumber(ctx context.Context, orderNumb
 }
 
 func (m *defaultDOrderModel) Insert(ctx context.Context, data *DOrder) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dOrderRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.OrderNumber, data.ProgramId, data.ProgramTitle, data.ProgramItemPicture, data.ProgramPlace, data.ProgramShowTime, data.ProgramPermitChooseSeat, data.UserId, data.DistributionMode, data.TakeTicketMode, data.TicketCount, data.OrderPrice, data.OrderStatus, data.FreezeToken, data.OrderExpireTime, data.CreateOrderTime, data.CancelOrderTime, data.EditTime, data.Status)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dOrderRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.OrderNumber, data.ProgramId, data.ProgramTitle, data.ProgramItemPicture, data.ProgramPlace, data.ProgramShowTime, data.ProgramPermitChooseSeat, data.UserId, data.DistributionMode, data.TakeTicketMode, data.TicketCount, data.OrderPrice, data.OrderStatus, data.FreezeToken, data.OrderExpireTime, data.CreateOrderTime, data.CancelOrderTime, data.PayOrderTime, data.EditTime, data.Status)
 	return ret, err
 }
 
 func (m *defaultDOrderModel) Update(ctx context.Context, newData *DOrder) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dOrderRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.OrderNumber, newData.ProgramId, newData.ProgramTitle, newData.ProgramItemPicture, newData.ProgramPlace, newData.ProgramShowTime, newData.ProgramPermitChooseSeat, newData.UserId, newData.DistributionMode, newData.TakeTicketMode, newData.TicketCount, newData.OrderPrice, newData.OrderStatus, newData.FreezeToken, newData.OrderExpireTime, newData.CreateOrderTime, newData.CancelOrderTime, newData.EditTime, newData.Status, newData.Id)
+	_, err := m.conn.ExecCtx(ctx, query, newData.OrderNumber, newData.ProgramId, newData.ProgramTitle, newData.ProgramItemPicture, newData.ProgramPlace, newData.ProgramShowTime, newData.ProgramPermitChooseSeat, newData.UserId, newData.DistributionMode, newData.TakeTicketMode, newData.TicketCount, newData.OrderPrice, newData.OrderStatus, newData.FreezeToken, newData.OrderExpireTime, newData.CreateOrderTime, newData.CancelOrderTime, newData.PayOrderTime, newData.EditTime, newData.Status, newData.Id)
 	return err
 }
 

@@ -1593,6 +1593,94 @@ func (x *ReleaseSeatFreezeResp) GetSuccess() bool {
 	return false
 }
 
+type ConfirmSeatFreezeReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FreezeToken   string                 `protobuf:"bytes,1,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmSeatFreezeReq) Reset() {
+	*x = ConfirmSeatFreezeReq{}
+	mi := &file_services_program_rpc_program_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmSeatFreezeReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmSeatFreezeReq) ProtoMessage() {}
+
+func (x *ConfirmSeatFreezeReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_program_rpc_program_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmSeatFreezeReq.ProtoReflect.Descriptor instead.
+func (*ConfirmSeatFreezeReq) Descriptor() ([]byte, []int) {
+	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ConfirmSeatFreezeReq) GetFreezeToken() string {
+	if x != nil {
+		return x.FreezeToken
+	}
+	return ""
+}
+
+type ConfirmSeatFreezeResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmSeatFreezeResp) Reset() {
+	*x = ConfirmSeatFreezeResp{}
+	mi := &file_services_program_rpc_program_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmSeatFreezeResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmSeatFreezeResp) ProtoMessage() {}
+
+func (x *ConfirmSeatFreezeResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_program_rpc_program_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmSeatFreezeResp.ProtoReflect.Descriptor instead.
+func (*ConfirmSeatFreezeResp) Descriptor() ([]byte, []int) {
+	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ConfirmSeatFreezeResp) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 type ProgramDetailInfo struct {
 	state                           protoimpl.MessageState `protogen:"open.v1"`
 	Id                              int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1654,7 +1742,7 @@ type ProgramDetailInfo struct {
 
 func (x *ProgramDetailInfo) Reset() {
 	*x = ProgramDetailInfo{}
-	mi := &file_services_program_rpc_program_proto_msgTypes[23]
+	mi := &file_services_program_rpc_program_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1666,7 +1754,7 @@ func (x *ProgramDetailInfo) String() string {
 func (*ProgramDetailInfo) ProtoMessage() {}
 
 func (x *ProgramDetailInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_services_program_rpc_program_proto_msgTypes[23]
+	mi := &file_services_program_rpc_program_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1679,7 +1767,7 @@ func (x *ProgramDetailInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramDetailInfo.ProtoReflect.Descriptor instead.
 func (*ProgramDetailInfo) Descriptor() ([]byte, []int) {
-	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{23}
+	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ProgramDetailInfo) GetId() int64 {
@@ -2183,6 +2271,10 @@ const file_services_program_rpc_program_proto_rawDesc = "" +
 	"\vfreezeToken\x18\x01 \x01(\tR\vfreezeToken\x12$\n" +
 	"\rreleaseReason\x18\x02 \x01(\tR\rreleaseReason\"1\n" +
 	"\x15ReleaseSeatFreezeResp\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"8\n" +
+	"\x14ConfirmSeatFreezeReq\x12 \n" +
+	"\vfreezeToken\x18\x01 \x01(\tR\vfreezeToken\"1\n" +
+	"\x15ConfirmSeatFreezeResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x87\x12\n" +
 	"\x11ProgramDetailInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12&\n" +
@@ -2240,7 +2332,7 @@ const file_services_program_rpc_program_proto_rawDesc = "" +
 	"\bshowTime\x182 \x01(\tR\bshowTime\x12 \n" +
 	"\vshowDayTime\x183 \x01(\tR\vshowDayTime\x12\"\n" +
 	"\fshowWeekTime\x184 \x01(\tR\fshowWeekTime\x12O\n" +
-	"\x14ticketCategoryVoList\x185 \x03(\v2\x1b.program.TicketCategoryInfoR\x14ticketCategoryVoList2\xbb\x05\n" +
+	"\x14ticketCategoryVoList\x185 \x03(\v2\x1b.program.TicketCategoryInfoR\x14ticketCategoryVoList2\x8f\x06\n" +
 	"\n" +
 	"ProgramRpc\x12I\n" +
 	"\x15ListProgramCategories\x12\x0e.program.Empty\x1a .program.ProgramCategoryListResp\x12N\n" +
@@ -2250,7 +2342,8 @@ const file_services_program_rpc_program_proto_rawDesc = "" +
 	"\x12GetProgramPreorder\x12\x1c.program.GetProgramDetailReq\x1a\x1c.program.ProgramPreorderInfo\x12q\n" +
 	"\x1dListTicketCategoriesByProgram\x12).program.ListTicketCategoriesByProgramReq\x1a%.program.TicketCategoryDetailListResp\x12g\n" +
 	"\x18AutoAssignAndFreezeSeats\x12$.program.AutoAssignAndFreezeSeatsReq\x1a%.program.AutoAssignAndFreezeSeatsResp\x12R\n" +
-	"\x11ReleaseSeatFreeze\x12\x1d.program.ReleaseSeatFreezeReq\x1a\x1e.program.ReleaseSeatFreezeRespB\x06Z\x04./pbb\x06proto3"
+	"\x11ReleaseSeatFreeze\x12\x1d.program.ReleaseSeatFreezeReq\x1a\x1e.program.ReleaseSeatFreezeResp\x12R\n" +
+	"\x11ConfirmSeatFreeze\x12\x1d.program.ConfirmSeatFreezeReq\x1a\x1e.program.ConfirmSeatFreezeRespB\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_services_program_rpc_program_proto_rawDescOnce sync.Once
@@ -2264,7 +2357,7 @@ func file_services_program_rpc_program_proto_rawDescGZIP() []byte {
 	return file_services_program_rpc_program_proto_rawDescData
 }
 
-var file_services_program_rpc_program_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_services_program_rpc_program_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_services_program_rpc_program_proto_goTypes = []any{
 	(*Empty)(nil),                             // 0: program.Empty
 	(*ListHomeProgramsReq)(nil),               // 1: program.ListHomeProgramsReq
@@ -2289,7 +2382,9 @@ var file_services_program_rpc_program_proto_goTypes = []any{
 	(*AutoAssignAndFreezeSeatsResp)(nil),      // 20: program.AutoAssignAndFreezeSeatsResp
 	(*ReleaseSeatFreezeReq)(nil),              // 21: program.ReleaseSeatFreezeReq
 	(*ReleaseSeatFreezeResp)(nil),             // 22: program.ReleaseSeatFreezeResp
-	(*ProgramDetailInfo)(nil),                 // 23: program.ProgramDetailInfo
+	(*ConfirmSeatFreezeReq)(nil),              // 23: program.ConfirmSeatFreezeReq
+	(*ConfirmSeatFreezeResp)(nil),             // 24: program.ConfirmSeatFreezeResp
+	(*ProgramDetailInfo)(nil),                 // 25: program.ProgramDetailInfo
 }
 var file_services_program_rpc_program_proto_depIdxs = []int32{
 	6,  // 0: program.ProgramGroupInfo.programSimpleInfoVoList:type_name -> program.ProgramSimpleInfo
@@ -2310,16 +2405,18 @@ var file_services_program_rpc_program_proto_depIdxs = []int32{
 	4,  // 15: program.ProgramRpc.ListTicketCategoriesByProgram:input_type -> program.ListTicketCategoriesByProgramReq
 	19, // 16: program.ProgramRpc.AutoAssignAndFreezeSeats:input_type -> program.AutoAssignAndFreezeSeatsReq
 	21, // 17: program.ProgramRpc.ReleaseSeatFreeze:input_type -> program.ReleaseSeatFreezeReq
-	13, // 18: program.ProgramRpc.ListProgramCategories:output_type -> program.ProgramCategoryListResp
-	15, // 19: program.ProgramRpc.ListHomePrograms:output_type -> program.ProgramHomeListResp
-	16, // 20: program.ProgramRpc.PagePrograms:output_type -> program.ProgramPageResp
-	23, // 21: program.ProgramRpc.GetProgramDetail:output_type -> program.ProgramDetailInfo
-	18, // 22: program.ProgramRpc.GetProgramPreorder:output_type -> program.ProgramPreorderInfo
-	17, // 23: program.ProgramRpc.ListTicketCategoriesByProgram:output_type -> program.TicketCategoryDetailListResp
-	20, // 24: program.ProgramRpc.AutoAssignAndFreezeSeats:output_type -> program.AutoAssignAndFreezeSeatsResp
-	22, // 25: program.ProgramRpc.ReleaseSeatFreeze:output_type -> program.ReleaseSeatFreezeResp
-	18, // [18:26] is the sub-list for method output_type
-	10, // [10:18] is the sub-list for method input_type
+	23, // 18: program.ProgramRpc.ConfirmSeatFreeze:input_type -> program.ConfirmSeatFreezeReq
+	13, // 19: program.ProgramRpc.ListProgramCategories:output_type -> program.ProgramCategoryListResp
+	15, // 20: program.ProgramRpc.ListHomePrograms:output_type -> program.ProgramHomeListResp
+	16, // 21: program.ProgramRpc.PagePrograms:output_type -> program.ProgramPageResp
+	25, // 22: program.ProgramRpc.GetProgramDetail:output_type -> program.ProgramDetailInfo
+	18, // 23: program.ProgramRpc.GetProgramPreorder:output_type -> program.ProgramPreorderInfo
+	17, // 24: program.ProgramRpc.ListTicketCategoriesByProgram:output_type -> program.TicketCategoryDetailListResp
+	20, // 25: program.ProgramRpc.AutoAssignAndFreezeSeats:output_type -> program.AutoAssignAndFreezeSeatsResp
+	22, // 26: program.ProgramRpc.ReleaseSeatFreeze:output_type -> program.ReleaseSeatFreezeResp
+	24, // 27: program.ProgramRpc.ConfirmSeatFreeze:output_type -> program.ConfirmSeatFreezeResp
+	19, // [19:28] is the sub-list for method output_type
+	10, // [10:19] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -2336,7 +2433,7 @@ func file_services_program_rpc_program_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_program_rpc_program_proto_rawDesc), len(file_services_program_rpc_program_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

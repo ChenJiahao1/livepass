@@ -28,12 +28,18 @@ type (
 	OrderDetailInfo                     = pb.OrderDetailInfo
 	OrderListInfo                       = pb.OrderListInfo
 	OrderTicketInfo                     = pb.OrderTicketInfo
+	PayCheckReq                         = pb.PayCheckReq
+	PayCheckResp                        = pb.PayCheckResp
+	PayOrderReq                         = pb.PayOrderReq
+	PayOrderResp                        = pb.PayOrderResp
 
 	OrderRpc interface {
 		CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
 		ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 		GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
 		CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
+		PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
+		PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error)
 		CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 		CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
 	}
@@ -67,6 +73,16 @@ func (m *defaultOrderRpc) GetOrder(ctx context.Context, in *GetOrderReq, opts ..
 func (m *defaultOrderRpc) CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.CancelOrder(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.PayOrder(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.PayCheck(ctx, in, opts...)
 }
 
 func (m *defaultOrderRpc) CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error) {

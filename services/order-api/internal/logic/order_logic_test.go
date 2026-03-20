@@ -106,6 +106,60 @@ func TestCancelOrderForwardsUserIDAndOrderNumber(t *testing.T) {
 	}
 }
 
+func TestPayOrderForwardsUserIDAndPayload(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		payOrderResp: &orderrpc.PayOrderResp{
+			OrderNumber: 91001,
+			OrderStatus: 3,
+			PayBillNo:   92001,
+			PayStatus:   2,
+			PayTime:     "2026-12-31 19:05:00",
+		},
+	}
+	ctx := xmiddleware.WithUserID(context.Background(), 3001)
+
+	l := NewPayOrderLogic(ctx, newOrderAPIServiceContext(fakeRPC))
+	resp, err := l.PayOrder(&types.PayOrderReq{
+		OrderNumber: 91001,
+		Subject:     "演出票支付",
+		Channel:     "mock",
+	})
+	if err != nil {
+		t.Fatalf("PayOrder returned error: %v", err)
+	}
+	if resp.OrderStatus != 3 || resp.PayBillNo != 92001 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fakeRPC.lastPayOrderReq == nil || fakeRPC.lastPayOrderReq.UserId != 3001 || fakeRPC.lastPayOrderReq.OrderNumber != 91001 || fakeRPC.lastPayOrderReq.Subject != "演出票支付" || fakeRPC.lastPayOrderReq.Channel != "mock" {
+		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastPayOrderReq)
+	}
+}
+
+func TestPayCheckForwardsUserIDAndOrderNumber(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		payCheckResp: &orderrpc.PayCheckResp{
+			OrderNumber: 91001,
+			OrderStatus: 3,
+			PayBillNo:   92001,
+			PayStatus:   2,
+			PayTime:     "2026-12-31 19:05:00",
+		},
+	}
+	ctx := xmiddleware.WithUserID(context.Background(), 3001)
+
+	l := NewPayCheckLogic(ctx, newOrderAPIServiceContext(fakeRPC))
+	resp, err := l.PayCheck(&types.PayCheckReq{OrderNumber: 91001})
+	if err != nil {
+		t.Fatalf("PayCheck returned error: %v", err)
+	}
+	if resp.OrderStatus != 3 || resp.PayBillNo != 92001 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fakeRPC.lastPayCheckReq == nil || fakeRPC.lastPayCheckReq.UserId != 3001 || fakeRPC.lastPayCheckReq.OrderNumber != 91001 {
+		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastPayCheckReq)
+	}
+}
+
 func TestCreateOrderReturnsUnauthorizedWhenUserIDMissing(t *testing.T) {
 	l := NewCreateOrderLogic(context.Background(), newOrderAPIServiceContext(&fakeOrderRPC{}))
 	_, err := l.CreateOrder(&types.CreateOrderReq{

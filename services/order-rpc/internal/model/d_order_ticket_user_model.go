@@ -20,6 +20,7 @@ type (
 		FindByOrderNumber(ctx context.Context, orderNumber int64) ([]*DOrderTicketUser, error)
 		InsertBatch(ctx context.Context, session sqlx.Session, rows []*DOrderTicketUser) error
 		UpdateCancelStatusByOrderNumber(ctx context.Context, session sqlx.Session, orderNumber int64, cancelTime time.Time) error
+		UpdatePayStatusByOrderNumber(ctx context.Context, session sqlx.Session, orderNumber int64, payTime time.Time) error
 	}
 
 	customDOrderTicketUserModel struct {
@@ -105,5 +106,15 @@ func (m *customDOrderTicketUserModel) UpdateCancelStatusByOrderNumber(ctx contex
 	)
 
 	_, err := m.withSession(session).(*customDOrderTicketUserModel).conn.ExecCtx(ctx, query, cancelTime, orderNumber)
+	return err
+}
+
+func (m *customDOrderTicketUserModel) UpdatePayStatusByOrderNumber(ctx context.Context, session sqlx.Session, orderNumber int64, payTime time.Time) error {
+	query := fmt.Sprintf(
+		"update %s set `order_status` = 3, `edit_time` = ? where `status` = 1 and `order_number` = ? and `order_status` = 1",
+		m.table,
+	)
+
+	_, err := m.withSession(session).(*customDOrderTicketUserModel).conn.ExecCtx(ctx, query, payTime, orderNumber)
 	return err
 }

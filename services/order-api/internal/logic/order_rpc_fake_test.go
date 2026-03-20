@@ -24,6 +24,14 @@ type fakeOrderRPC struct {
 	cancelOrderResp    *orderrpc.BoolResp
 	cancelOrderErr     error
 	lastCancelOrderReq *orderrpc.CancelOrderReq
+
+	payOrderResp    *orderrpc.PayOrderResp
+	payOrderErr     error
+	lastPayOrderReq *orderrpc.PayOrderReq
+
+	payCheckResp    *orderrpc.PayCheckResp
+	payCheckErr     error
+	lastPayCheckReq *orderrpc.PayCheckReq
 }
 
 func (f *fakeOrderRPC) CreateOrder(ctx context.Context, in *orderrpc.CreateOrderReq, opts ...grpc.CallOption) (*orderrpc.CreateOrderResp, error) {
@@ -44,6 +52,16 @@ func (f *fakeOrderRPC) GetOrder(ctx context.Context, in *orderrpc.GetOrderReq, o
 func (f *fakeOrderRPC) CancelOrder(ctx context.Context, in *orderrpc.CancelOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
 	f.lastCancelOrderReq = in
 	return f.cancelOrderResp, f.cancelOrderErr
+}
+
+func (f *fakeOrderRPC) PayOrder(ctx context.Context, in *orderrpc.PayOrderReq, opts ...grpc.CallOption) (*orderrpc.PayOrderResp, error) {
+	f.lastPayOrderReq = in
+	return f.payOrderResp, f.payOrderErr
+}
+
+func (f *fakeOrderRPC) PayCheck(ctx context.Context, in *orderrpc.PayCheckReq, opts ...grpc.CallOption) (*orderrpc.PayCheckResp, error) {
+	f.lastPayCheckReq = in
+	return f.payCheckResp, f.payCheckErr
 }
 
 func (f *fakeOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {

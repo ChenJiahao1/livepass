@@ -11,6 +11,11 @@ ProgramRpc:
     Hosts:
       - 127.0.0.1:2379
     Key: program.rpc
+PayRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: pay.rpc
 UserRpc:
   Etcd:
     Hosts:

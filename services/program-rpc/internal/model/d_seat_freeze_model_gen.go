@@ -45,7 +45,7 @@ type (
 		ProgramId        int64          `db:"program_id"`         // program id
 		TicketCategoryId int64          `db:"ticket_category_id"` // ticket category id
 		SeatCount        int64          `db:"seat_count"`         // frozen seat count
-		FreezeStatus     int64          `db:"freeze_status"`      // 1 frozen, 2 released, 3 expired
+		FreezeStatus     int64          `db:"freeze_status"`      // 1 frozen, 2 released, 3 expired, 4 confirmed
 		ExpireTime       time.Time      `db:"expire_time"`        // freeze expire time
 		ReleaseReason    sql.NullString `db:"release_reason"`     // release reason
 		ReleaseTime      sql.NullTime   `db:"release_time"`       // released at
@@ -111,8 +111,8 @@ func (m *defaultDSeatFreezeModel) FindOneByRequestNo(ctx context.Context, reques
 }
 
 func (m *defaultDSeatFreezeModel) Insert(ctx context.Context, data *DSeatFreeze) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (`id`, `freeze_token`, `request_no`, `program_id`, `ticket_category_id`, `seat_count`, `freeze_status`, `expire_time`, `release_reason`, `release_time`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.FreezeToken, data.RequestNo, data.ProgramId, data.TicketCategoryId, data.SeatCount, data.FreezeStatus, data.ExpireTime, data.ReleaseReason, data.ReleaseTime, data.CreateTime, data.EditTime, data.Status)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dSeatFreezeRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.FreezeToken, data.RequestNo, data.ProgramId, data.TicketCategoryId, data.SeatCount, data.FreezeStatus, data.ExpireTime, data.ReleaseReason, data.ReleaseTime, data.EditTime, data.Status)
 	return ret, err
 }
 
