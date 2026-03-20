@@ -9,10 +9,13 @@ import (
 
 type ServiceContext struct {
 	Config                config.Config
+	SqlConn               sqlx.SqlConn
 	DProgramModel         model.DProgramModel
 	DProgramCategoryModel model.DProgramCategoryModel
 	DProgramGroupModel    model.DProgramGroupModel
 	DProgramShowTimeModel model.DProgramShowTimeModel
+	DSeatModel            model.DSeatModel
+	DSeatFreezeModel      model.DSeatFreezeModel
 	DTicketCategoryModel  model.DTicketCategoryModel
 }
 
@@ -21,10 +24,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	return &ServiceContext{
 		Config:                c,
+		SqlConn:               conn,
 		DProgramModel:         model.NewDProgramModel(conn),
 		DProgramCategoryModel: model.NewDProgramCategoryModel(conn),
 		DProgramGroupModel:    model.NewDProgramGroupModel(conn),
 		DProgramShowTimeModel: model.NewDProgramShowTimeModel(conn),
+		DSeatModel:            model.NewDSeatModel(conn),
+		DSeatFreezeModel:      model.NewDSeatFreezeModel(conn),
 		DTicketCategoryModel:  model.NewDTicketCategoryModel(conn),
 	}
 }
