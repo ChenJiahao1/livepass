@@ -6,7 +6,25 @@ package types
 type EmptyReq struct {
 }
 
+type FreezeSeatsReq struct {
+	ProgramID        int64  `json:"programId"`
+	TicketCategoryID int64  `json:"ticketCategoryId"`
+	Count            int64  `json:"count"`
+	RequestNo        string `json:"requestNo"`
+	FreezeSeconds    int64  `json:"freezeSeconds,optional"`
+}
+
+type FreezeSeatsResp struct {
+	FreezeToken string     `json:"freezeToken,optional"`
+	ExpireTime  string     `json:"expireTime,optional"`
+	Seats       []SeatInfo `json:"seats,optional"`
+}
+
 type GetProgramDetailReq struct {
+	ID int64 `json:"id"`
+}
+
+type GetProgramPreorderReq struct {
 	ID int64 `json:"id"`
 }
 
@@ -141,10 +159,43 @@ type ProgramPageResp struct {
 	List      []ProgramListInfo `json:"list,optional"`
 }
 
+type ProgramPreorderInfo struct {
+	ID                           int64                               `json:"id"`
+	ProgramGroupID               int64                               `json:"programGroupId"`
+	Title                        string                              `json:"title,optional"`
+	Actor                        string                              `json:"actor,optional"`
+	Place                        string                              `json:"place,optional"`
+	ItemPicture                  string                              `json:"itemPicture,optional"`
+	ShowTime                     string                              `json:"showTime,optional"`
+	ShowDayTime                  string                              `json:"showDayTime,optional"`
+	ShowWeekTime                 string                              `json:"showWeekTime,optional"`
+	PerOrderLimitPurchaseCount   int64                               `json:"perOrderLimitPurchaseCount"`
+	PerAccountLimitPurchaseCount int64                               `json:"perAccountLimitPurchaseCount"`
+	PermitChooseSeat             int64                               `json:"permitChooseSeat"`
+	ChooseSeatExplain            string                              `json:"chooseSeatExplain,optional"`
+	TicketCategoryVoList         []ProgramPreorderTicketCategoryInfo `json:"ticketCategoryVoList,optional"`
+}
+
+type ProgramPreorderTicketCategoryInfo struct {
+	ID           int64  `json:"id"`
+	Introduce    string `json:"introduce,optional"`
+	Price        int64  `json:"price"`
+	TotalNumber  int64  `json:"totalNumber"`
+	RemainNumber int64  `json:"remainNumber"`
+}
+
 type ProgramSimpleInfo struct {
 	ProgramID  int64  `json:"programId"`
 	AreaID     int64  `json:"areaId"`
 	AreaIDName string `json:"areaIdName,optional"`
+}
+
+type SeatInfo struct {
+	SeatID           int64 `json:"seatId"`
+	TicketCategoryID int64 `json:"ticketCategoryId"`
+	RowCode          int64 `json:"rowCode"`
+	ColCode          int64 `json:"colCode"`
+	Price            int64 `json:"price"`
 }
 
 type TicketCategoryDetailInfo struct {

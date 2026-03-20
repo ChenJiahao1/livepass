@@ -179,6 +179,25 @@ func toProgramDetailInfo(program *model.DProgram, firstShowTime *model.DProgramS
 	}
 }
 
+func toProgramPreorderInfo(program *model.DProgram, firstShowTime *model.DProgramShowTime, ticketCategories []*model.DTicketCategory, remainMap map[int64]int64) *pb.ProgramPreorderInfo {
+	return &pb.ProgramPreorderInfo{
+		Id:                           program.Id,
+		ProgramGroupId:               program.ProgramGroupId,
+		Title:                        program.Title,
+		Actor:                        nullStringValue(program.Actor),
+		Place:                        nullStringValue(program.Place),
+		ItemPicture:                  nullStringValue(program.ItemPicture),
+		ShowTime:                     formatProgramShowTime(firstShowTime),
+		ShowDayTime:                  formatProgramShowDayTime(firstShowTime),
+		ShowWeekTime:                 programShowWeekTime(firstShowTime),
+		PerOrderLimitPurchaseCount:   program.PerOrderLimitPurchaseCount,
+		PerAccountLimitPurchaseCount: program.PerAccountLimitPurchaseCount,
+		PermitChooseSeat:             program.PermitChooseSeat,
+		ChooseSeatExplain:            nullStringValue(program.ChooseSeatExplain),
+		TicketCategoryVoList:         toProgramPreorderTicketCategoryInfoList(ticketCategories, remainMap),
+	}
+}
+
 func toTicketCategoryInfoList(ticketCategories []*model.DTicketCategory) []*pb.TicketCategoryInfo {
 	list := make([]*pb.TicketCategoryInfo, 0, len(ticketCategories))
 	for _, ticketCategory := range ticketCategories {
@@ -186,6 +205,21 @@ func toTicketCategoryInfoList(ticketCategories []*model.DTicketCategory) []*pb.T
 			Id:        ticketCategory.Id,
 			Introduce: ticketCategory.Introduce,
 			Price:     int64(ticketCategory.Price),
+		})
+	}
+
+	return list
+}
+
+func toProgramPreorderTicketCategoryInfoList(ticketCategories []*model.DTicketCategory, remainMap map[int64]int64) []*pb.ProgramPreorderTicketCategoryInfo {
+	list := make([]*pb.ProgramPreorderTicketCategoryInfo, 0, len(ticketCategories))
+	for _, ticketCategory := range ticketCategories {
+		list = append(list, &pb.ProgramPreorderTicketCategoryInfo{
+			Id:           ticketCategory.Id,
+			Introduce:    ticketCategory.Introduce,
+			Price:        int64(ticketCategory.Price),
+			TotalNumber:  ticketCategory.TotalNumber,
+			RemainNumber: remainMap[ticketCategory.Id],
 		})
 	}
 
@@ -205,6 +239,15 @@ func toTicketCategoryDetailInfoList(ticketCategories []*model.DTicketCategory) [
 	}
 
 	return list
+}
+
+func mapSeatRemainAggregates(aggregates []*model.SeatRemainAggregate) map[int64]int64 {
+	remainMap := make(map[int64]int64, len(aggregates))
+	for _, aggregate := range aggregates {
+		remainMap[aggregate.TicketCategoryId] = aggregate.RemainNumber
+	}
+
+	return remainMap
 }
 
 func homeListLimit(parentCategoryIDs []int64) int64 {

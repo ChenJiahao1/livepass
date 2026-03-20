@@ -175,6 +175,31 @@ func seedSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixture sea
 	)
 }
 
+func seedSeatInventoryProgram(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) {
+	t.Helper()
+
+	seedProgramFixtures(t, svcCtx, programFixture{
+		ProgramID:               programID,
+		ProgramGroupID:          programID + 1000,
+		ParentProgramCategoryID: 1,
+		ProgramCategoryID:       11,
+		AreaID:                  1,
+		Title:                   "座位库存测试演出",
+		ShowTime:                "2026-12-31 19:30:00",
+		ShowDayTime:             "2026-12-31 00:00:00",
+		ShowWeekTime:            "周四",
+		TicketCategories: []ticketCategoryFixture{
+			{
+				ID:           ticketCategoryID,
+				Introduce:    "普通票",
+				Price:        299,
+				TotalNumber:  100,
+				RemainNumber: 100,
+			},
+		},
+	})
+}
+
 func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 

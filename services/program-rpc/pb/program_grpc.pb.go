@@ -23,6 +23,7 @@ const (
 	ProgramRpc_ListHomePrograms_FullMethodName              = "/program.ProgramRpc/ListHomePrograms"
 	ProgramRpc_PagePrograms_FullMethodName                  = "/program.ProgramRpc/PagePrograms"
 	ProgramRpc_GetProgramDetail_FullMethodName              = "/program.ProgramRpc/GetProgramDetail"
+	ProgramRpc_GetProgramPreorder_FullMethodName            = "/program.ProgramRpc/GetProgramPreorder"
 	ProgramRpc_ListTicketCategoriesByProgram_FullMethodName = "/program.ProgramRpc/ListTicketCategoriesByProgram"
 	ProgramRpc_AutoAssignAndFreezeSeats_FullMethodName      = "/program.ProgramRpc/AutoAssignAndFreezeSeats"
 	ProgramRpc_ReleaseSeatFreeze_FullMethodName             = "/program.ProgramRpc/ReleaseSeatFreeze"
@@ -36,6 +37,7 @@ type ProgramRpcClient interface {
 	ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 	PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 	GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
+	GetProgramPreorder(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
 	ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
 	AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
 	ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
@@ -89,6 +91,16 @@ func (c *programRpcClient) GetProgramDetail(ctx context.Context, in *GetProgramD
 	return out, nil
 }
 
+func (c *programRpcClient) GetProgramPreorder(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProgramPreorderInfo)
+	err := c.cc.Invoke(ctx, ProgramRpc_GetProgramPreorder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *programRpcClient) ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TicketCategoryDetailListResp)
@@ -127,6 +139,7 @@ type ProgramRpcServer interface {
 	ListHomePrograms(context.Context, *ListHomeProgramsReq) (*ProgramHomeListResp, error)
 	PagePrograms(context.Context, *PageProgramsReq) (*ProgramPageResp, error)
 	GetProgramDetail(context.Context, *GetProgramDetailReq) (*ProgramDetailInfo, error)
+	GetProgramPreorder(context.Context, *GetProgramDetailReq) (*ProgramPreorderInfo, error)
 	ListTicketCategoriesByProgram(context.Context, *ListTicketCategoriesByProgramReq) (*TicketCategoryDetailListResp, error)
 	AutoAssignAndFreezeSeats(context.Context, *AutoAssignAndFreezeSeatsReq) (*AutoAssignAndFreezeSeatsResp, error)
 	ReleaseSeatFreeze(context.Context, *ReleaseSeatFreezeReq) (*ReleaseSeatFreezeResp, error)
@@ -151,6 +164,9 @@ func (UnimplementedProgramRpcServer) PagePrograms(context.Context, *PagePrograms
 }
 func (UnimplementedProgramRpcServer) GetProgramDetail(context.Context, *GetProgramDetailReq) (*ProgramDetailInfo, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProgramDetail not implemented")
+}
+func (UnimplementedProgramRpcServer) GetProgramPreorder(context.Context, *GetProgramDetailReq) (*ProgramPreorderInfo, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProgramPreorder not implemented")
 }
 func (UnimplementedProgramRpcServer) ListTicketCategoriesByProgram(context.Context, *ListTicketCategoriesByProgramReq) (*TicketCategoryDetailListResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTicketCategoriesByProgram not implemented")
@@ -254,6 +270,24 @@ func _ProgramRpc_GetProgramDetail_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProgramRpc_GetProgramPreorder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProgramDetailReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).GetProgramPreorder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_GetProgramPreorder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).GetProgramPreorder(ctx, req.(*GetProgramDetailReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ProgramRpc_ListTicketCategoriesByProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListTicketCategoriesByProgramReq)
 	if err := dec(in); err != nil {
@@ -330,6 +364,10 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetProgramDetail",
 			Handler:    _ProgramRpc_GetProgramDetail_Handler,
+		},
+		{
+			MethodName: "GetProgramPreorder",
+			Handler:    _ProgramRpc_GetProgramPreorder_Handler,
 		},
 		{
 			MethodName: "ListTicketCategoriesByProgram",

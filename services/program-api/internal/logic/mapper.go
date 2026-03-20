@@ -182,6 +182,29 @@ func mapProgramDetailInfo(resp *programrpc.ProgramDetailInfo) *types.ProgramDeta
 	}
 }
 
+func mapProgramPreorderInfo(resp *programrpc.ProgramPreorderInfo) *types.ProgramPreorderInfo {
+	if resp == nil {
+		return &types.ProgramPreorderInfo{}
+	}
+
+	return &types.ProgramPreorderInfo{
+		ID:                           resp.Id,
+		ProgramGroupID:               resp.ProgramGroupId,
+		Title:                        resp.Title,
+		Actor:                        resp.Actor,
+		Place:                        resp.Place,
+		ItemPicture:                  resp.ItemPicture,
+		ShowTime:                     resp.ShowTime,
+		ShowDayTime:                  resp.ShowDayTime,
+		ShowWeekTime:                 resp.ShowWeekTime,
+		PerOrderLimitPurchaseCount:   resp.PerOrderLimitPurchaseCount,
+		PerAccountLimitPurchaseCount: resp.PerAccountLimitPurchaseCount,
+		PermitChooseSeat:             resp.PermitChooseSeat,
+		ChooseSeatExplain:            resp.ChooseSeatExplain,
+		TicketCategoryVoList:         mapProgramPreorderTicketCategoryInfoList(resp.TicketCategoryVoList),
+	}
+}
+
 func mapProgramGroupInfo(resp *programrpc.ProgramGroupInfo) types.ProgramGroupInfo {
 	if resp == nil {
 		return types.ProgramGroupInfo{}
@@ -209,6 +232,29 @@ func mapProgramSimpleInfoList(list []*programrpc.ProgramSimpleInfo) []types.Prog
 			ProgramID:  item.ProgramId,
 			AreaID:     item.AreaId,
 			AreaIDName: item.AreaIdName,
+		})
+	}
+
+	return resp
+}
+
+func mapProgramPreorderTicketCategoryInfoList(list []*programrpc.ProgramPreorderTicketCategoryInfo) []types.ProgramPreorderTicketCategoryInfo {
+	if len(list) == 0 {
+		return nil
+	}
+
+	resp := make([]types.ProgramPreorderTicketCategoryInfo, 0, len(list))
+	for _, item := range list {
+		if item == nil {
+			resp = append(resp, types.ProgramPreorderTicketCategoryInfo{})
+			continue
+		}
+		resp = append(resp, types.ProgramPreorderTicketCategoryInfo{
+			ID:           item.Id,
+			Introduce:    item.Introduce,
+			Price:        item.Price,
+			TotalNumber:  item.TotalNumber,
+			RemainNumber: item.RemainNumber,
 		})
 	}
 
@@ -263,6 +309,41 @@ func mapTicketCategoryDetailInfoList(list []*programrpc.TicketCategoryDetailInfo
 			Price:        item.Price,
 			TotalNumber:  item.TotalNumber,
 			RemainNumber: item.RemainNumber,
+		})
+	}
+
+	return resp
+}
+
+func mapFreezeSeatsResp(resp *programrpc.AutoAssignAndFreezeSeatsResp) *types.FreezeSeatsResp {
+	if resp == nil {
+		return &types.FreezeSeatsResp{}
+	}
+
+	return &types.FreezeSeatsResp{
+		FreezeToken: resp.FreezeToken,
+		ExpireTime:  resp.ExpireTime,
+		Seats:       mapSeatInfoList(resp.Seats),
+	}
+}
+
+func mapSeatInfoList(list []*programrpc.SeatInfo) []types.SeatInfo {
+	if len(list) == 0 {
+		return nil
+	}
+
+	resp := make([]types.SeatInfo, 0, len(list))
+	for _, item := range list {
+		if item == nil {
+			resp = append(resp, types.SeatInfo{})
+			continue
+		}
+		resp = append(resp, types.SeatInfo{
+			SeatID:           item.SeatId,
+			TicketCategoryID: item.TicketCategoryId,
+			RowCode:          item.RowCode,
+			ColCode:          item.ColCode,
+			Price:            item.Price,
 		})
 	}
 

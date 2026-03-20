@@ -4,9 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"damai-go/pkg/xerr"
 	"damai-go/services/program-api/internal/svc"
 	"damai-go/services/program-api/internal/types"
 	"damai-go/services/program-rpc/programrpc"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestListProgramCategoriesMapsResponse(t *testing.T) {
@@ -174,5 +178,135 @@ func TestListTicketCategoriesByProgramMapsResponse(t *testing.T) {
 	}
 	if fake.lastListTicketCategoriesByProgramReq == nil || fake.lastListTicketCategoriesByProgramReq.ProgramId != 10001 {
 		t.Fatalf("unexpected request: %+v", fake.lastListTicketCategoriesByProgramReq)
+	}
+}
+
+func TestGetProgramPreorderMapsNestedResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		getProgramPreorderResp: &programrpc.ProgramPreorderInfo{
+			Id:                           10001,
+			ProgramGroupId:               20001,
+			Title:                        "Phase2 预下单演出",
+			ShowTime:                     "2026-12-31 19:30:00",
+			PerOrderLimitPurchaseCount:   6,
+			PerAccountLimitPurchaseCount: 6,
+			PermitChooseSeat:             0,
+			ChooseSeatExplain:            "系统自动分配座位",
+			TicketCategoryVoList: []*programrpc.ProgramPreorderTicketCategoryInfo{
+				{Id: 40001, Introduce: "普通票", Price: 299, TotalNumber: 100, RemainNumber: 12},
+				{Id: 40002, Introduce: "VIP票", Price: 599, TotalNumber: 80, RemainNumber: 3},
+			},
+		},
+	}
+	logic := NewGetProgramPreorderLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.GetProgramPreorder(&types.GetProgramPreorderReq{ID: 10001})
+	if err != nil {
+		t.Fatalf("GetProgramPreorder returned error: %v", err)
+	}
+	if resp.ID != 10001 || resp.ProgramGroupID != 20001 || resp.ShowTime != "2026-12-31 19:30:00" {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if len(resp.TicketCategoryVoList) != 2 || resp.TicketCategoryVoList[0].RemainNumber != 12 || resp.TicketCategoryVoList[1].Price != 599 {
+		t.Fatalf("unexpected preorder ticket categories: %+v", resp.TicketCategoryVoList)
+	}
+	if fake.lastGetProgramPreorderReq == nil || fake.lastGetProgramPreorderReq.Id != 10001 {
+		t.Fatalf("unexpected request: %+v", fake.lastGetProgramPreorderReq)
+	}
+}
+
+func TestGetProgramPreorderPropagatesRPCErrors(t *testing.T) {
+	fake := &fakeProgramRPC{
+		getProgramPreorderErr: status.Error(codes.NotFound, "program not found"),
+	}
+	logic := NewGetProgramPreorderLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	_, err := logic.GetProgramPreorder(&types.GetProgramPreorderReq{ID: 10001})
+	if err == nil {
+		t.Fatalf("expected rpc error")
+	}
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("expected not found code, got %s", status.Code(err))
+	}
+}
+
+func TestFreezeSeatsMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		autoAssignAndFreezeSeatsResp: &programrpc.AutoAssignAndFreezeSeatsResp{
+			FreezeToken: "freeze-demo-001",
+			ExpireTime:  "2026-12-31 18:45:00",
+			Seats: []*programrpc.SeatInfo{
+				{SeatId: 70001, TicketCategoryId: 40001, RowCode: 3, ColCode: 5, Price: 299},
+				{SeatId: 70002, TicketCategoryId: 40001, RowCode: 3, ColCode: 6, Price: 299},
+			},
+		},
+	}
+	logic := NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.FreezeSeats(&types.FreezeSeatsReq{
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		Count:            2,
+		RequestNo:        "preorder-demo-001",
+		FreezeSeconds:    900,
+	})
+	if err != nil {
+		t.Fatalf("FreezeSeats returned error: %v", err)
+	}
+	if resp.FreezeToken != "freeze-demo-001" || resp.ExpireTime != "2026-12-31 18:45:00" {
+		t.Fatalf("unexpected freeze response: %+v", resp)
+	}
+	if len(resp.Seats) != 2 || resp.Seats[0].SeatID != 70001 || resp.Seats[1].ColCode != 6 {
+		t.Fatalf("unexpected seat mapping: %+v", resp.Seats)
+	}
+	if fake.lastAutoAssignAndFreezeSeatsReq == nil {
+		t.Fatalf("expected rpc request")
+	}
+	if fake.lastAutoAssignAndFreezeSeatsReq.ProgramId != 10001 ||
+		fake.lastAutoAssignAndFreezeSeatsReq.TicketCategoryId != 40001 ||
+		fake.lastAutoAssignAndFreezeSeatsReq.Count != 2 ||
+		fake.lastAutoAssignAndFreezeSeatsReq.RequestNo != "preorder-demo-001" ||
+		fake.lastAutoAssignAndFreezeSeatsReq.FreezeSeconds != 900 {
+		t.Fatalf("unexpected freeze request: %+v", fake.lastAutoAssignAndFreezeSeatsReq)
+	}
+}
+
+func TestFreezeSeatsRejectsInvalidPayload(t *testing.T) {
+	logic := NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: &fakeProgramRPC{}})
+
+	_, err := logic.FreezeSeats(&types.FreezeSeatsReq{
+		ProgramID:        0,
+		TicketCategoryID: 40001,
+		Count:            2,
+		RequestNo:        "",
+	})
+	if err == nil {
+		t.Fatalf("expected invalid argument error")
+	}
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument code, got %s", status.Code(err))
+	}
+	if status.Convert(err).Message() != xerr.ErrInvalidParam.Error() {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestFreezeSeatsPropagatesInventoryConflict(t *testing.T) {
+	fake := &fakeProgramRPC{
+		autoAssignAndFreezeSeatsErr: status.Error(codes.FailedPrecondition, "seat inventory insufficient"),
+	}
+	logic := NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	_, err := logic.FreezeSeats(&types.FreezeSeatsReq{
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		Count:            2,
+		RequestNo:        "preorder-demo-conflict",
+	})
+	if err == nil {
+		t.Fatalf("expected failed precondition error")
+	}
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition code, got %s", status.Code(err))
 	}
 }

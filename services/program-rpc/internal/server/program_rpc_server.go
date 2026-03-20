@@ -43,6 +43,11 @@ func (s *ProgramRpcServer) GetProgramDetail(ctx context.Context, in *pb.GetProgr
 	return l.GetProgramDetail(in)
 }
 
+func (s *ProgramRpcServer) GetProgramPreorder(ctx context.Context, in *pb.GetProgramDetailReq) (*pb.ProgramPreorderInfo, error) {
+	l := logic.NewGetProgramPreorderLogic(ctx, s.svcCtx)
+	return l.GetProgramPreorder(in)
+}
+
 func (s *ProgramRpcServer) ListTicketCategoriesByProgram(ctx context.Context, in *pb.ListTicketCategoriesByProgramReq) (*pb.TicketCategoryDetailListResp, error) {
 	l := logic.NewListTicketCategoriesByProgramLogic(ctx, s.svcCtx)
 	return l.ListTicketCategoriesByProgram(in)

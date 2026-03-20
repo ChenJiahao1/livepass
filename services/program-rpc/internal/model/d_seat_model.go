@@ -15,6 +15,7 @@ type (
 		dSeatModel
 		withSession(session sqlx.Session) DSeatModel
 		FindAvailableByProgramAndTicketCategoryForUpdate(ctx context.Context, session sqlx.Session, programId, ticketCategoryId int64) ([]*DSeat, error)
+		FindAvailableCountByProgramId(ctx context.Context, programId int64) ([]*SeatRemainAggregate, error)
 		FindByFreezeToken(ctx context.Context, freezeToken string) ([]*DSeat, error)
 		BatchFreezeByIDs(ctx context.Context, session sqlx.Session, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		ReleaseByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
@@ -22,6 +23,11 @@ type (
 
 	customDSeatModel struct {
 		*defaultDSeatModel
+	}
+
+	SeatRemainAggregate struct {
+		TicketCategoryId int64 `db:"ticket_category_id"`
+		RemainNumber     int64 `db:"remain_number"`
 	}
 )
 
@@ -49,6 +55,24 @@ func (m *customDSeatModel) FindAvailableByProgramAndTicketCategoryForUpdate(ctx 
 		return resp, nil
 	case sqlx.ErrNotFound:
 		return []*DSeat{}, nil
+	default:
+		return nil, err
+	}
+}
+
+func (m *customDSeatModel) FindAvailableCountByProgramId(ctx context.Context, programId int64) ([]*SeatRemainAggregate, error) {
+	query := fmt.Sprintf(
+		"select `ticket_category_id`, count(1) as `remain_number` from %s where `status` = 1 and `program_id` = ? and `seat_status` = 1 group by `ticket_category_id` order by `ticket_category_id` asc",
+		m.table,
+	)
+
+	var resp []*SeatRemainAggregate
+	err := m.conn.QueryRowsCtx(ctx, &resp, query, programId)
+	switch err {
+	case nil:
+		return resp, nil
+	case sqlx.ErrNotFound:
+		return []*SeatRemainAggregate{}, nil
 	default:
 		return nil, err
 	}

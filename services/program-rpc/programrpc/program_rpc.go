@@ -14,34 +14,37 @@ import (
 )
 
 type (
-	AutoAssignAndFreezeSeatsReq      = pb.AutoAssignAndFreezeSeatsReq
-	AutoAssignAndFreezeSeatsResp     = pb.AutoAssignAndFreezeSeatsResp
-	Empty                            = pb.Empty
-	GetProgramDetailReq              = pb.GetProgramDetailReq
-	ListHomeProgramsReq              = pb.ListHomeProgramsReq
-	ListTicketCategoriesByProgramReq = pb.ListTicketCategoriesByProgramReq
-	PageProgramsReq                  = pb.PageProgramsReq
-	ProgramCategoryInfo              = pb.ProgramCategoryInfo
-	ProgramCategoryListResp          = pb.ProgramCategoryListResp
-	ProgramDetailInfo                = pb.ProgramDetailInfo
-	ProgramGroupInfo                 = pb.ProgramGroupInfo
-	ProgramHomeListResp              = pb.ProgramHomeListResp
-	ProgramHomeSection               = pb.ProgramHomeSection
-	ProgramListInfo                  = pb.ProgramListInfo
-	ProgramPageResp                  = pb.ProgramPageResp
-	ProgramSimpleInfo                = pb.ProgramSimpleInfo
-	ReleaseSeatFreezeReq             = pb.ReleaseSeatFreezeReq
-	ReleaseSeatFreezeResp            = pb.ReleaseSeatFreezeResp
-	SeatInfo                         = pb.SeatInfo
-	TicketCategoryDetailInfo         = pb.TicketCategoryDetailInfo
-	TicketCategoryDetailListResp     = pb.TicketCategoryDetailListResp
-	TicketCategoryInfo               = pb.TicketCategoryInfo
+	AutoAssignAndFreezeSeatsReq       = pb.AutoAssignAndFreezeSeatsReq
+	AutoAssignAndFreezeSeatsResp      = pb.AutoAssignAndFreezeSeatsResp
+	Empty                             = pb.Empty
+	GetProgramDetailReq               = pb.GetProgramDetailReq
+	ListHomeProgramsReq               = pb.ListHomeProgramsReq
+	ListTicketCategoriesByProgramReq  = pb.ListTicketCategoriesByProgramReq
+	PageProgramsReq                   = pb.PageProgramsReq
+	ProgramCategoryInfo               = pb.ProgramCategoryInfo
+	ProgramCategoryListResp           = pb.ProgramCategoryListResp
+	ProgramDetailInfo                 = pb.ProgramDetailInfo
+	ProgramGroupInfo                  = pb.ProgramGroupInfo
+	ProgramHomeListResp               = pb.ProgramHomeListResp
+	ProgramHomeSection                = pb.ProgramHomeSection
+	ProgramListInfo                   = pb.ProgramListInfo
+	ProgramPageResp                   = pb.ProgramPageResp
+	ProgramPreorderInfo               = pb.ProgramPreorderInfo
+	ProgramPreorderTicketCategoryInfo = pb.ProgramPreorderTicketCategoryInfo
+	ProgramSimpleInfo                 = pb.ProgramSimpleInfo
+	ReleaseSeatFreezeReq              = pb.ReleaseSeatFreezeReq
+	ReleaseSeatFreezeResp             = pb.ReleaseSeatFreezeResp
+	SeatInfo                          = pb.SeatInfo
+	TicketCategoryDetailInfo          = pb.TicketCategoryDetailInfo
+	TicketCategoryDetailListResp      = pb.TicketCategoryDetailListResp
+	TicketCategoryInfo                = pb.TicketCategoryInfo
 
 	ProgramRpc interface {
 		ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
 		ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 		PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 		GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
+		GetProgramPreorder(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
 		ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
 		AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
 		ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
@@ -76,6 +79,11 @@ func (m *defaultProgramRpc) PagePrograms(ctx context.Context, in *PageProgramsRe
 func (m *defaultProgramRpc) GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.GetProgramDetail(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) GetProgramPreorder(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.GetProgramPreorder(ctx, in, opts...)
 }
 
 func (m *defaultProgramRpc) ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error) {

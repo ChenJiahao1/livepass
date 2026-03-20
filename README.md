@@ -142,3 +142,26 @@ curl -X POST http://127.0.0.1:8889/ticket/category/select/list/by/program \
 ```
 
 预期：以上五个接口都返回 HTTP 200，且能看到 `dev_seed.sql` 中的分类、演出、场次和票档数据。
+
+## 手工验证 program Phase 2 预下单链路
+
+查询预下单详情：
+
+```bash
+curl -X POST http://127.0.0.1:8889/program/preorder/detail \
+  -H 'Content-Type: application/json' \
+  -d '{"id":10001}'
+```
+
+冻结预下单座位：
+
+```bash
+curl -X POST http://127.0.0.1:8889/program/seat/freeze \
+  -H 'Content-Type: application/json' \
+  -d '{"programId":10001,"ticketCategoryId":40001,"count":2,"requestNo":"preorder-demo-001","freezeSeconds":900}'
+```
+
+预期：
+
+- `/program/preorder/detail` 返回当前演出场次、限购字段、`permitChooseSeat=0`，以及按 `d_seat` 实时聚合的票档余量。
+- `/program/seat/freeze` 返回 `freezeToken`、`expireTime` 和系统自动分配的座位列表；当前阶段不支持用户手动选座。

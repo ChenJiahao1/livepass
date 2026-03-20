@@ -36,6 +36,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
+				Path:    "/program/preorder/detail",
+				Handler: GetProgramPreorderHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/program/seat/freeze",
+				Handler: FreezeSeatsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/ticket/category/select/list/by/program",
 				Handler: ListTicketCategoriesByProgramHandler(serverCtx),
 			},
