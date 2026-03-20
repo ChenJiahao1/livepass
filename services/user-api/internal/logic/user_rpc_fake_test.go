@@ -9,64 +9,64 @@ import (
 )
 
 type fakeUserRPC struct {
-	registerResp *userrpc.BoolResp
-	registerErr  error
+	registerResp    *userrpc.BoolResp
+	registerErr     error
 	lastRegisterReq *userrpc.RegisterReq
 
-	existResp *userrpc.BoolResp
-	existErr  error
+	existResp    *userrpc.BoolResp
+	existErr     error
 	lastExistReq *userrpc.ExistReq
 
-	loginResp *userrpc.LoginResp
-	loginErr  error
+	loginResp    *userrpc.LoginResp
+	loginErr     error
 	lastLoginReq *userrpc.LoginReq
 
-	getUserByIDResp *userrpc.UserInfo
-	getUserByIDErr  error
+	getUserByIDResp    *userrpc.UserInfo
+	getUserByIDErr     error
 	lastGetUserByIDReq *userrpc.GetUserByIdReq
 
-	getUserByMobileResp *userrpc.UserInfo
-	getUserByMobileErr  error
+	getUserByMobileResp    *userrpc.UserInfo
+	getUserByMobileErr     error
 	lastGetUserByMobileReq *userrpc.GetUserByMobileReq
 
-	logoutResp *userrpc.BoolResp
-	logoutErr  error
+	logoutResp    *userrpc.BoolResp
+	logoutErr     error
 	lastLogoutReq *userrpc.LogoutReq
 
-	updateUserResp *userrpc.BoolResp
-	updateUserErr  error
+	updateUserResp    *userrpc.BoolResp
+	updateUserErr     error
 	lastUpdateUserReq *userrpc.UpdateUserReq
 
-	updatePasswordResp *userrpc.BoolResp
-	updatePasswordErr  error
+	updatePasswordResp    *userrpc.BoolResp
+	updatePasswordErr     error
 	lastUpdatePasswordReq *userrpc.UpdatePasswordReq
 
-	updateEmailResp *userrpc.BoolResp
-	updateEmailErr  error
+	updateEmailResp    *userrpc.BoolResp
+	updateEmailErr     error
 	lastUpdateEmailReq *userrpc.UpdateEmailReq
 
-	updateMobileResp *userrpc.BoolResp
-	updateMobileErr  error
+	updateMobileResp    *userrpc.BoolResp
+	updateMobileErr     error
 	lastUpdateMobileReq *userrpc.UpdateMobileReq
 
-	authenticationResp *userrpc.BoolResp
-	authenticationErr  error
+	authenticationResp    *userrpc.BoolResp
+	authenticationErr     error
 	lastAuthenticationReq *userrpc.AuthenticationReq
 
-	listTicketUsersResp *userrpc.ListTicketUsersResp
-	listTicketUsersErr  error
+	listTicketUsersResp    *userrpc.ListTicketUsersResp
+	listTicketUsersErr     error
 	lastListTicketUsersReq *userrpc.ListTicketUsersReq
 
-	addTicketUserResp *userrpc.BoolResp
-	addTicketUserErr  error
+	addTicketUserResp    *userrpc.BoolResp
+	addTicketUserErr     error
 	lastAddTicketUserReq *userrpc.AddTicketUserReq
 
-	deleteTicketUserResp *userrpc.BoolResp
-	deleteTicketUserErr  error
+	deleteTicketUserResp    *userrpc.BoolResp
+	deleteTicketUserErr     error
 	lastDeleteTicketUserReq *userrpc.DeleteTicketUserReq
 
-	getUserAndTicketUserListResp *userrpc.GetUserAndTicketUserListResp
-	getUserAndTicketUserListErr  error
+	getUserAndTicketUserListResp    *userrpc.GetUserAndTicketUserListResp
+	getUserAndTicketUserListErr     error
 	lastGetUserAndTicketUserListReq *userrpc.GetUserAndTicketUserListReq
 }
 

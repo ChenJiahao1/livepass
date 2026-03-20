@@ -15,6 +15,7 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
+	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
 
@@ -27,6 +28,7 @@ const testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?pa
 const (
 	testOrderStatusUnpaid    int64 = 1
 	testOrderStatusCancelled int64 = 2
+	testOrderStatusPaid      int64 = 3
 )
 
 type orderFixture struct {
@@ -48,6 +50,7 @@ type orderFixture struct {
 	OrderExpireTime         string
 	CreateOrderTime         string
 	CancelOrderTime         string
+	PayOrderTime            string
 }
 
 type orderTicketUserFixture struct {
@@ -81,6 +84,11 @@ type fakeOrderProgramRPC struct {
 	releaseSeatFreezeErr     error
 	lastReleaseSeatFreezeReq *programrpc.ReleaseSeatFreezeReq
 	releaseSeatFreezeCalls   int
+
+	confirmSeatFreezeResp    *programrpc.ConfirmSeatFreezeResp
+	confirmSeatFreezeErr     error
+	lastConfirmSeatFreezeReq *programrpc.ConfirmSeatFreezeReq
+	confirmSeatFreezeCalls   int
 }
 
 type fakeOrderUserRPC struct {
@@ -89,7 +97,19 @@ type fakeOrderUserRPC struct {
 	lastGetUserAndTicketUserListReq *userrpc.GetUserAndTicketUserListReq
 }
 
-func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC) {
+type fakeOrderPayRPC struct {
+	mockPayResp    *payrpc.MockPayResp
+	mockPayErr     error
+	lastMockPayReq *payrpc.MockPayReq
+	mockPayCalls   int
+
+	getPayBillResp    *payrpc.GetPayBillResp
+	getPayBillErr     error
+	lastGetPayBillReq *payrpc.GetPayBillReq
+	getPayBillCalls   int
+}
+
+func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC, *fakeOrderPayRPC) {
 	t.Helper()
 
 	cfg := config.Config{
@@ -103,8 +123,10 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 
 	programRPC := &fakeOrderProgramRPC{
 		releaseSeatFreezeResp: &programrpc.ReleaseSeatFreezeResp{Success: true},
+		confirmSeatFreezeResp: &programrpc.ConfirmSeatFreezeResp{Success: true},
 	}
 	userRPC := &fakeOrderUserRPC{}
+	payRPC := &fakeOrderPayRPC{}
 	conn := sqlx.NewMysql(cfg.MySQL.DataSource)
 	svcCtx := &svc.ServiceContext{
 		Config:                cfg,
@@ -113,9 +135,10 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		DOrderTicketUserModel: model.NewDOrderTicketUserModel(conn),
 		ProgramRpc:            programRPC,
 		UserRpc:               userRPC,
+		PayRpc:                payRPC,
 	}
 
-	return svcCtx, programRPC, userRPC
+	return svcCtx, programRPC, userRPC, payRPC
 }
 
 func resetOrderDomainState(t *testing.T) {
@@ -146,8 +169,8 @@ func seedOrderFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...ord
 			`INSERT INTO d_order (
 				id, order_number, program_id, program_title, program_item_picture, program_place, program_show_time,
 				program_permit_choose_seat, user_id, distribution_mode, take_ticket_mode, ticket_count, order_price,
-				order_status, freeze_token, order_expire_time, create_order_time, cancel_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				order_status, freeze_token, order_expire_time, create_order_time, cancel_order_time, pay_order_time, create_time, edit_time, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fixture.ID,
 			fixture.OrderNumber,
 			fixture.ProgramID,
@@ -166,6 +189,7 @@ func seedOrderFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...ord
 			fixture.OrderExpireTime,
 			fixture.CreateOrderTime,
 			nullTimeIfEmpty(fixture.CancelOrderTime),
+			nullTimeIfEmpty(fixture.PayOrderTime),
 			fixture.CreateOrderTime,
 			fixture.CreateOrderTime,
 			1,
@@ -251,6 +275,24 @@ func findOrderTicketStatus(t *testing.T, dataSource string, orderNumber int64) i
 	}
 
 	return status
+}
+
+func (f *fakeOrderProgramRPC) ConfirmSeatFreeze(ctx context.Context, in *programrpc.ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*programrpc.ConfirmSeatFreezeResp, error) {
+	f.lastConfirmSeatFreezeReq = in
+	f.confirmSeatFreezeCalls++
+	return f.confirmSeatFreezeResp, f.confirmSeatFreezeErr
+}
+
+func (f *fakeOrderPayRPC) MockPay(ctx context.Context, in *payrpc.MockPayReq, opts ...grpc.CallOption) (*payrpc.MockPayResp, error) {
+	f.lastMockPayReq = in
+	f.mockPayCalls++
+	return f.mockPayResp, f.mockPayErr
+}
+
+func (f *fakeOrderPayRPC) GetPayBill(ctx context.Context, in *payrpc.GetPayBillReq, opts ...grpc.CallOption) (*payrpc.GetPayBillResp, error) {
+	f.lastGetPayBillReq = in
+	f.getPayBillCalls++
+	return f.getPayBillResp, f.getPayBillErr
 }
 
 func openOrderTestDB(t *testing.T, dataSource string) *sql.DB {

@@ -16,6 +16,8 @@ import (
 type (
 	AutoAssignAndFreezeSeatsReq       = pb.AutoAssignAndFreezeSeatsReq
 	AutoAssignAndFreezeSeatsResp      = pb.AutoAssignAndFreezeSeatsResp
+	ConfirmSeatFreezeReq              = pb.ConfirmSeatFreezeReq
+	ConfirmSeatFreezeResp             = pb.ConfirmSeatFreezeResp
 	Empty                             = pb.Empty
 	GetProgramDetailReq               = pb.GetProgramDetailReq
 	ListHomeProgramsReq               = pb.ListHomeProgramsReq
@@ -48,6 +50,7 @@ type (
 		ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
 		AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
 		ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
+		ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error)
 	}
 
 	defaultProgramRpc struct {
@@ -99,4 +102,9 @@ func (m *defaultProgramRpc) AutoAssignAndFreezeSeats(ctx context.Context, in *Au
 func (m *defaultProgramRpc) ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.ReleaseSeatFreeze(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.ConfirmSeatFreeze(ctx, in, opts...)
 }

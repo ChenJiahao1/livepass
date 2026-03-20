@@ -15,7 +15,7 @@ import (
 )
 
 func TestCreateOrderCreatesOrderAndSnapshots(t *testing.T) {
-	svcCtx, programRPC, userRPC := newOrderTestServiceContext(t)
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
@@ -60,7 +60,7 @@ func TestCreateOrderCreatesOrderAndSnapshots(t *testing.T) {
 }
 
 func TestCreateOrderRejectsTicketUsersNotOwnedByCurrentUser(t *testing.T) {
-	svcCtx, programRPC, userRPC := newOrderTestServiceContext(t)
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
@@ -88,7 +88,7 @@ func TestCreateOrderRejectsTicketUsersNotOwnedByCurrentUser(t *testing.T) {
 }
 
 func TestCreateOrderRejectsPerOrderLimitExceeded(t *testing.T) {
-	svcCtx, programRPC, userRPC := newOrderTestServiceContext(t)
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 1, 4, 299)
@@ -114,7 +114,7 @@ func TestCreateOrderRejectsPerOrderLimitExceeded(t *testing.T) {
 }
 
 func TestCreateOrderRejectsPerAccountLimitExceeded(t *testing.T) {
-	svcCtx, programRPC, userRPC := newOrderTestServiceContext(t)
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	seedOrderFixtures(t, svcCtx, orderFixture{
 		ID:          8001,
@@ -149,7 +149,7 @@ func TestCreateOrderRejectsPerAccountLimitExceeded(t *testing.T) {
 }
 
 func TestCreateOrderLeavesTablesEmptyWhenSeatFreezeFails(t *testing.T) {
-	svcCtx, programRPC, userRPC := newOrderTestServiceContext(t)
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
@@ -181,7 +181,7 @@ func TestCreateOrderLeavesTablesEmptyWhenSeatFreezeFails(t *testing.T) {
 }
 
 func TestCreateOrderReleasesFreezeOnceWhenInsertFails(t *testing.T) {
-	svcCtx, programRPC, userRPC := newOrderTestServiceContext(t)
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)

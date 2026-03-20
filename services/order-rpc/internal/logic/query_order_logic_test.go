@@ -11,7 +11,7 @@ import (
 )
 
 func TestListOrdersReturnsOnlyCurrentUserOrdersAndSupportsStatusFilter(t *testing.T) {
-	svcCtx, _, _ := newOrderTestServiceContext(t)
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	seedOrderFixtures(
 		t,
@@ -40,7 +40,7 @@ func TestListOrdersReturnsOnlyCurrentUserOrdersAndSupportsStatusFilter(t *testin
 }
 
 func TestGetOrderReturnsDetailRowsForOwner(t *testing.T) {
-	svcCtx, _, _ := newOrderTestServiceContext(t)
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	seedOrderFixtures(t, svcCtx, orderFixture{ID: 8001, OrderNumber: 91001, ProgramID: 10001, UserID: 3001, TicketCount: 2})
 	seedOrderTicketUserFixtures(
@@ -64,7 +64,7 @@ func TestGetOrderReturnsDetailRowsForOwner(t *testing.T) {
 }
 
 func TestGetOrderReturnsNotFoundForAnotherUser(t *testing.T) {
-	svcCtx, _, _ := newOrderTestServiceContext(t)
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	seedOrderFixtures(t, svcCtx, orderFixture{ID: 8001, OrderNumber: 91001, ProgramID: 10001, UserID: 3002})
 

@@ -62,3 +62,8 @@ func (s *ProgramRpcServer) ReleaseSeatFreeze(ctx context.Context, in *pb.Release
 	l := logic.NewReleaseSeatFreezeLogic(ctx, s.svcCtx)
 	return l.ReleaseSeatFreeze(in)
 }
+
+func (s *ProgramRpcServer) ConfirmSeatFreeze(ctx context.Context, in *pb.ConfirmSeatFreezeReq) (*pb.ConfirmSeatFreezeResp, error) {
+	l := logic.NewConfirmSeatFreezeLogic(ctx, s.svcCtx)
+	return l.ConfirmSeatFreeze(in)
+}

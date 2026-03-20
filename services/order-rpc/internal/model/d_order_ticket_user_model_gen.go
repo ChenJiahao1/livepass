@@ -50,7 +50,7 @@ type (
 		SeatRow            int64     `db:"seat_row"`              // seat row
 		SeatCol            int64     `db:"seat_col"`              // seat col
 		SeatPrice          float64   `db:"seat_price"`            // seat price snapshot
-		OrderStatus        int64     `db:"order_status"`          // 1 unpaid, 2 cancelled
+		OrderStatus        int64     `db:"order_status"`          // 1 unpaid, 2 cancelled, 3 paid
 		CreateOrderTime    time.Time `db:"create_order_time"`     // order created at
 		CreateTime         time.Time `db:"create_time"`           // created at
 		EditTime           time.Time `db:"edit_time"`             // updated at

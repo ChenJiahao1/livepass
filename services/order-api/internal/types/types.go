@@ -88,3 +88,29 @@ type OrderTicketInfo struct {
 	SeatCol            int64  `json:"seatCol"`
 	SeatPrice          int64  `json:"seatPrice"`
 }
+
+type PayCheckReq struct {
+	OrderNumber int64 `json:"orderNumber"`
+}
+
+type PayCheckResp struct {
+	OrderNumber int64  `json:"orderNumber"`
+	OrderStatus int64  `json:"orderStatus"`
+	PayBillNo   int64  `json:"payBillNo"`
+	PayStatus   int64  `json:"payStatus"`
+	PayTime     string `json:"payTime,optional"`
+}
+
+type PayOrderReq struct {
+	OrderNumber int64  `json:"orderNumber"`
+	Subject     string `json:"subject,optional"`
+	Channel     string `json:"channel,optional"`
+}
+
+type PayOrderResp struct {
+	OrderNumber int64  `json:"orderNumber"`
+	OrderStatus int64  `json:"orderStatus"`
+	PayBillNo   int64  `json:"payBillNo"`
+	PayStatus   int64  `json:"payStatus"`
+	PayTime     string `json:"payTime,optional"`
+}

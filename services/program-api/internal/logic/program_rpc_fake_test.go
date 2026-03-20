@@ -81,3 +81,7 @@ func (f *fakeProgramRPC) ReleaseSeatFreeze(ctx context.Context, in *programrpc.R
 	f.lastReleaseSeatFreezeReq = in
 	return f.releaseSeatFreezeResp, f.releaseSeatFreezeErr
 }
+
+func (f *fakeProgramRPC) ConfirmSeatFreeze(ctx context.Context, in *programrpc.ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*programrpc.ConfirmSeatFreezeResp, error) {
+	return nil, nil
+}

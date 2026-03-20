@@ -48,6 +48,14 @@ for f in sql/order/d_order.sql sql/order/d_order_ticket_user.sql; do
 done
 ```
 
+## 初始化 pay 域表结构
+
+`damai_pay` 会在 MySQL 首次启动时由 `deploy/mysql/init/01-create-databases.sql` 自动创建。导入支付域表结构：
+
+```bash
+docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_pay < sql/pay/d_pay_bill.sql
+```
+
 ## 运行测试
 
 ```bash
@@ -61,12 +69,13 @@ go run services/user-rpc/user.go -f services/user-rpc/etc/user-rpc.yaml
 go run services/user-api/user.go -f services/user-api/etc/user-api.yaml
 go run services/program-rpc/program.go -f services/program-rpc/etc/program-rpc.yaml
 go run services/program-api/program.go -f services/program-api/etc/program-api.yaml
+go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay-rpc.yaml
 go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml
 go run services/order-api/order.go -f services/order-api/etc/order-api.yaml
 go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 ```
 
-`user-rpc`、`program-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
+`user-rpc`、`program-rpc`、`pay-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
 
 ## 手工验证用户链路
 
@@ -179,7 +188,7 @@ curl -X POST http://127.0.0.1:8889/program/seat/freeze \
 - `/program/preorder/detail` 返回当前演出场次、限购字段、`permitChooseSeat=0`，以及按 `d_seat` 实时聚合的票档余量。
 - `/program/seat/freeze` 返回 `freezeToken`、`expireTime` 和系统自动分配的座位列表；当前阶段不支持用户手动选座。
 
-## 手工验证 order Phase 1 链路
+## 手工验证 order + pay Phase 1 链路
 
 先登录获取 JWT：
 
@@ -221,6 +230,26 @@ curl -X POST http://127.0.0.1:8890/order/get \
   -d '{"orderNumber":<orderNumber>}'
 ```
 
+模拟支付订单：
+
+```bash
+curl -X POST http://127.0.0.1:8890/order/pay \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer ${JWT}" \
+  -H 'X-Channel-Code: 0001' \
+  -d '{"orderNumber":<orderNumber>,"subject":"大麦演出票","channel":"mock"}'
+```
+
+查询支付状态：
+
+```bash
+curl -X POST http://127.0.0.1:8890/order/pay/check \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer ${JWT}" \
+  -H 'X-Channel-Code: 0001' \
+  -d '{"orderNumber":<orderNumber>}'
+```
+
 取消订单：
 
 ```bash
@@ -235,4 +264,6 @@ curl -X POST http://127.0.0.1:8890/order/cancel \
 
 - 所有 order 接口都要求 `Authorization: Bearer <jwt>` 和 `X-Channel-Code: 0001`。
 - 创建成功后会返回新的 `orderNumber`，列表和详情只能看到当前登录用户的订单。
-- 取消未支付订单后，订单状态会变为已取消，并触发冻结座位释放。
+- `/order/pay` 会同步创建模拟支付单、确认冻结座位并把订单状态推进到 `3 paid`。
+- `/order/pay/check` 在已支付后会返回支付单号、支付状态和支付时间。
+- 支付成功后，再调用 `/order/cancel` 应返回失败，因为已支付订单不能取消。

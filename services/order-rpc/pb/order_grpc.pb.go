@@ -23,6 +23,8 @@ const (
 	OrderRpc_ListOrders_FullMethodName                      = "/order.OrderRpc/ListOrders"
 	OrderRpc_GetOrder_FullMethodName                        = "/order.OrderRpc/GetOrder"
 	OrderRpc_CancelOrder_FullMethodName                     = "/order.OrderRpc/CancelOrder"
+	OrderRpc_PayOrder_FullMethodName                        = "/order.OrderRpc/PayOrder"
+	OrderRpc_PayCheck_FullMethodName                        = "/order.OrderRpc/PayCheck"
 	OrderRpc_CloseExpiredOrders_FullMethodName              = "/order.OrderRpc/CloseExpiredOrders"
 	OrderRpc_CountActiveTicketsByUserProgram_FullMethodName = "/order.OrderRpc/CountActiveTicketsByUserProgram"
 )
@@ -35,6 +37,8 @@ type OrderRpcClient interface {
 	ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 	GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
 	CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
+	PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
+	PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error)
 	CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 	CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
 }
@@ -87,6 +91,26 @@ func (c *orderRpcClient) CancelOrder(ctx context.Context, in *CancelOrderReq, op
 	return out, nil
 }
 
+func (c *orderRpcClient) PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PayOrderResp)
+	err := c.cc.Invoke(ctx, OrderRpc_PayOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderRpcClient) PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PayCheckResp)
+	err := c.cc.Invoke(ctx, OrderRpc_PayCheck_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *orderRpcClient) CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CloseExpiredOrdersResp)
@@ -115,6 +139,8 @@ type OrderRpcServer interface {
 	ListOrders(context.Context, *ListOrdersReq) (*ListOrdersResp, error)
 	GetOrder(context.Context, *GetOrderReq) (*OrderDetailInfo, error)
 	CancelOrder(context.Context, *CancelOrderReq) (*BoolResp, error)
+	PayOrder(context.Context, *PayOrderReq) (*PayOrderResp, error)
+	PayCheck(context.Context, *PayCheckReq) (*PayCheckResp, error)
 	CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error)
 	CountActiveTicketsByUserProgram(context.Context, *CountActiveTicketsByUserProgramReq) (*CountActiveTicketsByUserProgramResp, error)
 	mustEmbedUnimplementedOrderRpcServer()
@@ -138,6 +164,12 @@ func (UnimplementedOrderRpcServer) GetOrder(context.Context, *GetOrderReq) (*Ord
 }
 func (UnimplementedOrderRpcServer) CancelOrder(context.Context, *CancelOrderReq) (*BoolResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelOrder not implemented")
+}
+func (UnimplementedOrderRpcServer) PayOrder(context.Context, *PayOrderReq) (*PayOrderResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method PayOrder not implemented")
+}
+func (UnimplementedOrderRpcServer) PayCheck(context.Context, *PayCheckReq) (*PayCheckResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method PayCheck not implemented")
 }
 func (UnimplementedOrderRpcServer) CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CloseExpiredOrders not implemented")
@@ -238,6 +270,42 @@ func _OrderRpc_CancelOrder_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrderRpc_PayOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PayOrderReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).PayOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_PayOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).PayOrder(ctx, req.(*PayOrderReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderRpc_PayCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PayCheckReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).PayCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_PayCheck_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).PayCheck(ctx, req.(*PayCheckReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OrderRpc_CloseExpiredOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CloseExpiredOrdersReq)
 	if err := dec(in); err != nil {
@@ -296,6 +364,14 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelOrder",
 			Handler:    _OrderRpc_CancelOrder_Handler,
+		},
+		{
+			MethodName: "PayOrder",
+			Handler:    _OrderRpc_PayOrder_Handler,
+		},
+		{
+			MethodName: "PayCheck",
+			Handler:    _OrderRpc_PayCheck_Handler,
 		},
 		{
 			MethodName: "CloseExpiredOrders",

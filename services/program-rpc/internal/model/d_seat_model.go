@@ -19,6 +19,7 @@ type (
 		FindByFreezeToken(ctx context.Context, freezeToken string) ([]*DSeat, error)
 		BatchFreezeByIDs(ctx context.Context, session sqlx.Session, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		ReleaseByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
+		ConfirmByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
 	}
 
 	customDSeatModel struct {
@@ -118,6 +119,16 @@ func (m *customDSeatModel) BatchFreezeByIDs(ctx context.Context, session sqlx.Se
 func (m *customDSeatModel) ReleaseByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error {
 	query := fmt.Sprintf(
 		"update %s set `seat_status` = 1, `freeze_token` = null, `freeze_expire_time` = null, `edit_time` = ? where `status` = 1 and `freeze_token` = ?",
+		m.table,
+	)
+
+	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, time.Now(), freezeToken)
+	return err
+}
+
+func (m *customDSeatModel) ConfirmByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error {
+	query := fmt.Sprintf(
+		"update %s set `seat_status` = 3, `edit_time` = ? where `status` = 1 and `seat_status` = 2 and `freeze_token` = ?",
 		m.table,
 	)
 

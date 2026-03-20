@@ -16,6 +16,7 @@ type Config struct {
 	zrpc.RpcServerConf
 	MySQL      xmysql.Config
 	ProgramRpc zrpc.RpcClientConf
+	PayRpc     zrpc.RpcClientConf
 	UserRpc    zrpc.RpcClientConf
 	Order      OrderConfig
 }

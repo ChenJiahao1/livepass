@@ -12,6 +12,7 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
+	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
 
@@ -24,6 +25,7 @@ import (
 const (
 	orderStatusUnpaid    int64 = 1
 	orderStatusCancelled int64 = 2
+	orderStatusPaid      int64 = 3
 
 	orderDateTimeLayout = "2006-01-02 15:04:05"
 )
@@ -285,9 +287,9 @@ func mapOrderError(err error) error {
 		return err
 	case errors.Is(err, xerr.ErrInvalidParam):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, xerr.ErrOrderNotFound):
+	case errors.Is(err, xerr.ErrOrderNotFound), errors.Is(err, xerr.ErrPayBillNotFound):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded):
+	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return err
@@ -357,4 +359,54 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 
 func buildFreezeRequestNo() string {
 	return fmt.Sprintf("order-%d", xid.New())
+}
+
+func mapPayOrderResp(order *model.DOrder, payBill *payrpc.GetPayBillResp) *pb.PayOrderResp {
+	if order == nil {
+		return &pb.PayOrderResp{}
+	}
+
+	resp := &pb.PayOrderResp{
+		OrderNumber: order.OrderNumber,
+		OrderStatus: order.OrderStatus,
+	}
+	if payBill == nil {
+		return resp
+	}
+
+	resp.PayBillNo = payBill.GetPayBillNo()
+	resp.PayStatus = payBill.GetPayStatus()
+	resp.PayTime = payBill.GetPayTime()
+	return resp
+}
+
+func mapPayCheckResp(order *model.DOrder, payBill *payrpc.GetPayBillResp) *pb.PayCheckResp {
+	if order == nil {
+		return &pb.PayCheckResp{}
+	}
+
+	resp := &pb.PayCheckResp{
+		OrderNumber: order.OrderNumber,
+		OrderStatus: order.OrderStatus,
+	}
+	if payBill == nil {
+		return resp
+	}
+
+	resp.PayBillNo = payBill.GetPayBillNo()
+	resp.PayStatus = payBill.GetPayStatus()
+	resp.PayTime = payBill.GetPayTime()
+	return resp
+}
+
+func mustGetPayBillForOrder(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) (*payrpc.GetPayBillResp, error) {
+	resp, err := svcCtx.PayRpc.GetPayBill(ctx, &payrpc.GetPayBillReq{OrderNumber: orderNumber})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return nil, xerr.ErrPayBillNotFound
+		}
+		return nil, err
+	}
+
+	return resp, nil
 }

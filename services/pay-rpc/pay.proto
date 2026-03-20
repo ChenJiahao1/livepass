@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package pay;
+
+option go_package = "./pb";
+
+message MockPayReq {
+  int64 orderNumber = 1;
+  int64 userId = 2;
+  string subject = 3;
+  string channel = 4;
+  int64 amount = 5;
+}
+
+message MockPayResp {
+  int64 payBillNo = 1;
+  int64 payStatus = 2;
+  string payTime = 3;
+}
+
+message GetPayBillReq {
+  int64 orderNumber = 1;
+}
+
+message GetPayBillResp {
+  int64 payBillNo = 1;
+  int64 orderNumber = 2;
+  int64 userId = 3;
+  string subject = 4;
+  string channel = 5;
+  int64 amount = 6;
+  int64 payStatus = 7;
+  string payTime = 8;
+}
+
+service PayRpc {
+  rpc MockPay(MockPayReq) returns (MockPayResp);
+  rpc GetPayBill(GetPayBillReq) returns (GetPayBillResp);
+}

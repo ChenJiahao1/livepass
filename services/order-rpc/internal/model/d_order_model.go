@@ -24,6 +24,7 @@ type (
 		CountByUserProgramAndStatus(ctx context.Context, userId, programId, orderStatus int64) (int64, error)
 		FindExpiredUnpaid(ctx context.Context, before time.Time, limit int64) ([]*DOrder, error)
 		UpdateCancelStatus(ctx context.Context, session sqlx.Session, orderNumber int64, cancelTime time.Time) error
+		UpdatePayStatus(ctx context.Context, session sqlx.Session, orderNumber int64, payTime time.Time) error
 	}
 
 	customDOrderModel struct {
@@ -195,5 +196,15 @@ func (m *customDOrderModel) UpdateCancelStatus(ctx context.Context, session sqlx
 	)
 
 	_, err := m.withSession(session).(*customDOrderModel).conn.ExecCtx(ctx, query, cancelTime, cancelTime, orderNumber)
+	return err
+}
+
+func (m *customDOrderModel) UpdatePayStatus(ctx context.Context, session sqlx.Session, orderNumber int64, payTime time.Time) error {
+	query := fmt.Sprintf(
+		"update %s set `order_status` = 3, `pay_order_time` = ?, `edit_time` = ? where `status` = 1 and `order_number` = ? and `order_status` = 1",
+		m.table,
+	)
+
+	_, err := m.withSession(session).(*customDOrderModel).conn.ExecCtx(ctx, query, payTime, payTime, orderNumber)
 	return err
 }
