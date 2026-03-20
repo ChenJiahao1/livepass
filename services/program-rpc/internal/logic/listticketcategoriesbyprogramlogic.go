@@ -2,7 +2,9 @@ package logic
 
 import (
 	"context"
+	"errors"
 
+	"damai-go/services/program-rpc/internal/model"
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 
@@ -24,7 +26,15 @@ func NewListTicketCategoriesByProgramLogic(ctx context.Context, svcCtx *svc.Serv
 }
 
 func (l *ListTicketCategoriesByProgramLogic) ListTicketCategoriesByProgram(in *pb.ListTicketCategoriesByProgramReq) (*pb.TicketCategoryDetailListResp, error) {
-	// todo: add your logic here and delete this line
+	ticketCategories, err := l.svcCtx.DTicketCategoryModel.FindByProgramId(l.ctx, in.GetProgramId())
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return &pb.TicketCategoryDetailListResp{List: []*pb.TicketCategoryDetailInfo{}}, nil
+		}
+		return nil, err
+	}
 
-	return &pb.TicketCategoryDetailListResp{}, nil
+	return &pb.TicketCategoryDetailListResp{
+		List: toTicketCategoryDetailInfoList(ticketCategories),
+	}, nil
 }

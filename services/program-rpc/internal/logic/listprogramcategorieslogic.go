@@ -2,7 +2,9 @@ package logic
 
 import (
 	"context"
+	"errors"
 
+	"damai-go/services/program-rpc/internal/model"
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 
@@ -24,7 +26,23 @@ func NewListProgramCategoriesLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *ListProgramCategoriesLogic) ListProgramCategories(in *pb.Empty) (*pb.ProgramCategoryListResp, error) {
-	// todo: add your logic here and delete this line
+	categories, err := l.svcCtx.DProgramCategoryModel.FindAll(l.ctx)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return &pb.ProgramCategoryListResp{List: []*pb.ProgramCategoryInfo{}}, nil
+		}
+		return nil, err
+	}
 
-	return &pb.ProgramCategoryListResp{}, nil
+	list := make([]*pb.ProgramCategoryInfo, 0, len(categories))
+	for _, category := range categories {
+		list = append(list, &pb.ProgramCategoryInfo{
+			Id:       category.Id,
+			ParentId: category.ParentId,
+			Name:     category.Name,
+			Type:     category.Type,
+		})
+	}
+
+	return &pb.ProgramCategoryListResp{List: list}, nil
 }
