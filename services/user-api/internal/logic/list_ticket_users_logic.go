@@ -8,6 +8,7 @@ import (
 
 	"damai-go/services/user-api/internal/svc"
 	"damai-go/services/user-api/internal/types"
+	"damai-go/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,7 +28,18 @@ func NewListTicketUsersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *L
 }
 
 func (l *ListTicketUsersLogic) ListTicketUsers(req *types.ListTicketUsersReq) (resp *types.TicketUserListResp, err error) {
-	// todo: add your logic here and delete this line
+	rpcResp, err := l.svcCtx.UserRpc.ListTicketUsers(l.ctx, &userrpc.ListTicketUsersReq{
+		UserId: req.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	if rpcResp == nil {
+		return &types.TicketUserListResp{}, nil
+	}
+
+	return &types.TicketUserListResp{
+		List: mapTicketUserVoList(rpcResp.List),
+	}, nil
 }

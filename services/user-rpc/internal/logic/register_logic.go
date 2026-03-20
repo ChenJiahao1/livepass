@@ -2,9 +2,7 @@ package logic
 
 import (
 	"context"
-	"crypto/md5"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"time"
 
@@ -37,32 +35,54 @@ func (l *RegisterLogic) Register(in *pb.RegisterReq) (*pb.BoolResp, error) {
 	if in.Mobile == "" || in.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
+	if in.ConfirmPassword != "" && in.Password != in.ConfirmPassword {
+		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
 
-	_, err := l.svcCtx.DUserModel.FindOneByMobile(l.ctx, in.Mobile)
+	_, err := l.svcCtx.DUserMobileModel.FindOneByMobile(l.ctx, in.Mobile)
 	switch {
 	case err == nil:
-		return nil, status.Error(codes.AlreadyExists, "user already exists")
+		return nil, status.Error(codes.AlreadyExists, xerr.ErrUserAlreadyExists.Error())
 	case !errors.Is(err, model.ErrNotFound):
 		return nil, err
 	}
 
 	now := time.Now()
+	userID := xid.New()
 	user := &model.DUser{
-		Id:       xid.New(),
-		Mobile:   in.Mobile,
-		Gender:   1,
-		Password: sql.NullString{String: md5Hex(in.Password), Valid: true},
-		EditTime: sql.NullTime{Time: now, Valid: true},
-		Status:   1,
+		Id:          userID,
+		Mobile:      in.Mobile,
+		Gender:      1,
+		Password:    sql.NullString{String: md5Hex(in.Password), Valid: true},
+		Email:       sql.NullString{String: in.Mail, Valid: in.Mail != ""},
+		EmailStatus: in.MailStatus,
+		EditTime:    sql.NullTime{Time: now, Valid: true},
+		Status:      1,
 	}
 	if _, err := l.svcCtx.DUserModel.Insert(l.ctx, user); err != nil {
 		return nil, err
 	}
+	if _, err := l.svcCtx.DUserMobileModel.Insert(l.ctx, &model.DUserMobile{
+		Id:       xid.New(),
+		UserId:   userID,
+		Mobile:   in.Mobile,
+		EditTime: sql.NullTime{Time: now, Valid: true},
+		Status:   1,
+	}); err != nil {
+		return nil, err
+	}
+	if in.Mail != "" {
+		if _, err := l.svcCtx.DUserEmailModel.Insert(l.ctx, &model.DUserEmail{
+			Id:          xid.New(),
+			UserId:      userID,
+			Email:       in.Mail,
+			EmailStatus: in.MailStatus,
+			EditTime:    sql.NullTime{Time: now, Valid: true},
+			Status:      1,
+		}); err != nil {
+			return nil, err
+		}
+	}
 
 	return &pb.BoolResp{Success: true}, nil
-}
-
-func md5Hex(value string) string {
-	sum := md5.Sum([]byte(value))
-	return hex.EncodeToString(sum[:])
 }

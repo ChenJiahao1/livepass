@@ -1,11 +1,16 @@
 package xredis
 
-type Config struct {
-	Host string
-	Type string
-	Pass string
+import goredis "github.com/zeromicro/go-zero/core/stores/redis"
+
+type (
+	Config = goredis.RedisConf
+	Client = goredis.Redis
+)
+
+func New(conf Config) (*Client, error) {
+	return goredis.NewRedis(conf)
 }
 
-func NewConfig(host string) Config {
-	return Config{Host: host}
+func MustNew(conf Config) *Client {
+	return goredis.MustNewRedis(conf)
 }

@@ -11,25 +11,43 @@ message BoolResp {
 }
 
 message UserInfo {
-  int64 userId = 1;
-  string mobile = 2;
-  string name = 3;
+  int64 id = 1;
+  string name = 2;
+  string relName = 3;
+  int64 gender = 4;
+  string mobile = 5;
+  int64 emailStatus = 6;
+  string email = 7;
+  int64 relAuthenticationStatus = 8;
+  string idNumber = 9;
+  string address = 10;
 }
 
 message TicketUserInfo {
   int64 id = 1;
-  string name = 2;
-  string idNumber = 3;
+  int64 userId = 2;
+  string relName = 3;
+  int64 idType = 4;
+  string idNumber = 5;
 }
 
 message RegisterReq {
   string mobile = 1;
   string password = 2;
+  string confirmPassword = 3;
+  string mail = 4;
+  int64 mailStatus = 5;
+}
+
+message ExistReq {
+  string mobile = 1;
 }
 
 message LoginReq {
-  string mobile = 1;
-  string password = 2;
+  string code = 1;
+  string mobile = 2;
+  string email = 3;
+  string password = 4;
 }
 
 message LoginResp {
@@ -38,12 +56,46 @@ message LoginResp {
 }
 
 message GetUserByIdReq {
-  int64 userId = 1;
+  int64 id = 1;
+}
+
+message GetUserByMobileReq {
+  string mobile = 1;
+}
+
+message LogoutReq {
+  string code = 1;
+  string token = 2;
 }
 
 message UpdateUserReq {
-  int64 userId = 1;
+  int64 id = 1;
   string name = 2;
+  int64 gender = 3;
+  string mobile = 4;
+  string address = 5;
+}
+
+message UpdatePasswordReq {
+  int64 id = 1;
+  string password = 2;
+}
+
+message UpdateEmailReq {
+  int64 id = 1;
+  string email = 2;
+  int64 emailStatus = 3;
+}
+
+message UpdateMobileReq {
+  int64 id = 1;
+  string mobile = 2;
+}
+
+message AuthenticationReq {
+  int64 id = 1;
+  string relName = 2;
+  string idNumber = 3;
 }
 
 message ListTicketUsersReq {
@@ -56,31 +108,38 @@ message ListTicketUsersResp {
 
 message AddTicketUserReq {
   int64 userId = 1;
-  string name = 2;
-  string idNumber = 3;
+  string relName = 2;
+  int64 idType = 3;
+  string idNumber = 4;
 }
 
-message GetCaptchaReq {
-  string scene = 1;
+message DeleteTicketUserReq {
+  int64 id = 1;
 }
 
-message CaptchaResp {
-  string captchaId = 1;
-  string content = 2;
+message GetUserAndTicketUserListReq {
+  int64 userId = 1;
 }
 
-message VerifyCaptchaReq {
-  string captchaId = 1;
-  string answer = 2;
+message GetUserAndTicketUserListResp {
+  UserInfo userVo = 1;
+  repeated TicketUserInfo ticketUserVoList = 2;
 }
 
 service UserRpc {
   rpc Register(RegisterReq) returns (BoolResp);
+  rpc Exist(ExistReq) returns (BoolResp);
   rpc Login(LoginReq) returns (LoginResp);
   rpc GetUserById(GetUserByIdReq) returns (UserInfo);
+  rpc GetUserByMobile(GetUserByMobileReq) returns (UserInfo);
+  rpc Logout(LogoutReq) returns (BoolResp);
   rpc UpdateUser(UpdateUserReq) returns (BoolResp);
+  rpc UpdatePassword(UpdatePasswordReq) returns (BoolResp);
+  rpc UpdateEmail(UpdateEmailReq) returns (BoolResp);
+  rpc UpdateMobile(UpdateMobileReq) returns (BoolResp);
+  rpc Authentication(AuthenticationReq) returns (BoolResp);
   rpc ListTicketUsers(ListTicketUsersReq) returns (ListTicketUsersResp);
   rpc AddTicketUser(AddTicketUserReq) returns (BoolResp);
-  rpc GetCaptcha(GetCaptchaReq) returns (CaptchaResp);
-  rpc VerifyCaptcha(VerifyCaptchaReq) returns (BoolResp);
+  rpc DeleteTicketUser(DeleteTicketUserReq) returns (BoolResp);
+  rpc GetUserAndTicketUserList(GetUserAndTicketUserListReq) returns (GetUserAndTicketUserListResp);
 }

@@ -1,21 +1,28 @@
 type (
 	ListTicketUsersReq {
-		UserID int64 `form:"userId"`
+		UserID int64 `json:"userId"`
 	}
 
-	TicketUserInfo {
+	TicketUserVo {
 		ID int64 `json:"id"`
-		Name string `json:"name"`
+		UserID int64 `json:"userId"`
+		RelName string `json:"relName,optional"`
+		IdType int64 `json:"idType,optional"`
 		IdNumber string `json:"idNumber,optional"`
 	}
 
 	TicketUserListResp {
-		List []TicketUserInfo `json:"list"`
+		List []TicketUserVo `json:"list"`
 	}
 
 	AddTicketUserReq {
 		UserID int64 `json:"userId"`
-		Name string `json:"name"`
+		RelName string `json:"relName"`
+		IdType int64 `json:"idType"`
 		IdNumber string `json:"idNumber"`
+	}
+
+	DeleteTicketUserReq {
+		ID int64 `json:"id"`
 	}
 )

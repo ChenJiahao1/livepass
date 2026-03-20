@@ -29,14 +29,15 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 
 func (l *RegisterLogic) Register(req *types.UserRegisterReq) (resp *types.BoolResp, err error) {
 	rpcResp, err := l.svcCtx.UserRpc.Register(l.ctx, &userrpc.RegisterReq{
-		Mobile:   req.Mobile,
-		Password: req.Password,
+		Mobile:          req.Mobile,
+		Password:        req.Password,
+		ConfirmPassword: req.ConfirmPassword,
+		Mail:            req.Mail,
+		MailStatus:      req.MailStatus,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.BoolResp{
-		Success: rpcResp.Success,
-	}, nil
+	return mapBoolResp(rpcResp), nil
 }

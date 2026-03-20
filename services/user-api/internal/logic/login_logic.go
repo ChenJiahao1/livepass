@@ -8,6 +8,7 @@ import (
 
 	"damai-go/services/user-api/internal/svc"
 	"damai-go/services/user-api/internal/types"
+	"damai-go/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,7 +28,22 @@ func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic 
 }
 
 func (l *LoginLogic) Login(req *types.UserLoginReq) (resp *types.UserLoginResp, err error) {
-	// todo: add your logic here and delete this line
+	rpcResp, err := l.svcCtx.UserRpc.Login(l.ctx, &userrpc.LoginReq{
+		Code:     req.Code,
+		Mobile:   req.Mobile,
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	if rpcResp == nil {
+		return &types.UserLoginResp{}, nil
+	}
+
+	return &types.UserLoginResp{
+		UserID: rpcResp.UserId,
+		Token:  rpcResp.Token,
+	}, nil
 }

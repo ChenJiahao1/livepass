@@ -28,6 +28,11 @@ func (s *UserRpcServer) Register(ctx context.Context, in *pb.RegisterReq) (*pb.B
 	return l.Register(in)
 }
 
+func (s *UserRpcServer) Exist(ctx context.Context, in *pb.ExistReq) (*pb.BoolResp, error) {
+	l := logic.NewExistLogic(ctx, s.svcCtx)
+	return l.Exist(in)
+}
+
 func (s *UserRpcServer) Login(ctx context.Context, in *pb.LoginReq) (*pb.LoginResp, error) {
 	l := logic.NewLoginLogic(ctx, s.svcCtx)
 	return l.Login(in)
@@ -38,9 +43,39 @@ func (s *UserRpcServer) GetUserById(ctx context.Context, in *pb.GetUserByIdReq) 
 	return l.GetUserById(in)
 }
 
+func (s *UserRpcServer) GetUserByMobile(ctx context.Context, in *pb.GetUserByMobileReq) (*pb.UserInfo, error) {
+	l := logic.NewGetUserByMobileLogic(ctx, s.svcCtx)
+	return l.GetUserByMobile(in)
+}
+
+func (s *UserRpcServer) Logout(ctx context.Context, in *pb.LogoutReq) (*pb.BoolResp, error) {
+	l := logic.NewLogoutLogic(ctx, s.svcCtx)
+	return l.Logout(in)
+}
+
 func (s *UserRpcServer) UpdateUser(ctx context.Context, in *pb.UpdateUserReq) (*pb.BoolResp, error) {
 	l := logic.NewUpdateUserLogic(ctx, s.svcCtx)
 	return l.UpdateUser(in)
+}
+
+func (s *UserRpcServer) UpdatePassword(ctx context.Context, in *pb.UpdatePasswordReq) (*pb.BoolResp, error) {
+	l := logic.NewUpdatePasswordLogic(ctx, s.svcCtx)
+	return l.UpdatePassword(in)
+}
+
+func (s *UserRpcServer) UpdateEmail(ctx context.Context, in *pb.UpdateEmailReq) (*pb.BoolResp, error) {
+	l := logic.NewUpdateEmailLogic(ctx, s.svcCtx)
+	return l.UpdateEmail(in)
+}
+
+func (s *UserRpcServer) UpdateMobile(ctx context.Context, in *pb.UpdateMobileReq) (*pb.BoolResp, error) {
+	l := logic.NewUpdateMobileLogic(ctx, s.svcCtx)
+	return l.UpdateMobile(in)
+}
+
+func (s *UserRpcServer) Authentication(ctx context.Context, in *pb.AuthenticationReq) (*pb.BoolResp, error) {
+	l := logic.NewAuthenticationLogic(ctx, s.svcCtx)
+	return l.Authentication(in)
 }
 
 func (s *UserRpcServer) ListTicketUsers(ctx context.Context, in *pb.ListTicketUsersReq) (*pb.ListTicketUsersResp, error) {
@@ -53,12 +88,12 @@ func (s *UserRpcServer) AddTicketUser(ctx context.Context, in *pb.AddTicketUserR
 	return l.AddTicketUser(in)
 }
 
-func (s *UserRpcServer) GetCaptcha(ctx context.Context, in *pb.GetCaptchaReq) (*pb.CaptchaResp, error) {
-	l := logic.NewGetCaptchaLogic(ctx, s.svcCtx)
-	return l.GetCaptcha(in)
+func (s *UserRpcServer) DeleteTicketUser(ctx context.Context, in *pb.DeleteTicketUserReq) (*pb.BoolResp, error) {
+	l := logic.NewDeleteTicketUserLogic(ctx, s.svcCtx)
+	return l.DeleteTicketUser(in)
 }
 
-func (s *UserRpcServer) VerifyCaptcha(ctx context.Context, in *pb.VerifyCaptchaReq) (*pb.BoolResp, error) {
-	l := logic.NewVerifyCaptchaLogic(ctx, s.svcCtx)
-	return l.VerifyCaptcha(in)
+func (s *UserRpcServer) GetUserAndTicketUserList(ctx context.Context, in *pb.GetUserAndTicketUserListReq) (*pb.GetUserAndTicketUserListResp, error) {
+	l := logic.NewGetUserAndTicketUserListLogic(ctx, s.svcCtx)
+	return l.GetUserAndTicketUserList(in)
 }

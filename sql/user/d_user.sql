@@ -16,5 +16,6 @@ CREATE TABLE `d_user` (
   `edit_time` datetime DEFAULT NULL COMMENT '编辑时间',
   `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '1:正常 0:删除',
   PRIMARY KEY (`id`),
-  KEY `idx_d_user_mobile` (`mobile`)
+  KEY `idx_d_user_mobile` (`mobile`),
+  KEY `idx_d_user_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';

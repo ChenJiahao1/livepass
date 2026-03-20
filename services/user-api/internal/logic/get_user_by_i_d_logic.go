@@ -8,6 +8,7 @@ import (
 
 	"damai-go/services/user-api/internal/svc"
 	"damai-go/services/user-api/internal/types"
+	"damai-go/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -26,8 +27,13 @@ func NewGetUserByIDLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 	}
 }
 
-func (l *GetUserByIDLogic) GetUserByID(req *types.GetUserByIDReq) (resp *types.UserInfoResp, err error) {
-	// todo: add your logic here and delete this line
+func (l *GetUserByIDLogic) GetUserByID(req *types.GetUserByIDReq) (resp *types.UserVo, err error) {
+	rpcResp, err := l.svcCtx.UserRpc.GetUserById(l.ctx, &userrpc.GetUserByIdReq{
+		Id: req.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return mapUserVo(rpcResp), nil
 }

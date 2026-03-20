@@ -3,13 +3,35 @@ type (
 		Success bool `json:"success"`
 	}
 
+	UserVo {
+		ID int64 `json:"id"`
+		Name string `json:"name,optional"`
+		RelName string `json:"relName,optional"`
+		Gender int64 `json:"gender,optional"`
+		Mobile string `json:"mobile,optional"`
+		EmailStatus int64 `json:"emailStatus,optional"`
+		Email string `json:"email,optional"`
+		RelAuthenticationStatus int64 `json:"relAuthenticationStatus,optional"`
+		IdNumber string `json:"idNumber,optional"`
+		Address string `json:"address,optional"`
+	}
+
 	UserRegisterReq {
 		Mobile string `json:"mobile"`
 		Password string `json:"password"`
+		ConfirmPassword string `json:"confirmPassword"`
+		Mail string `json:"mail,optional"`
+		MailStatus int64 `json:"mailStatus,optional"`
+	}
+
+	UserExistReq {
+		Mobile string `json:"mobile"`
 	}
 
 	UserLoginReq {
-		Mobile string `json:"mobile"`
+		Code string `json:"code"`
+		Mobile string `json:"mobile,optional"`
+		Email string `json:"email,optional"`
 		Password string `json:"password"`
 	}
 
@@ -19,17 +41,54 @@ type (
 	}
 
 	GetUserByIDReq {
-		UserID int64 `form:"userId"`
+		ID int64 `json:"id"`
 	}
 
-	UserInfoResp {
-		UserID int64 `json:"userId"`
+	GetUserByMobileReq {
 		Mobile string `json:"mobile"`
-		Name string `json:"name,optional"`
 	}
 
 	UpdateUserReq {
-		UserID int64 `json:"userId"`
+		ID int64 `json:"id"`
 		Name string `json:"name,optional"`
+		Gender int64 `json:"gender,optional"`
+		Mobile string `json:"mobile,optional"`
+		Address string `json:"address,optional"`
+	}
+
+	UpdatePasswordReq {
+		ID int64 `json:"id"`
+		Password string `json:"password"`
+	}
+
+	UpdateEmailReq {
+		ID int64 `json:"id"`
+		Email string `json:"email"`
+		EmailStatus int64 `json:"emailStatus,optional"`
+	}
+
+	UpdateMobileReq {
+		ID int64 `json:"id"`
+		Mobile string `json:"mobile"`
+	}
+
+	UserLogoutReq {
+		Code string `json:"code"`
+		Token string `json:"token"`
+	}
+
+	AuthenticationReq {
+		ID int64 `json:"id"`
+		RelName string `json:"relName"`
+		IdNumber string `json:"idNumber"`
+	}
+
+	GetUserAndTicketUserListReq {
+		UserID int64 `json:"userId"`
+	}
+
+	GetUserAndTicketUserListResp {
+		UserVo UserVo `json:"userVo"`
+		TicketUserVoList []TicketUserVo `json:"ticketUserVoList"`
 	}
 )

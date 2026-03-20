@@ -2,31 +2,51 @@ syntax = "v1"
 
 import "desc/user.api"
 import "desc/ticket_user.api"
-import "desc/captcha.api"
 
 service user-api {
 	@handler Register
 	post /user/register (UserRegisterReq) returns (BoolResp)
 
+	@handler Exist
+	post /user/exist (UserExistReq) returns (BoolResp)
+
 	@handler Login
 	post /user/login (UserLoginReq) returns (UserLoginResp)
 
 	@handler GetUserByID
-	get /user/get/id (GetUserByIDReq) returns (UserInfoResp)
+	post /user/get/id (GetUserByIDReq) returns (UserVo)
+
+	@handler GetUserByMobile
+	post /user/get/mobile (GetUserByMobileReq) returns (UserVo)
+
+	@handler Logout
+	post /user/logout (UserLogoutReq) returns (BoolResp)
 
 	@handler UpdateUser
 	post /user/update (UpdateUserReq) returns (BoolResp)
 
+	@handler UpdatePassword
+	post /user/update/password (UpdatePasswordReq) returns (BoolResp)
+
+	@handler UpdateEmail
+	post /user/update/email (UpdateEmailReq) returns (BoolResp)
+
+	@handler UpdateMobile
+	post /user/update/mobile (UpdateMobileReq) returns (BoolResp)
+
+	@handler Authentication
+	post /user/authentication (AuthenticationReq) returns (BoolResp)
+
+	@handler GetUserAndTicketUserList
+	post /user/get/user/ticket/list (GetUserAndTicketUserListReq) returns (GetUserAndTicketUserListResp)
+
 	@handler ListTicketUsers
-	get /ticket/user/list (ListTicketUsersReq) returns (TicketUserListResp)
+	post /ticket/user/list (ListTicketUsersReq) returns (TicketUserListResp)
 
 	@handler AddTicketUser
 	post /ticket/user/add (AddTicketUserReq) returns (BoolResp)
 
-	@handler GetCaptcha
-	get /user/captcha/get (GetCaptchaReq) returns (CaptchaResp)
-
-	@handler VerifyCaptcha
-	post /user/captcha/verify (VerifyCaptchaReq) returns (BoolResp)
+	@handler DeleteTicketUser
+	post /ticket/user/delete (DeleteTicketUserReq) returns (BoolResp)
 }
 

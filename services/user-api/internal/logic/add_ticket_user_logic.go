@@ -8,6 +8,7 @@ import (
 
 	"damai-go/services/user-api/internal/svc"
 	"damai-go/services/user-api/internal/types"
+	"damai-go/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,7 +28,15 @@ func NewAddTicketUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Add
 }
 
 func (l *AddTicketUserLogic) AddTicketUser(req *types.AddTicketUserReq) (resp *types.BoolResp, err error) {
-	// todo: add your logic here and delete this line
+	rpcResp, err := l.svcCtx.UserRpc.AddTicketUser(l.ctx, &userrpc.AddTicketUserReq{
+		UserId:   req.UserID,
+		RelName:  req.RelName,
+		IdType:   req.IdType,
+		IdNumber: req.IdNumber,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return mapBoolResp(rpcResp), nil
 }

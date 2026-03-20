@@ -14,31 +14,45 @@ import (
 )
 
 type (
-	AddTicketUserReq    = pb.AddTicketUserReq
-	BoolResp            = pb.BoolResp
-	CaptchaResp         = pb.CaptchaResp
-	Empty               = pb.Empty
-	GetCaptchaReq       = pb.GetCaptchaReq
-	GetUserByIdReq      = pb.GetUserByIdReq
-	ListTicketUsersReq  = pb.ListTicketUsersReq
-	ListTicketUsersResp = pb.ListTicketUsersResp
-	LoginReq            = pb.LoginReq
-	LoginResp           = pb.LoginResp
-	RegisterReq         = pb.RegisterReq
-	TicketUserInfo      = pb.TicketUserInfo
-	UpdateUserReq       = pb.UpdateUserReq
-	UserInfo            = pb.UserInfo
-	VerifyCaptchaReq    = pb.VerifyCaptchaReq
+	AddTicketUserReq             = pb.AddTicketUserReq
+	AuthenticationReq            = pb.AuthenticationReq
+	BoolResp                     = pb.BoolResp
+	DeleteTicketUserReq          = pb.DeleteTicketUserReq
+	Empty                        = pb.Empty
+	ExistReq                     = pb.ExistReq
+	GetUserAndTicketUserListReq  = pb.GetUserAndTicketUserListReq
+	GetUserAndTicketUserListResp = pb.GetUserAndTicketUserListResp
+	GetUserByIdReq               = pb.GetUserByIdReq
+	GetUserByMobileReq           = pb.GetUserByMobileReq
+	ListTicketUsersReq           = pb.ListTicketUsersReq
+	ListTicketUsersResp          = pb.ListTicketUsersResp
+	LoginReq                     = pb.LoginReq
+	LoginResp                    = pb.LoginResp
+	LogoutReq                    = pb.LogoutReq
+	RegisterReq                  = pb.RegisterReq
+	TicketUserInfo               = pb.TicketUserInfo
+	UpdateEmailReq               = pb.UpdateEmailReq
+	UpdateMobileReq              = pb.UpdateMobileReq
+	UpdatePasswordReq            = pb.UpdatePasswordReq
+	UpdateUserReq                = pb.UpdateUserReq
+	UserInfo                     = pb.UserInfo
 
 	UserRpc interface {
 		Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*BoolResp, error)
+		Exist(ctx context.Context, in *ExistReq, opts ...grpc.CallOption) (*BoolResp, error)
 		Login(ctx context.Context, in *LoginReq, opts ...grpc.CallOption) (*LoginResp, error)
 		GetUserById(ctx context.Context, in *GetUserByIdReq, opts ...grpc.CallOption) (*UserInfo, error)
+		GetUserByMobile(ctx context.Context, in *GetUserByMobileReq, opts ...grpc.CallOption) (*UserInfo, error)
+		Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*BoolResp, error)
 		UpdateUser(ctx context.Context, in *UpdateUserReq, opts ...grpc.CallOption) (*BoolResp, error)
+		UpdatePassword(ctx context.Context, in *UpdatePasswordReq, opts ...grpc.CallOption) (*BoolResp, error)
+		UpdateEmail(ctx context.Context, in *UpdateEmailReq, opts ...grpc.CallOption) (*BoolResp, error)
+		UpdateMobile(ctx context.Context, in *UpdateMobileReq, opts ...grpc.CallOption) (*BoolResp, error)
+		Authentication(ctx context.Context, in *AuthenticationReq, opts ...grpc.CallOption) (*BoolResp, error)
 		ListTicketUsers(ctx context.Context, in *ListTicketUsersReq, opts ...grpc.CallOption) (*ListTicketUsersResp, error)
 		AddTicketUser(ctx context.Context, in *AddTicketUserReq, opts ...grpc.CallOption) (*BoolResp, error)
-		GetCaptcha(ctx context.Context, in *GetCaptchaReq, opts ...grpc.CallOption) (*CaptchaResp, error)
-		VerifyCaptcha(ctx context.Context, in *VerifyCaptchaReq, opts ...grpc.CallOption) (*BoolResp, error)
+		DeleteTicketUser(ctx context.Context, in *DeleteTicketUserReq, opts ...grpc.CallOption) (*BoolResp, error)
+		GetUserAndTicketUserList(ctx context.Context, in *GetUserAndTicketUserListReq, opts ...grpc.CallOption) (*GetUserAndTicketUserListResp, error)
 	}
 
 	defaultUserRpc struct {
@@ -57,6 +71,11 @@ func (m *defaultUserRpc) Register(ctx context.Context, in *RegisterReq, opts ...
 	return client.Register(ctx, in, opts...)
 }
 
+func (m *defaultUserRpc) Exist(ctx context.Context, in *ExistReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewUserRpcClient(m.cli.Conn())
+	return client.Exist(ctx, in, opts...)
+}
+
 func (m *defaultUserRpc) Login(ctx context.Context, in *LoginReq, opts ...grpc.CallOption) (*LoginResp, error) {
 	client := pb.NewUserRpcClient(m.cli.Conn())
 	return client.Login(ctx, in, opts...)
@@ -67,9 +86,39 @@ func (m *defaultUserRpc) GetUserById(ctx context.Context, in *GetUserByIdReq, op
 	return client.GetUserById(ctx, in, opts...)
 }
 
+func (m *defaultUserRpc) GetUserByMobile(ctx context.Context, in *GetUserByMobileReq, opts ...grpc.CallOption) (*UserInfo, error) {
+	client := pb.NewUserRpcClient(m.cli.Conn())
+	return client.GetUserByMobile(ctx, in, opts...)
+}
+
+func (m *defaultUserRpc) Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewUserRpcClient(m.cli.Conn())
+	return client.Logout(ctx, in, opts...)
+}
+
 func (m *defaultUserRpc) UpdateUser(ctx context.Context, in *UpdateUserReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	client := pb.NewUserRpcClient(m.cli.Conn())
 	return client.UpdateUser(ctx, in, opts...)
+}
+
+func (m *defaultUserRpc) UpdatePassword(ctx context.Context, in *UpdatePasswordReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewUserRpcClient(m.cli.Conn())
+	return client.UpdatePassword(ctx, in, opts...)
+}
+
+func (m *defaultUserRpc) UpdateEmail(ctx context.Context, in *UpdateEmailReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewUserRpcClient(m.cli.Conn())
+	return client.UpdateEmail(ctx, in, opts...)
+}
+
+func (m *defaultUserRpc) UpdateMobile(ctx context.Context, in *UpdateMobileReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewUserRpcClient(m.cli.Conn())
+	return client.UpdateMobile(ctx, in, opts...)
+}
+
+func (m *defaultUserRpc) Authentication(ctx context.Context, in *AuthenticationReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewUserRpcClient(m.cli.Conn())
+	return client.Authentication(ctx, in, opts...)
 }
 
 func (m *defaultUserRpc) ListTicketUsers(ctx context.Context, in *ListTicketUsersReq, opts ...grpc.CallOption) (*ListTicketUsersResp, error) {
@@ -82,12 +131,12 @@ func (m *defaultUserRpc) AddTicketUser(ctx context.Context, in *AddTicketUserReq
 	return client.AddTicketUser(ctx, in, opts...)
 }
 
-func (m *defaultUserRpc) GetCaptcha(ctx context.Context, in *GetCaptchaReq, opts ...grpc.CallOption) (*CaptchaResp, error) {
+func (m *defaultUserRpc) DeleteTicketUser(ctx context.Context, in *DeleteTicketUserReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	client := pb.NewUserRpcClient(m.cli.Conn())
-	return client.GetCaptcha(ctx, in, opts...)
+	return client.DeleteTicketUser(ctx, in, opts...)
 }
 
-func (m *defaultUserRpc) VerifyCaptcha(ctx context.Context, in *VerifyCaptchaReq, opts ...grpc.CallOption) (*BoolResp, error) {
+func (m *defaultUserRpc) GetUserAndTicketUserList(ctx context.Context, in *GetUserAndTicketUserListReq, opts ...grpc.CallOption) (*GetUserAndTicketUserListResp, error) {
 	client := pb.NewUserRpcClient(m.cli.Conn())
-	return client.VerifyCaptcha(ctx, in, opts...)
+	return client.GetUserAndTicketUserList(ctx, in, opts...)
 }
