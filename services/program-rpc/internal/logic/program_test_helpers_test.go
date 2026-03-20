@@ -24,6 +24,32 @@ type ticketCategoryFixture struct {
 	RemainNumber int64
 }
 
+type seatFixture struct {
+	ID               int64
+	ProgramID        int64
+	TicketCategoryID int64
+	RowCode          int
+	ColCode          int
+	SeatType         int
+	Price            float64
+	SeatStatus       int
+	FreezeToken      string
+	FreezeExpireTime string
+}
+
+type seatFreezeFixture struct {
+	ID               int64
+	FreezeToken      string
+	RequestNo        string
+	ProgramID        int64
+	TicketCategoryID int64
+	SeatCount        int
+	FreezeStatus     int
+	ExpireTime       string
+	ReleaseReason    string
+	ReleaseTime      string
+}
+
 type programFixture struct {
 	ProgramID                 int64
 	ProgramGroupID            int64
@@ -67,6 +93,8 @@ func resetProgramDomainState(t *testing.T) {
 		"sql/program/d_program_group.sql",
 		"sql/program/d_program.sql",
 		"sql/program/d_program_show_time.sql",
+		"sql/program/d_seat.sql",
+		"sql/program/d_seat_freeze.sql",
 		"sql/program/d_ticket_category.sql",
 		"sql/program/dev_seed.sql",
 	} {
@@ -83,6 +111,68 @@ func seedProgramFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...p
 	for _, fixture := range fixtures {
 		insertProgramFixture(t, db, withProgramFixtureDefaults(fixture))
 	}
+}
+
+func seedSeatFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...seatFixture) {
+	t.Helper()
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	for _, fixture := range fixtures {
+		fixture = withSeatFixtureDefaults(fixture)
+		mustExecProgramSQL(
+			t,
+			db,
+			`INSERT INTO d_seat (
+				id, program_id, ticket_category_id, row_code, col_code, seat_type, price, seat_status,
+				freeze_token, freeze_expire_time, create_time, edit_time, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			fixture.ID,
+			fixture.ProgramID,
+			fixture.TicketCategoryID,
+			fixture.RowCode,
+			fixture.ColCode,
+			fixture.SeatType,
+			fixture.Price,
+			fixture.SeatStatus,
+			nullIfEmpty(fixture.FreezeToken),
+			nullIfEmpty(fixture.FreezeExpireTime),
+			"2026-01-01 00:00:00",
+			"2026-01-01 00:00:00",
+			1,
+		)
+	}
+}
+
+func seedSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixture seatFreezeFixture) {
+	t.Helper()
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	fixture = withSeatFreezeFixtureDefaults(fixture)
+	mustExecProgramSQL(
+		t,
+		db,
+		`INSERT INTO d_seat_freeze (
+			id, freeze_token, request_no, program_id, ticket_category_id, seat_count, freeze_status,
+			expire_time, release_reason, release_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		fixture.ID,
+		fixture.FreezeToken,
+		fixture.RequestNo,
+		fixture.ProgramID,
+		fixture.TicketCategoryID,
+		fixture.SeatCount,
+		fixture.FreezeStatus,
+		fixture.ExpireTime,
+		nullIfEmpty(fixture.ReleaseReason),
+		nullIfEmpty(fixture.ReleaseTime),
+		"2026-01-01 00:00:00",
+		"2026-01-01 00:00:00",
+		1,
+	)
 }
 
 func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {
@@ -148,6 +238,34 @@ func withProgramFixtureDefaults(fixture programFixture) programFixture {
 				RemainNumber: 40,
 			},
 		}
+	}
+
+	return fixture
+}
+
+func withSeatFixtureDefaults(fixture seatFixture) seatFixture {
+	if fixture.SeatType == 0 {
+		fixture.SeatType = 1
+	}
+	if fixture.Price == 0 {
+		fixture.Price = 299
+	}
+	if fixture.SeatStatus == 0 {
+		fixture.SeatStatus = 1
+	}
+
+	return fixture
+}
+
+func withSeatFreezeFixtureDefaults(fixture seatFreezeFixture) seatFreezeFixture {
+	if fixture.SeatCount == 0 {
+		fixture.SeatCount = 1
+	}
+	if fixture.FreezeStatus == 0 {
+		fixture.FreezeStatus = 1
+	}
+	if fixture.ExpireTime == "" {
+		fixture.ExpireTime = "2026-12-31 20:00:00"
 	}
 
 	return fixture
@@ -259,6 +377,14 @@ func execProgramSQLFile(t *testing.T, db *sql.DB, relativePath string) {
 			t.Fatalf("exec %s error: %v\nstatement: %s", relativePath, err, stmt)
 		}
 	}
+}
+
+func nullIfEmpty(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+
+	return s
 }
 
 func programProjectRoot(t *testing.T) string {
