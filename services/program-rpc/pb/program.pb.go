@@ -1085,7 +1085,7 @@ type ProgramDetailInfo struct {
 	KindReminder                    string                 `protobuf:"bytes,28,opt,name=kindReminder,proto3" json:"kindReminder,omitempty"`
 	PerformanceDuration             string                 `protobuf:"bytes,29,opt,name=performanceDuration,proto3" json:"performanceDuration,omitempty"`
 	EntryTime                       string                 `protobuf:"bytes,30,opt,name=entryTime,proto3" json:"entryTime,omitempty"`
-	MinPerformanceCount             string                 `protobuf:"bytes,31,opt,name=minPerformanceCount,proto3" json:"minPerformanceCount,omitempty"`
+	MinPerformanceCount             int64                  `protobuf:"varint,31,opt,name=minPerformanceCount,proto3" json:"minPerformanceCount,omitempty"`
 	MainActor                       string                 `protobuf:"bytes,32,opt,name=mainActor,proto3" json:"mainActor,omitempty"`
 	MinPerformanceDuration          string                 `protobuf:"bytes,33,opt,name=minPerformanceDuration,proto3" json:"minPerformanceDuration,omitempty"`
 	ProhibitedItem                  string                 `protobuf:"bytes,34,opt,name=prohibitedItem,proto3" json:"prohibitedItem,omitempty"`
@@ -1352,11 +1352,11 @@ func (x *ProgramDetailInfo) GetEntryTime() string {
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetMinPerformanceCount() string {
+func (x *ProgramDetailInfo) GetMinPerformanceCount() int64 {
 	if x != nil {
 		return x.MinPerformanceCount
 	}
-	return ""
+	return 0
 }
 
 func (x *ProgramDetailInfo) GetMainActor() string {
@@ -1630,7 +1630,7 @@ const file_services_program_rpc_program_proto_rawDesc = "" +
 	"\fkindReminder\x18\x1c \x01(\tR\fkindReminder\x120\n" +
 	"\x13performanceDuration\x18\x1d \x01(\tR\x13performanceDuration\x12\x1c\n" +
 	"\tentryTime\x18\x1e \x01(\tR\tentryTime\x120\n" +
-	"\x13minPerformanceCount\x18\x1f \x01(\tR\x13minPerformanceCount\x12\x1c\n" +
+	"\x13minPerformanceCount\x18\x1f \x01(\x03R\x13minPerformanceCount\x12\x1c\n" +
 	"\tmainActor\x18  \x01(\tR\tmainActor\x126\n" +
 	"\x16minPerformanceDuration\x18! \x01(\tR\x16minPerformanceDuration\x12&\n" +
 	"\x0eprohibitedItem\x18\" \x01(\tR\x0eprohibitedItem\x122\n" +

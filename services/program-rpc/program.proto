@@ -139,7 +139,7 @@ message ProgramDetailInfo {
   string kindReminder = 28;
   string performanceDuration = 29;
   string entryTime = 30;
-  string minPerformanceCount = 31;
+  int64 minPerformanceCount = 31;
   string mainActor = 32;
   string minPerformanceDuration = 33;
   string prohibitedItem = 34;
