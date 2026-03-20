@@ -1,0 +1,98 @@
+syntax = "v1"
+
+type (
+	CreateOrderReq {
+		ProgramID        int64   `json:"programId"`
+		TicketCategoryID int64   `json:"ticketCategoryId"`
+		TicketUserIds    []int64 `json:"ticketUserIds"`
+		DistributionMode string  `json:"distributionMode,optional"`
+		TakeTicketMode   string  `json:"takeTicketMode,optional"`
+	}
+	CreateOrderResp {
+		OrderNumber int64 `json:"orderNumber"`
+	}
+	ListOrdersReq {
+		PageNumber  int64 `json:"pageNumber,optional"`
+		PageSize    int64 `json:"pageSize,optional"`
+		OrderStatus int64 `json:"orderStatus,optional"`
+	}
+	OrderListInfo {
+		OrderNumber        int64  `json:"orderNumber"`
+		ProgramID          int64  `json:"programId"`
+		ProgramTitle       string `json:"programTitle,optional"`
+		ProgramItemPicture string `json:"programItemPicture,optional"`
+		ProgramPlace       string `json:"programPlace,optional"`
+		ProgramShowTime    string `json:"programShowTime,optional"`
+		TicketCount        int64  `json:"ticketCount"`
+		OrderPrice         int64  `json:"orderPrice"`
+		OrderStatus        int64  `json:"orderStatus"`
+		OrderExpireTime    string `json:"orderExpireTime,optional"`
+		CreateOrderTime    string `json:"createOrderTime,optional"`
+		CancelOrderTime    string `json:"cancelOrderTime,optional"`
+	}
+	ListOrdersResp {
+		PageNum   int64           `json:"pageNum"`
+		PageSize  int64           `json:"pageSize"`
+		TotalSize int64           `json:"totalSize"`
+		List      []OrderListInfo `json:"list,optional"`
+	}
+	GetOrderReq {
+		OrderNumber int64 `json:"orderNumber"`
+	}
+	OrderTicketInfo {
+		TicketUserID       int64  `json:"ticketUserId"`
+		TicketUserName     string `json:"ticketUserName,optional"`
+		TicketUserIDNumber string `json:"ticketUserIdNumber,optional"`
+		TicketCategoryID   int64  `json:"ticketCategoryId"`
+		TicketCategoryName string `json:"ticketCategoryName,optional"`
+		TicketPrice        int64  `json:"ticketPrice"`
+		SeatID             int64  `json:"seatId"`
+		SeatRow            int64  `json:"seatRow"`
+		SeatCol            int64  `json:"seatCol"`
+		SeatPrice          int64  `json:"seatPrice"`
+	}
+	OrderDetailInfo {
+		OrderNumber             int64             `json:"orderNumber"`
+		ProgramID               int64             `json:"programId"`
+		ProgramTitle            string            `json:"programTitle,optional"`
+		ProgramItemPicture      string            `json:"programItemPicture,optional"`
+		ProgramPlace            string            `json:"programPlace,optional"`
+		ProgramShowTime         string            `json:"programShowTime,optional"`
+		ProgramPermitChooseSeat int64             `json:"programPermitChooseSeat"`
+		UserID                  int64             `json:"userId"`
+		DistributionMode        string            `json:"distributionMode,optional"`
+		TakeTicketMode          string            `json:"takeTicketMode,optional"`
+		TicketCount             int64             `json:"ticketCount"`
+		OrderPrice              int64             `json:"orderPrice"`
+		OrderStatus             int64             `json:"orderStatus"`
+		FreezeToken             string            `json:"freezeToken,optional"`
+		OrderExpireTime         string            `json:"orderExpireTime,optional"`
+		CreateOrderTime         string            `json:"createOrderTime,optional"`
+		CancelOrderTime         string            `json:"cancelOrderTime,optional"`
+		OrderTicketInfoVoList   []OrderTicketInfo `json:"orderTicketInfoVoList,optional"`
+	}
+	CancelOrderReq {
+		OrderNumber int64 `json:"orderNumber"`
+	}
+	BoolResp {
+		Success bool `json:"success"`
+	}
+)
+
+@server (
+	middleware: Auth
+)
+service order-api {
+	@handler CreateOrder
+	post /order/create (CreateOrderReq) returns (CreateOrderResp)
+
+	@handler ListOrders
+	post /order/select/list (ListOrdersReq) returns (ListOrdersResp)
+
+	@handler GetOrder
+	post /order/get (GetOrderReq) returns (OrderDetailInfo)
+
+	@handler CancelOrder
+	post /order/cancel (CancelOrderReq) returns (BoolResp)
+}
+

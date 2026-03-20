@@ -1,0 +1,57 @@
+package logic
+
+import (
+	"context"
+
+	"damai-go/services/order-rpc/orderrpc"
+
+	"google.golang.org/grpc"
+)
+
+type fakeOrderRPC struct {
+	createOrderResp    *orderrpc.CreateOrderResp
+	createOrderErr     error
+	lastCreateOrderReq *orderrpc.CreateOrderReq
+
+	listOrdersResp    *orderrpc.ListOrdersResp
+	listOrdersErr     error
+	lastListOrdersReq *orderrpc.ListOrdersReq
+
+	getOrderResp    *orderrpc.OrderDetailInfo
+	getOrderErr     error
+	lastGetOrderReq *orderrpc.GetOrderReq
+
+	cancelOrderResp    *orderrpc.BoolResp
+	cancelOrderErr     error
+	lastCancelOrderReq *orderrpc.CancelOrderReq
+}
+
+func (f *fakeOrderRPC) CreateOrder(ctx context.Context, in *orderrpc.CreateOrderReq, opts ...grpc.CallOption) (*orderrpc.CreateOrderResp, error) {
+	f.lastCreateOrderReq = in
+	return f.createOrderResp, f.createOrderErr
+}
+
+func (f *fakeOrderRPC) ListOrders(ctx context.Context, in *orderrpc.ListOrdersReq, opts ...grpc.CallOption) (*orderrpc.ListOrdersResp, error) {
+	f.lastListOrdersReq = in
+	return f.listOrdersResp, f.listOrdersErr
+}
+
+func (f *fakeOrderRPC) GetOrder(ctx context.Context, in *orderrpc.GetOrderReq, opts ...grpc.CallOption) (*orderrpc.OrderDetailInfo, error) {
+	f.lastGetOrderReq = in
+	return f.getOrderResp, f.getOrderErr
+}
+
+func (f *fakeOrderRPC) CancelOrder(ctx context.Context, in *orderrpc.CancelOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+	f.lastCancelOrderReq = in
+	return f.cancelOrderResp, f.cancelOrderErr
+}
+
+func (f *fakeOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderRPC) CountActiveTicketsByUserProgram(ctx context.Context, in *orderrpc.CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*orderrpc.CountActiveTicketsByUserProgramResp, error) {
+	return nil, nil
+}
+
+var _ orderrpc.OrderRpc = (*fakeOrderRPC)(nil)

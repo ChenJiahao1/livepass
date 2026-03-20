@@ -1,0 +1,114 @@
+package logic
+
+import (
+	"damai-go/services/order-api/internal/types"
+	"damai-go/services/order-rpc/orderrpc"
+)
+
+func mapCreateOrderResp(resp *orderrpc.CreateOrderResp) *types.CreateOrderResp {
+	if resp == nil {
+		return &types.CreateOrderResp{}
+	}
+
+	return &types.CreateOrderResp{
+		OrderNumber: resp.OrderNumber,
+	}
+}
+
+func mapListOrdersResp(resp *orderrpc.ListOrdersResp) *types.ListOrdersResp {
+	if resp == nil {
+		return &types.ListOrdersResp{}
+	}
+
+	return &types.ListOrdersResp{
+		PageNum:   resp.PageNum,
+		PageSize:  resp.PageSize,
+		TotalSize: resp.TotalSize,
+		List:      mapOrderListInfoList(resp.List),
+	}
+}
+
+func mapOrderListInfoList(list []*orderrpc.OrderListInfo) []types.OrderListInfo {
+	if len(list) == 0 {
+		return nil
+	}
+
+	resp := make([]types.OrderListInfo, 0, len(list))
+	for _, item := range list {
+		if item == nil {
+			resp = append(resp, types.OrderListInfo{})
+			continue
+		}
+		resp = append(resp, types.OrderListInfo{
+			OrderNumber:        item.OrderNumber,
+			ProgramID:          item.ProgramId,
+			ProgramTitle:       item.ProgramTitle,
+			ProgramItemPicture: item.ProgramItemPicture,
+			ProgramPlace:       item.ProgramPlace,
+			ProgramShowTime:    item.ProgramShowTime,
+			TicketCount:        item.TicketCount,
+			OrderPrice:         item.OrderPrice,
+			OrderStatus:        item.OrderStatus,
+			OrderExpireTime:    item.OrderExpireTime,
+			CreateOrderTime:    item.CreateOrderTime,
+			CancelOrderTime:    item.CancelOrderTime,
+		})
+	}
+
+	return resp
+}
+
+func mapOrderDetailInfo(resp *orderrpc.OrderDetailInfo) *types.OrderDetailInfo {
+	if resp == nil {
+		return &types.OrderDetailInfo{}
+	}
+
+	return &types.OrderDetailInfo{
+		OrderNumber:             resp.OrderNumber,
+		ProgramID:               resp.ProgramId,
+		ProgramTitle:            resp.ProgramTitle,
+		ProgramItemPicture:      resp.ProgramItemPicture,
+		ProgramPlace:            resp.ProgramPlace,
+		ProgramShowTime:         resp.ProgramShowTime,
+		ProgramPermitChooseSeat: resp.ProgramPermitChooseSeat,
+		UserID:                  resp.UserId,
+		DistributionMode:        resp.DistributionMode,
+		TakeTicketMode:          resp.TakeTicketMode,
+		TicketCount:             resp.TicketCount,
+		OrderPrice:              resp.OrderPrice,
+		OrderStatus:             resp.OrderStatus,
+		FreezeToken:             resp.FreezeToken,
+		OrderExpireTime:         resp.OrderExpireTime,
+		CreateOrderTime:         resp.CreateOrderTime,
+		CancelOrderTime:         resp.CancelOrderTime,
+		OrderTicketInfoVoList:   mapOrderTicketInfoList(resp.OrderTicketInfoVoList),
+	}
+}
+
+func mapOrderTicketInfoList(list []*orderrpc.OrderTicketInfo) []types.OrderTicketInfo {
+	if len(list) == 0 {
+		return nil
+	}
+
+	resp := make([]types.OrderTicketInfo, 0, len(list))
+	for _, item := range list {
+		if item == nil {
+			resp = append(resp, types.OrderTicketInfo{})
+			continue
+		}
+		resp = append(resp, types.OrderTicketInfo{
+			TicketUserID:       item.TicketUserId,
+			TicketUserName:     item.TicketUserName,
+			TicketUserIDNumber: item.TicketUserIdNumber,
+			TicketCategoryID:   item.TicketCategoryId,
+			TicketCategoryName: item.TicketCategoryName,
+			TicketPrice:        item.TicketPrice,
+			SeatID:             item.SeatId,
+			SeatRow:            item.SeatRow,
+			SeatCol:            item.SeatCol,
+			SeatPrice:          item.SeatPrice,
+		})
+	}
+
+	return resp
+}

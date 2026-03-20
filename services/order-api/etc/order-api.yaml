@@ -1,0 +1,12 @@
+Name: order-api
+Host: 0.0.0.0
+Port: 8890
+OrderRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: order.rpc
+Auth:
+  ChannelCodeHeader: X-Channel-Code
+  ChannelMap:
+    "0001": local-user-secret-0001
