@@ -96,8 +96,8 @@ func (m *defaultDSeatModel) FindOneByProgramIdRowCodeColCode(ctx context.Context
 }
 
 func (m *defaultDSeatModel) Insert(ctx context.Context, data *DSeat) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dSeatRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.TicketCategoryId, data.RowCode, data.ColCode, data.SeatType, data.Price, data.SeatStatus, data.FreezeToken, data.FreezeExpireTime, data.EditTime, data.Status)
+	query := fmt.Sprintf("insert into %s (`id`, `program_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`, `freeze_token`, `freeze_expire_time`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.TicketCategoryId, data.RowCode, data.ColCode, data.SeatType, data.Price, data.SeatStatus, data.FreezeToken, data.FreezeExpireTime, data.CreateTime, data.EditTime, data.Status)
 	return ret, err
 }
 

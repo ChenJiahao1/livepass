@@ -77,7 +77,7 @@ func (m *customDSeatFreezeModel) FindOneByFreezeToken(ctx context.Context, freez
 
 func (m *customDSeatFreezeModel) FindExpiredByProgramAndTicketCategory(ctx context.Context, session sqlx.Session, programId, ticketCategoryId int64, now time.Time) ([]*DSeatFreeze, error) {
 	query := fmt.Sprintf(
-		"select %s from %s where `status` = 1 and `program_id` = ? and `ticket_category_id` = ? and `freeze_status` = 1 and `expire_time` <= ? order by `id` asc for update",
+		"select %s from %s where `status` = 1 and `program_id` = ? and `ticket_category_id` = ? and `freeze_status` = 1 and `expire_time` <= ? order by `id` asc",
 		dSeatFreezeRows,
 		m.table,
 	)

@@ -111,8 +111,8 @@ func (m *defaultDSeatFreezeModel) FindOneByRequestNo(ctx context.Context, reques
 }
 
 func (m *defaultDSeatFreezeModel) Insert(ctx context.Context, data *DSeatFreeze) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dSeatFreezeRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.FreezeToken, data.RequestNo, data.ProgramId, data.TicketCategoryId, data.SeatCount, data.FreezeStatus, data.ExpireTime, data.ReleaseReason, data.ReleaseTime, data.EditTime, data.Status)
+	query := fmt.Sprintf("insert into %s (`id`, `freeze_token`, `request_no`, `program_id`, `ticket_category_id`, `seat_count`, `freeze_status`, `expire_time`, `release_reason`, `release_time`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.FreezeToken, data.RequestNo, data.ProgramId, data.TicketCategoryId, data.SeatCount, data.FreezeStatus, data.ExpireTime, data.ReleaseReason, data.ReleaseTime, data.CreateTime, data.EditTime, data.Status)
 	return ret, err
 }
 
