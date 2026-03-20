@@ -4,11 +4,12 @@
 
 `damai-go` 是基于 `Go + go-zero` 重建的大麦业务总线项目。
 
+注意： 你写的代码将会提交给claude code审核
+
 设计原则：
 
 - 工程结构遵循 `go-zero` 官方习惯
 - 业务命名参考原 Java 项目语义
-- 服务发现使用 `etcd`
 - 当前以用户域为首期落地范围
 - 后续逐步扩展到 `program`、`order`、`pay`、`customize` 和 `agents`
 
@@ -82,14 +83,7 @@ damai-go/
 ├── services/
 │   ├── user-api/
 │   ├── user-rpc/
-│   ├── program-api/
-│   ├── program-rpc/
-│   ├── order-api/
-│   ├── order-rpc/
-│   ├── pay-api/
-│   ├── pay-rpc/
-│   ├── customize-api/
-│   ├── customize-rpc/
+│   ├── .../
 │   └── gateway-api/
 ├── jobs/
 │   ├── order-close/
@@ -103,33 +97,9 @@ damai-go/
     └── README.md
 ```
 
-## user 服务分层
-
-### user-api
-
-职责：
-
-- 对外提供 HTTP 接口
-- 保持接口层稳定
-- 负责参数校验、鉴权、中间件、响应封装
-- 调用 `user-rpc`，不承载核心业务归属
-
-### user-rpc
-
-职责：
-
-- 承接用户域核心业务逻辑
-- 负责 MySQL、Redis、etcd 等基础设施接入
-- 作为内部统一契约供其他服务复用
-- 后续供 `gateway-api`、`agents`、其他业务服务调用
-
 ## 目录约定
 
-- 默认情况下，一个 `go-zero` 物理服务对应 `services/` 下一个独立目录
-- 需要对外提供 HTTP 能力时，使用 `<name>-api`
-- 需要对内提供 gRPC 能力时，使用 `<name>-rpc`
-- 是否同时存在 `api` 与 `rpc`，由该业务域是否同时需要两类能力决定，不强制成对出现
-- 非 `go-zero` 独立组件必须显式声明为例外；当前仅 `agents/` 作为 Python 组件保留在根级目录
+- 当前仅 `agents/` 作为 Python 组件保留在根级目录
 
 ## 后续服务边界
 
@@ -138,3 +108,6 @@ damai-go/
 - `pay`：支付、回调、退款
 - `customize`：规则、广播、扩展配置
 - `agents`：基于 Python 实现的智能客服组件，通过内部服务契约获取业务数据
+
+
+program 的座位不支持用户手动选座，但是需要保留系统安排座位
