@@ -751,6 +751,7 @@ type ProgramListInfo struct {
 	ShowWeekTime              string                 `protobuf:"bytes,14,opt,name=showWeekTime,proto3" json:"showWeekTime,omitempty"`
 	MinPrice                  int64                  `protobuf:"varint,15,opt,name=minPrice,proto3" json:"minPrice,omitempty"`
 	MaxPrice                  int64                  `protobuf:"varint,16,opt,name=maxPrice,proto3" json:"maxPrice,omitempty"`
+	EsId                      int64                  `protobuf:"varint,17,opt,name=esId,proto3" json:"esId,omitempty"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -893,6 +894,13 @@ func (x *ProgramListInfo) GetMinPrice() int64 {
 func (x *ProgramListInfo) GetMaxPrice() int64 {
 	if x != nil {
 		return x.MaxPrice
+	}
+	return 0
+}
+
+func (x *ProgramListInfo) GetEsId() int64 {
+	if x != nil {
+		return x.EsId
 	}
 	return 0
 }
@@ -1570,7 +1578,7 @@ const file_services_program_rpc_program_proto_rawDesc = "" +
 	"\vtotalNumber\x18\x04 \x01(\x03R\vtotalNumber\x12\"\n" +
 	"\fremainNumber\x18\x05 \x01(\x03R\fremainNumber\"K\n" +
 	"\x17ProgramCategoryListResp\x120\n" +
-	"\x04list\x18\x01 \x03(\v2\x1c.program.ProgramCategoryInfoR\x04list\"\xab\x04\n" +
+	"\x04list\x18\x01 \x03(\v2\x1c.program.ProgramCategoryInfoR\x04list\"\xbf\x04\n" +
 	"\x0fProgramListInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x14\n" +
@@ -1588,7 +1596,8 @@ const file_services_program_rpc_program_proto_rawDesc = "" +
 	"\vshowDayTime\x18\r \x01(\tR\vshowDayTime\x12\"\n" +
 	"\fshowWeekTime\x18\x0e \x01(\tR\fshowWeekTime\x12\x1a\n" +
 	"\bminPrice\x18\x0f \x01(\x03R\bminPrice\x12\x1a\n" +
-	"\bmaxPrice\x18\x10 \x01(\x03R\bmaxPrice\"N\n" +
+	"\bmaxPrice\x18\x10 \x01(\x03R\bmaxPrice\x12\x12\n" +
+	"\x04esId\x18\x11 \x01(\x03R\x04esId\"N\n" +
 	"\x13ProgramHomeListResp\x127\n" +
 	"\bsections\x18\x01 \x03(\v2\x1b.program.ProgramHomeSectionR\bsections\"\x93\x01\n" +
 	"\x0fProgramPageResp\x12\x18\n" +

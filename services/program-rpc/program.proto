@@ -91,6 +91,7 @@ message ProgramListInfo {
   string showWeekTime = 14;
   int64 minPrice = 15;
   int64 maxPrice = 16;
+  int64 esId = 17;
 }
 
 message ProgramHomeListResp {
