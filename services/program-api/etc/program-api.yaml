@@ -1,0 +1,8 @@
+Name: program-api
+Host: 0.0.0.0
+Port: 8889
+ProgramRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: program.rpc

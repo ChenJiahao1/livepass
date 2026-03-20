@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package program;
+
+option go_package = "./pb";
+
+message Empty {}
+
+message ListHomeProgramsReq {
+  int64 areaId = 1;
+  repeated int64 parentProgramCategoryIds = 2;
+}
+
+message PageProgramsReq {
+  int64 pageNumber = 1;
+  int64 pageSize = 2;
+  int64 areaId = 3;
+  int64 parentProgramCategoryId = 4;
+  int64 programCategoryId = 5;
+  int64 timeType = 6;
+  string startDateTime = 7;
+  string endDateTime = 8;
+  int64 type = 9;
+}
+
+message GetProgramDetailReq {
+  int64 id = 1;
+}
+
+message ListTicketCategoriesByProgramReq {
+  int64 programId = 1;
+}
+
+message ProgramCategoryInfo {
+  int64 id = 1;
+  int64 parentId = 2;
+  string name = 3;
+  int64 type = 4;
+}
+
+message ProgramSimpleInfo {
+  int64 programId = 1;
+  int64 areaId = 2;
+  string areaIdName = 3;
+}
+
+message ProgramGroupInfo {
+  int64 id = 1;
+  repeated ProgramSimpleInfo programSimpleInfoVoList = 2;
+  string recentShowTime = 3;
+}
+
+message ProgramHomeSection {
+  string categoryName = 1;
+  int64 categoryId = 2;
+  repeated ProgramListInfo programListVoList = 3;
+}
+
+message TicketCategoryInfo {
+  int64 id = 1;
+  string introduce = 2;
+  int64 price = 3;
+}
+
+message TicketCategoryDetailInfo {
+  int64 programId = 1;
+  string introduce = 2;
+  int64 price = 3;
+  int64 totalNumber = 4;
+  int64 remainNumber = 5;
+}
+
+message ProgramCategoryListResp {
+  repeated ProgramCategoryInfo list = 1;
+}
+
+message ProgramListInfo {
+  int64 id = 1;
+  string title = 2;
+  string actor = 3;
+  string place = 4;
+  string itemPicture = 5;
+  int64 areaId = 6;
+  string areaName = 7;
+  int64 programCategoryId = 8;
+  string programCategoryName = 9;
+  int64 parentProgramCategoryId = 10;
+  string parentProgramCategoryName = 11;
+  string showTime = 12;
+  string showDayTime = 13;
+  string showWeekTime = 14;
+  int64 minPrice = 15;
+  int64 maxPrice = 16;
+  int64 esId = 17;
+}
+
+message ProgramHomeListResp {
+  repeated ProgramHomeSection sections = 1;
+}
+
+message ProgramPageResp {
+  int64 pageNum = 1;
+  int64 pageSize = 2;
+  int64 totalSize = 3;
+  repeated ProgramListInfo list = 4;
+}
+
+message TicketCategoryDetailListResp {
+  repeated TicketCategoryDetailInfo list = 1;
+}
+
+message ProgramDetailInfo {
+  int64 id = 1;
+  int64 programGroupId = 2;
+  int64 prime = 3;
+  ProgramGroupInfo programGroupVo = 4;
+  string title = 5;
+  string actor = 6;
+  string place = 7;
+  string itemPicture = 8;
+  int64 preSell = 9;
+  string preSellInstruction = 10;
+  string importantNotice = 11;
+  int64 areaId = 12;
+  string areaName = 13;
+  int64 programCategoryId = 14;
+  string programCategoryName = 15;
+  int64 parentProgramCategoryId = 16;
+  string parentProgramCategoryName = 17;
+  string detail = 18;
+  int64 perOrderLimitPurchaseCount = 19;
+  int64 perAccountLimitPurchaseCount = 20;
+  string refundTicketRule = 21;
+  string deliveryInstruction = 22;
+  string entryRule = 23;
+  string childPurchase = 24;
+  string invoiceSpecification = 25;
+  string realTicketPurchaseRule = 26;
+  string abnormalOrderDescription = 27;
+  string kindReminder = 28;
+  string performanceDuration = 29;
+  string entryTime = 30;
+  int64 minPerformanceCount = 31;
+  string mainActor = 32;
+  string minPerformanceDuration = 33;
+  string prohibitedItem = 34;
+  string depositSpecification = 35;
+  int64 totalCount = 36;
+  int64 permitRefund = 37;
+  string refundExplain = 38;
+  int64 relNameTicketEntrance = 39;
+  string relNameTicketEntranceExplain = 40;
+  int64 permitChooseSeat = 41;
+  string chooseSeatExplain = 42;
+  int64 electronicDeliveryTicket = 43;
+  string electronicDeliveryTicketExplain = 44;
+  int64 electronicInvoice = 45;
+  string electronicInvoiceExplain = 46;
+  int64 highHeat = 47;
+  int64 programStatus = 48;
+  string issueTime = 49;
+  string showTime = 50;
+  string showDayTime = 51;
+  string showWeekTime = 52;
+  repeated TicketCategoryInfo ticketCategoryVoList = 53;
+}
+
+service ProgramRpc {
+  rpc ListProgramCategories(Empty) returns (ProgramCategoryListResp);
+  rpc ListHomePrograms(ListHomeProgramsReq) returns (ProgramHomeListResp);
+  rpc PagePrograms(PageProgramsReq) returns (ProgramPageResp);
+  rpc GetProgramDetail(GetProgramDetailReq) returns (ProgramDetailInfo);
+  rpc ListTicketCategoriesByProgram(ListTicketCategoriesByProgramReq) returns (TicketCategoryDetailListResp);
+}

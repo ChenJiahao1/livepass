@@ -1,0 +1,166 @@
+syntax = "v1"
+
+type (
+	EmptyReq  {}
+	ListHomeProgramsReq {
+		AreaId                   int64   `json:"areaId,optional"`
+		ParentProgramCategoryIds []int64 `json:"parentProgramCategoryIds,optional"`
+	}
+	PageProgramsReq {
+		PageNumber              int64  `json:"pageNumber,optional"`
+		PageSize                int64  `json:"pageSize,optional"`
+		AreaId                  int64  `json:"areaId,optional"`
+		ParentProgramCategoryId int64  `json:"parentProgramCategoryId,optional"`
+		ProgramCategoryId       int64  `json:"programCategoryId,optional"`
+		TimeType                int64  `json:"timeType,optional"`
+		StartDateTime           string `json:"startDateTime,optional"`
+		EndDateTime             string `json:"endDateTime,optional"`
+		Type                    int64  `json:"type,optional"`
+	}
+	GetProgramDetailReq {
+		ID int64 `json:"id"`
+	}
+	ListTicketCategoriesByProgramReq {
+		ProgramID int64 `json:"programId"`
+	}
+	ProgramCategoryInfo {
+		ID       int64  `json:"id"`
+		ParentID int64  `json:"parentId"`
+		Name     string `json:"name"`
+		Type     int64  `json:"type"`
+	}
+	ProgramSimpleInfo {
+		ProgramID  int64  `json:"programId"`
+		AreaID     int64  `json:"areaId"`
+		AreaIDName string `json:"areaIdName,optional"`
+	}
+	ProgramGroupInfo {
+		ID                      int64               `json:"id"`
+		ProgramSimpleInfoVoList []ProgramSimpleInfo `json:"programSimpleInfoVoList,optional"`
+		RecentShowTime          string              `json:"recentShowTime,optional"`
+	}
+	ProgramListInfo {
+		ID                        int64  `json:"id"`
+		Title                     string `json:"title,optional"`
+		Actor                     string `json:"actor,optional"`
+		Place                     string `json:"place,optional"`
+		ItemPicture               string `json:"itemPicture,optional"`
+		AreaID                    int64  `json:"areaId"`
+		AreaName                  string `json:"areaName,optional"`
+		ProgramCategoryID         int64  `json:"programCategoryId"`
+		ProgramCategoryName       string `json:"programCategoryName,optional"`
+		ParentProgramCategoryID   int64  `json:"parentProgramCategoryId"`
+		ParentProgramCategoryName string `json:"parentProgramCategoryName,optional"`
+		ShowTime                  string `json:"showTime,optional"`
+		ShowDayTime               string `json:"showDayTime,optional"`
+		ShowWeekTime              string `json:"showWeekTime,optional"`
+		MinPrice                  int64  `json:"minPrice"`
+		MaxPrice                  int64  `json:"maxPrice"`
+		EsID                      int64  `json:"esId"`
+	}
+	ProgramHomeSection {
+		CategoryName      string            `json:"categoryName,optional"`
+		CategoryID        int64             `json:"categoryId"`
+		ProgramListVoList []ProgramListInfo `json:"programListVoList,optional"`
+	}
+	TicketCategoryInfo {
+		ID        int64  `json:"id"`
+		Introduce string `json:"introduce,optional"`
+		Price     int64  `json:"price"`
+	}
+	TicketCategoryDetailInfo {
+		ProgramID    int64  `json:"programId"`
+		Introduce    string `json:"introduce,optional"`
+		Price        int64  `json:"price"`
+		TotalNumber  int64  `json:"totalNumber"`
+		RemainNumber int64  `json:"remainNumber"`
+	}
+	ProgramCategoryListResp {
+		List []ProgramCategoryInfo `json:"list,optional"`
+	}
+	ProgramHomeListResp {
+		Sections []ProgramHomeSection `json:"sections,optional"`
+	}
+	ProgramPageResp {
+		PageNum   int64             `json:"pageNum"`
+		PageSize  int64             `json:"pageSize"`
+		TotalSize int64             `json:"totalSize"`
+		List      []ProgramListInfo `json:"list,optional"`
+	}
+	TicketCategoryDetailListResp {
+		List []TicketCategoryDetailInfo `json:"list,optional"`
+	}
+	ProgramDetailInfo {
+		ID                              int64                `json:"id"`
+		ProgramGroupID                  int64                `json:"programGroupId"`
+		Prime                           int64                `json:"prime"`
+		ProgramGroupVo                  ProgramGroupInfo     `json:"programGroupVo"`
+		Title                           string               `json:"title,optional"`
+		Actor                           string               `json:"actor,optional"`
+		Place                           string               `json:"place,optional"`
+		ItemPicture                     string               `json:"itemPicture,optional"`
+		PreSell                         int64                `json:"preSell"`
+		PreSellInstruction              string               `json:"preSellInstruction,optional"`
+		ImportantNotice                 string               `json:"importantNotice,optional"`
+		AreaID                          int64                `json:"areaId"`
+		AreaName                        string               `json:"areaName,optional"`
+		ProgramCategoryID               int64                `json:"programCategoryId"`
+		ProgramCategoryName             string               `json:"programCategoryName,optional"`
+		ParentProgramCategoryID         int64                `json:"parentProgramCategoryId"`
+		ParentProgramCategoryName       string               `json:"parentProgramCategoryName,optional"`
+		Detail                          string               `json:"detail,optional"`
+		PerOrderLimitPurchaseCount      int64                `json:"perOrderLimitPurchaseCount"`
+		PerAccountLimitPurchaseCount    int64                `json:"perAccountLimitPurchaseCount"`
+		RefundTicketRule                string               `json:"refundTicketRule,optional"`
+		DeliveryInstruction             string               `json:"deliveryInstruction,optional"`
+		EntryRule                       string               `json:"entryRule,optional"`
+		ChildPurchase                   string               `json:"childPurchase,optional"`
+		InvoiceSpecification            string               `json:"invoiceSpecification,optional"`
+		RealTicketPurchaseRule          string               `json:"realTicketPurchaseRule,optional"`
+		AbnormalOrderDescription        string               `json:"abnormalOrderDescription,optional"`
+		KindReminder                    string               `json:"kindReminder,optional"`
+		PerformanceDuration             string               `json:"performanceDuration,optional"`
+		EntryTime                       string               `json:"entryTime,optional"`
+		MinPerformanceCount             int64                `json:"minPerformanceCount"`
+		MainActor                       string               `json:"mainActor,optional"`
+		MinPerformanceDuration          string               `json:"minPerformanceDuration,optional"`
+		ProhibitedItem                  string               `json:"prohibitedItem,optional"`
+		DepositSpecification            string               `json:"depositSpecification,optional"`
+		TotalCount                      int64                `json:"totalCount"`
+		PermitRefund                    int64                `json:"permitRefund"`
+		RefundExplain                   string               `json:"refundExplain,optional"`
+		RelNameTicketEntrance           int64                `json:"relNameTicketEntrance"`
+		RelNameTicketEntranceExplain    string               `json:"relNameTicketEntranceExplain,optional"`
+		PermitChooseSeat                int64                `json:"permitChooseSeat"`
+		ChooseSeatExplain               string               `json:"chooseSeatExplain,optional"`
+		ElectronicDeliveryTicket        int64                `json:"electronicDeliveryTicket"`
+		ElectronicDeliveryTicketExplain string               `json:"electronicDeliveryTicketExplain,optional"`
+		ElectronicInvoice               int64                `json:"electronicInvoice"`
+		ElectronicInvoiceExplain        string               `json:"electronicInvoiceExplain,optional"`
+		HighHeat                        int64                `json:"highHeat"`
+		ProgramStatus                   int64                `json:"programStatus"`
+		IssueTime                       string               `json:"issueTime,optional"`
+		ShowTime                        string               `json:"showTime,optional"`
+		ShowDayTime                     string               `json:"showDayTime,optional"`
+		ShowWeekTime                    string               `json:"showWeekTime,optional"`
+		TicketCategoryVoList            []TicketCategoryInfo `json:"ticketCategoryVoList,optional"`
+	}
+)
+
+service program-api {
+	@handler ListProgramCategories
+	post /program/category/select/all (EmptyReq) returns (ProgramCategoryListResp)
+
+	@handler ListHomePrograms
+	post /program/home/list (ListHomeProgramsReq) returns (ProgramHomeListResp)
+
+	@handler PagePrograms
+	post /program/page (PageProgramsReq) returns (ProgramPageResp)
+
+	@handler GetProgramDetail
+	post /program/detail (GetProgramDetailReq) returns (ProgramDetailInfo)
+
+	@handler ListTicketCategoriesByProgram
+	post /ticket/category/select/list/by/program (ListTicketCategoriesByProgramReq) returns (TicketCategoryDetailListResp)
+}
+
