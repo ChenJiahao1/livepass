@@ -3,6 +3,7 @@
 ## 目标
 
 `damai-go` 是基于 `Go + go-zero` 重建的大麦业务总线项目。
+原有java项目  `/home/chenjiahao/code/project/damai`
 
 注意： 你写的代码将会提交给claude code审核
 
