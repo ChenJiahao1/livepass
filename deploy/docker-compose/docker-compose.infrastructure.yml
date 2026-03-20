@@ -14,6 +14,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: "123456"
       MYSQL_DATABASE: damai_user
+    volumes:
+      - ./../mysql/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "3306:3306"
 
