@@ -16,6 +16,7 @@ type (
 	DProgramGroupModel interface {
 		dProgramGroupModel
 		withSession(session sqlx.Session) DProgramGroupModel
+		FindOne(ctx context.Context, id int64) (*DProgramGroup, error)
 	}
 
 	customDProgramGroupModel struct {
