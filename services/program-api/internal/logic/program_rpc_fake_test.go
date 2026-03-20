@@ -28,6 +28,14 @@ type fakeProgramRPC struct {
 	listTicketCategoriesByProgramResp    *programrpc.TicketCategoryDetailListResp
 	listTicketCategoriesByProgramErr     error
 	lastListTicketCategoriesByProgramReq *programrpc.ListTicketCategoriesByProgramReq
+
+	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
+	autoAssignAndFreezeSeatsErr     error
+	lastAutoAssignAndFreezeSeatsReq *programrpc.AutoAssignAndFreezeSeatsReq
+
+	releaseSeatFreezeResp    *programrpc.ReleaseSeatFreezeResp
+	releaseSeatFreezeErr     error
+	lastReleaseSeatFreezeReq *programrpc.ReleaseSeatFreezeReq
 }
 
 func (f *fakeProgramRPC) ListProgramCategories(ctx context.Context, in *programrpc.Empty, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {
@@ -53,4 +61,14 @@ func (f *fakeProgramRPC) GetProgramDetail(ctx context.Context, in *programrpc.Ge
 func (f *fakeProgramRPC) ListTicketCategoriesByProgram(ctx context.Context, in *programrpc.ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*programrpc.TicketCategoryDetailListResp, error) {
 	f.lastListTicketCategoriesByProgramReq = in
 	return f.listTicketCategoriesByProgramResp, f.listTicketCategoriesByProgramErr
+}
+
+func (f *fakeProgramRPC) AutoAssignAndFreezeSeats(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
+	f.lastAutoAssignAndFreezeSeatsReq = in
+	return f.autoAssignAndFreezeSeatsResp, f.autoAssignAndFreezeSeatsErr
+}
+
+func (f *fakeProgramRPC) ReleaseSeatFreeze(ctx context.Context, in *programrpc.ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*programrpc.ReleaseSeatFreezeResp, error) {
+	f.lastReleaseSeatFreezeReq = in
+	return f.releaseSeatFreezeResp, f.releaseSeatFreezeErr
 }
