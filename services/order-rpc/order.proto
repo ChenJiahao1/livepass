@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "./pb";
+
+message BoolResp {
+  bool success = 1;
+}
+
+message CreateOrderReq {
+  int64 userId = 1;
+  int64 programId = 2;
+  int64 ticketCategoryId = 3;
+  repeated int64 ticketUserIds = 4;
+  string distributionMode = 5;
+  string takeTicketMode = 6;
+}
+
+message CreateOrderResp {
+  int64 orderNumber = 1;
+}
+
+message ListOrdersReq {
+  int64 userId = 1;
+  int64 pageNumber = 2;
+  int64 pageSize = 3;
+  int64 orderStatus = 4;
+}
+
+message OrderListInfo {
+  int64 orderNumber = 1;
+  int64 programId = 2;
+  string programTitle = 3;
+  string programItemPicture = 4;
+  string programPlace = 5;
+  string programShowTime = 6;
+  int64 ticketCount = 7;
+  int64 orderPrice = 8;
+  int64 orderStatus = 9;
+  string orderExpireTime = 10;
+  string createOrderTime = 11;
+  string cancelOrderTime = 12;
+}
+
+message ListOrdersResp {
+  int64 pageNum = 1;
+  int64 pageSize = 2;
+  int64 totalSize = 3;
+  repeated OrderListInfo list = 4;
+}
+
+message GetOrderReq {
+  int64 userId = 1;
+  int64 orderNumber = 2;
+}
+
+message OrderTicketInfo {
+  int64 ticketUserId = 1;
+  string ticketUserName = 2;
+  string ticketUserIdNumber = 3;
+  int64 ticketCategoryId = 4;
+  string ticketCategoryName = 5;
+  int64 ticketPrice = 6;
+  int64 seatId = 7;
+  int64 seatRow = 8;
+  int64 seatCol = 9;
+  int64 seatPrice = 10;
+}
+
+message OrderDetailInfo {
+  int64 orderNumber = 1;
+  int64 programId = 2;
+  string programTitle = 3;
+  string programItemPicture = 4;
+  string programPlace = 5;
+  string programShowTime = 6;
+  int64 programPermitChooseSeat = 7;
+  int64 userId = 8;
+  string distributionMode = 9;
+  string takeTicketMode = 10;
+  int64 ticketCount = 11;
+  int64 orderPrice = 12;
+  int64 orderStatus = 13;
+  string freezeToken = 14;
+  string orderExpireTime = 15;
+  string createOrderTime = 16;
+  string cancelOrderTime = 17;
+  repeated OrderTicketInfo orderTicketInfoVoList = 18;
+}
+
+message CancelOrderReq {
+  int64 userId = 1;
+  int64 orderNumber = 2;
+}
+
+message CloseExpiredOrdersReq {
+  int64 limit = 1;
+}
+
+message CloseExpiredOrdersResp {
+  int64 closedCount = 1;
+}
+
+message CountActiveTicketsByUserProgramReq {
+  int64 userId = 1;
+  int64 programId = 2;
+}
+
+message CountActiveTicketsByUserProgramResp {
+  int64 activeTicketCount = 1;
+}
+
+service OrderRpc {
+  rpc CreateOrder(CreateOrderReq) returns (CreateOrderResp);
+  rpc ListOrders(ListOrdersReq) returns (ListOrdersResp);
+  rpc GetOrder(GetOrderReq) returns (OrderDetailInfo);
+  rpc CancelOrder(CancelOrderReq) returns (BoolResp);
+  rpc CloseExpiredOrders(CloseExpiredOrdersReq) returns (CloseExpiredOrdersResp);
+  rpc CountActiveTicketsByUserProgram(CountActiveTicketsByUserProgramReq) returns (CountActiveTicketsByUserProgramResp);
+}

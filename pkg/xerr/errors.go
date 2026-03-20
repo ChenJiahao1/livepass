@@ -21,4 +21,9 @@ var (
 	ErrSeatInventoryInsufficient     = errors.New("seat inventory insufficient")
 	ErrSeatFreezeNotFound            = errors.New("seat freeze not found")
 	ErrSeatFreezeRequestConflict     = errors.New("seat freeze request conflict")
+
+	ErrOrderNotFound              = errors.New("order not found")
+	ErrOrderStatusInvalid         = errors.New("order status invalid")
+	ErrOrderTicketUserInvalid     = errors.New("order ticket user invalid")
+	ErrOrderPurchaseLimitExceeded = errors.New("order purchase limit exceeded")
 )

@@ -1,0 +1,20 @@
+Name: order.rpc
+ListenOn: 0.0.0.0:8082
+Etcd:
+  Hosts:
+    - 127.0.0.1:2379
+  Key: order.rpc
+MySQL:
+  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+ProgramRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: program.rpc
+UserRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: user.rpc
+Order:
+  CloseAfter: 15m
