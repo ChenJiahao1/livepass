@@ -1,0 +1,183 @@
+syntax = "proto3";
+
+package program;
+
+option go_package = "./pb";
+
+message Empty {}
+
+message ListHomeProgramsReq {
+  string channel = 1;
+  string cityCode = 2;
+  int64 pageNo = 3;
+  int64 pageSize = 4;
+}
+
+message PageProgramsReq {
+  int64 categoryId = 1;
+  string cityCode = 2;
+  string keyword = 3;
+  int64 pageNo = 4;
+  int64 pageSize = 5;
+  string sortType = 6;
+  int64 startTime = 7;
+  int64 endTime = 8;
+}
+
+message GetProgramDetailReq {
+  int64 programId = 1;
+}
+
+message ListTicketCategoriesByProgramReq {
+  int64 programId = 1;
+}
+
+message ProgramCategoryInfo {
+  int64 id = 1;
+  string name = 2;
+  string code = 3;
+  string icon = 4;
+  string background = 5;
+  int64 sort = 6;
+  int64 programCount = 7;
+}
+
+message ProgramSimpleInfo {
+  int64 id = 1;
+  string title = 2;
+  string subtitle = 3;
+  string poster = 4;
+  string cityCode = 5;
+  string cityName = 6;
+  int64 categoryId = 7;
+  string categoryName = 8;
+  int64 venueId = 9;
+  string venueName = 10;
+  string venueAddress = 11;
+  int64 minPrice = 12;
+  int64 maxPrice = 13;
+  int64 saleStatus = 14;
+  int64 saleStartTime = 15;
+  int64 saleEndTime = 16;
+  int64 showStartTime = 17;
+  int64 showEndTime = 18;
+  repeated string tags = 19;
+}
+
+message ProgramGroupInfo {
+  int64 id = 1;
+  string code = 2;
+  string name = 3;
+  string subtitle = 4;
+  repeated ProgramSimpleInfo programs = 5;
+}
+
+message ProgramHomeSection {
+  int64 id = 1;
+  string sectionType = 2;
+  string title = 3;
+  string subtitle = 4;
+  string cover = 5;
+  int64 sort = 6;
+  repeated ProgramSimpleInfo programs = 7;
+  repeated ProgramGroupInfo groups = 8;
+}
+
+message TicketCategoryInfo {
+  int64 id = 1;
+  int64 programId = 2;
+  string name = 3;
+  int64 price = 4;
+  int64 inventory = 5;
+  int64 sold = 6;
+  int64 status = 7;
+}
+
+message TicketCategoryDetailInfo {
+  int64 id = 1;
+  int64 programId = 2;
+  string name = 3;
+  int64 price = 4;
+  int64 inventory = 5;
+  int64 sold = 6;
+  int64 status = 7;
+  string seatDesc = 8;
+  string saleRule = 9;
+  string refundRule = 10;
+  int64 saleStartTime = 11;
+  int64 saleEndTime = 12;
+}
+
+message ProgramCategoryListResp {
+  repeated ProgramCategoryInfo list = 1;
+}
+
+message ProgramListInfo {
+  int64 total = 1;
+  int64 pageNo = 2;
+  int64 pageSize = 3;
+  bool hasMore = 4;
+  repeated ProgramSimpleInfo list = 5;
+}
+
+message ProgramHomeListResp {
+  repeated ProgramHomeSection sections = 1;
+}
+
+message ProgramPageResp {
+  ProgramListInfo page = 1;
+}
+
+message TicketCategoryDetailListResp {
+  repeated TicketCategoryDetailInfo list = 1;
+}
+
+message ProgramDetailInfo {
+  int64 id = 1;
+  string title = 2;
+  string subtitle = 3;
+  string brief = 4;
+  string description = 5;
+  string poster = 6;
+  string cover = 7;
+  string background = 8;
+  string cityCode = 9;
+  string cityName = 10;
+  int64 categoryId = 11;
+  string categoryName = 12;
+  int64 venueId = 13;
+  string venueName = 14;
+  string venueAddress = 15;
+  string longitude = 16;
+  string latitude = 17;
+  int64 status = 18;
+  int64 auditStatus = 19;
+  int64 saleStatus = 20;
+  int64 onlineTime = 21;
+  int64 offlineTime = 22;
+  int64 showStartTime = 23;
+  int64 showEndTime = 24;
+  int64 saleStartTime = 25;
+  int64 saleEndTime = 26;
+  int64 minPrice = 27;
+  int64 maxPrice = 28;
+  int64 inventoryTotal = 29;
+  int64 soldCount = 30;
+  int64 wantCount = 31;
+  int64 viewCount = 32;
+  repeated string tags = 33;
+  repeated string imageUrls = 34;
+  string introduceHtml = 35;
+  string notice = 36;
+  string refundRule = 37;
+  string realNameRule = 38;
+  repeated TicketCategoryDetailInfo ticketCategoryList = 39;
+}
+
+service ProgramRpc {
+  rpc ListProgramCategories(Empty) returns (ProgramCategoryListResp);
+  rpc ListHomePrograms(ListHomeProgramsReq) returns (ProgramHomeListResp);
+  rpc PagePrograms(PageProgramsReq) returns (ProgramPageResp);
+  rpc GetProgramDetail(GetProgramDetailReq) returns (ProgramDetailInfo);
+  rpc ListTicketCategoriesByProgram(ListTicketCategoriesByProgramReq) returns (TicketCategoryDetailListResp);
+}
