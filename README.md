@@ -30,6 +30,8 @@ for f in \
   sql/program/d_program_group.sql \
   sql/program/d_program.sql \
   sql/program/d_program_show_time.sql \
+  sql/program/d_seat.sql \
+  sql/program/d_seat_freeze.sql \
   sql/program/d_ticket_category.sql \
   sql/program/dev_seed.sql; do
   docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_program < "$f"
