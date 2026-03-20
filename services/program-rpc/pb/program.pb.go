@@ -58,13 +58,11 @@ func (*Empty) Descriptor() ([]byte, []int) {
 }
 
 type ListHomeProgramsReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	CityCode      string                 `protobuf:"bytes,2,opt,name=cityCode,proto3" json:"cityCode,omitempty"`
-	PageNo        int64                  `protobuf:"varint,3,opt,name=pageNo,proto3" json:"pageNo,omitempty"`
-	PageSize      int64                  `protobuf:"varint,4,opt,name=pageSize,proto3" json:"pageSize,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	AreaId                   int64                  `protobuf:"varint,1,opt,name=areaId,proto3" json:"areaId,omitempty"`
+	ParentProgramCategoryIds []int64                `protobuf:"varint,2,rep,packed,name=parentProgramCategoryIds,proto3" json:"parentProgramCategoryIds,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ListHomeProgramsReq) Reset() {
@@ -97,46 +95,33 @@ func (*ListHomeProgramsReq) Descriptor() ([]byte, []int) {
 	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListHomeProgramsReq) GetChannel() string {
+func (x *ListHomeProgramsReq) GetAreaId() int64 {
 	if x != nil {
-		return x.Channel
-	}
-	return ""
-}
-
-func (x *ListHomeProgramsReq) GetCityCode() string {
-	if x != nil {
-		return x.CityCode
-	}
-	return ""
-}
-
-func (x *ListHomeProgramsReq) GetPageNo() int64 {
-	if x != nil {
-		return x.PageNo
+		return x.AreaId
 	}
 	return 0
 }
 
-func (x *ListHomeProgramsReq) GetPageSize() int64 {
+func (x *ListHomeProgramsReq) GetParentProgramCategoryIds() []int64 {
 	if x != nil {
-		return x.PageSize
+		return x.ParentProgramCategoryIds
 	}
-	return 0
+	return nil
 }
 
 type PageProgramsReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CategoryId    int64                  `protobuf:"varint,1,opt,name=categoryId,proto3" json:"categoryId,omitempty"`
-	CityCode      string                 `protobuf:"bytes,2,opt,name=cityCode,proto3" json:"cityCode,omitempty"`
-	Keyword       string                 `protobuf:"bytes,3,opt,name=keyword,proto3" json:"keyword,omitempty"`
-	PageNo        int64                  `protobuf:"varint,4,opt,name=pageNo,proto3" json:"pageNo,omitempty"`
-	PageSize      int64                  `protobuf:"varint,5,opt,name=pageSize,proto3" json:"pageSize,omitempty"`
-	SortType      string                 `protobuf:"bytes,6,opt,name=sortType,proto3" json:"sortType,omitempty"`
-	StartTime     int64                  `protobuf:"varint,7,opt,name=startTime,proto3" json:"startTime,omitempty"`
-	EndTime       int64                  `protobuf:"varint,8,opt,name=endTime,proto3" json:"endTime,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	PageNumber              int64                  `protobuf:"varint,1,opt,name=pageNumber,proto3" json:"pageNumber,omitempty"`
+	PageSize                int64                  `protobuf:"varint,2,opt,name=pageSize,proto3" json:"pageSize,omitempty"`
+	AreaId                  int64                  `protobuf:"varint,3,opt,name=areaId,proto3" json:"areaId,omitempty"`
+	ParentProgramCategoryId int64                  `protobuf:"varint,4,opt,name=parentProgramCategoryId,proto3" json:"parentProgramCategoryId,omitempty"`
+	ProgramCategoryId       int64                  `protobuf:"varint,5,opt,name=programCategoryId,proto3" json:"programCategoryId,omitempty"`
+	TimeType                int64                  `protobuf:"varint,6,opt,name=timeType,proto3" json:"timeType,omitempty"`
+	StartDateTime           string                 `protobuf:"bytes,7,opt,name=startDateTime,proto3" json:"startDateTime,omitempty"`
+	EndDateTime             string                 `protobuf:"bytes,8,opt,name=endDateTime,proto3" json:"endDateTime,omitempty"`
+	Type                    int64                  `protobuf:"varint,9,opt,name=type,proto3" json:"type,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *PageProgramsReq) Reset() {
@@ -169,30 +154,9 @@ func (*PageProgramsReq) Descriptor() ([]byte, []int) {
 	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *PageProgramsReq) GetCategoryId() int64 {
+func (x *PageProgramsReq) GetPageNumber() int64 {
 	if x != nil {
-		return x.CategoryId
-	}
-	return 0
-}
-
-func (x *PageProgramsReq) GetCityCode() string {
-	if x != nil {
-		return x.CityCode
-	}
-	return ""
-}
-
-func (x *PageProgramsReq) GetKeyword() string {
-	if x != nil {
-		return x.Keyword
-	}
-	return ""
-}
-
-func (x *PageProgramsReq) GetPageNo() int64 {
-	if x != nil {
-		return x.PageNo
+		return x.PageNumber
 	}
 	return 0
 }
@@ -204,30 +168,58 @@ func (x *PageProgramsReq) GetPageSize() int64 {
 	return 0
 }
 
-func (x *PageProgramsReq) GetSortType() string {
+func (x *PageProgramsReq) GetAreaId() int64 {
 	if x != nil {
-		return x.SortType
-	}
-	return ""
-}
-
-func (x *PageProgramsReq) GetStartTime() int64 {
-	if x != nil {
-		return x.StartTime
+		return x.AreaId
 	}
 	return 0
 }
 
-func (x *PageProgramsReq) GetEndTime() int64 {
+func (x *PageProgramsReq) GetParentProgramCategoryId() int64 {
 	if x != nil {
-		return x.EndTime
+		return x.ParentProgramCategoryId
+	}
+	return 0
+}
+
+func (x *PageProgramsReq) GetProgramCategoryId() int64 {
+	if x != nil {
+		return x.ProgramCategoryId
+	}
+	return 0
+}
+
+func (x *PageProgramsReq) GetTimeType() int64 {
+	if x != nil {
+		return x.TimeType
+	}
+	return 0
+}
+
+func (x *PageProgramsReq) GetStartDateTime() string {
+	if x != nil {
+		return x.StartDateTime
+	}
+	return ""
+}
+
+func (x *PageProgramsReq) GetEndDateTime() string {
+	if x != nil {
+		return x.EndDateTime
+	}
+	return ""
+}
+
+func (x *PageProgramsReq) GetType() int64 {
+	if x != nil {
+		return x.Type
 	}
 	return 0
 }
 
 type GetProgramDetailReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProgramId     int64                  `protobuf:"varint,1,opt,name=programId,proto3" json:"programId,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -262,9 +254,9 @@ func (*GetProgramDetailReq) Descriptor() ([]byte, []int) {
 	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GetProgramDetailReq) GetProgramId() int64 {
+func (x *GetProgramDetailReq) GetId() int64 {
 	if x != nil {
-		return x.ProgramId
+		return x.Id
 	}
 	return 0
 }
@@ -316,12 +308,9 @@ func (x *ListTicketCategoriesByProgramReq) GetProgramId() int64 {
 type ProgramCategoryInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Code          string                 `protobuf:"bytes,3,opt,name=code,proto3" json:"code,omitempty"`
-	Icon          string                 `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
-	Background    string                 `protobuf:"bytes,5,opt,name=background,proto3" json:"background,omitempty"`
-	Sort          int64                  `protobuf:"varint,6,opt,name=sort,proto3" json:"sort,omitempty"`
-	ProgramCount  int64                  `protobuf:"varint,7,opt,name=programCount,proto3" json:"programCount,omitempty"`
+	ParentId      int64                  `protobuf:"varint,2,opt,name=parentId,proto3" json:"parentId,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Type          int64                  `protobuf:"varint,4,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -363,6 +352,13 @@ func (x *ProgramCategoryInfo) GetId() int64 {
 	return 0
 }
 
+func (x *ProgramCategoryInfo) GetParentId() int64 {
+	if x != nil {
+		return x.ParentId
+	}
+	return 0
+}
+
 func (x *ProgramCategoryInfo) GetName() string {
 	if x != nil {
 		return x.Name
@@ -370,62 +366,18 @@ func (x *ProgramCategoryInfo) GetName() string {
 	return ""
 }
 
-func (x *ProgramCategoryInfo) GetCode() string {
+func (x *ProgramCategoryInfo) GetType() int64 {
 	if x != nil {
-		return x.Code
-	}
-	return ""
-}
-
-func (x *ProgramCategoryInfo) GetIcon() string {
-	if x != nil {
-		return x.Icon
-	}
-	return ""
-}
-
-func (x *ProgramCategoryInfo) GetBackground() string {
-	if x != nil {
-		return x.Background
-	}
-	return ""
-}
-
-func (x *ProgramCategoryInfo) GetSort() int64 {
-	if x != nil {
-		return x.Sort
-	}
-	return 0
-}
-
-func (x *ProgramCategoryInfo) GetProgramCount() int64 {
-	if x != nil {
-		return x.ProgramCount
+		return x.Type
 	}
 	return 0
 }
 
 type ProgramSimpleInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Subtitle      string                 `protobuf:"bytes,3,opt,name=subtitle,proto3" json:"subtitle,omitempty"`
-	Poster        string                 `protobuf:"bytes,4,opt,name=poster,proto3" json:"poster,omitempty"`
-	CityCode      string                 `protobuf:"bytes,5,opt,name=cityCode,proto3" json:"cityCode,omitempty"`
-	CityName      string                 `protobuf:"bytes,6,opt,name=cityName,proto3" json:"cityName,omitempty"`
-	CategoryId    int64                  `protobuf:"varint,7,opt,name=categoryId,proto3" json:"categoryId,omitempty"`
-	CategoryName  string                 `protobuf:"bytes,8,opt,name=categoryName,proto3" json:"categoryName,omitempty"`
-	VenueId       int64                  `protobuf:"varint,9,opt,name=venueId,proto3" json:"venueId,omitempty"`
-	VenueName     string                 `protobuf:"bytes,10,opt,name=venueName,proto3" json:"venueName,omitempty"`
-	VenueAddress  string                 `protobuf:"bytes,11,opt,name=venueAddress,proto3" json:"venueAddress,omitempty"`
-	MinPrice      int64                  `protobuf:"varint,12,opt,name=minPrice,proto3" json:"minPrice,omitempty"`
-	MaxPrice      int64                  `protobuf:"varint,13,opt,name=maxPrice,proto3" json:"maxPrice,omitempty"`
-	SaleStatus    int64                  `protobuf:"varint,14,opt,name=saleStatus,proto3" json:"saleStatus,omitempty"`
-	SaleStartTime int64                  `protobuf:"varint,15,opt,name=saleStartTime,proto3" json:"saleStartTime,omitempty"`
-	SaleEndTime   int64                  `protobuf:"varint,16,opt,name=saleEndTime,proto3" json:"saleEndTime,omitempty"`
-	ShowStartTime int64                  `protobuf:"varint,17,opt,name=showStartTime,proto3" json:"showStartTime,omitempty"`
-	ShowEndTime   int64                  `protobuf:"varint,18,opt,name=showEndTime,proto3" json:"showEndTime,omitempty"`
-	Tags          []string               `protobuf:"bytes,19,rep,name=tags,proto3" json:"tags,omitempty"`
+	ProgramId     int64                  `protobuf:"varint,1,opt,name=programId,proto3" json:"programId,omitempty"`
+	AreaId        int64                  `protobuf:"varint,2,opt,name=areaId,proto3" json:"areaId,omitempty"`
+	AreaIdName    string                 `protobuf:"bytes,3,opt,name=areaIdName,proto3" json:"areaIdName,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -460,148 +412,34 @@ func (*ProgramSimpleInfo) Descriptor() ([]byte, []int) {
 	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *ProgramSimpleInfo) GetId() int64 {
+func (x *ProgramSimpleInfo) GetProgramId() int64 {
 	if x != nil {
-		return x.Id
+		return x.ProgramId
 	}
 	return 0
 }
 
-func (x *ProgramSimpleInfo) GetTitle() string {
+func (x *ProgramSimpleInfo) GetAreaId() int64 {
 	if x != nil {
-		return x.Title
+		return x.AreaId
+	}
+	return 0
+}
+
+func (x *ProgramSimpleInfo) GetAreaIdName() string {
+	if x != nil {
+		return x.AreaIdName
 	}
 	return ""
-}
-
-func (x *ProgramSimpleInfo) GetSubtitle() string {
-	if x != nil {
-		return x.Subtitle
-	}
-	return ""
-}
-
-func (x *ProgramSimpleInfo) GetPoster() string {
-	if x != nil {
-		return x.Poster
-	}
-	return ""
-}
-
-func (x *ProgramSimpleInfo) GetCityCode() string {
-	if x != nil {
-		return x.CityCode
-	}
-	return ""
-}
-
-func (x *ProgramSimpleInfo) GetCityName() string {
-	if x != nil {
-		return x.CityName
-	}
-	return ""
-}
-
-func (x *ProgramSimpleInfo) GetCategoryId() int64 {
-	if x != nil {
-		return x.CategoryId
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetCategoryName() string {
-	if x != nil {
-		return x.CategoryName
-	}
-	return ""
-}
-
-func (x *ProgramSimpleInfo) GetVenueId() int64 {
-	if x != nil {
-		return x.VenueId
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetVenueName() string {
-	if x != nil {
-		return x.VenueName
-	}
-	return ""
-}
-
-func (x *ProgramSimpleInfo) GetVenueAddress() string {
-	if x != nil {
-		return x.VenueAddress
-	}
-	return ""
-}
-
-func (x *ProgramSimpleInfo) GetMinPrice() int64 {
-	if x != nil {
-		return x.MinPrice
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetMaxPrice() int64 {
-	if x != nil {
-		return x.MaxPrice
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetSaleStatus() int64 {
-	if x != nil {
-		return x.SaleStatus
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetSaleStartTime() int64 {
-	if x != nil {
-		return x.SaleStartTime
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetSaleEndTime() int64 {
-	if x != nil {
-		return x.SaleEndTime
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetShowStartTime() int64 {
-	if x != nil {
-		return x.ShowStartTime
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetShowEndTime() int64 {
-	if x != nil {
-		return x.ShowEndTime
-	}
-	return 0
-}
-
-func (x *ProgramSimpleInfo) GetTags() []string {
-	if x != nil {
-		return x.Tags
-	}
-	return nil
 }
 
 type ProgramGroupInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Subtitle      string                 `protobuf:"bytes,4,opt,name=subtitle,proto3" json:"subtitle,omitempty"`
-	Programs      []*ProgramSimpleInfo   `protobuf:"bytes,5,rep,name=programs,proto3" json:"programs,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	Id                      int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	ProgramSimpleInfoVoList []*ProgramSimpleInfo   `protobuf:"bytes,2,rep,name=programSimpleInfoVoList,proto3" json:"programSimpleInfoVoList,omitempty"`
+	RecentShowTime          string                 `protobuf:"bytes,3,opt,name=recentShowTime,proto3" json:"recentShowTime,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ProgramGroupInfo) Reset() {
@@ -641,46 +479,27 @@ func (x *ProgramGroupInfo) GetId() int64 {
 	return 0
 }
 
-func (x *ProgramGroupInfo) GetCode() string {
+func (x *ProgramGroupInfo) GetProgramSimpleInfoVoList() []*ProgramSimpleInfo {
 	if x != nil {
-		return x.Code
-	}
-	return ""
-}
-
-func (x *ProgramGroupInfo) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *ProgramGroupInfo) GetSubtitle() string {
-	if x != nil {
-		return x.Subtitle
-	}
-	return ""
-}
-
-func (x *ProgramGroupInfo) GetPrograms() []*ProgramSimpleInfo {
-	if x != nil {
-		return x.Programs
+		return x.ProgramSimpleInfoVoList
 	}
 	return nil
 }
 
+func (x *ProgramGroupInfo) GetRecentShowTime() string {
+	if x != nil {
+		return x.RecentShowTime
+	}
+	return ""
+}
+
 type ProgramHomeSection struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	SectionType   string                 `protobuf:"bytes,2,opt,name=sectionType,proto3" json:"sectionType,omitempty"`
-	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Subtitle      string                 `protobuf:"bytes,4,opt,name=subtitle,proto3" json:"subtitle,omitempty"`
-	Cover         string                 `protobuf:"bytes,5,opt,name=cover,proto3" json:"cover,omitempty"`
-	Sort          int64                  `protobuf:"varint,6,opt,name=sort,proto3" json:"sort,omitempty"`
-	Programs      []*ProgramSimpleInfo   `protobuf:"bytes,7,rep,name=programs,proto3" json:"programs,omitempty"`
-	Groups        []*ProgramGroupInfo    `protobuf:"bytes,8,rep,name=groups,proto3" json:"groups,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	CategoryName      string                 `protobuf:"bytes,1,opt,name=categoryName,proto3" json:"categoryName,omitempty"`
+	CategoryId        int64                  `protobuf:"varint,2,opt,name=categoryId,proto3" json:"categoryId,omitempty"`
+	ProgramListVoList []*ProgramListInfo     `protobuf:"bytes,3,rep,name=programListVoList,proto3" json:"programListVoList,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ProgramHomeSection) Reset() {
@@ -713,58 +532,23 @@ func (*ProgramHomeSection) Descriptor() ([]byte, []int) {
 	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *ProgramHomeSection) GetId() int64 {
+func (x *ProgramHomeSection) GetCategoryName() string {
 	if x != nil {
-		return x.Id
+		return x.CategoryName
+	}
+	return ""
+}
+
+func (x *ProgramHomeSection) GetCategoryId() int64 {
+	if x != nil {
+		return x.CategoryId
 	}
 	return 0
 }
 
-func (x *ProgramHomeSection) GetSectionType() string {
+func (x *ProgramHomeSection) GetProgramListVoList() []*ProgramListInfo {
 	if x != nil {
-		return x.SectionType
-	}
-	return ""
-}
-
-func (x *ProgramHomeSection) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *ProgramHomeSection) GetSubtitle() string {
-	if x != nil {
-		return x.Subtitle
-	}
-	return ""
-}
-
-func (x *ProgramHomeSection) GetCover() string {
-	if x != nil {
-		return x.Cover
-	}
-	return ""
-}
-
-func (x *ProgramHomeSection) GetSort() int64 {
-	if x != nil {
-		return x.Sort
-	}
-	return 0
-}
-
-func (x *ProgramHomeSection) GetPrograms() []*ProgramSimpleInfo {
-	if x != nil {
-		return x.Programs
-	}
-	return nil
-}
-
-func (x *ProgramHomeSection) GetGroups() []*ProgramGroupInfo {
-	if x != nil {
-		return x.Groups
+		return x.ProgramListVoList
 	}
 	return nil
 }
@@ -772,12 +556,8 @@ func (x *ProgramHomeSection) GetGroups() []*ProgramGroupInfo {
 type TicketCategoryInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProgramId     int64                  `protobuf:"varint,2,opt,name=programId,proto3" json:"programId,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Price         int64                  `protobuf:"varint,4,opt,name=price,proto3" json:"price,omitempty"`
-	Inventory     int64                  `protobuf:"varint,5,opt,name=inventory,proto3" json:"inventory,omitempty"`
-	Sold          int64                  `protobuf:"varint,6,opt,name=sold,proto3" json:"sold,omitempty"`
-	Status        int64                  `protobuf:"varint,7,opt,name=status,proto3" json:"status,omitempty"`
+	Introduce     string                 `protobuf:"bytes,2,opt,name=introduce,proto3" json:"introduce,omitempty"`
+	Price         int64                  `protobuf:"varint,3,opt,name=price,proto3" json:"price,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -819,16 +599,9 @@ func (x *TicketCategoryInfo) GetId() int64 {
 	return 0
 }
 
-func (x *TicketCategoryInfo) GetProgramId() int64 {
+func (x *TicketCategoryInfo) GetIntroduce() string {
 	if x != nil {
-		return x.ProgramId
-	}
-	return 0
-}
-
-func (x *TicketCategoryInfo) GetName() string {
-	if x != nil {
-		return x.Name
+		return x.Introduce
 	}
 	return ""
 }
@@ -840,41 +613,13 @@ func (x *TicketCategoryInfo) GetPrice() int64 {
 	return 0
 }
 
-func (x *TicketCategoryInfo) GetInventory() int64 {
-	if x != nil {
-		return x.Inventory
-	}
-	return 0
-}
-
-func (x *TicketCategoryInfo) GetSold() int64 {
-	if x != nil {
-		return x.Sold
-	}
-	return 0
-}
-
-func (x *TicketCategoryInfo) GetStatus() int64 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
 type TicketCategoryDetailInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProgramId     int64                  `protobuf:"varint,2,opt,name=programId,proto3" json:"programId,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Price         int64                  `protobuf:"varint,4,opt,name=price,proto3" json:"price,omitempty"`
-	Inventory     int64                  `protobuf:"varint,5,opt,name=inventory,proto3" json:"inventory,omitempty"`
-	Sold          int64                  `protobuf:"varint,6,opt,name=sold,proto3" json:"sold,omitempty"`
-	Status        int64                  `protobuf:"varint,7,opt,name=status,proto3" json:"status,omitempty"`
-	SeatDesc      string                 `protobuf:"bytes,8,opt,name=seatDesc,proto3" json:"seatDesc,omitempty"`
-	SaleRule      string                 `protobuf:"bytes,9,opt,name=saleRule,proto3" json:"saleRule,omitempty"`
-	RefundRule    string                 `protobuf:"bytes,10,opt,name=refundRule,proto3" json:"refundRule,omitempty"`
-	SaleStartTime int64                  `protobuf:"varint,11,opt,name=saleStartTime,proto3" json:"saleStartTime,omitempty"`
-	SaleEndTime   int64                  `protobuf:"varint,12,opt,name=saleEndTime,proto3" json:"saleEndTime,omitempty"`
+	ProgramId     int64                  `protobuf:"varint,1,opt,name=programId,proto3" json:"programId,omitempty"`
+	Introduce     string                 `protobuf:"bytes,2,opt,name=introduce,proto3" json:"introduce,omitempty"`
+	Price         int64                  `protobuf:"varint,3,opt,name=price,proto3" json:"price,omitempty"`
+	TotalNumber   int64                  `protobuf:"varint,4,opt,name=totalNumber,proto3" json:"totalNumber,omitempty"`
+	RemainNumber  int64                  `protobuf:"varint,5,opt,name=remainNumber,proto3" json:"remainNumber,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -909,13 +654,6 @@ func (*TicketCategoryDetailInfo) Descriptor() ([]byte, []int) {
 	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *TicketCategoryDetailInfo) GetId() int64 {
-	if x != nil {
-		return x.Id
-	}
-	return 0
-}
-
 func (x *TicketCategoryDetailInfo) GetProgramId() int64 {
 	if x != nil {
 		return x.ProgramId
@@ -923,9 +661,9 @@ func (x *TicketCategoryDetailInfo) GetProgramId() int64 {
 	return 0
 }
 
-func (x *TicketCategoryDetailInfo) GetName() string {
+func (x *TicketCategoryDetailInfo) GetIntroduce() string {
 	if x != nil {
-		return x.Name
+		return x.Introduce
 	}
 	return ""
 }
@@ -937,58 +675,16 @@ func (x *TicketCategoryDetailInfo) GetPrice() int64 {
 	return 0
 }
 
-func (x *TicketCategoryDetailInfo) GetInventory() int64 {
+func (x *TicketCategoryDetailInfo) GetTotalNumber() int64 {
 	if x != nil {
-		return x.Inventory
+		return x.TotalNumber
 	}
 	return 0
 }
 
-func (x *TicketCategoryDetailInfo) GetSold() int64 {
+func (x *TicketCategoryDetailInfo) GetRemainNumber() int64 {
 	if x != nil {
-		return x.Sold
-	}
-	return 0
-}
-
-func (x *TicketCategoryDetailInfo) GetStatus() int64 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
-func (x *TicketCategoryDetailInfo) GetSeatDesc() string {
-	if x != nil {
-		return x.SeatDesc
-	}
-	return ""
-}
-
-func (x *TicketCategoryDetailInfo) GetSaleRule() string {
-	if x != nil {
-		return x.SaleRule
-	}
-	return ""
-}
-
-func (x *TicketCategoryDetailInfo) GetRefundRule() string {
-	if x != nil {
-		return x.RefundRule
-	}
-	return ""
-}
-
-func (x *TicketCategoryDetailInfo) GetSaleStartTime() int64 {
-	if x != nil {
-		return x.SaleStartTime
-	}
-	return 0
-}
-
-func (x *TicketCategoryDetailInfo) GetSaleEndTime() int64 {
-	if x != nil {
-		return x.SaleEndTime
+		return x.RemainNumber
 	}
 	return 0
 }
@@ -1038,14 +734,25 @@ func (x *ProgramCategoryListResp) GetList() []*ProgramCategoryInfo {
 }
 
 type ProgramListInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Total         int64                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
-	PageNo        int64                  `protobuf:"varint,2,opt,name=pageNo,proto3" json:"pageNo,omitempty"`
-	PageSize      int64                  `protobuf:"varint,3,opt,name=pageSize,proto3" json:"pageSize,omitempty"`
-	HasMore       bool                   `protobuf:"varint,4,opt,name=hasMore,proto3" json:"hasMore,omitempty"`
-	List          []*ProgramSimpleInfo   `protobuf:"bytes,5,rep,name=list,proto3" json:"list,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"open.v1"`
+	Id                        int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title                     string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Actor                     string                 `protobuf:"bytes,3,opt,name=actor,proto3" json:"actor,omitempty"`
+	Place                     string                 `protobuf:"bytes,4,opt,name=place,proto3" json:"place,omitempty"`
+	ItemPicture               string                 `protobuf:"bytes,5,opt,name=itemPicture,proto3" json:"itemPicture,omitempty"`
+	AreaId                    int64                  `protobuf:"varint,6,opt,name=areaId,proto3" json:"areaId,omitempty"`
+	AreaName                  string                 `protobuf:"bytes,7,opt,name=areaName,proto3" json:"areaName,omitempty"`
+	ProgramCategoryId         int64                  `protobuf:"varint,8,opt,name=programCategoryId,proto3" json:"programCategoryId,omitempty"`
+	ProgramCategoryName       string                 `protobuf:"bytes,9,opt,name=programCategoryName,proto3" json:"programCategoryName,omitempty"`
+	ParentProgramCategoryId   int64                  `protobuf:"varint,10,opt,name=parentProgramCategoryId,proto3" json:"parentProgramCategoryId,omitempty"`
+	ParentProgramCategoryName string                 `protobuf:"bytes,11,opt,name=parentProgramCategoryName,proto3" json:"parentProgramCategoryName,omitempty"`
+	ShowTime                  string                 `protobuf:"bytes,12,opt,name=showTime,proto3" json:"showTime,omitempty"`
+	ShowDayTime               string                 `protobuf:"bytes,13,opt,name=showDayTime,proto3" json:"showDayTime,omitempty"`
+	ShowWeekTime              string                 `protobuf:"bytes,14,opt,name=showWeekTime,proto3" json:"showWeekTime,omitempty"`
+	MinPrice                  int64                  `protobuf:"varint,15,opt,name=minPrice,proto3" json:"minPrice,omitempty"`
+	MaxPrice                  int64                  `protobuf:"varint,16,opt,name=maxPrice,proto3" json:"maxPrice,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ProgramListInfo) Reset() {
@@ -1078,39 +785,116 @@ func (*ProgramListInfo) Descriptor() ([]byte, []int) {
 	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *ProgramListInfo) GetTotal() int64 {
+func (x *ProgramListInfo) GetId() int64 {
 	if x != nil {
-		return x.Total
+		return x.Id
 	}
 	return 0
 }
 
-func (x *ProgramListInfo) GetPageNo() int64 {
+func (x *ProgramListInfo) GetTitle() string {
 	if x != nil {
-		return x.PageNo
+		return x.Title
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetActor() string {
+	if x != nil {
+		return x.Actor
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetPlace() string {
+	if x != nil {
+		return x.Place
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetItemPicture() string {
+	if x != nil {
+		return x.ItemPicture
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetAreaId() int64 {
+	if x != nil {
+		return x.AreaId
 	}
 	return 0
 }
 
-func (x *ProgramListInfo) GetPageSize() int64 {
+func (x *ProgramListInfo) GetAreaName() string {
 	if x != nil {
-		return x.PageSize
+		return x.AreaName
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetProgramCategoryId() int64 {
+	if x != nil {
+		return x.ProgramCategoryId
 	}
 	return 0
 }
 
-func (x *ProgramListInfo) GetHasMore() bool {
+func (x *ProgramListInfo) GetProgramCategoryName() string {
 	if x != nil {
-		return x.HasMore
+		return x.ProgramCategoryName
 	}
-	return false
+	return ""
 }
 
-func (x *ProgramListInfo) GetList() []*ProgramSimpleInfo {
+func (x *ProgramListInfo) GetParentProgramCategoryId() int64 {
 	if x != nil {
-		return x.List
+		return x.ParentProgramCategoryId
 	}
-	return nil
+	return 0
+}
+
+func (x *ProgramListInfo) GetParentProgramCategoryName() string {
+	if x != nil {
+		return x.ParentProgramCategoryName
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetShowTime() string {
+	if x != nil {
+		return x.ShowTime
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetShowDayTime() string {
+	if x != nil {
+		return x.ShowDayTime
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetShowWeekTime() string {
+	if x != nil {
+		return x.ShowWeekTime
+	}
+	return ""
+}
+
+func (x *ProgramListInfo) GetMinPrice() int64 {
+	if x != nil {
+		return x.MinPrice
+	}
+	return 0
+}
+
+func (x *ProgramListInfo) GetMaxPrice() int64 {
+	if x != nil {
+		return x.MaxPrice
+	}
+	return 0
 }
 
 type ProgramHomeListResp struct {
@@ -1159,7 +943,10 @@ func (x *ProgramHomeListResp) GetSections() []*ProgramHomeSection {
 
 type ProgramPageResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          *ProgramListInfo       `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	PageNum       int64                  `protobuf:"varint,1,opt,name=pageNum,proto3" json:"pageNum,omitempty"`
+	PageSize      int64                  `protobuf:"varint,2,opt,name=pageSize,proto3" json:"pageSize,omitempty"`
+	TotalSize     int64                  `protobuf:"varint,3,opt,name=totalSize,proto3" json:"totalSize,omitempty"`
+	List          []*ProgramListInfo     `protobuf:"bytes,4,rep,name=list,proto3" json:"list,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1194,9 +981,30 @@ func (*ProgramPageResp) Descriptor() ([]byte, []int) {
 	return file_services_program_rpc_program_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *ProgramPageResp) GetPage() *ProgramListInfo {
+func (x *ProgramPageResp) GetPageNum() int64 {
 	if x != nil {
-		return x.Page
+		return x.PageNum
+	}
+	return 0
+}
+
+func (x *ProgramPageResp) GetPageSize() int64 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ProgramPageResp) GetTotalSize() int64 {
+	if x != nil {
+		return x.TotalSize
+	}
+	return 0
+}
+
+func (x *ProgramPageResp) GetList() []*ProgramListInfo {
+	if x != nil {
+		return x.List
 	}
 	return nil
 }
@@ -1246,48 +1054,62 @@ func (x *TicketCategoryDetailListResp) GetList() []*TicketCategoryDetailInfo {
 }
 
 type ProgramDetailInfo struct {
-	state              protoimpl.MessageState      `protogen:"open.v1"`
-	Id                 int64                       `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title              string                      `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Subtitle           string                      `protobuf:"bytes,3,opt,name=subtitle,proto3" json:"subtitle,omitempty"`
-	Brief              string                      `protobuf:"bytes,4,opt,name=brief,proto3" json:"brief,omitempty"`
-	Description        string                      `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
-	Poster             string                      `protobuf:"bytes,6,opt,name=poster,proto3" json:"poster,omitempty"`
-	Cover              string                      `protobuf:"bytes,7,opt,name=cover,proto3" json:"cover,omitempty"`
-	Background         string                      `protobuf:"bytes,8,opt,name=background,proto3" json:"background,omitempty"`
-	CityCode           string                      `protobuf:"bytes,9,opt,name=cityCode,proto3" json:"cityCode,omitempty"`
-	CityName           string                      `protobuf:"bytes,10,opt,name=cityName,proto3" json:"cityName,omitempty"`
-	CategoryId         int64                       `protobuf:"varint,11,opt,name=categoryId,proto3" json:"categoryId,omitempty"`
-	CategoryName       string                      `protobuf:"bytes,12,opt,name=categoryName,proto3" json:"categoryName,omitempty"`
-	VenueId            int64                       `protobuf:"varint,13,opt,name=venueId,proto3" json:"venueId,omitempty"`
-	VenueName          string                      `protobuf:"bytes,14,opt,name=venueName,proto3" json:"venueName,omitempty"`
-	VenueAddress       string                      `protobuf:"bytes,15,opt,name=venueAddress,proto3" json:"venueAddress,omitempty"`
-	Longitude          string                      `protobuf:"bytes,16,opt,name=longitude,proto3" json:"longitude,omitempty"`
-	Latitude           string                      `protobuf:"bytes,17,opt,name=latitude,proto3" json:"latitude,omitempty"`
-	Status             int64                       `protobuf:"varint,18,opt,name=status,proto3" json:"status,omitempty"`
-	AuditStatus        int64                       `protobuf:"varint,19,opt,name=auditStatus,proto3" json:"auditStatus,omitempty"`
-	SaleStatus         int64                       `protobuf:"varint,20,opt,name=saleStatus,proto3" json:"saleStatus,omitempty"`
-	OnlineTime         int64                       `protobuf:"varint,21,opt,name=onlineTime,proto3" json:"onlineTime,omitempty"`
-	OfflineTime        int64                       `protobuf:"varint,22,opt,name=offlineTime,proto3" json:"offlineTime,omitempty"`
-	ShowStartTime      int64                       `protobuf:"varint,23,opt,name=showStartTime,proto3" json:"showStartTime,omitempty"`
-	ShowEndTime        int64                       `protobuf:"varint,24,opt,name=showEndTime,proto3" json:"showEndTime,omitempty"`
-	SaleStartTime      int64                       `protobuf:"varint,25,opt,name=saleStartTime,proto3" json:"saleStartTime,omitempty"`
-	SaleEndTime        int64                       `protobuf:"varint,26,opt,name=saleEndTime,proto3" json:"saleEndTime,omitempty"`
-	MinPrice           int64                       `protobuf:"varint,27,opt,name=minPrice,proto3" json:"minPrice,omitempty"`
-	MaxPrice           int64                       `protobuf:"varint,28,opt,name=maxPrice,proto3" json:"maxPrice,omitempty"`
-	InventoryTotal     int64                       `protobuf:"varint,29,opt,name=inventoryTotal,proto3" json:"inventoryTotal,omitempty"`
-	SoldCount          int64                       `protobuf:"varint,30,opt,name=soldCount,proto3" json:"soldCount,omitempty"`
-	WantCount          int64                       `protobuf:"varint,31,opt,name=wantCount,proto3" json:"wantCount,omitempty"`
-	ViewCount          int64                       `protobuf:"varint,32,opt,name=viewCount,proto3" json:"viewCount,omitempty"`
-	Tags               []string                    `protobuf:"bytes,33,rep,name=tags,proto3" json:"tags,omitempty"`
-	ImageUrls          []string                    `protobuf:"bytes,34,rep,name=imageUrls,proto3" json:"imageUrls,omitempty"`
-	IntroduceHtml      string                      `protobuf:"bytes,35,opt,name=introduceHtml,proto3" json:"introduceHtml,omitempty"`
-	Notice             string                      `protobuf:"bytes,36,opt,name=notice,proto3" json:"notice,omitempty"`
-	RefundRule         string                      `protobuf:"bytes,37,opt,name=refundRule,proto3" json:"refundRule,omitempty"`
-	RealNameRule       string                      `protobuf:"bytes,38,opt,name=realNameRule,proto3" json:"realNameRule,omitempty"`
-	TicketCategoryList []*TicketCategoryDetailInfo `protobuf:"bytes,39,rep,name=ticketCategoryList,proto3" json:"ticketCategoryList,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"open.v1"`
+	Id                              int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	ProgramGroupId                  int64                  `protobuf:"varint,2,opt,name=programGroupId,proto3" json:"programGroupId,omitempty"`
+	Prime                           int64                  `protobuf:"varint,3,opt,name=prime,proto3" json:"prime,omitempty"`
+	ProgramGroupVo                  *ProgramGroupInfo      `protobuf:"bytes,4,opt,name=programGroupVo,proto3" json:"programGroupVo,omitempty"`
+	Title                           string                 `protobuf:"bytes,5,opt,name=title,proto3" json:"title,omitempty"`
+	Actor                           string                 `protobuf:"bytes,6,opt,name=actor,proto3" json:"actor,omitempty"`
+	Place                           string                 `protobuf:"bytes,7,opt,name=place,proto3" json:"place,omitempty"`
+	ItemPicture                     string                 `protobuf:"bytes,8,opt,name=itemPicture,proto3" json:"itemPicture,omitempty"`
+	PreSell                         int64                  `protobuf:"varint,9,opt,name=preSell,proto3" json:"preSell,omitempty"`
+	PreSellInstruction              string                 `protobuf:"bytes,10,opt,name=preSellInstruction,proto3" json:"preSellInstruction,omitempty"`
+	ImportantNotice                 string                 `protobuf:"bytes,11,opt,name=importantNotice,proto3" json:"importantNotice,omitempty"`
+	AreaId                          int64                  `protobuf:"varint,12,opt,name=areaId,proto3" json:"areaId,omitempty"`
+	AreaName                        string                 `protobuf:"bytes,13,opt,name=areaName,proto3" json:"areaName,omitempty"`
+	ProgramCategoryId               int64                  `protobuf:"varint,14,opt,name=programCategoryId,proto3" json:"programCategoryId,omitempty"`
+	ProgramCategoryName             string                 `protobuf:"bytes,15,opt,name=programCategoryName,proto3" json:"programCategoryName,omitempty"`
+	ParentProgramCategoryId         int64                  `protobuf:"varint,16,opt,name=parentProgramCategoryId,proto3" json:"parentProgramCategoryId,omitempty"`
+	ParentProgramCategoryName       string                 `protobuf:"bytes,17,opt,name=parentProgramCategoryName,proto3" json:"parentProgramCategoryName,omitempty"`
+	Detail                          string                 `protobuf:"bytes,18,opt,name=detail,proto3" json:"detail,omitempty"`
+	PerOrderLimitPurchaseCount      int64                  `protobuf:"varint,19,opt,name=perOrderLimitPurchaseCount,proto3" json:"perOrderLimitPurchaseCount,omitempty"`
+	PerAccountLimitPurchaseCount    int64                  `protobuf:"varint,20,opt,name=perAccountLimitPurchaseCount,proto3" json:"perAccountLimitPurchaseCount,omitempty"`
+	RefundTicketRule                string                 `protobuf:"bytes,21,opt,name=refundTicketRule,proto3" json:"refundTicketRule,omitempty"`
+	DeliveryInstruction             string                 `protobuf:"bytes,22,opt,name=deliveryInstruction,proto3" json:"deliveryInstruction,omitempty"`
+	EntryRule                       string                 `protobuf:"bytes,23,opt,name=entryRule,proto3" json:"entryRule,omitempty"`
+	ChildPurchase                   string                 `protobuf:"bytes,24,opt,name=childPurchase,proto3" json:"childPurchase,omitempty"`
+	InvoiceSpecification            string                 `protobuf:"bytes,25,opt,name=invoiceSpecification,proto3" json:"invoiceSpecification,omitempty"`
+	RealTicketPurchaseRule          string                 `protobuf:"bytes,26,opt,name=realTicketPurchaseRule,proto3" json:"realTicketPurchaseRule,omitempty"`
+	AbnormalOrderDescription        string                 `protobuf:"bytes,27,opt,name=abnormalOrderDescription,proto3" json:"abnormalOrderDescription,omitempty"`
+	KindReminder                    string                 `protobuf:"bytes,28,opt,name=kindReminder,proto3" json:"kindReminder,omitempty"`
+	PerformanceDuration             string                 `protobuf:"bytes,29,opt,name=performanceDuration,proto3" json:"performanceDuration,omitempty"`
+	EntryTime                       string                 `protobuf:"bytes,30,opt,name=entryTime,proto3" json:"entryTime,omitempty"`
+	MinPerformanceCount             string                 `protobuf:"bytes,31,opt,name=minPerformanceCount,proto3" json:"minPerformanceCount,omitempty"`
+	MainActor                       string                 `protobuf:"bytes,32,opt,name=mainActor,proto3" json:"mainActor,omitempty"`
+	MinPerformanceDuration          string                 `protobuf:"bytes,33,opt,name=minPerformanceDuration,proto3" json:"minPerformanceDuration,omitempty"`
+	ProhibitedItem                  string                 `protobuf:"bytes,34,opt,name=prohibitedItem,proto3" json:"prohibitedItem,omitempty"`
+	DepositSpecification            string                 `protobuf:"bytes,35,opt,name=depositSpecification,proto3" json:"depositSpecification,omitempty"`
+	TotalCount                      int64                  `protobuf:"varint,36,opt,name=totalCount,proto3" json:"totalCount,omitempty"`
+	PermitRefund                    int64                  `protobuf:"varint,37,opt,name=permitRefund,proto3" json:"permitRefund,omitempty"`
+	RefundExplain                   string                 `protobuf:"bytes,38,opt,name=refundExplain,proto3" json:"refundExplain,omitempty"`
+	RelNameTicketEntrance           int64                  `protobuf:"varint,39,opt,name=relNameTicketEntrance,proto3" json:"relNameTicketEntrance,omitempty"`
+	RelNameTicketEntranceExplain    string                 `protobuf:"bytes,40,opt,name=relNameTicketEntranceExplain,proto3" json:"relNameTicketEntranceExplain,omitempty"`
+	PermitChooseSeat                int64                  `protobuf:"varint,41,opt,name=permitChooseSeat,proto3" json:"permitChooseSeat,omitempty"`
+	ChooseSeatExplain               string                 `protobuf:"bytes,42,opt,name=chooseSeatExplain,proto3" json:"chooseSeatExplain,omitempty"`
+	ElectronicDeliveryTicket        int64                  `protobuf:"varint,43,opt,name=electronicDeliveryTicket,proto3" json:"electronicDeliveryTicket,omitempty"`
+	ElectronicDeliveryTicketExplain string                 `protobuf:"bytes,44,opt,name=electronicDeliveryTicketExplain,proto3" json:"electronicDeliveryTicketExplain,omitempty"`
+	ElectronicInvoice               int64                  `protobuf:"varint,45,opt,name=electronicInvoice,proto3" json:"electronicInvoice,omitempty"`
+	ElectronicInvoiceExplain        string                 `protobuf:"bytes,46,opt,name=electronicInvoiceExplain,proto3" json:"electronicInvoiceExplain,omitempty"`
+	HighHeat                        int64                  `protobuf:"varint,47,opt,name=highHeat,proto3" json:"highHeat,omitempty"`
+	ProgramStatus                   int64                  `protobuf:"varint,48,opt,name=programStatus,proto3" json:"programStatus,omitempty"`
+	IssueTime                       string                 `protobuf:"bytes,49,opt,name=issueTime,proto3" json:"issueTime,omitempty"`
+	ShowTime                        string                 `protobuf:"bytes,50,opt,name=showTime,proto3" json:"showTime,omitempty"`
+	ShowDayTime                     string                 `protobuf:"bytes,51,opt,name=showDayTime,proto3" json:"showDayTime,omitempty"`
+	ShowWeekTime                    string                 `protobuf:"bytes,52,opt,name=showWeekTime,proto3" json:"showWeekTime,omitempty"`
+	TicketCategoryVoList            []*TicketCategoryInfo  `protobuf:"bytes,53,rep,name=ticketCategoryVoList,proto3" json:"ticketCategoryVoList,omitempty"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *ProgramDetailInfo) Reset() {
@@ -1327,6 +1149,27 @@ func (x *ProgramDetailInfo) GetId() int64 {
 	return 0
 }
 
+func (x *ProgramDetailInfo) GetProgramGroupId() int64 {
+	if x != nil {
+		return x.ProgramGroupId
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetPrime() int64 {
+	if x != nil {
+		return x.Prime
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetProgramGroupVo() *ProgramGroupInfo {
+	if x != nil {
+		return x.ProgramGroupVo
+	}
+	return nil
+}
+
 func (x *ProgramDetailInfo) GetTitle() string {
 	if x != nil {
 		return x.Title
@@ -1334,261 +1177,338 @@ func (x *ProgramDetailInfo) GetTitle() string {
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetSubtitle() string {
+func (x *ProgramDetailInfo) GetActor() string {
 	if x != nil {
-		return x.Subtitle
+		return x.Actor
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetBrief() string {
+func (x *ProgramDetailInfo) GetPlace() string {
 	if x != nil {
-		return x.Brief
+		return x.Place
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetDescription() string {
+func (x *ProgramDetailInfo) GetItemPicture() string {
 	if x != nil {
-		return x.Description
+		return x.ItemPicture
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetPoster() string {
+func (x *ProgramDetailInfo) GetPreSell() int64 {
 	if x != nil {
-		return x.Poster
+		return x.PreSell
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetPreSellInstruction() string {
+	if x != nil {
+		return x.PreSellInstruction
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetCover() string {
+func (x *ProgramDetailInfo) GetImportantNotice() string {
 	if x != nil {
-		return x.Cover
+		return x.ImportantNotice
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetBackground() string {
+func (x *ProgramDetailInfo) GetAreaId() int64 {
 	if x != nil {
-		return x.Background
+		return x.AreaId
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetAreaName() string {
+	if x != nil {
+		return x.AreaName
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetCityCode() string {
+func (x *ProgramDetailInfo) GetProgramCategoryId() int64 {
 	if x != nil {
-		return x.CityCode
+		return x.ProgramCategoryId
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetProgramCategoryName() string {
+	if x != nil {
+		return x.ProgramCategoryName
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetCityName() string {
+func (x *ProgramDetailInfo) GetParentProgramCategoryId() int64 {
 	if x != nil {
-		return x.CityName
+		return x.ParentProgramCategoryId
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetParentProgramCategoryName() string {
+	if x != nil {
+		return x.ParentProgramCategoryName
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetCategoryId() int64 {
+func (x *ProgramDetailInfo) GetDetail() string {
 	if x != nil {
-		return x.CategoryId
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetCategoryName() string {
-	if x != nil {
-		return x.CategoryName
+		return x.Detail
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetVenueId() int64 {
+func (x *ProgramDetailInfo) GetPerOrderLimitPurchaseCount() int64 {
 	if x != nil {
-		return x.VenueId
+		return x.PerOrderLimitPurchaseCount
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetVenueName() string {
+func (x *ProgramDetailInfo) GetPerAccountLimitPurchaseCount() int64 {
 	if x != nil {
-		return x.VenueName
+		return x.PerAccountLimitPurchaseCount
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetRefundTicketRule() string {
+	if x != nil {
+		return x.RefundTicketRule
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetVenueAddress() string {
+func (x *ProgramDetailInfo) GetDeliveryInstruction() string {
 	if x != nil {
-		return x.VenueAddress
+		return x.DeliveryInstruction
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetLongitude() string {
+func (x *ProgramDetailInfo) GetEntryRule() string {
 	if x != nil {
-		return x.Longitude
+		return x.EntryRule
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetLatitude() string {
+func (x *ProgramDetailInfo) GetChildPurchase() string {
 	if x != nil {
-		return x.Latitude
+		return x.ChildPurchase
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetStatus() int64 {
+func (x *ProgramDetailInfo) GetInvoiceSpecification() string {
 	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetAuditStatus() int64 {
-	if x != nil {
-		return x.AuditStatus
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetSaleStatus() int64 {
-	if x != nil {
-		return x.SaleStatus
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetOnlineTime() int64 {
-	if x != nil {
-		return x.OnlineTime
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetOfflineTime() int64 {
-	if x != nil {
-		return x.OfflineTime
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetShowStartTime() int64 {
-	if x != nil {
-		return x.ShowStartTime
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetShowEndTime() int64 {
-	if x != nil {
-		return x.ShowEndTime
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetSaleStartTime() int64 {
-	if x != nil {
-		return x.SaleStartTime
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetSaleEndTime() int64 {
-	if x != nil {
-		return x.SaleEndTime
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetMinPrice() int64 {
-	if x != nil {
-		return x.MinPrice
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetMaxPrice() int64 {
-	if x != nil {
-		return x.MaxPrice
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetInventoryTotal() int64 {
-	if x != nil {
-		return x.InventoryTotal
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetSoldCount() int64 {
-	if x != nil {
-		return x.SoldCount
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetWantCount() int64 {
-	if x != nil {
-		return x.WantCount
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetViewCount() int64 {
-	if x != nil {
-		return x.ViewCount
-	}
-	return 0
-}
-
-func (x *ProgramDetailInfo) GetTags() []string {
-	if x != nil {
-		return x.Tags
-	}
-	return nil
-}
-
-func (x *ProgramDetailInfo) GetImageUrls() []string {
-	if x != nil {
-		return x.ImageUrls
-	}
-	return nil
-}
-
-func (x *ProgramDetailInfo) GetIntroduceHtml() string {
-	if x != nil {
-		return x.IntroduceHtml
+		return x.InvoiceSpecification
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetNotice() string {
+func (x *ProgramDetailInfo) GetRealTicketPurchaseRule() string {
 	if x != nil {
-		return x.Notice
+		return x.RealTicketPurchaseRule
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetRefundRule() string {
+func (x *ProgramDetailInfo) GetAbnormalOrderDescription() string {
 	if x != nil {
-		return x.RefundRule
+		return x.AbnormalOrderDescription
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetRealNameRule() string {
+func (x *ProgramDetailInfo) GetKindReminder() string {
 	if x != nil {
-		return x.RealNameRule
+		return x.KindReminder
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetTicketCategoryList() []*TicketCategoryDetailInfo {
+func (x *ProgramDetailInfo) GetPerformanceDuration() string {
 	if x != nil {
-		return x.TicketCategoryList
+		return x.PerformanceDuration
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetEntryTime() string {
+	if x != nil {
+		return x.EntryTime
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetMinPerformanceCount() string {
+	if x != nil {
+		return x.MinPerformanceCount
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetMainActor() string {
+	if x != nil {
+		return x.MainActor
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetMinPerformanceDuration() string {
+	if x != nil {
+		return x.MinPerformanceDuration
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetProhibitedItem() string {
+	if x != nil {
+		return x.ProhibitedItem
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetDepositSpecification() string {
+	if x != nil {
+		return x.DepositSpecification
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetTotalCount() int64 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetPermitRefund() int64 {
+	if x != nil {
+		return x.PermitRefund
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetRefundExplain() string {
+	if x != nil {
+		return x.RefundExplain
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetRelNameTicketEntrance() int64 {
+	if x != nil {
+		return x.RelNameTicketEntrance
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetRelNameTicketEntranceExplain() string {
+	if x != nil {
+		return x.RelNameTicketEntranceExplain
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetPermitChooseSeat() int64 {
+	if x != nil {
+		return x.PermitChooseSeat
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetChooseSeatExplain() string {
+	if x != nil {
+		return x.ChooseSeatExplain
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetElectronicDeliveryTicket() int64 {
+	if x != nil {
+		return x.ElectronicDeliveryTicket
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetElectronicDeliveryTicketExplain() string {
+	if x != nil {
+		return x.ElectronicDeliveryTicketExplain
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetElectronicInvoice() int64 {
+	if x != nil {
+		return x.ElectronicInvoice
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetElectronicInvoiceExplain() string {
+	if x != nil {
+		return x.ElectronicInvoiceExplain
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetHighHeat() int64 {
+	if x != nil {
+		return x.HighHeat
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetProgramStatus() int64 {
+	if x != nil {
+		return x.ProgramStatus
+	}
+	return 0
+}
+
+func (x *ProgramDetailInfo) GetIssueTime() string {
+	if x != nil {
+		return x.IssueTime
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetShowTime() string {
+	if x != nil {
+		return x.ShowTime
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetShowDayTime() string {
+	if x != nil {
+		return x.ShowDayTime
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetShowWeekTime() string {
+	if x != nil {
+		return x.ShowWeekTime
+	}
+	return ""
+}
+
+func (x *ProgramDetailInfo) GetTicketCategoryVoList() []*TicketCategoryInfo {
+	if x != nil {
+		return x.TicketCategoryVoList
 	}
 	return nil
 }
@@ -1598,166 +1518,143 @@ var File_services_program_rpc_program_proto protoreflect.FileDescriptor
 const file_services_program_rpc_program_proto_rawDesc = "" +
 	"\n" +
 	"\"services/program-rpc/program.proto\x12\aprogram\"\a\n" +
-	"\x05Empty\"\x7f\n" +
-	"\x13ListHomeProgramsReq\x12\x18\n" +
-	"\achannel\x18\x01 \x01(\tR\achannel\x12\x1a\n" +
-	"\bcityCode\x18\x02 \x01(\tR\bcityCode\x12\x16\n" +
-	"\x06pageNo\x18\x03 \x01(\x03R\x06pageNo\x12\x1a\n" +
-	"\bpageSize\x18\x04 \x01(\x03R\bpageSize\"\xef\x01\n" +
+	"\x05Empty\"i\n" +
+	"\x13ListHomeProgramsReq\x12\x16\n" +
+	"\x06areaId\x18\x01 \x01(\x03R\x06areaId\x12:\n" +
+	"\x18parentProgramCategoryIds\x18\x02 \x03(\x03R\x18parentProgramCategoryIds\"\xc5\x02\n" +
 	"\x0fPageProgramsReq\x12\x1e\n" +
 	"\n" +
-	"categoryId\x18\x01 \x01(\x03R\n" +
-	"categoryId\x12\x1a\n" +
-	"\bcityCode\x18\x02 \x01(\tR\bcityCode\x12\x18\n" +
-	"\akeyword\x18\x03 \x01(\tR\akeyword\x12\x16\n" +
-	"\x06pageNo\x18\x04 \x01(\x03R\x06pageNo\x12\x1a\n" +
-	"\bpageSize\x18\x05 \x01(\x03R\bpageSize\x12\x1a\n" +
-	"\bsortType\x18\x06 \x01(\tR\bsortType\x12\x1c\n" +
-	"\tstartTime\x18\a \x01(\x03R\tstartTime\x12\x18\n" +
-	"\aendTime\x18\b \x01(\x03R\aendTime\"3\n" +
-	"\x13GetProgramDetailReq\x12\x1c\n" +
-	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\"@\n" +
+	"pageNumber\x18\x01 \x01(\x03R\n" +
+	"pageNumber\x12\x1a\n" +
+	"\bpageSize\x18\x02 \x01(\x03R\bpageSize\x12\x16\n" +
+	"\x06areaId\x18\x03 \x01(\x03R\x06areaId\x128\n" +
+	"\x17parentProgramCategoryId\x18\x04 \x01(\x03R\x17parentProgramCategoryId\x12,\n" +
+	"\x11programCategoryId\x18\x05 \x01(\x03R\x11programCategoryId\x12\x1a\n" +
+	"\btimeType\x18\x06 \x01(\x03R\btimeType\x12$\n" +
+	"\rstartDateTime\x18\a \x01(\tR\rstartDateTime\x12 \n" +
+	"\vendDateTime\x18\b \x01(\tR\vendDateTime\x12\x12\n" +
+	"\x04type\x18\t \x01(\x03R\x04type\"%\n" +
+	"\x13GetProgramDetailReq\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"@\n" +
 	" ListTicketCategoriesByProgramReq\x12\x1c\n" +
-	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\"\xb9\x01\n" +
+	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\"i\n" +
 	"\x13ProgramCategoryInfo\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
-	"\x04code\x18\x03 \x01(\tR\x04code\x12\x12\n" +
-	"\x04icon\x18\x04 \x01(\tR\x04icon\x12\x1e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1a\n" +
+	"\bparentId\x18\x02 \x01(\x03R\bparentId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
+	"\x04type\x18\x04 \x01(\x03R\x04type\"i\n" +
+	"\x11ProgramSimpleInfo\x12\x1c\n" +
+	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\x12\x16\n" +
+	"\x06areaId\x18\x02 \x01(\x03R\x06areaId\x12\x1e\n" +
 	"\n" +
-	"background\x18\x05 \x01(\tR\n" +
-	"background\x12\x12\n" +
-	"\x04sort\x18\x06 \x01(\x03R\x04sort\x12\"\n" +
-	"\fprogramCount\x18\a \x01(\x03R\fprogramCount\"\xc1\x04\n" +
-	"\x11ProgramSimpleInfo\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1a\n" +
-	"\bsubtitle\x18\x03 \x01(\tR\bsubtitle\x12\x16\n" +
-	"\x06poster\x18\x04 \x01(\tR\x06poster\x12\x1a\n" +
-	"\bcityCode\x18\x05 \x01(\tR\bcityCode\x12\x1a\n" +
-	"\bcityName\x18\x06 \x01(\tR\bcityName\x12\x1e\n" +
-	"\n" +
-	"categoryId\x18\a \x01(\x03R\n" +
-	"categoryId\x12\"\n" +
-	"\fcategoryName\x18\b \x01(\tR\fcategoryName\x12\x18\n" +
-	"\avenueId\x18\t \x01(\x03R\avenueId\x12\x1c\n" +
-	"\tvenueName\x18\n" +
-	" \x01(\tR\tvenueName\x12\"\n" +
-	"\fvenueAddress\x18\v \x01(\tR\fvenueAddress\x12\x1a\n" +
-	"\bminPrice\x18\f \x01(\x03R\bminPrice\x12\x1a\n" +
-	"\bmaxPrice\x18\r \x01(\x03R\bmaxPrice\x12\x1e\n" +
-	"\n" +
-	"saleStatus\x18\x0e \x01(\x03R\n" +
-	"saleStatus\x12$\n" +
-	"\rsaleStartTime\x18\x0f \x01(\x03R\rsaleStartTime\x12 \n" +
-	"\vsaleEndTime\x18\x10 \x01(\x03R\vsaleEndTime\x12$\n" +
-	"\rshowStartTime\x18\x11 \x01(\x03R\rshowStartTime\x12 \n" +
-	"\vshowEndTime\x18\x12 \x01(\x03R\vshowEndTime\x12\x12\n" +
-	"\x04tags\x18\x13 \x03(\tR\x04tags\"\x9e\x01\n" +
+	"areaIdName\x18\x03 \x01(\tR\n" +
+	"areaIdName\"\xa0\x01\n" +
 	"\x10ProgramGroupInfo\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1a\n" +
-	"\bsubtitle\x18\x04 \x01(\tR\bsubtitle\x126\n" +
-	"\bprograms\x18\x05 \x03(\v2\x1a.program.ProgramSimpleInfoR\bprograms\"\x8d\x02\n" +
-	"\x12ProgramHomeSection\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12 \n" +
-	"\vsectionType\x18\x02 \x01(\tR\vsectionType\x12\x14\n" +
-	"\x05title\x18\x03 \x01(\tR\x05title\x12\x1a\n" +
-	"\bsubtitle\x18\x04 \x01(\tR\bsubtitle\x12\x14\n" +
-	"\x05cover\x18\x05 \x01(\tR\x05cover\x12\x12\n" +
-	"\x04sort\x18\x06 \x01(\x03R\x04sort\x126\n" +
-	"\bprograms\x18\a \x03(\v2\x1a.program.ProgramSimpleInfoR\bprograms\x121\n" +
-	"\x06groups\x18\b \x03(\v2\x19.program.ProgramGroupInfoR\x06groups\"\xb6\x01\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12T\n" +
+	"\x17programSimpleInfoVoList\x18\x02 \x03(\v2\x1a.program.ProgramSimpleInfoR\x17programSimpleInfoVoList\x12&\n" +
+	"\x0erecentShowTime\x18\x03 \x01(\tR\x0erecentShowTime\"\xa0\x01\n" +
+	"\x12ProgramHomeSection\x12\"\n" +
+	"\fcategoryName\x18\x01 \x01(\tR\fcategoryName\x12\x1e\n" +
+	"\n" +
+	"categoryId\x18\x02 \x01(\x03R\n" +
+	"categoryId\x12F\n" +
+	"\x11programListVoList\x18\x03 \x03(\v2\x18.program.ProgramListInfoR\x11programListVoList\"X\n" +
 	"\x12TicketCategoryInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1c\n" +
-	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
-	"\x05price\x18\x04 \x01(\x03R\x05price\x12\x1c\n" +
-	"\tinventory\x18\x05 \x01(\x03R\tinventory\x12\x12\n" +
-	"\x04sold\x18\x06 \x01(\x03R\x04sold\x12\x16\n" +
-	"\x06status\x18\a \x01(\x03R\x06status\"\xdc\x02\n" +
-	"\x18TicketCategoryDetailInfo\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1c\n" +
-	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
-	"\x05price\x18\x04 \x01(\x03R\x05price\x12\x1c\n" +
-	"\tinventory\x18\x05 \x01(\x03R\tinventory\x12\x12\n" +
-	"\x04sold\x18\x06 \x01(\x03R\x04sold\x12\x16\n" +
-	"\x06status\x18\a \x01(\x03R\x06status\x12\x1a\n" +
-	"\bseatDesc\x18\b \x01(\tR\bseatDesc\x12\x1a\n" +
-	"\bsaleRule\x18\t \x01(\tR\bsaleRule\x12\x1e\n" +
-	"\n" +
-	"refundRule\x18\n" +
-	" \x01(\tR\n" +
-	"refundRule\x12$\n" +
-	"\rsaleStartTime\x18\v \x01(\x03R\rsaleStartTime\x12 \n" +
-	"\vsaleEndTime\x18\f \x01(\x03R\vsaleEndTime\"K\n" +
+	"\tintroduce\x18\x02 \x01(\tR\tintroduce\x12\x14\n" +
+	"\x05price\x18\x03 \x01(\x03R\x05price\"\xb2\x01\n" +
+	"\x18TicketCategoryDetailInfo\x12\x1c\n" +
+	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\x12\x1c\n" +
+	"\tintroduce\x18\x02 \x01(\tR\tintroduce\x12\x14\n" +
+	"\x05price\x18\x03 \x01(\x03R\x05price\x12 \n" +
+	"\vtotalNumber\x18\x04 \x01(\x03R\vtotalNumber\x12\"\n" +
+	"\fremainNumber\x18\x05 \x01(\x03R\fremainNumber\"K\n" +
 	"\x17ProgramCategoryListResp\x120\n" +
-	"\x04list\x18\x01 \x03(\v2\x1c.program.ProgramCategoryInfoR\x04list\"\xa5\x01\n" +
-	"\x0fProgramListInfo\x12\x14\n" +
-	"\x05total\x18\x01 \x01(\x03R\x05total\x12\x16\n" +
-	"\x06pageNo\x18\x02 \x01(\x03R\x06pageNo\x12\x1a\n" +
-	"\bpageSize\x18\x03 \x01(\x03R\bpageSize\x12\x18\n" +
-	"\ahasMore\x18\x04 \x01(\bR\ahasMore\x12.\n" +
-	"\x04list\x18\x05 \x03(\v2\x1a.program.ProgramSimpleInfoR\x04list\"N\n" +
-	"\x13ProgramHomeListResp\x127\n" +
-	"\bsections\x18\x01 \x03(\v2\x1b.program.ProgramHomeSectionR\bsections\"?\n" +
-	"\x0fProgramPageResp\x12,\n" +
-	"\x04page\x18\x01 \x01(\v2\x18.program.ProgramListInfoR\x04page\"U\n" +
-	"\x1cTicketCategoryDetailListResp\x125\n" +
-	"\x04list\x18\x01 \x03(\v2!.program.TicketCategoryDetailInfoR\x04list\"\xda\t\n" +
-	"\x11ProgramDetailInfo\x12\x0e\n" +
+	"\x04list\x18\x01 \x03(\v2\x1c.program.ProgramCategoryInfoR\x04list\"\xab\x04\n" +
+	"\x0fProgramListInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1a\n" +
-	"\bsubtitle\x18\x03 \x01(\tR\bsubtitle\x12\x14\n" +
-	"\x05brief\x18\x04 \x01(\tR\x05brief\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\x12\x16\n" +
-	"\x06poster\x18\x06 \x01(\tR\x06poster\x12\x14\n" +
-	"\x05cover\x18\a \x01(\tR\x05cover\x12\x1e\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x14\n" +
+	"\x05actor\x18\x03 \x01(\tR\x05actor\x12\x14\n" +
+	"\x05place\x18\x04 \x01(\tR\x05place\x12 \n" +
+	"\vitemPicture\x18\x05 \x01(\tR\vitemPicture\x12\x16\n" +
+	"\x06areaId\x18\x06 \x01(\x03R\x06areaId\x12\x1a\n" +
+	"\bareaName\x18\a \x01(\tR\bareaName\x12,\n" +
+	"\x11programCategoryId\x18\b \x01(\x03R\x11programCategoryId\x120\n" +
+	"\x13programCategoryName\x18\t \x01(\tR\x13programCategoryName\x128\n" +
+	"\x17parentProgramCategoryId\x18\n" +
+	" \x01(\x03R\x17parentProgramCategoryId\x12<\n" +
+	"\x19parentProgramCategoryName\x18\v \x01(\tR\x19parentProgramCategoryName\x12\x1a\n" +
+	"\bshowTime\x18\f \x01(\tR\bshowTime\x12 \n" +
+	"\vshowDayTime\x18\r \x01(\tR\vshowDayTime\x12\"\n" +
+	"\fshowWeekTime\x18\x0e \x01(\tR\fshowWeekTime\x12\x1a\n" +
+	"\bminPrice\x18\x0f \x01(\x03R\bminPrice\x12\x1a\n" +
+	"\bmaxPrice\x18\x10 \x01(\x03R\bmaxPrice\"N\n" +
+	"\x13ProgramHomeListResp\x127\n" +
+	"\bsections\x18\x01 \x03(\v2\x1b.program.ProgramHomeSectionR\bsections\"\x93\x01\n" +
+	"\x0fProgramPageResp\x12\x18\n" +
+	"\apageNum\x18\x01 \x01(\x03R\apageNum\x12\x1a\n" +
+	"\bpageSize\x18\x02 \x01(\x03R\bpageSize\x12\x1c\n" +
+	"\ttotalSize\x18\x03 \x01(\x03R\ttotalSize\x12,\n" +
+	"\x04list\x18\x04 \x03(\v2\x18.program.ProgramListInfoR\x04list\"U\n" +
+	"\x1cTicketCategoryDetailListResp\x125\n" +
+	"\x04list\x18\x01 \x03(\v2!.program.TicketCategoryDetailInfoR\x04list\"\x87\x12\n" +
+	"\x11ProgramDetailInfo\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12&\n" +
+	"\x0eprogramGroupId\x18\x02 \x01(\x03R\x0eprogramGroupId\x12\x14\n" +
+	"\x05prime\x18\x03 \x01(\x03R\x05prime\x12A\n" +
+	"\x0eprogramGroupVo\x18\x04 \x01(\v2\x19.program.ProgramGroupInfoR\x0eprogramGroupVo\x12\x14\n" +
+	"\x05title\x18\x05 \x01(\tR\x05title\x12\x14\n" +
+	"\x05actor\x18\x06 \x01(\tR\x05actor\x12\x14\n" +
+	"\x05place\x18\a \x01(\tR\x05place\x12 \n" +
+	"\vitemPicture\x18\b \x01(\tR\vitemPicture\x12\x18\n" +
+	"\apreSell\x18\t \x01(\x03R\apreSell\x12.\n" +
+	"\x12preSellInstruction\x18\n" +
+	" \x01(\tR\x12preSellInstruction\x12(\n" +
+	"\x0fimportantNotice\x18\v \x01(\tR\x0fimportantNotice\x12\x16\n" +
+	"\x06areaId\x18\f \x01(\x03R\x06areaId\x12\x1a\n" +
+	"\bareaName\x18\r \x01(\tR\bareaName\x12,\n" +
+	"\x11programCategoryId\x18\x0e \x01(\x03R\x11programCategoryId\x120\n" +
+	"\x13programCategoryName\x18\x0f \x01(\tR\x13programCategoryName\x128\n" +
+	"\x17parentProgramCategoryId\x18\x10 \x01(\x03R\x17parentProgramCategoryId\x12<\n" +
+	"\x19parentProgramCategoryName\x18\x11 \x01(\tR\x19parentProgramCategoryName\x12\x16\n" +
+	"\x06detail\x18\x12 \x01(\tR\x06detail\x12>\n" +
+	"\x1aperOrderLimitPurchaseCount\x18\x13 \x01(\x03R\x1aperOrderLimitPurchaseCount\x12B\n" +
+	"\x1cperAccountLimitPurchaseCount\x18\x14 \x01(\x03R\x1cperAccountLimitPurchaseCount\x12*\n" +
+	"\x10refundTicketRule\x18\x15 \x01(\tR\x10refundTicketRule\x120\n" +
+	"\x13deliveryInstruction\x18\x16 \x01(\tR\x13deliveryInstruction\x12\x1c\n" +
+	"\tentryRule\x18\x17 \x01(\tR\tentryRule\x12$\n" +
+	"\rchildPurchase\x18\x18 \x01(\tR\rchildPurchase\x122\n" +
+	"\x14invoiceSpecification\x18\x19 \x01(\tR\x14invoiceSpecification\x126\n" +
+	"\x16realTicketPurchaseRule\x18\x1a \x01(\tR\x16realTicketPurchaseRule\x12:\n" +
+	"\x18abnormalOrderDescription\x18\x1b \x01(\tR\x18abnormalOrderDescription\x12\"\n" +
+	"\fkindReminder\x18\x1c \x01(\tR\fkindReminder\x120\n" +
+	"\x13performanceDuration\x18\x1d \x01(\tR\x13performanceDuration\x12\x1c\n" +
+	"\tentryTime\x18\x1e \x01(\tR\tentryTime\x120\n" +
+	"\x13minPerformanceCount\x18\x1f \x01(\tR\x13minPerformanceCount\x12\x1c\n" +
+	"\tmainActor\x18  \x01(\tR\tmainActor\x126\n" +
+	"\x16minPerformanceDuration\x18! \x01(\tR\x16minPerformanceDuration\x12&\n" +
+	"\x0eprohibitedItem\x18\" \x01(\tR\x0eprohibitedItem\x122\n" +
+	"\x14depositSpecification\x18# \x01(\tR\x14depositSpecification\x12\x1e\n" +
 	"\n" +
-	"background\x18\b \x01(\tR\n" +
-	"background\x12\x1a\n" +
-	"\bcityCode\x18\t \x01(\tR\bcityCode\x12\x1a\n" +
-	"\bcityName\x18\n" +
-	" \x01(\tR\bcityName\x12\x1e\n" +
-	"\n" +
-	"categoryId\x18\v \x01(\x03R\n" +
-	"categoryId\x12\"\n" +
-	"\fcategoryName\x18\f \x01(\tR\fcategoryName\x12\x18\n" +
-	"\avenueId\x18\r \x01(\x03R\avenueId\x12\x1c\n" +
-	"\tvenueName\x18\x0e \x01(\tR\tvenueName\x12\"\n" +
-	"\fvenueAddress\x18\x0f \x01(\tR\fvenueAddress\x12\x1c\n" +
-	"\tlongitude\x18\x10 \x01(\tR\tlongitude\x12\x1a\n" +
-	"\blatitude\x18\x11 \x01(\tR\blatitude\x12\x16\n" +
-	"\x06status\x18\x12 \x01(\x03R\x06status\x12 \n" +
-	"\vauditStatus\x18\x13 \x01(\x03R\vauditStatus\x12\x1e\n" +
-	"\n" +
-	"saleStatus\x18\x14 \x01(\x03R\n" +
-	"saleStatus\x12\x1e\n" +
-	"\n" +
-	"onlineTime\x18\x15 \x01(\x03R\n" +
-	"onlineTime\x12 \n" +
-	"\vofflineTime\x18\x16 \x01(\x03R\vofflineTime\x12$\n" +
-	"\rshowStartTime\x18\x17 \x01(\x03R\rshowStartTime\x12 \n" +
-	"\vshowEndTime\x18\x18 \x01(\x03R\vshowEndTime\x12$\n" +
-	"\rsaleStartTime\x18\x19 \x01(\x03R\rsaleStartTime\x12 \n" +
-	"\vsaleEndTime\x18\x1a \x01(\x03R\vsaleEndTime\x12\x1a\n" +
-	"\bminPrice\x18\x1b \x01(\x03R\bminPrice\x12\x1a\n" +
-	"\bmaxPrice\x18\x1c \x01(\x03R\bmaxPrice\x12&\n" +
-	"\x0einventoryTotal\x18\x1d \x01(\x03R\x0einventoryTotal\x12\x1c\n" +
-	"\tsoldCount\x18\x1e \x01(\x03R\tsoldCount\x12\x1c\n" +
-	"\twantCount\x18\x1f \x01(\x03R\twantCount\x12\x1c\n" +
-	"\tviewCount\x18  \x01(\x03R\tviewCount\x12\x12\n" +
-	"\x04tags\x18! \x03(\tR\x04tags\x12\x1c\n" +
-	"\timageUrls\x18\" \x03(\tR\timageUrls\x12$\n" +
-	"\rintroduceHtml\x18# \x01(\tR\rintroduceHtml\x12\x16\n" +
-	"\x06notice\x18$ \x01(\tR\x06notice\x12\x1e\n" +
-	"\n" +
-	"refundRule\x18% \x01(\tR\n" +
-	"refundRule\x12\"\n" +
-	"\frealNameRule\x18& \x01(\tR\frealNameRule\x12Q\n" +
-	"\x12ticketCategoryList\x18' \x03(\v2!.program.TicketCategoryDetailInfoR\x12ticketCategoryList2\xac\x03\n" +
+	"totalCount\x18$ \x01(\x03R\n" +
+	"totalCount\x12\"\n" +
+	"\fpermitRefund\x18% \x01(\x03R\fpermitRefund\x12$\n" +
+	"\rrefundExplain\x18& \x01(\tR\rrefundExplain\x124\n" +
+	"\x15relNameTicketEntrance\x18' \x01(\x03R\x15relNameTicketEntrance\x12B\n" +
+	"\x1crelNameTicketEntranceExplain\x18( \x01(\tR\x1crelNameTicketEntranceExplain\x12*\n" +
+	"\x10permitChooseSeat\x18) \x01(\x03R\x10permitChooseSeat\x12,\n" +
+	"\x11chooseSeatExplain\x18* \x01(\tR\x11chooseSeatExplain\x12:\n" +
+	"\x18electronicDeliveryTicket\x18+ \x01(\x03R\x18electronicDeliveryTicket\x12H\n" +
+	"\x1felectronicDeliveryTicketExplain\x18, \x01(\tR\x1felectronicDeliveryTicketExplain\x12,\n" +
+	"\x11electronicInvoice\x18- \x01(\x03R\x11electronicInvoice\x12:\n" +
+	"\x18electronicInvoiceExplain\x18. \x01(\tR\x18electronicInvoiceExplain\x12\x1a\n" +
+	"\bhighHeat\x18/ \x01(\x03R\bhighHeat\x12$\n" +
+	"\rprogramStatus\x180 \x01(\x03R\rprogramStatus\x12\x1c\n" +
+	"\tissueTime\x181 \x01(\tR\tissueTime\x12\x1a\n" +
+	"\bshowTime\x182 \x01(\tR\bshowTime\x12 \n" +
+	"\vshowDayTime\x183 \x01(\tR\vshowDayTime\x12\"\n" +
+	"\fshowWeekTime\x184 \x01(\tR\fshowWeekTime\x12O\n" +
+	"\x14ticketCategoryVoList\x185 \x03(\v2\x1b.program.TicketCategoryInfoR\x14ticketCategoryVoList2\xac\x03\n" +
 	"\n" +
 	"ProgramRpc\x12I\n" +
 	"\x15ListProgramCategories\x12\x0e.program.Empty\x1a .program.ProgramCategoryListResp\x12N\n" +
@@ -1799,30 +1696,29 @@ var file_services_program_rpc_program_proto_goTypes = []any{
 	(*ProgramDetailInfo)(nil),                // 16: program.ProgramDetailInfo
 }
 var file_services_program_rpc_program_proto_depIdxs = []int32{
-	6,  // 0: program.ProgramGroupInfo.programs:type_name -> program.ProgramSimpleInfo
-	6,  // 1: program.ProgramHomeSection.programs:type_name -> program.ProgramSimpleInfo
-	7,  // 2: program.ProgramHomeSection.groups:type_name -> program.ProgramGroupInfo
-	5,  // 3: program.ProgramCategoryListResp.list:type_name -> program.ProgramCategoryInfo
-	6,  // 4: program.ProgramListInfo.list:type_name -> program.ProgramSimpleInfo
-	8,  // 5: program.ProgramHomeListResp.sections:type_name -> program.ProgramHomeSection
-	12, // 6: program.ProgramPageResp.page:type_name -> program.ProgramListInfo
-	10, // 7: program.TicketCategoryDetailListResp.list:type_name -> program.TicketCategoryDetailInfo
-	10, // 8: program.ProgramDetailInfo.ticketCategoryList:type_name -> program.TicketCategoryDetailInfo
-	0,  // 9: program.ProgramRpc.ListProgramCategories:input_type -> program.Empty
-	1,  // 10: program.ProgramRpc.ListHomePrograms:input_type -> program.ListHomeProgramsReq
-	2,  // 11: program.ProgramRpc.PagePrograms:input_type -> program.PageProgramsReq
-	3,  // 12: program.ProgramRpc.GetProgramDetail:input_type -> program.GetProgramDetailReq
-	4,  // 13: program.ProgramRpc.ListTicketCategoriesByProgram:input_type -> program.ListTicketCategoriesByProgramReq
-	11, // 14: program.ProgramRpc.ListProgramCategories:output_type -> program.ProgramCategoryListResp
-	13, // 15: program.ProgramRpc.ListHomePrograms:output_type -> program.ProgramHomeListResp
-	14, // 16: program.ProgramRpc.PagePrograms:output_type -> program.ProgramPageResp
-	16, // 17: program.ProgramRpc.GetProgramDetail:output_type -> program.ProgramDetailInfo
-	15, // 18: program.ProgramRpc.ListTicketCategoriesByProgram:output_type -> program.TicketCategoryDetailListResp
-	14, // [14:19] is the sub-list for method output_type
-	9,  // [9:14] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	6,  // 0: program.ProgramGroupInfo.programSimpleInfoVoList:type_name -> program.ProgramSimpleInfo
+	12, // 1: program.ProgramHomeSection.programListVoList:type_name -> program.ProgramListInfo
+	5,  // 2: program.ProgramCategoryListResp.list:type_name -> program.ProgramCategoryInfo
+	8,  // 3: program.ProgramHomeListResp.sections:type_name -> program.ProgramHomeSection
+	12, // 4: program.ProgramPageResp.list:type_name -> program.ProgramListInfo
+	10, // 5: program.TicketCategoryDetailListResp.list:type_name -> program.TicketCategoryDetailInfo
+	7,  // 6: program.ProgramDetailInfo.programGroupVo:type_name -> program.ProgramGroupInfo
+	9,  // 7: program.ProgramDetailInfo.ticketCategoryVoList:type_name -> program.TicketCategoryInfo
+	0,  // 8: program.ProgramRpc.ListProgramCategories:input_type -> program.Empty
+	1,  // 9: program.ProgramRpc.ListHomePrograms:input_type -> program.ListHomeProgramsReq
+	2,  // 10: program.ProgramRpc.PagePrograms:input_type -> program.PageProgramsReq
+	3,  // 11: program.ProgramRpc.GetProgramDetail:input_type -> program.GetProgramDetailReq
+	4,  // 12: program.ProgramRpc.ListTicketCategoriesByProgram:input_type -> program.ListTicketCategoriesByProgramReq
+	11, // 13: program.ProgramRpc.ListProgramCategories:output_type -> program.ProgramCategoryListResp
+	13, // 14: program.ProgramRpc.ListHomePrograms:output_type -> program.ProgramHomeListResp
+	14, // 15: program.ProgramRpc.PagePrograms:output_type -> program.ProgramPageResp
+	16, // 16: program.ProgramRpc.GetProgramDetail:output_type -> program.ProgramDetailInfo
+	15, // 17: program.ProgramRpc.ListTicketCategoriesByProgram:output_type -> program.TicketCategoryDetailListResp
+	13, // [13:18] is the sub-list for method output_type
+	8,  // [8:13] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_services_program_rpc_program_proto_init() }

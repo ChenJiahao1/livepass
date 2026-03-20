@@ -7,25 +7,24 @@ option go_package = "./pb";
 message Empty {}
 
 message ListHomeProgramsReq {
-  string channel = 1;
-  string cityCode = 2;
-  int64 pageNo = 3;
-  int64 pageSize = 4;
+  int64 areaId = 1;
+  repeated int64 parentProgramCategoryIds = 2;
 }
 
 message PageProgramsReq {
-  int64 categoryId = 1;
-  string cityCode = 2;
-  string keyword = 3;
-  int64 pageNo = 4;
-  int64 pageSize = 5;
-  string sortType = 6;
-  int64 startTime = 7;
-  int64 endTime = 8;
+  int64 pageNumber = 1;
+  int64 pageSize = 2;
+  int64 areaId = 3;
+  int64 parentProgramCategoryId = 4;
+  int64 programCategoryId = 5;
+  int64 timeType = 6;
+  string startDateTime = 7;
+  string endDateTime = 8;
+  int64 type = 9;
 }
 
 message GetProgramDetailReq {
-  int64 programId = 1;
+  int64 id = 1;
 }
 
 message ListTicketCategoriesByProgramReq {
@@ -34,78 +33,41 @@ message ListTicketCategoriesByProgramReq {
 
 message ProgramCategoryInfo {
   int64 id = 1;
-  string name = 2;
-  string code = 3;
-  string icon = 4;
-  string background = 5;
-  int64 sort = 6;
-  int64 programCount = 7;
+  int64 parentId = 2;
+  string name = 3;
+  int64 type = 4;
 }
 
 message ProgramSimpleInfo {
-  int64 id = 1;
-  string title = 2;
-  string subtitle = 3;
-  string poster = 4;
-  string cityCode = 5;
-  string cityName = 6;
-  int64 categoryId = 7;
-  string categoryName = 8;
-  int64 venueId = 9;
-  string venueName = 10;
-  string venueAddress = 11;
-  int64 minPrice = 12;
-  int64 maxPrice = 13;
-  int64 saleStatus = 14;
-  int64 saleStartTime = 15;
-  int64 saleEndTime = 16;
-  int64 showStartTime = 17;
-  int64 showEndTime = 18;
-  repeated string tags = 19;
+  int64 programId = 1;
+  int64 areaId = 2;
+  string areaIdName = 3;
 }
 
 message ProgramGroupInfo {
   int64 id = 1;
-  string code = 2;
-  string name = 3;
-  string subtitle = 4;
-  repeated ProgramSimpleInfo programs = 5;
+  repeated ProgramSimpleInfo programSimpleInfoVoList = 2;
+  string recentShowTime = 3;
 }
 
 message ProgramHomeSection {
-  int64 id = 1;
-  string sectionType = 2;
-  string title = 3;
-  string subtitle = 4;
-  string cover = 5;
-  int64 sort = 6;
-  repeated ProgramSimpleInfo programs = 7;
-  repeated ProgramGroupInfo groups = 8;
+  string categoryName = 1;
+  int64 categoryId = 2;
+  repeated ProgramListInfo programListVoList = 3;
 }
 
 message TicketCategoryInfo {
   int64 id = 1;
-  int64 programId = 2;
-  string name = 3;
-  int64 price = 4;
-  int64 inventory = 5;
-  int64 sold = 6;
-  int64 status = 7;
+  string introduce = 2;
+  int64 price = 3;
 }
 
 message TicketCategoryDetailInfo {
-  int64 id = 1;
-  int64 programId = 2;
-  string name = 3;
-  int64 price = 4;
-  int64 inventory = 5;
-  int64 sold = 6;
-  int64 status = 7;
-  string seatDesc = 8;
-  string saleRule = 9;
-  string refundRule = 10;
-  int64 saleStartTime = 11;
-  int64 saleEndTime = 12;
+  int64 programId = 1;
+  string introduce = 2;
+  int64 price = 3;
+  int64 totalNumber = 4;
+  int64 remainNumber = 5;
 }
 
 message ProgramCategoryListResp {
@@ -113,11 +75,22 @@ message ProgramCategoryListResp {
 }
 
 message ProgramListInfo {
-  int64 total = 1;
-  int64 pageNo = 2;
-  int64 pageSize = 3;
-  bool hasMore = 4;
-  repeated ProgramSimpleInfo list = 5;
+  int64 id = 1;
+  string title = 2;
+  string actor = 3;
+  string place = 4;
+  string itemPicture = 5;
+  int64 areaId = 6;
+  string areaName = 7;
+  int64 programCategoryId = 8;
+  string programCategoryName = 9;
+  int64 parentProgramCategoryId = 10;
+  string parentProgramCategoryName = 11;
+  string showTime = 12;
+  string showDayTime = 13;
+  string showWeekTime = 14;
+  int64 minPrice = 15;
+  int64 maxPrice = 16;
 }
 
 message ProgramHomeListResp {
@@ -125,7 +98,10 @@ message ProgramHomeListResp {
 }
 
 message ProgramPageResp {
-  ProgramListInfo page = 1;
+  int64 pageNum = 1;
+  int64 pageSize = 2;
+  int64 totalSize = 3;
+  repeated ProgramListInfo list = 4;
 }
 
 message TicketCategoryDetailListResp {
@@ -134,44 +110,58 @@ message TicketCategoryDetailListResp {
 
 message ProgramDetailInfo {
   int64 id = 1;
-  string title = 2;
-  string subtitle = 3;
-  string brief = 4;
-  string description = 5;
-  string poster = 6;
-  string cover = 7;
-  string background = 8;
-  string cityCode = 9;
-  string cityName = 10;
-  int64 categoryId = 11;
-  string categoryName = 12;
-  int64 venueId = 13;
-  string venueName = 14;
-  string venueAddress = 15;
-  string longitude = 16;
-  string latitude = 17;
-  int64 status = 18;
-  int64 auditStatus = 19;
-  int64 saleStatus = 20;
-  int64 onlineTime = 21;
-  int64 offlineTime = 22;
-  int64 showStartTime = 23;
-  int64 showEndTime = 24;
-  int64 saleStartTime = 25;
-  int64 saleEndTime = 26;
-  int64 minPrice = 27;
-  int64 maxPrice = 28;
-  int64 inventoryTotal = 29;
-  int64 soldCount = 30;
-  int64 wantCount = 31;
-  int64 viewCount = 32;
-  repeated string tags = 33;
-  repeated string imageUrls = 34;
-  string introduceHtml = 35;
-  string notice = 36;
-  string refundRule = 37;
-  string realNameRule = 38;
-  repeated TicketCategoryDetailInfo ticketCategoryList = 39;
+  int64 programGroupId = 2;
+  int64 prime = 3;
+  ProgramGroupInfo programGroupVo = 4;
+  string title = 5;
+  string actor = 6;
+  string place = 7;
+  string itemPicture = 8;
+  int64 preSell = 9;
+  string preSellInstruction = 10;
+  string importantNotice = 11;
+  int64 areaId = 12;
+  string areaName = 13;
+  int64 programCategoryId = 14;
+  string programCategoryName = 15;
+  int64 parentProgramCategoryId = 16;
+  string parentProgramCategoryName = 17;
+  string detail = 18;
+  int64 perOrderLimitPurchaseCount = 19;
+  int64 perAccountLimitPurchaseCount = 20;
+  string refundTicketRule = 21;
+  string deliveryInstruction = 22;
+  string entryRule = 23;
+  string childPurchase = 24;
+  string invoiceSpecification = 25;
+  string realTicketPurchaseRule = 26;
+  string abnormalOrderDescription = 27;
+  string kindReminder = 28;
+  string performanceDuration = 29;
+  string entryTime = 30;
+  string minPerformanceCount = 31;
+  string mainActor = 32;
+  string minPerformanceDuration = 33;
+  string prohibitedItem = 34;
+  string depositSpecification = 35;
+  int64 totalCount = 36;
+  int64 permitRefund = 37;
+  string refundExplain = 38;
+  int64 relNameTicketEntrance = 39;
+  string relNameTicketEntranceExplain = 40;
+  int64 permitChooseSeat = 41;
+  string chooseSeatExplain = 42;
+  int64 electronicDeliveryTicket = 43;
+  string electronicDeliveryTicketExplain = 44;
+  int64 electronicInvoice = 45;
+  string electronicInvoiceExplain = 46;
+  int64 highHeat = 47;
+  int64 programStatus = 48;
+  string issueTime = 49;
+  string showTime = 50;
+  string showDayTime = 51;
+  string showWeekTime = 52;
+  repeated TicketCategoryInfo ticketCategoryVoList = 53;
 }
 
 service ProgramRpc {
