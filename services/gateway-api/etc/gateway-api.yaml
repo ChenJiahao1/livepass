@@ -1,0 +1,84 @@
+Name: gateway-api
+Host: 0.0.0.0
+Port: 8081
+Telemetry:
+  Name: gateway-api
+  Batcher: otlphttp
+  Endpoint: localhost:4318
+  OtlpHttpPath: /v1/traces
+Auth:
+  ChannelCodeHeader: X-Channel-Code
+  ChannelMap:
+    "0001": local-user-secret-0001
+Upstreams:
+  - Name: user-api
+    Http:
+      Target: 127.0.0.1:8888
+      Timeout: 3000
+    Mappings:
+      - Method: post
+        Path: /user/register
+      - Method: post
+        Path: /user/exist
+      - Method: post
+        Path: /user/login
+      - Method: post
+        Path: /user/get/id
+      - Method: post
+        Path: /user/get/mobile
+      - Method: post
+        Path: /user/logout
+      - Method: post
+        Path: /user/update
+      - Method: post
+        Path: /user/update/email
+      - Method: post
+        Path: /user/update/mobile
+      - Method: post
+        Path: /user/update/password
+      - Method: post
+        Path: /user/authentication
+      - Method: post
+        Path: /user/get/user/ticket/list
+      - Method: post
+        Path: /ticket/user/list
+      - Method: post
+        Path: /ticket/user/add
+      - Method: post
+        Path: /ticket/user/delete
+  - Name: program-api
+    Http:
+      Target: 127.0.0.1:8889
+      Timeout: 3000
+    Mappings:
+      - Method: post
+        Path: /program/category/select/all
+      - Method: post
+        Path: /program/detail
+      - Method: post
+        Path: /program/home/list
+      - Method: post
+        Path: /program/page
+      - Method: post
+        Path: /program/preorder/detail
+      - Method: post
+        Path: /program/seat/freeze
+      - Method: post
+        Path: /ticket/category/select/list/by/program
+  - Name: order-api
+    Http:
+      Target: 127.0.0.1:8890
+      Timeout: 3000
+    Mappings:
+      - Method: post
+        Path: /order/cancel
+      - Method: post
+        Path: /order/create
+      - Method: post
+        Path: /order/get
+      - Method: post
+        Path: /order/pay
+      - Method: post
+        Path: /order/pay/check
+      - Method: post
+        Path: /order/select/list
