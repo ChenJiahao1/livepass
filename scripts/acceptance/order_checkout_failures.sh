@@ -144,6 +144,7 @@ scenario_cancel_order() {
   log "失败场景 3/4 取消订单后不可继续支付"
   fetch_preorder
   create_order
+  wait_order_visible
 
   body="$(curl_json "/order/cancel" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
   print_json "${body}"
@@ -164,6 +165,7 @@ scenario_close_expired_order() {
   fetch_preorder
   remain_before="$(get_preorder_remain_number "${TICKET_CATEGORY_ID}")"
   create_order
+  wait_order_visible
 
   mysql_exec_db "damai_order" "UPDATE d_order SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}"
   run_order_close_once

@@ -16,7 +16,6 @@ import (
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
 
-	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -71,84 +70,13 @@ func buildOrderSnapshotBundle(
 	now time.Time,
 	closeAfter time.Duration,
 ) (*orderSnapshotBundle, error) {
-	if preorder == nil || userResp == nil || freezeResp == nil {
-		return nil, xerr.ErrInternal
-	}
-
-	ticketCategory, ok := findPreorderTicketCategory(preorder.GetTicketCategoryVoList(), in.GetTicketCategoryId())
-	if !ok {
-		return nil, xerr.ErrProgramTicketCategoryNotFound
-	}
-	if len(freezeResp.GetSeats()) != len(in.GetTicketUserIds()) {
-		return nil, xerr.ErrSeatInventoryInsufficient
-	}
-
-	ticketUsers := make(map[int64]*userrpc.TicketUserInfo, len(userResp.GetTicketUserVoList()))
-	for _, ticketUser := range userResp.GetTicketUserVoList() {
-		if ticketUser == nil {
-			continue
-		}
-		ticketUsers[ticketUser.GetId()] = ticketUser
-	}
-
-	showTime, err := parseOrderTime(preorder.GetShowTime())
+	orderEvent, err := buildOrderCreateEvent(in, preorder, userResp, freezeResp, now, closeAfter)
 	if err != nil {
 		return nil, err
 	}
-
-	orderNumber := xid.New()
-	orderExpireTime := now.Add(closeAfter)
-	order := &model.DOrder{
-		Id:                      xid.New(),
-		OrderNumber:             orderNumber,
-		ProgramId:               in.GetProgramId(),
-		ProgramTitle:            preorder.GetTitle(),
-		ProgramItemPicture:      preorder.GetItemPicture(),
-		ProgramPlace:            preorder.GetPlace(),
-		ProgramShowTime:         showTime,
-		ProgramPermitChooseSeat: preorder.GetPermitChooseSeat(),
-		UserId:                  in.GetUserId(),
-		DistributionMode:        in.GetDistributionMode(),
-		TakeTicketMode:          in.GetTakeTicketMode(),
-		TicketCount:             int64(len(in.GetTicketUserIds())),
-		OrderPrice:              float64(ticketCategory.GetPrice() * int64(len(in.GetTicketUserIds()))),
-		OrderStatus:             orderStatusUnpaid,
-		FreezeToken:             freezeResp.GetFreezeToken(),
-		OrderExpireTime:         orderExpireTime,
-		CreateOrderTime:         now,
-		CancelOrderTime:         sql.NullTime{},
-		CreateTime:              now,
-		EditTime:                now,
-		Status:                  1,
-	}
-
-	orderTickets := make([]*model.DOrderTicketUser, 0, len(in.GetTicketUserIds()))
-	for idx, ticketUserID := range in.GetTicketUserIds() {
-		ticketUser, ok := ticketUsers[ticketUserID]
-		if !ok || ticketUser.GetUserId() != in.GetUserId() {
-			return nil, xerr.ErrOrderTicketUserInvalid
-		}
-		seat := freezeResp.GetSeats()[idx]
-		orderTickets = append(orderTickets, &model.DOrderTicketUser{
-			Id:                 xid.New(),
-			OrderNumber:        orderNumber,
-			UserId:             in.GetUserId(),
-			TicketUserId:       ticketUser.GetId(),
-			TicketUserName:     ticketUser.GetRelName(),
-			TicketUserIdNumber: ticketUser.GetIdNumber(),
-			TicketCategoryId:   ticketCategory.GetId(),
-			TicketCategoryName: ticketCategory.GetIntroduce(),
-			TicketPrice:        float64(ticketCategory.GetPrice()),
-			SeatId:             seat.GetSeatId(),
-			SeatRow:            seat.GetRowCode(),
-			SeatCol:            seat.GetColCode(),
-			SeatPrice:          float64(seat.GetPrice()),
-			OrderStatus:        orderStatusUnpaid,
-			CreateOrderTime:    now,
-			CreateTime:         now,
-			EditTime:           now,
-			Status:             1,
-		})
+	order, orderTickets, err := mapEventToOrderModels(orderEvent, now)
+	if err != nil {
+		return nil, err
 	}
 
 	return &orderSnapshotBundle{
@@ -301,19 +229,6 @@ func mapOrderError(err error) error {
 		return status.Error(codes.Internal, err.Error())
 	default:
 		return err
-	}
-}
-
-func compensateOrderFreezeRelease(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken, reason string) {
-	if freezeToken == "" {
-		return
-	}
-
-	if _, err := svcCtx.ProgramRpc.ReleaseSeatFreeze(ctx, &programrpc.ReleaseSeatFreezeReq{
-		FreezeToken:   freezeToken,
-		ReleaseReason: reason,
-	}); err != nil {
-		logx.WithContext(ctx).Errorf("release seat freeze compensation failed, freezeToken=%s err=%v", freezeToken, err)
 	}
 }
 

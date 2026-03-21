@@ -10,6 +10,7 @@ PAY_CHANNEL="${PAY_CHANNEL:-mock}"
 RUN_ID="${RUN_ID:-$(date +%s%N)}"
 MOBILE="${MOBILE:-139$(printf '%08d' "$((10#${RUN_ID} % 100000000))")}"
 TICKET_CATEGORY_ID="${TICKET_CATEGORY_ID:-}"
+ORDER_VISIBLE_WAIT_SECONDS="${ORDER_VISIBLE_WAIT_SECONDS:-15}"
 
 TICKET_USER_A_NAME="${TICKET_USER_A_NAME:-张三}"
 TICKET_USER_A_ID_NUMBER="${TICKET_USER_A_ID_NUMBER:-110101199001011234}"
@@ -242,17 +243,43 @@ fetch_preorder() {
 create_order() {
   local body
 
-  log "6/9 创建订单"
+  log "6/10 创建订单"
   body="$(curl_json "/order/create" "{\"programId\":${PROGRAM_ID},\"ticketCategoryId\":${TICKET_CATEGORY_ID},\"ticketUserIds\":[${TICKET_USER_ID_1},${TICKET_USER_ID_2}],\"distributionMode\":\"express\",\"takeTicketMode\":\"paper\"}" 1)"
   ORDER_NUMBER="$(extract_required "${body}" '.orderNumber' 'orderNumber')"
   print_json "${body}"
   printf 'ORDER_NUMBER=%s\n' "${ORDER_NUMBER}"
 }
 
+wait_order_visible() {
+  local body=""
+  local attempt
+
+  log "7/10 等待订单异步可见"
+  for ((attempt = 0; attempt < ORDER_VISIBLE_WAIT_SECONDS; attempt++)); do
+    curl_request "/order/get" "{\"orderNumber\":${ORDER_NUMBER}}" 1
+    body="${CURL_LAST_BODY}"
+    if [[ "${CURL_LAST_STATUS}" =~ ^2 ]]; then
+      print_json "${body}"
+      assert_json_filter "${body}" ".orderNumber == ${ORDER_NUMBER}" "unexpected order number in async visibility response"
+      return
+    fi
+    if [[ "${body}" == *"order not found"* ]]; then
+      sleep 1
+      continue
+    fi
+
+    print_json "${body}" >&2 || true
+    fail "unexpected response while waiting order visibility: http=${CURL_LAST_STATUS}"
+  done
+
+  print_json "${body}" >&2 || true
+  fail "order not visible within ${ORDER_VISIBLE_WAIT_SECONDS}s"
+}
+
 pay_order() {
   local body
 
-  log "7/9 模拟支付"
+  log "8/10 模拟支付"
   body="$(curl_json "/order/pay" "{\"orderNumber\":${ORDER_NUMBER},\"subject\":\"${SUBJECT}\",\"channel\":\"${PAY_CHANNEL}\"}" 1)"
   print_json "${body}"
   assert_json_filter "${body}" ".orderNumber == ${ORDER_NUMBER}" "unexpected order number in pay response"
@@ -264,7 +291,7 @@ pay_order() {
 check_payment() {
   local body
 
-  log "8/9 查询支付状态"
+  log "9/10 查询支付状态"
   body="$(curl_json "/order/pay/check" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
   print_json "${body}"
   assert_json_filter "${body}" ".orderNumber == ${ORDER_NUMBER}" "unexpected order number in pay check response"
@@ -275,7 +302,7 @@ check_payment() {
 get_order() {
   local body
 
-  log "9/9 查询订单详情"
+  log "10/10 查询订单详情"
   body="$(curl_json "/order/get" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
   print_json "${body}"
   assert_json_filter "${body}" ".orderNumber == ${ORDER_NUMBER}" "unexpected order number in order detail response"
@@ -299,6 +326,7 @@ main() {
   list_ticket_users
   fetch_preorder
   create_order
+  wait_order_visible
   pay_order
   check_payment
   get_order

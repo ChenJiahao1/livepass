@@ -18,6 +18,15 @@ type RepeatGuardConfig struct {
 	LockAcquireTimeout time.Duration `json:",default=200ms"`
 }
 
+type KafkaConfig struct {
+	Brokers          []string      `json:",optional"`
+	TopicOrderCreate string        `json:",default=order.create.command.v1"`
+	ConsumerGroup    string        `json:",default=damai-go-order-create"`
+	MaxMessageDelay  time.Duration `json:",default=5s"`
+	ProducerTimeout  time.Duration `json:",default=3s"`
+	RetryBackoff     time.Duration `json:",default=1s"`
+}
+
 type Config struct {
 	zrpc.RpcServerConf
 	MySQL       xmysql.Config
@@ -26,4 +35,5 @@ type Config struct {
 	UserRpc     zrpc.RpcClientConf
 	Order       OrderConfig
 	RepeatGuard RepeatGuardConfig
+	Kafka       KafkaConfig
 }

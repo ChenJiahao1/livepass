@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"damai-go/pkg/xerr"
@@ -13,9 +14,6 @@ import (
 	userrpc "damai-go/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type CreateOrderLogic struct {
@@ -95,28 +93,27 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	now := time.Now()
-	bundle, err := buildOrderSnapshotBundle(in, preorder, userResp, freezeResp, now, closeAfter)
+	orderEvent, err := buildOrderCreateEvent(in, preorder, userResp, freezeResp, now, closeAfter)
 	if err != nil {
-		compensateOrderFreezeRelease(l.ctx, l.svcCtx, freezeResp.GetFreezeToken(), "order_create_failed")
+		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(err)
 	}
 
-	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
-		if _, err := l.svcCtx.DOrderModel.InsertWithSession(ctx, session, bundle.order); err != nil {
-			return err
-		}
-		if err := l.svcCtx.DOrderTicketUserModel.InsertBatch(ctx, session, bundle.orderTickets); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		compensateOrderFreezeRelease(l.ctx, l.svcCtx, freezeResp.GetFreezeToken(), "order_create_failed")
-		if errors.Is(err, xerr.ErrOrderTicketUserInvalid) || errors.Is(err, xerr.ErrProgramTicketCategoryNotFound) || status.Code(err) == codes.FailedPrecondition {
-			return nil, mapOrderError(err)
-		}
-		return nil, err
+	if l.svcCtx.OrderCreateProducer == nil {
+		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, freezeResp.GetFreezeToken())
+		return nil, mapOrderError(xerr.ErrInternal)
 	}
 
-	return &pb.CreateOrderResp{OrderNumber: bundle.order.OrderNumber}, nil
+	body, err := orderEvent.Marshal()
+	if err != nil {
+		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, freezeResp.GetFreezeToken())
+		return nil, mapOrderError(xerr.ErrInternal)
+	}
+	if err := l.svcCtx.OrderCreateProducer.Send(l.ctx, strconv.FormatInt(orderEvent.OrderNumber, 10), body); err != nil {
+		l.Errorf("send order create event failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
+		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, freezeResp.GetFreezeToken())
+		return nil, mapOrderError(xerr.ErrInternal)
+	}
+
+	return &pb.CreateOrderResp{OrderNumber: orderEvent.OrderNumber}, nil
 }
