@@ -44,6 +44,10 @@ func (f *fakeJobOrderRPC) PayCheck(ctx context.Context, in *orderrpc.PayCheckReq
 	return nil, nil
 }
 
+func (f *fakeJobOrderRPC) RefundOrder(ctx context.Context, in *orderrpc.RefundOrderReq, opts ...grpc.CallOption) (*orderrpc.RefundOrderResp, error) {
+	return nil, nil
+}
+
 func (f *fakeJobOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {
 	f.lastCloseExpiredOrdersReq = in
 	return f.closeExpiredOrdersResp, f.closeExpiredOrdersErr

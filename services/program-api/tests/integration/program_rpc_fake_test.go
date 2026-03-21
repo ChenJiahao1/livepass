@@ -82,6 +82,14 @@ func (f *fakeProgramRPC) ReleaseSeatFreeze(ctx context.Context, in *programrpc.R
 	return f.releaseSeatFreezeResp, f.releaseSeatFreezeErr
 }
 
+func (f *fakeProgramRPC) EvaluateRefundRule(ctx context.Context, in *programrpc.EvaluateRefundRuleReq, opts ...grpc.CallOption) (*programrpc.EvaluateRefundRuleResp, error) {
+	return nil, nil
+}
+
 func (f *fakeProgramRPC) ConfirmSeatFreeze(ctx context.Context, in *programrpc.ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*programrpc.ConfirmSeatFreezeResp, error) {
+	return nil, nil
+}
+
+func (f *fakeProgramRPC) ReleaseSoldSeats(ctx context.Context, in *programrpc.ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*programrpc.ReleaseSoldSeatsResp, error) {
 	return nil, nil
 }
