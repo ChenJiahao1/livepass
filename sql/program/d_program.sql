@@ -34,6 +34,7 @@ CREATE TABLE `d_program` (
   `total_count` bigint DEFAULT NULL COMMENT 'initial sellable ticket count',
   `permit_refund` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 no,1 conditional,2 all',
   `refund_explain` varchar(512) DEFAULT NULL COMMENT 'refund explanation',
+  `refund_rule_json` json DEFAULT NULL COMMENT 'machine readable refund rule',
   `rel_name_ticket_entrance` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'real-name ticket entry',
   `rel_name_ticket_entrance_explain` varchar(512) DEFAULT NULL COMMENT 'real-name ticket entry explanation',
   `permit_choose_seat` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 allow choose seat',

@@ -53,6 +53,11 @@ func (s *OrderRpcServer) PayCheck(ctx context.Context, in *pb.PayCheckReq) (*pb.
 	return l.PayCheck(in)
 }
 
+func (s *OrderRpcServer) RefundOrder(ctx context.Context, in *pb.RefundOrderReq) (*pb.RefundOrderResp, error) {
+	l := logic.NewRefundOrderLogic(ctx, s.svcCtx)
+	return l.RefundOrder(in)
+}
+
 func (s *OrderRpcServer) CloseExpiredOrders(ctx context.Context, in *pb.CloseExpiredOrdersReq) (*pb.CloseExpiredOrdersResp, error) {
 	l := logic.NewCloseExpiredOrdersLogic(ctx, s.svcCtx)
 	return l.CloseExpiredOrders(in)

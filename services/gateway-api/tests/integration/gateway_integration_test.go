@@ -176,6 +176,48 @@ func TestGatewayForwardsAuthorizedOrderRequest(t *testing.T) {
 	}
 }
 
+func TestGatewayForwardsAuthorizedRefundOrderRequest(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.NotFoundHandler())
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	var gotPath string
+	orderAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"service":"order-refund"}`))
+	}))
+	defer orderAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	defer server.Stop()
+
+	headers := map[string]string{
+		"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
+		"X-Channel-Code": "0001",
+	}
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/order/refund", headers, bytes.NewBufferString(`{"orderNumber":91001}`))
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	if gotPath != "/order/refund" {
+		t.Fatalf("expected upstream path /order/refund, got %q", gotPath)
+	}
+	if string(body) != `{"service":"order-refund"}` {
+		t.Fatalf("expected refund body, got %s", string(body))
+	}
+}
+
 func TestGatewayPreservesUpstreamStatusCode(t *testing.T) {
 	t.Parallel()
 

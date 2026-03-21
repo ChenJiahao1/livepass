@@ -13,7 +13,7 @@ CREATE TABLE `d_order_ticket_user` (
   `seat_row` int NOT NULL COMMENT 'seat row',
   `seat_col` int NOT NULL COMMENT 'seat col',
   `seat_price` decimal(10,0) NOT NULL COMMENT 'seat price snapshot',
-  `order_status` tinyint NOT NULL COMMENT '1 unpaid, 2 cancelled, 3 paid',
+  `order_status` tinyint NOT NULL COMMENT '1 unpaid, 2 cancelled, 3 paid, 4 refunded',
   `create_order_time` datetime NOT NULL COMMENT 'order created at',
   `create_time` datetime NOT NULL COMMENT 'created at',
   `edit_time` datetime NOT NULL COMMENT 'updated at',

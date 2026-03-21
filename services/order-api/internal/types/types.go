@@ -114,3 +114,17 @@ type PayOrderResp struct {
 	PayStatus   int64  `json:"payStatus"`
 	PayTime     string `json:"payTime,optional"`
 }
+
+type RefundOrderReq struct {
+	OrderNumber int64  `json:"orderNumber"`
+	Reason      string `json:"reason,optional"`
+}
+
+type RefundOrderResp struct {
+	OrderNumber   int64  `json:"orderNumber"`
+	OrderStatus   int64  `json:"orderStatus"`
+	RefundAmount  int64  `json:"refundAmount"`
+	RefundPercent int64  `json:"refundPercent"`
+	RefundBillNo  int64  `json:"refundBillNo"`
+	RefundTime    string `json:"refundTime,optional"`
+}

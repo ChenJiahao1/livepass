@@ -122,6 +122,21 @@ message PayCheckResp {
   string payTime = 5;
 }
 
+message RefundOrderReq {
+  int64 userId = 1;
+  int64 orderNumber = 2;
+  string reason = 3;
+}
+
+message RefundOrderResp {
+  int64 orderNumber = 1;
+  int64 orderStatus = 2;
+  int64 refundAmount = 3;
+  int64 refundPercent = 4;
+  int64 refundBillNo = 5;
+  string refundTime = 6;
+}
+
 message CloseExpiredOrdersReq {
   int64 limit = 1;
 }
@@ -146,6 +161,7 @@ service OrderRpc {
   rpc CancelOrder(CancelOrderReq) returns (BoolResp);
   rpc PayOrder(PayOrderReq) returns (PayOrderResp);
   rpc PayCheck(PayCheckReq) returns (PayCheckResp);
+  rpc RefundOrder(RefundOrderReq) returns (RefundOrderResp);
   rpc CloseExpiredOrders(CloseExpiredOrdersReq) returns (CloseExpiredOrdersResp);
   rpc CountActiveTicketsByUserProgram(CountActiveTicketsByUserProgramReq) returns (CountActiveTicketsByUserProgramResp);
 }

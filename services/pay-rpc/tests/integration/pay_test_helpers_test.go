@@ -20,8 +20,8 @@ import (
 
 const payDateTimeLayout = "2006-01-02 15:04:05"
 
-const testPayMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_pay?parseTime=true"
-const testPayMySQLAdminDataSource = "root:123456@tcp(127.0.0.1:3306)/?parseTime=true"
+var testPayMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_pay?parseTime=true")
+var testPayMySQLAdminDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/?parseTime=true")
 
 type payBillFixture struct {
 	ID          int64
@@ -35,6 +35,16 @@ type payBillFixture struct {
 	PayTime     string
 }
 
+type refundBillRow struct {
+	RefundBillNo int64
+	OrderNumber  int64
+	PayBillID    int64
+	UserID       int64
+	RefundAmount int64
+	RefundStatus int64
+	RefundReason string
+}
+
 func newPayTestServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
 
@@ -46,9 +56,10 @@ func newPayTestServiceContext(t *testing.T) *svc.ServiceContext {
 	conn := sqlx.NewMysql(cfg.MySQL.DataSource)
 
 	return &svc.ServiceContext{
-		Config:        cfg,
-		SqlConn:       conn,
-		DPayBillModel: model.NewDPayBillModel(conn),
+		Config:           cfg,
+		SqlConn:          conn,
+		DPayBillModel:    model.NewDPayBillModel(conn),
+		DRefundBillModel: model.NewDRefundBillModel(conn),
 	}
 }
 
@@ -58,7 +69,12 @@ func resetPayDomainState(t *testing.T) {
 	db := openPayTestDB(t, testPayMySQLDataSource)
 	defer db.Close()
 
-	execPaySQLFile(t, db, "sql/pay/d_pay_bill.sql")
+	for _, relativePath := range []string{
+		"sql/pay/d_pay_bill.sql",
+		"sql/pay/d_refund_bill.sql",
+	} {
+		execPaySQLFile(t, db, relativePath)
+	}
 }
 
 func seedPayBillFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...payBillFixture) {
@@ -105,12 +121,58 @@ func countPayBillRows(t *testing.T, dataSource string) int64 {
 	return count
 }
 
+func countRefundBillRows(t *testing.T, dataSource string) int64 {
+	t.Helper()
+
+	db := openPayTestDB(t, dataSource)
+	defer db.Close()
+
+	var count int64
+	if err := db.QueryRow("SELECT COUNT(1) FROM d_refund_bill").Scan(&count); err != nil {
+		t.Fatalf("QueryRow refund count error: %v", err)
+	}
+
+	return count
+}
+
+func findPayStatusByOrderNumber(t *testing.T, dataSource string, orderNumber int64) int64 {
+	t.Helper()
+
+	db := openPayTestDB(t, dataSource)
+	defer db.Close()
+
+	var payStatus int64
+	if err := db.QueryRow("SELECT pay_status FROM d_pay_bill WHERE order_number = ?", orderNumber).Scan(&payStatus); err != nil {
+		t.Fatalf("QueryRow pay status error: %v", err)
+	}
+
+	return payStatus
+}
+
+func findRefundBillByOrderNumber(t *testing.T, dataSource string, orderNumber int64) refundBillRow {
+	t.Helper()
+
+	db := openPayTestDB(t, dataSource)
+	defer db.Close()
+
+	var row refundBillRow
+	if err := db.QueryRow(
+		`SELECT refund_bill_no, order_number, pay_bill_id, user_id, refund_amount, refund_status, COALESCE(refund_reason, '')
+		FROM d_refund_bill WHERE order_number = ?`,
+		orderNumber,
+	).Scan(&row.RefundBillNo, &row.OrderNumber, &row.PayBillID, &row.UserID, &row.RefundAmount, &row.RefundStatus, &row.RefundReason); err != nil {
+		t.Fatalf("QueryRow refund bill error: %v", err)
+	}
+
+	return row
+}
+
 func openPayTestDB(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 
 	ensurePayTestDatabase(t)
 
-	db, err := sql.Open("mysql", dataSource)
+	db, err := sql.Open("mysql", xmysql.WithLocalTime(dataSource))
 	if err != nil {
 		t.Fatalf("sql.Open error: %v", err)
 	}
@@ -125,7 +187,7 @@ func openPayTestDB(t *testing.T, dataSource string) *sql.DB {
 func ensurePayTestDatabase(t *testing.T) {
 	t.Helper()
 
-	db, err := sql.Open("mysql", testPayMySQLAdminDataSource)
+	db, err := sql.Open("mysql", xmysql.WithLocalTime(testPayMySQLAdminDataSource))
 	if err != nil {
 		t.Fatalf("sql.Open admin error: %v", err)
 	}

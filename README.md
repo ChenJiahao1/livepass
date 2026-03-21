@@ -61,7 +61,9 @@ done
 `damai_pay` 会在 MySQL 首次启动时由 `deploy/mysql/init/01-create-databases.sql` 自动创建。导入支付域表结构：
 
 ```bash
-docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_pay < sql/pay/d_pay_bill.sql
+for f in sql/pay/d_pay_bill.sql sql/pay/d_refund_bill.sql; do
+  docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_pay < "$f"
+done
 ```
 
 ## 运行测试
@@ -99,6 +101,12 @@ go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 失败分支说明见 `docs/api/order-checkout-failure-acceptance.md`。
 可执行脚本见 `scripts/acceptance/order_checkout_failures.sh`。
 当前覆盖重复观演人、库存不足、取消后支付失败、超时关单 4 条路径。
+
+## 订单退款主路径验收
+
+完整步骤见 `docs/api/order-refund-acceptance.md`。
+可执行脚本见 `scripts/acceptance/order_refund.sh`。
+首次执行前，除下单链路依赖外，还需确认 `sql/pay/d_refund_bill.sql` 已导入 `damai_pay`。
 
 ## 手工验证用户链路
 
@@ -289,4 +297,5 @@ curl -X POST http://127.0.0.1:8081/order/cancel \
 - 创建成功后会返回新的 `orderNumber`，列表和详情只能看到当前登录用户的订单。
 - `/order/pay` 会同步创建模拟支付单、确认冻结座位并把订单状态推进到 `3 paid`。
 - `/order/pay/check` 在已支付后会返回支付单号、支付状态和支付时间。
+- `/order/refund` 会同步发起模拟退款、释放已售座位并把订单状态推进到 `4 refunded`。
 - 支付成功后，再调用 `/order/cancel` 应返回失败，因为已支付订单不能取消。

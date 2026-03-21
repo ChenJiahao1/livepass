@@ -24,11 +24,12 @@ import (
 )
 
 const (
-	TestMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_user?parseTime=true"
-	TestRedisAddr       = "127.0.0.1:6379"
-	TestChannelCode     = "0001"
-	TestChannelSecret   = "local-user-secret-0001"
+	TestRedisAddr     = "127.0.0.1:6379"
+	TestChannelCode   = "0001"
+	TestChannelSecret = "local-user-secret-0001"
 )
+
+var TestMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_user?parseTime=true")
 
 type UserSeed struct {
 	Name        string
@@ -65,7 +66,7 @@ func NewServiceContext(t *testing.T) *svc.ServiceContext {
 func ResetDomainState(t *testing.T) {
 	t.Helper()
 
-	db, err := sql.Open("mysql", TestMySQLDataSource)
+	db, err := sql.Open("mysql", xmysql.WithLocalTime(TestMySQLDataSource))
 	if err != nil {
 		t.Fatalf("sql.Open error: %v", err)
 	}

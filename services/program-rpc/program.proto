@@ -173,6 +173,29 @@ message ConfirmSeatFreezeResp {
   bool success = 1;
 }
 
+message EvaluateRefundRuleReq {
+  int64 programId = 1;
+  string orderShowTime = 2;
+  int64 orderAmount = 3;
+}
+
+message EvaluateRefundRuleResp {
+  bool allowRefund = 1;
+  int64 refundPercent = 2;
+  int64 refundAmount = 3;
+  string rejectReason = 4;
+}
+
+message ReleaseSoldSeatsReq {
+  int64 programId = 1;
+  repeated int64 seatIds = 2;
+  string requestNo = 3;
+}
+
+message ReleaseSoldSeatsResp {
+  bool success = 1;
+}
+
 message ProgramDetailInfo {
   int64 id = 1;
   int64 programGroupId = 2;
@@ -239,4 +262,6 @@ service ProgramRpc {
   rpc AutoAssignAndFreezeSeats(AutoAssignAndFreezeSeatsReq) returns (AutoAssignAndFreezeSeatsResp);
   rpc ReleaseSeatFreeze(ReleaseSeatFreezeReq) returns (ReleaseSeatFreezeResp);
   rpc ConfirmSeatFreeze(ConfirmSeatFreezeReq) returns (ConfirmSeatFreezeResp);
+  rpc EvaluateRefundRule(EvaluateRefundRuleReq) returns (EvaluateRefundRuleResp);
+  rpc ReleaseSoldSeats(ReleaseSoldSeatsReq) returns (ReleaseSoldSeatsResp);
 }

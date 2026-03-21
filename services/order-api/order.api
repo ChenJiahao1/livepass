@@ -96,6 +96,18 @@ type (
 		PayStatus   int64  `json:"payStatus"`
 		PayTime     string `json:"payTime,optional"`
 	}
+	RefundOrderReq {
+		OrderNumber int64  `json:"orderNumber"`
+		Reason      string `json:"reason,optional"`
+	}
+	RefundOrderResp {
+		OrderNumber   int64  `json:"orderNumber"`
+		OrderStatus   int64  `json:"orderStatus"`
+		RefundAmount  int64  `json:"refundAmount"`
+		RefundPercent int64  `json:"refundPercent"`
+		RefundBillNo  int64  `json:"refundBillNo"`
+		RefundTime    string `json:"refundTime,optional"`
+	}
 	BoolResp {
 		Success bool `json:"success"`
 	}
@@ -122,5 +134,8 @@ service order-api {
 
 	@handler PayCheck
 	post /order/pay/check (PayCheckReq) returns (PayCheckResp)
+
+	@handler RefundOrder
+	post /order/refund (RefundOrderReq) returns (RefundOrderResp)
 }
 

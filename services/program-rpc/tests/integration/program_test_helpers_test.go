@@ -14,7 +14,7 @@ import (
 	"damai-go/services/program-rpc/internal/svc"
 )
 
-const testProgramMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true"
+var testProgramMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true")
 
 type ticketCategoryFixture struct {
 	ID           int64
@@ -67,6 +67,9 @@ type programFixture struct {
 	ShowTime                  string
 	ShowDayTime               string
 	ShowWeekTime              string
+	PermitRefund              int64
+	RefundExplain             string
+	RefundRuleJSON            string
 	GroupAreaName             string
 	ProgramSimpleInfoAreaName string
 	TicketCategories          []ticketCategoryFixture
@@ -213,7 +216,7 @@ func clearSeatInventoryByProgram(t *testing.T, svcCtx *svc.ServiceContext, progr
 func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 
-	db, err := sql.Open("mysql", dataSource)
+	db, err := sql.Open("mysql", xmysql.WithLocalTime(dataSource))
 	if err != nil {
 		t.Fatalf("sql.Open error: %v", err)
 	}
@@ -334,8 +337,9 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		db,
 		`INSERT INTO d_program (
 			id, program_group_id, prime, area_id, program_category_id, parent_program_category_id,
-			title, actor, place, item_picture, detail, high_heat, program_status, issue_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			title, actor, place, item_picture, detail, permit_refund, refund_explain, refund_rule_json,
+			high_heat, program_status, issue_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		fixture.ProgramID,
 		fixture.ProgramGroupID,
 		fixture.Prime,
@@ -347,6 +351,9 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		fixture.Place,
 		fixture.ItemPicture,
 		fixture.Detail,
+		fixture.PermitRefund,
+		nullIfEmpty(fixture.RefundExplain),
+		nullIfEmpty(fixture.RefundRuleJSON),
 		fixture.HighHeat,
 		1,
 		fixture.IssueTime,

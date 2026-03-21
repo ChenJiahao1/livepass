@@ -13,7 +13,7 @@ CREATE TABLE `d_order` (
   `take_ticket_mode` varchar(64) NOT NULL DEFAULT '' COMMENT 'take ticket mode',
   `ticket_count` int NOT NULL COMMENT 'ticket count',
   `order_price` decimal(10,0) NOT NULL COMMENT 'order total price',
-  `order_status` tinyint NOT NULL COMMENT '1 unpaid, 2 cancelled, 3 paid',
+  `order_status` tinyint NOT NULL COMMENT '1 unpaid, 2 cancelled, 3 paid, 4 refunded',
   `freeze_token` varchar(64) NOT NULL COMMENT 'seat freeze token',
   `order_expire_time` datetime NOT NULL COMMENT 'order expire time',
   `create_order_time` datetime NOT NULL COMMENT 'order created at',

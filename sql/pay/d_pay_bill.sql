@@ -7,7 +7,7 @@ CREATE TABLE `d_pay_bill` (
   `subject` varchar(256) NOT NULL COMMENT 'pay subject',
   `channel` varchar(32) NOT NULL DEFAULT 'mock' COMMENT 'pay channel',
   `order_amount` decimal(10,0) NOT NULL COMMENT 'order amount',
-  `pay_status` tinyint NOT NULL COMMENT '1 created, 2 paid',
+  `pay_status` tinyint NOT NULL COMMENT '1 created, 2 paid, 3 refunded',
   `pay_time` datetime DEFAULT NULL COMMENT 'paid at',
   `create_time` datetime NOT NULL COMMENT 'created at',
   `edit_time` datetime NOT NULL COMMENT 'updated at',

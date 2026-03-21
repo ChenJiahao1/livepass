@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PayRpc_MockPay_FullMethodName    = "/pay.PayRpc/MockPay"
 	PayRpc_GetPayBill_FullMethodName = "/pay.PayRpc/GetPayBill"
+	PayRpc_Refund_FullMethodName     = "/pay.PayRpc/Refund"
 )
 
 // PayRpcClient is the client API for PayRpc service.
@@ -29,6 +30,7 @@ const (
 type PayRpcClient interface {
 	MockPay(ctx context.Context, in *MockPayReq, opts ...grpc.CallOption) (*MockPayResp, error)
 	GetPayBill(ctx context.Context, in *GetPayBillReq, opts ...grpc.CallOption) (*GetPayBillResp, error)
+	Refund(ctx context.Context, in *RefundReq, opts ...grpc.CallOption) (*RefundResp, error)
 }
 
 type payRpcClient struct {
@@ -59,12 +61,23 @@ func (c *payRpcClient) GetPayBill(ctx context.Context, in *GetPayBillReq, opts .
 	return out, nil
 }
 
+func (c *payRpcClient) Refund(ctx context.Context, in *RefundReq, opts ...grpc.CallOption) (*RefundResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefundResp)
+	err := c.cc.Invoke(ctx, PayRpc_Refund_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PayRpcServer is the server API for PayRpc service.
 // All implementations must embed UnimplementedPayRpcServer
 // for forward compatibility.
 type PayRpcServer interface {
 	MockPay(context.Context, *MockPayReq) (*MockPayResp, error)
 	GetPayBill(context.Context, *GetPayBillReq) (*GetPayBillResp, error)
+	Refund(context.Context, *RefundReq) (*RefundResp, error)
 	mustEmbedUnimplementedPayRpcServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedPayRpcServer) MockPay(context.Context, *MockPayReq) (*MockPay
 }
 func (UnimplementedPayRpcServer) GetPayBill(context.Context, *GetPayBillReq) (*GetPayBillResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPayBill not implemented")
+}
+func (UnimplementedPayRpcServer) Refund(context.Context, *RefundReq) (*RefundResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method Refund not implemented")
 }
 func (UnimplementedPayRpcServer) mustEmbedUnimplementedPayRpcServer() {}
 func (UnimplementedPayRpcServer) testEmbeddedByValue()                {}
@@ -138,6 +154,24 @@ func _PayRpc_GetPayBill_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PayRpc_Refund_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefundReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayRpcServer).Refund(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayRpc_Refund_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayRpcServer).Refund(ctx, req.(*RefundReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PayRpc_ServiceDesc is the grpc.ServiceDesc for PayRpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var PayRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPayBill",
 			Handler:    _PayRpc_GetPayBill_Handler,
+		},
+		{
+			MethodName: "Refund",
+			Handler:    _PayRpc_Refund_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

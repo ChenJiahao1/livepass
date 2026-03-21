@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/user-rpc/internal/config"
 	"damai-go/services/user-rpc/internal/model"
@@ -18,6 +19,7 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
+	c.MySQL.DataSource = xmysql.WithLocalTime(c.MySQL.DataSource)
 	conn := sqlx.NewMysql(c.MySQL.DataSource)
 	var rds *xredis.Client
 	if c.StoreRedis.Host != "" {

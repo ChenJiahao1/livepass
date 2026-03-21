@@ -16,6 +16,10 @@ import (
 const (
 	payStatusCreated int64 = 1
 	payStatusPaid    int64 = 2
+	payStatusRefund  int64 = 3
+
+	refundStatusCreated  int64 = 1
+	refundStatusRefunded int64 = 2
 
 	payDateTimeLayout = "2006-01-02 15:04:05"
 )
@@ -38,6 +42,14 @@ func validateGetPayBillReq(in *pb.GetPayBillReq) error {
 	return nil
 }
 
+func validateRefundReq(in *pb.RefundReq) error {
+	if in.GetOrderNumber() <= 0 || in.GetUserId() <= 0 || in.GetAmount() <= 0 {
+		return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
+
+	return nil
+}
+
 func normalizePayChannel(channel string) string {
 	if channel == "" {
 		return "mock"
@@ -50,6 +62,17 @@ func newNullTime(value time.Time) sql.NullTime {
 	return sql.NullTime{
 		Time:  value,
 		Valid: true,
+	}
+}
+
+func newNullString(value string) sql.NullString {
+	if value == "" {
+		return sql.NullString{}
+	}
+
+	return sql.NullString{
+		String: value,
+		Valid:  true,
 	}
 }
 
@@ -90,6 +113,20 @@ func mapGetPayBillResp(payBill *model.DPayBill) *pb.GetPayBillResp {
 	}
 }
 
+func mapRefundResp(refundBill *model.DRefundBill) *pb.RefundResp {
+	if refundBill == nil {
+		return &pb.RefundResp{}
+	}
+
+	return &pb.RefundResp{
+		RefundBillNo: refundBill.RefundBillNo,
+		OrderNumber:  refundBill.OrderNumber,
+		RefundAmount: int64(refundBill.RefundAmount),
+		PayStatus:    payStatusRefund,
+		RefundTime:   formatPayNullTime(refundBill.RefundTime),
+	}
+}
+
 func mapPayError(err error) error {
 	switch {
 	case err == nil:
@@ -100,6 +137,8 @@ func mapPayError(err error) error {
 		return status.Error(codes.InvalidArgument, err.Error())
 	case errors.Is(err, xerr.ErrPayBillNotFound), errors.Is(err, model.ErrNotFound):
 		return status.Error(codes.NotFound, xerr.ErrPayBillNotFound.Error())
+	case errors.Is(err, xerr.ErrOrderStatusInvalid):
+		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return err
 	}

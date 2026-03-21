@@ -81,4 +81,6 @@ Upstreams:
       - Method: post
         Path: /order/pay/check
       - Method: post
+        Path: /order/refund
+      - Method: post
         Path: /order/select/list

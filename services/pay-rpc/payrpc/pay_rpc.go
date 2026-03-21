@@ -18,10 +18,13 @@ type (
 	GetPayBillResp = pb.GetPayBillResp
 	MockPayReq     = pb.MockPayReq
 	MockPayResp    = pb.MockPayResp
+	RefundReq      = pb.RefundReq
+	RefundResp     = pb.RefundResp
 
 	PayRpc interface {
 		MockPay(ctx context.Context, in *MockPayReq, opts ...grpc.CallOption) (*MockPayResp, error)
 		GetPayBill(ctx context.Context, in *GetPayBillReq, opts ...grpc.CallOption) (*GetPayBillResp, error)
+		Refund(ctx context.Context, in *RefundReq, opts ...grpc.CallOption) (*RefundResp, error)
 	}
 
 	defaultPayRpc struct {
@@ -43,4 +46,9 @@ func (m *defaultPayRpc) MockPay(ctx context.Context, in *MockPayReq, opts ...grp
 func (m *defaultPayRpc) GetPayBill(ctx context.Context, in *GetPayBillReq, opts ...grpc.CallOption) (*GetPayBillResp, error) {
 	client := pb.NewPayRpcClient(m.cli.Conn())
 	return client.GetPayBill(ctx, in, opts...)
+}
+
+func (m *defaultPayRpc) Refund(ctx context.Context, in *RefundReq, opts ...grpc.CallOption) (*RefundResp, error) {
+	client := pb.NewPayRpcClient(m.cli.Conn())
+	return client.Refund(ctx, in, opts...)
 }

@@ -25,6 +25,7 @@ type (
 		FindExpiredUnpaid(ctx context.Context, before time.Time, limit int64) ([]*DOrder, error)
 		UpdateCancelStatus(ctx context.Context, session sqlx.Session, orderNumber int64, cancelTime time.Time) error
 		UpdatePayStatus(ctx context.Context, session sqlx.Session, orderNumber int64, payTime time.Time) error
+		UpdateRefundStatus(ctx context.Context, session sqlx.Session, orderNumber int64, refundTime time.Time) error
 	}
 
 	customDOrderModel struct {
@@ -206,5 +207,15 @@ func (m *customDOrderModel) UpdatePayStatus(ctx context.Context, session sqlx.Se
 	)
 
 	_, err := m.withSession(session).(*customDOrderModel).conn.ExecCtx(ctx, query, payTime, payTime, orderNumber)
+	return err
+}
+
+func (m *customDOrderModel) UpdateRefundStatus(ctx context.Context, session sqlx.Session, orderNumber int64, refundTime time.Time) error {
+	query := fmt.Sprintf(
+		"update %s set `order_status` = 4, `edit_time` = ? where `status` = 1 and `order_number` = ? and `order_status` = 3",
+		m.table,
+	)
+
+	_, err := m.withSession(session).(*customDOrderModel).conn.ExecCtx(ctx, query, refundTime, orderNumber)
 	return err
 }

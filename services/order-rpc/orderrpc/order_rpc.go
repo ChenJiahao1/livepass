@@ -32,6 +32,8 @@ type (
 	PayCheckResp                        = pb.PayCheckResp
 	PayOrderReq                         = pb.PayOrderReq
 	PayOrderResp                        = pb.PayOrderResp
+	RefundOrderReq                      = pb.RefundOrderReq
+	RefundOrderResp                     = pb.RefundOrderResp
 
 	OrderRpc interface {
 		CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
@@ -40,6 +42,7 @@ type (
 		CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 		PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
 		PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error)
+		RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error)
 		CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 		CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
 	}
@@ -83,6 +86,11 @@ func (m *defaultOrderRpc) PayOrder(ctx context.Context, in *PayOrderReq, opts ..
 func (m *defaultOrderRpc) PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.PayCheck(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.RefundOrder(ctx, in, opts...)
 }
 
 func (m *defaultOrderRpc) CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error) {

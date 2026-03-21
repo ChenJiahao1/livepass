@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"damai-go/pkg/xmysql"
 	"damai-go/services/order-rpc/internal/config"
 	"damai-go/services/order-rpc/internal/model"
 	payrpc "damai-go/services/pay-rpc/payrpc"
@@ -22,6 +23,7 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
+	c.MySQL.DataSource = xmysql.WithLocalTime(c.MySQL.DataSource)
 	conn := sqlx.NewMysql(c.MySQL.DataSource)
 
 	return &ServiceContext{

@@ -19,6 +19,8 @@ type (
 	ConfirmSeatFreezeReq              = pb.ConfirmSeatFreezeReq
 	ConfirmSeatFreezeResp             = pb.ConfirmSeatFreezeResp
 	Empty                             = pb.Empty
+	EvaluateRefundRuleReq             = pb.EvaluateRefundRuleReq
+	EvaluateRefundRuleResp            = pb.EvaluateRefundRuleResp
 	GetProgramDetailReq               = pb.GetProgramDetailReq
 	ListHomeProgramsReq               = pb.ListHomeProgramsReq
 	ListTicketCategoriesByProgramReq  = pb.ListTicketCategoriesByProgramReq
@@ -36,6 +38,8 @@ type (
 	ProgramSimpleInfo                 = pb.ProgramSimpleInfo
 	ReleaseSeatFreezeReq              = pb.ReleaseSeatFreezeReq
 	ReleaseSeatFreezeResp             = pb.ReleaseSeatFreezeResp
+	ReleaseSoldSeatsReq               = pb.ReleaseSoldSeatsReq
+	ReleaseSoldSeatsResp              = pb.ReleaseSoldSeatsResp
 	SeatInfo                          = pb.SeatInfo
 	TicketCategoryDetailInfo          = pb.TicketCategoryDetailInfo
 	TicketCategoryDetailListResp      = pb.TicketCategoryDetailListResp
@@ -51,6 +55,8 @@ type (
 		AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
 		ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
 		ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error)
+		EvaluateRefundRule(ctx context.Context, in *EvaluateRefundRuleReq, opts ...grpc.CallOption) (*EvaluateRefundRuleResp, error)
+		ReleaseSoldSeats(ctx context.Context, in *ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*ReleaseSoldSeatsResp, error)
 	}
 
 	defaultProgramRpc struct {
@@ -107,4 +113,14 @@ func (m *defaultProgramRpc) ReleaseSeatFreeze(ctx context.Context, in *ReleaseSe
 func (m *defaultProgramRpc) ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.ConfirmSeatFreeze(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) EvaluateRefundRule(ctx context.Context, in *EvaluateRefundRuleReq, opts ...grpc.CallOption) (*EvaluateRefundRuleResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.EvaluateRefundRule(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) ReleaseSoldSeats(ctx context.Context, in *ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*ReleaseSoldSeatsResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.ReleaseSoldSeats(ctx, in, opts...)
 }

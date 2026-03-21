@@ -25,6 +25,7 @@ const (
 	OrderRpc_CancelOrder_FullMethodName                     = "/order.OrderRpc/CancelOrder"
 	OrderRpc_PayOrder_FullMethodName                        = "/order.OrderRpc/PayOrder"
 	OrderRpc_PayCheck_FullMethodName                        = "/order.OrderRpc/PayCheck"
+	OrderRpc_RefundOrder_FullMethodName                     = "/order.OrderRpc/RefundOrder"
 	OrderRpc_CloseExpiredOrders_FullMethodName              = "/order.OrderRpc/CloseExpiredOrders"
 	OrderRpc_CountActiveTicketsByUserProgram_FullMethodName = "/order.OrderRpc/CountActiveTicketsByUserProgram"
 )
@@ -39,6 +40,7 @@ type OrderRpcClient interface {
 	CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 	PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
 	PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error)
+	RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error)
 	CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 	CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
 }
@@ -111,6 +113,16 @@ func (c *orderRpcClient) PayCheck(ctx context.Context, in *PayCheckReq, opts ...
 	return out, nil
 }
 
+func (c *orderRpcClient) RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefundOrderResp)
+	err := c.cc.Invoke(ctx, OrderRpc_RefundOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *orderRpcClient) CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CloseExpiredOrdersResp)
@@ -141,6 +153,7 @@ type OrderRpcServer interface {
 	CancelOrder(context.Context, *CancelOrderReq) (*BoolResp, error)
 	PayOrder(context.Context, *PayOrderReq) (*PayOrderResp, error)
 	PayCheck(context.Context, *PayCheckReq) (*PayCheckResp, error)
+	RefundOrder(context.Context, *RefundOrderReq) (*RefundOrderResp, error)
 	CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error)
 	CountActiveTicketsByUserProgram(context.Context, *CountActiveTicketsByUserProgramReq) (*CountActiveTicketsByUserProgramResp, error)
 	mustEmbedUnimplementedOrderRpcServer()
@@ -170,6 +183,9 @@ func (UnimplementedOrderRpcServer) PayOrder(context.Context, *PayOrderReq) (*Pay
 }
 func (UnimplementedOrderRpcServer) PayCheck(context.Context, *PayCheckReq) (*PayCheckResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method PayCheck not implemented")
+}
+func (UnimplementedOrderRpcServer) RefundOrder(context.Context, *RefundOrderReq) (*RefundOrderResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefundOrder not implemented")
 }
 func (UnimplementedOrderRpcServer) CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CloseExpiredOrders not implemented")
@@ -306,6 +322,24 @@ func _OrderRpc_PayCheck_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrderRpc_RefundOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefundOrderReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).RefundOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_RefundOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).RefundOrder(ctx, req.(*RefundOrderReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OrderRpc_CloseExpiredOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CloseExpiredOrdersReq)
 	if err := dec(in); err != nil {
@@ -372,6 +406,10 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PayCheck",
 			Handler:    _OrderRpc_PayCheck_Handler,
+		},
+		{
+			MethodName: "RefundOrder",
+			Handler:    _OrderRpc_RefundOrder_Handler,
 		},
 		{
 			MethodName: "CloseExpiredOrders",

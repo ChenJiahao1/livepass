@@ -29,6 +29,9 @@ func TestGetPayBillReturnsBillByOrderNumber(t *testing.T) {
 	if resp.OrderNumber != 91003 || resp.PayBillNo <= 0 || resp.PayStatus != 2 {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
+	if resp.PayTime != "2026-01-01 10:00:00" {
+		t.Fatalf("expected local pay time, got %+v", resp)
+	}
 }
 
 func TestGetPayBillReturnsNotFoundWhenBillMissing(t *testing.T) {

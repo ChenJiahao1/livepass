@@ -27,6 +27,9 @@ var (
 	ErrOrderExpired               = errors.New("order expired")
 	ErrOrderAlreadyPaid           = errors.New("order already paid")
 	ErrOrderStatusInvalid         = errors.New("order status invalid")
+	ErrOrderRefundNotAllowed      = errors.New("order refund not allowed")
+	ErrOrderRefundWindowClosed    = errors.New("order refund window closed")
+	ErrOrderRefundRuleInvalid     = errors.New("order refund rule invalid")
 	ErrOrderTicketUserInvalid     = errors.New("order ticket user invalid")
 	ErrOrderPurchaseLimitExceeded = errors.New("order purchase limit exceeded")
 

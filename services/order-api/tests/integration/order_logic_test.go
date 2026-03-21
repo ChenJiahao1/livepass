@@ -178,3 +178,32 @@ func TestCreateOrderReturnsUnauthorizedWhenUserIDMissing(t *testing.T) {
 		t.Fatalf("unexpected error message: %s", status.Convert(err).Message())
 	}
 }
+
+func TestRefundOrderForwardsUserIDAndPayload(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		refundOrderResp: &orderrpc.RefundOrderResp{
+			OrderNumber:   91001,
+			OrderStatus:   4,
+			RefundAmount:  478,
+			RefundPercent: 80,
+			RefundBillNo:  92001,
+			RefundTime:    "2026-12-31 19:10:00",
+		},
+	}
+	ctx := xmiddleware.WithUserID(context.Background(), 3001)
+
+	l := logicpkg.NewRefundOrderLogic(ctx, newOrderAPIServiceContext(fakeRPC))
+	resp, err := l.RefundOrder(&types.RefundOrderReq{
+		OrderNumber: 91001,
+		Reason:      "行程变更",
+	})
+	if err != nil {
+		t.Fatalf("RefundOrder returned error: %v", err)
+	}
+	if resp.OrderStatus != 4 || resp.RefundBillNo != 92001 || resp.RefundAmount != 478 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fakeRPC.lastRefundOrderReq == nil || fakeRPC.lastRefundOrderReq.UserId != 3001 || fakeRPC.lastRefundOrderReq.OrderNumber != 91001 || fakeRPC.lastRefundOrderReq.Reason != "行程变更" {
+		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastRefundOrderReq)
+	}
+}

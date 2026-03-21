@@ -28,6 +28,8 @@ const (
 	ProgramRpc_AutoAssignAndFreezeSeats_FullMethodName      = "/program.ProgramRpc/AutoAssignAndFreezeSeats"
 	ProgramRpc_ReleaseSeatFreeze_FullMethodName             = "/program.ProgramRpc/ReleaseSeatFreeze"
 	ProgramRpc_ConfirmSeatFreeze_FullMethodName             = "/program.ProgramRpc/ConfirmSeatFreeze"
+	ProgramRpc_EvaluateRefundRule_FullMethodName            = "/program.ProgramRpc/EvaluateRefundRule"
+	ProgramRpc_ReleaseSoldSeats_FullMethodName              = "/program.ProgramRpc/ReleaseSoldSeats"
 )
 
 // ProgramRpcClient is the client API for ProgramRpc service.
@@ -43,6 +45,8 @@ type ProgramRpcClient interface {
 	AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
 	ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
 	ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error)
+	EvaluateRefundRule(ctx context.Context, in *EvaluateRefundRuleReq, opts ...grpc.CallOption) (*EvaluateRefundRuleResp, error)
+	ReleaseSoldSeats(ctx context.Context, in *ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*ReleaseSoldSeatsResp, error)
 }
 
 type programRpcClient struct {
@@ -143,6 +147,26 @@ func (c *programRpcClient) ConfirmSeatFreeze(ctx context.Context, in *ConfirmSea
 	return out, nil
 }
 
+func (c *programRpcClient) EvaluateRefundRule(ctx context.Context, in *EvaluateRefundRuleReq, opts ...grpc.CallOption) (*EvaluateRefundRuleResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EvaluateRefundRuleResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_EvaluateRefundRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) ReleaseSoldSeats(ctx context.Context, in *ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*ReleaseSoldSeatsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReleaseSoldSeatsResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_ReleaseSoldSeats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProgramRpcServer is the server API for ProgramRpc service.
 // All implementations must embed UnimplementedProgramRpcServer
 // for forward compatibility.
@@ -156,6 +180,8 @@ type ProgramRpcServer interface {
 	AutoAssignAndFreezeSeats(context.Context, *AutoAssignAndFreezeSeatsReq) (*AutoAssignAndFreezeSeatsResp, error)
 	ReleaseSeatFreeze(context.Context, *ReleaseSeatFreezeReq) (*ReleaseSeatFreezeResp, error)
 	ConfirmSeatFreeze(context.Context, *ConfirmSeatFreezeReq) (*ConfirmSeatFreezeResp, error)
+	EvaluateRefundRule(context.Context, *EvaluateRefundRuleReq) (*EvaluateRefundRuleResp, error)
+	ReleaseSoldSeats(context.Context, *ReleaseSoldSeatsReq) (*ReleaseSoldSeatsResp, error)
 	mustEmbedUnimplementedProgramRpcServer()
 }
 
@@ -192,6 +218,12 @@ func (UnimplementedProgramRpcServer) ReleaseSeatFreeze(context.Context, *Release
 }
 func (UnimplementedProgramRpcServer) ConfirmSeatFreeze(context.Context, *ConfirmSeatFreezeReq) (*ConfirmSeatFreezeResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConfirmSeatFreeze not implemented")
+}
+func (UnimplementedProgramRpcServer) EvaluateRefundRule(context.Context, *EvaluateRefundRuleReq) (*EvaluateRefundRuleResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method EvaluateRefundRule not implemented")
+}
+func (UnimplementedProgramRpcServer) ReleaseSoldSeats(context.Context, *ReleaseSoldSeatsReq) (*ReleaseSoldSeatsResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReleaseSoldSeats not implemented")
 }
 func (UnimplementedProgramRpcServer) mustEmbedUnimplementedProgramRpcServer() {}
 func (UnimplementedProgramRpcServer) testEmbeddedByValue()                    {}
@@ -376,6 +408,42 @@ func _ProgramRpc_ConfirmSeatFreeze_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProgramRpc_EvaluateRefundRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EvaluateRefundRuleReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).EvaluateRefundRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_EvaluateRefundRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).EvaluateRefundRule(ctx, req.(*EvaluateRefundRuleReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_ReleaseSoldSeats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReleaseSoldSeatsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).ReleaseSoldSeats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_ReleaseSoldSeats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).ReleaseSoldSeats(ctx, req.(*ReleaseSoldSeatsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProgramRpc_ServiceDesc is the grpc.ServiceDesc for ProgramRpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -418,6 +486,14 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConfirmSeatFreeze",
 			Handler:    _ProgramRpc_ConfirmSeatFreeze_Handler,
+		},
+		{
+			MethodName: "EvaluateRefundRule",
+			Handler:    _ProgramRpc_EvaluateRefundRule_Handler,
+		},
+		{
+			MethodName: "ReleaseSoldSeats",
+			Handler:    _ProgramRpc_ReleaseSoldSeats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

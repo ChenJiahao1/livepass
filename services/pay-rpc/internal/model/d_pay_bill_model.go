@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -18,6 +19,7 @@ type (
 		withSession(session sqlx.Session) DPayBillModel
 		InsertWithSession(ctx context.Context, session sqlx.Session, data *DPayBill) (sql.Result, error)
 		FindOneByOrderNumberForUpdate(ctx context.Context, session sqlx.Session, orderNumber int64) (*DPayBill, error)
+		UpdateRefundStatus(ctx context.Context, session sqlx.Session, orderNumber int64, refundTime time.Time) error
 	}
 
 	customDPayBillModel struct {
@@ -77,4 +79,14 @@ func (m *customDPayBillModel) FindOneByOrderNumberForUpdate(ctx context.Context,
 	default:
 		return nil, err
 	}
+}
+
+func (m *customDPayBillModel) UpdateRefundStatus(ctx context.Context, session sqlx.Session, orderNumber int64, refundTime time.Time) error {
+	query := fmt.Sprintf(
+		"update %s set `pay_status` = ?, `edit_time` = ? where `status` = 1 and `order_number` = ?",
+		m.table,
+	)
+
+	_, err := m.withSession(session).(*customDPayBillModel).conn.ExecCtx(ctx, query, 3, refundTime, orderNumber)
+	return err
 }

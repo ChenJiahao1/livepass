@@ -140,3 +140,18 @@ func mapPayCheckResp(resp *orderrpc.PayCheckResp) *types.PayCheckResp {
 		PayTime:     resp.PayTime,
 	}
 }
+
+func mapRefundOrderResp(resp *orderrpc.RefundOrderResp) *types.RefundOrderResp {
+	if resp == nil {
+		return &types.RefundOrderResp{}
+	}
+
+	return &types.RefundOrderResp{
+		OrderNumber:   resp.OrderNumber,
+		OrderStatus:   resp.OrderStatus,
+		RefundAmount:  resp.RefundAmount,
+		RefundPercent: resp.RefundPercent,
+		RefundBillNo:  resp.RefundBillNo,
+		RefundTime:    resp.RefundTime,
+	}
+}

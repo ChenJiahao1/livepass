@@ -67,3 +67,13 @@ func (s *ProgramRpcServer) ConfirmSeatFreeze(ctx context.Context, in *pb.Confirm
 	l := logic.NewConfirmSeatFreezeLogic(ctx, s.svcCtx)
 	return l.ConfirmSeatFreeze(in)
 }
+
+func (s *ProgramRpcServer) EvaluateRefundRule(ctx context.Context, in *pb.EvaluateRefundRuleReq) (*pb.EvaluateRefundRuleResp, error) {
+	l := logic.NewEvaluateRefundRuleLogic(ctx, s.svcCtx)
+	return l.EvaluateRefundRule(in)
+}
+
+func (s *ProgramRpcServer) ReleaseSoldSeats(ctx context.Context, in *pb.ReleaseSoldSeatsReq) (*pb.ReleaseSoldSeatsResp, error) {
+	l := logic.NewReleaseSoldSeatsLogic(ctx, s.svcCtx)
+	return l.ReleaseSoldSeats(in)
+}

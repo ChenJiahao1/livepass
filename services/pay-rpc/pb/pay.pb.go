@@ -301,6 +301,158 @@ func (x *GetPayBillResp) GetPayTime() string {
 	return ""
 }
 
+type RefundReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrderNumber   int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
+	UserId        int64                  `protobuf:"varint,2,opt,name=userId,proto3" json:"userId,omitempty"`
+	Amount        int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Channel       string                 `protobuf:"bytes,4,opt,name=channel,proto3" json:"channel,omitempty"`
+	Reason        string                 `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefundReq) Reset() {
+	*x = RefundReq{}
+	mi := &file_services_pay_rpc_pay_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefundReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefundReq) ProtoMessage() {}
+
+func (x *RefundReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_pay_rpc_pay_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefundReq.ProtoReflect.Descriptor instead.
+func (*RefundReq) Descriptor() ([]byte, []int) {
+	return file_services_pay_rpc_pay_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RefundReq) GetOrderNumber() int64 {
+	if x != nil {
+		return x.OrderNumber
+	}
+	return 0
+}
+
+func (x *RefundReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *RefundReq) GetAmount() int64 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+func (x *RefundReq) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *RefundReq) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type RefundResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RefundBillNo  int64                  `protobuf:"varint,1,opt,name=refundBillNo,proto3" json:"refundBillNo,omitempty"`
+	OrderNumber   int64                  `protobuf:"varint,2,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
+	RefundAmount  int64                  `protobuf:"varint,3,opt,name=refundAmount,proto3" json:"refundAmount,omitempty"`
+	PayStatus     int64                  `protobuf:"varint,4,opt,name=payStatus,proto3" json:"payStatus,omitempty"`
+	RefundTime    string                 `protobuf:"bytes,5,opt,name=refundTime,proto3" json:"refundTime,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefundResp) Reset() {
+	*x = RefundResp{}
+	mi := &file_services_pay_rpc_pay_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefundResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefundResp) ProtoMessage() {}
+
+func (x *RefundResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_pay_rpc_pay_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefundResp.ProtoReflect.Descriptor instead.
+func (*RefundResp) Descriptor() ([]byte, []int) {
+	return file_services_pay_rpc_pay_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RefundResp) GetRefundBillNo() int64 {
+	if x != nil {
+		return x.RefundBillNo
+	}
+	return 0
+}
+
+func (x *RefundResp) GetOrderNumber() int64 {
+	if x != nil {
+		return x.OrderNumber
+	}
+	return 0
+}
+
+func (x *RefundResp) GetRefundAmount() int64 {
+	if x != nil {
+		return x.RefundAmount
+	}
+	return 0
+}
+
+func (x *RefundResp) GetPayStatus() int64 {
+	if x != nil {
+		return x.PayStatus
+	}
+	return 0
+}
+
+func (x *RefundResp) GetRefundTime() string {
+	if x != nil {
+		return x.RefundTime
+	}
+	return ""
+}
+
 var File_services_pay_rpc_pay_proto protoreflect.FileDescriptor
 
 const file_services_pay_rpc_pay_proto_rawDesc = "" +
@@ -327,11 +479,27 @@ const file_services_pay_rpc_pay_proto_rawDesc = "" +
 	"\achannel\x18\x05 \x01(\tR\achannel\x12\x16\n" +
 	"\x06amount\x18\x06 \x01(\x03R\x06amount\x12\x1c\n" +
 	"\tpayStatus\x18\a \x01(\x03R\tpayStatus\x12\x18\n" +
-	"\apayTime\x18\b \x01(\tR\apayTime2m\n" +
+	"\apayTime\x18\b \x01(\tR\apayTime\"\x8f\x01\n" +
+	"\tRefundReq\x12 \n" +
+	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\x03R\x06userId\x12\x16\n" +
+	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12\x18\n" +
+	"\achannel\x18\x04 \x01(\tR\achannel\x12\x16\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason\"\xb4\x01\n" +
+	"\n" +
+	"RefundResp\x12\"\n" +
+	"\frefundBillNo\x18\x01 \x01(\x03R\frefundBillNo\x12 \n" +
+	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\x12\"\n" +
+	"\frefundAmount\x18\x03 \x01(\x03R\frefundAmount\x12\x1c\n" +
+	"\tpayStatus\x18\x04 \x01(\x03R\tpayStatus\x12\x1e\n" +
+	"\n" +
+	"refundTime\x18\x05 \x01(\tR\n" +
+	"refundTime2\x98\x01\n" +
 	"\x06PayRpc\x12,\n" +
 	"\aMockPay\x12\x0f.pay.MockPayReq\x1a\x10.pay.MockPayResp\x125\n" +
 	"\n" +
-	"GetPayBill\x12\x12.pay.GetPayBillReq\x1a\x13.pay.GetPayBillRespB\x06Z\x04./pbb\x06proto3"
+	"GetPayBill\x12\x12.pay.GetPayBillReq\x1a\x13.pay.GetPayBillResp\x12)\n" +
+	"\x06Refund\x12\x0e.pay.RefundReq\x1a\x0f.pay.RefundRespB\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_services_pay_rpc_pay_proto_rawDescOnce sync.Once
@@ -345,20 +513,24 @@ func file_services_pay_rpc_pay_proto_rawDescGZIP() []byte {
 	return file_services_pay_rpc_pay_proto_rawDescData
 }
 
-var file_services_pay_rpc_pay_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_services_pay_rpc_pay_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_services_pay_rpc_pay_proto_goTypes = []any{
 	(*MockPayReq)(nil),     // 0: pay.MockPayReq
 	(*MockPayResp)(nil),    // 1: pay.MockPayResp
 	(*GetPayBillReq)(nil),  // 2: pay.GetPayBillReq
 	(*GetPayBillResp)(nil), // 3: pay.GetPayBillResp
+	(*RefundReq)(nil),      // 4: pay.RefundReq
+	(*RefundResp)(nil),     // 5: pay.RefundResp
 }
 var file_services_pay_rpc_pay_proto_depIdxs = []int32{
 	0, // 0: pay.PayRpc.MockPay:input_type -> pay.MockPayReq
 	2, // 1: pay.PayRpc.GetPayBill:input_type -> pay.GetPayBillReq
-	1, // 2: pay.PayRpc.MockPay:output_type -> pay.MockPayResp
-	3, // 3: pay.PayRpc.GetPayBill:output_type -> pay.GetPayBillResp
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: pay.PayRpc.Refund:input_type -> pay.RefundReq
+	1, // 3: pay.PayRpc.MockPay:output_type -> pay.MockPayResp
+	3, // 4: pay.PayRpc.GetPayBill:output_type -> pay.GetPayBillResp
+	5, // 5: pay.PayRpc.Refund:output_type -> pay.RefundResp
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -375,7 +547,7 @@ func file_services_pay_rpc_pay_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_pay_rpc_pay_proto_rawDesc), len(file_services_pay_rpc_pay_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -41,7 +41,7 @@ func (l *PayCheckLogic) PayCheck(in *pb.PayCheckReq) (*pb.PayCheckResp, error) {
 	if order.UserId != in.GetUserId() {
 		return nil, mapOrderError(xerr.ErrOrderNotFound)
 	}
-	if order.OrderStatus != orderStatusPaid {
+	if order.OrderStatus != orderStatusPaid && order.OrderStatus != orderStatusRefunded {
 		return mapPayCheckResp(order, nil), nil
 	}
 

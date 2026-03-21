@@ -71,6 +71,7 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget string, 
 			},
 			Mappings: []gateway.RouteMapping{
 				{Method: http.MethodPost, Path: "/order/create"},
+				{Method: http.MethodPost, Path: "/order/refund"},
 			},
 		},
 	}

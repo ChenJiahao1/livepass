@@ -3,6 +3,7 @@ module damai-go
 go 1.26.1
 
 require (
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/zeromicro/go-zero v1.10.0
 	google.golang.org/grpc v1.79.2
 	google.golang.org/protobuf v1.36.11

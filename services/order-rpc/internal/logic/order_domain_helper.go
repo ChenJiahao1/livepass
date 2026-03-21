@@ -26,6 +26,10 @@ const (
 	orderStatusUnpaid    int64 = 1
 	orderStatusCancelled int64 = 2
 	orderStatusPaid      int64 = 3
+	orderStatusRefunded  int64 = 4
+
+	payStatusPaid     int64 = 2
+	payStatusRefunded int64 = 3
 
 	orderDateTimeLayout = "2006-01-02 15:04:05"
 )
@@ -289,8 +293,10 @@ func mapOrderError(err error) error {
 		return status.Error(codes.InvalidArgument, err.Error())
 	case errors.Is(err, xerr.ErrOrderNotFound), errors.Is(err, xerr.ErrPayBillNotFound):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid):
+	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid), errors.Is(err, xerr.ErrOrderRefundNotAllowed), errors.Is(err, xerr.ErrOrderRefundWindowClosed):
 		return status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, xerr.ErrOrderRefundRuleInvalid):
+		return status.Error(codes.Internal, err.Error())
 	default:
 		return err
 	}
@@ -397,6 +403,65 @@ func mapPayCheckResp(order *model.DOrder, payBill *payrpc.GetPayBillResp) *pb.Pa
 	resp.PayStatus = payBill.GetPayStatus()
 	resp.PayTime = payBill.GetPayTime()
 	return resp
+}
+
+func mapRefundOrderResp(order *model.DOrder, refundBill *payrpc.RefundResp, refundPercent int64) *pb.RefundOrderResp {
+	if order == nil {
+		return &pb.RefundOrderResp{}
+	}
+
+	resp := &pb.RefundOrderResp{
+		OrderNumber: order.OrderNumber,
+		OrderStatus: orderStatusRefunded,
+	}
+	if refundBill == nil {
+		return resp
+	}
+
+	resp.RefundAmount = refundBill.GetRefundAmount()
+	resp.RefundPercent = refundPercent
+	resp.RefundBillNo = refundBill.GetRefundBillNo()
+	resp.RefundTime = refundBill.GetRefundTime()
+	return resp
+}
+
+func calculateRefundPercent(orderPrice, refundAmount int64) int64 {
+	if orderPrice <= 0 || refundAmount <= 0 {
+		return 0
+	}
+
+	return (refundAmount*100 + orderPrice/2) / orderPrice
+}
+
+func orderTicketSeatIDs(orderTickets []*model.DOrderTicketUser) []int64 {
+	if len(orderTickets) == 0 {
+		return nil
+	}
+
+	seatIDs := make([]int64, 0, len(orderTickets))
+	for _, orderTicket := range orderTickets {
+		if orderTicket == nil || orderTicket.SeatId <= 0 {
+			continue
+		}
+		seatIDs = append(seatIDs, orderTicket.SeatId)
+	}
+
+	return seatIDs
+}
+
+func buildRefundRequestNo(orderNumber int64) string {
+	return fmt.Sprintf("refund-%d", orderNumber)
+}
+
+func refundRejectReasonToError(reason string) error {
+	switch reason {
+	case "refund stage not matched":
+		return xerr.ErrOrderRefundWindowClosed
+	case "program does not permit refund":
+		return xerr.ErrOrderRefundNotAllowed
+	default:
+		return xerr.ErrOrderRefundNotAllowed
+	}
 }
 
 func mustGetPayBillForOrder(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) (*payrpc.GetPayBillResp, error) {

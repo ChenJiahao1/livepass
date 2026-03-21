@@ -1133,6 +1133,150 @@ func (x *PayCheckResp) GetPayTime() string {
 	return ""
 }
 
+type RefundOrderReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	OrderNumber   int64                  `protobuf:"varint,2,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefundOrderReq) Reset() {
+	*x = RefundOrderReq{}
+	mi := &file_services_order_rpc_order_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefundOrderReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefundOrderReq) ProtoMessage() {}
+
+func (x *RefundOrderReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_order_rpc_order_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefundOrderReq.ProtoReflect.Descriptor instead.
+func (*RefundOrderReq) Descriptor() ([]byte, []int) {
+	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RefundOrderReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *RefundOrderReq) GetOrderNumber() int64 {
+	if x != nil {
+		return x.OrderNumber
+	}
+	return 0
+}
+
+func (x *RefundOrderReq) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type RefundOrderResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrderNumber   int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
+	OrderStatus   int64                  `protobuf:"varint,2,opt,name=orderStatus,proto3" json:"orderStatus,omitempty"`
+	RefundAmount  int64                  `protobuf:"varint,3,opt,name=refundAmount,proto3" json:"refundAmount,omitempty"`
+	RefundPercent int64                  `protobuf:"varint,4,opt,name=refundPercent,proto3" json:"refundPercent,omitempty"`
+	RefundBillNo  int64                  `protobuf:"varint,5,opt,name=refundBillNo,proto3" json:"refundBillNo,omitempty"`
+	RefundTime    string                 `protobuf:"bytes,6,opt,name=refundTime,proto3" json:"refundTime,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefundOrderResp) Reset() {
+	*x = RefundOrderResp{}
+	mi := &file_services_order_rpc_order_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefundOrderResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefundOrderResp) ProtoMessage() {}
+
+func (x *RefundOrderResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_order_rpc_order_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefundOrderResp.ProtoReflect.Descriptor instead.
+func (*RefundOrderResp) Descriptor() ([]byte, []int) {
+	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *RefundOrderResp) GetOrderNumber() int64 {
+	if x != nil {
+		return x.OrderNumber
+	}
+	return 0
+}
+
+func (x *RefundOrderResp) GetOrderStatus() int64 {
+	if x != nil {
+		return x.OrderStatus
+	}
+	return 0
+}
+
+func (x *RefundOrderResp) GetRefundAmount() int64 {
+	if x != nil {
+		return x.RefundAmount
+	}
+	return 0
+}
+
+func (x *RefundOrderResp) GetRefundPercent() int64 {
+	if x != nil {
+		return x.RefundPercent
+	}
+	return 0
+}
+
+func (x *RefundOrderResp) GetRefundBillNo() int64 {
+	if x != nil {
+		return x.RefundBillNo
+	}
+	return 0
+}
+
+func (x *RefundOrderResp) GetRefundTime() string {
+	if x != nil {
+		return x.RefundTime
+	}
+	return ""
+}
+
 type CloseExpiredOrdersReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int64                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
@@ -1142,7 +1286,7 @@ type CloseExpiredOrdersReq struct {
 
 func (x *CloseExpiredOrdersReq) Reset() {
 	*x = CloseExpiredOrdersReq{}
-	mi := &file_services_order_rpc_order_proto_msgTypes[14]
+	mi := &file_services_order_rpc_order_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1154,7 +1298,7 @@ func (x *CloseExpiredOrdersReq) String() string {
 func (*CloseExpiredOrdersReq) ProtoMessage() {}
 
 func (x *CloseExpiredOrdersReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_order_rpc_order_proto_msgTypes[14]
+	mi := &file_services_order_rpc_order_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,7 +1311,7 @@ func (x *CloseExpiredOrdersReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseExpiredOrdersReq.ProtoReflect.Descriptor instead.
 func (*CloseExpiredOrdersReq) Descriptor() ([]byte, []int) {
-	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{14}
+	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CloseExpiredOrdersReq) GetLimit() int64 {
@@ -1186,7 +1330,7 @@ type CloseExpiredOrdersResp struct {
 
 func (x *CloseExpiredOrdersResp) Reset() {
 	*x = CloseExpiredOrdersResp{}
-	mi := &file_services_order_rpc_order_proto_msgTypes[15]
+	mi := &file_services_order_rpc_order_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1198,7 +1342,7 @@ func (x *CloseExpiredOrdersResp) String() string {
 func (*CloseExpiredOrdersResp) ProtoMessage() {}
 
 func (x *CloseExpiredOrdersResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_order_rpc_order_proto_msgTypes[15]
+	mi := &file_services_order_rpc_order_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1211,7 +1355,7 @@ func (x *CloseExpiredOrdersResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseExpiredOrdersResp.ProtoReflect.Descriptor instead.
 func (*CloseExpiredOrdersResp) Descriptor() ([]byte, []int) {
-	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{15}
+	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CloseExpiredOrdersResp) GetClosedCount() int64 {
@@ -1231,7 +1375,7 @@ type CountActiveTicketsByUserProgramReq struct {
 
 func (x *CountActiveTicketsByUserProgramReq) Reset() {
 	*x = CountActiveTicketsByUserProgramReq{}
-	mi := &file_services_order_rpc_order_proto_msgTypes[16]
+	mi := &file_services_order_rpc_order_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1243,7 +1387,7 @@ func (x *CountActiveTicketsByUserProgramReq) String() string {
 func (*CountActiveTicketsByUserProgramReq) ProtoMessage() {}
 
 func (x *CountActiveTicketsByUserProgramReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_order_rpc_order_proto_msgTypes[16]
+	mi := &file_services_order_rpc_order_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1256,7 +1400,7 @@ func (x *CountActiveTicketsByUserProgramReq) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CountActiveTicketsByUserProgramReq.ProtoReflect.Descriptor instead.
 func (*CountActiveTicketsByUserProgramReq) Descriptor() ([]byte, []int) {
-	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{16}
+	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CountActiveTicketsByUserProgramReq) GetUserId() int64 {
@@ -1282,7 +1426,7 @@ type CountActiveTicketsByUserProgramResp struct {
 
 func (x *CountActiveTicketsByUserProgramResp) Reset() {
 	*x = CountActiveTicketsByUserProgramResp{}
-	mi := &file_services_order_rpc_order_proto_msgTypes[17]
+	mi := &file_services_order_rpc_order_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1294,7 +1438,7 @@ func (x *CountActiveTicketsByUserProgramResp) String() string {
 func (*CountActiveTicketsByUserProgramResp) ProtoMessage() {}
 
 func (x *CountActiveTicketsByUserProgramResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_order_rpc_order_proto_msgTypes[17]
+	mi := &file_services_order_rpc_order_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1307,7 +1451,7 @@ func (x *CountActiveTicketsByUserProgramResp) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use CountActiveTicketsByUserProgramResp.ProtoReflect.Descriptor instead.
 func (*CountActiveTicketsByUserProgramResp) Descriptor() ([]byte, []int) {
-	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{17}
+	return file_services_order_rpc_order_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CountActiveTicketsByUserProgramResp) GetActiveTicketCount() int64 {
@@ -1420,7 +1564,20 @@ const file_services_order_rpc_order_proto_rawDesc = "" +
 	"\vorderStatus\x18\x02 \x01(\x03R\vorderStatus\x12\x1c\n" +
 	"\tpayBillNo\x18\x03 \x01(\x03R\tpayBillNo\x12\x1c\n" +
 	"\tpayStatus\x18\x04 \x01(\x03R\tpayStatus\x12\x18\n" +
-	"\apayTime\x18\x05 \x01(\tR\apayTime\"-\n" +
+	"\apayTime\x18\x05 \x01(\tR\apayTime\"b\n" +
+	"\x0eRefundOrderReq\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12 \n" +
+	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\xe3\x01\n" +
+	"\x0fRefundOrderResp\x12 \n" +
+	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12 \n" +
+	"\vorderStatus\x18\x02 \x01(\x03R\vorderStatus\x12\"\n" +
+	"\frefundAmount\x18\x03 \x01(\x03R\frefundAmount\x12$\n" +
+	"\rrefundPercent\x18\x04 \x01(\x03R\rrefundPercent\x12\"\n" +
+	"\frefundBillNo\x18\x05 \x01(\x03R\frefundBillNo\x12\x1e\n" +
+	"\n" +
+	"refundTime\x18\x06 \x01(\tR\n" +
+	"refundTime\"-\n" +
 	"\x15CloseExpiredOrdersReq\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x03R\x05limit\":\n" +
 	"\x16CloseExpiredOrdersResp\x12 \n" +
@@ -1429,7 +1586,7 @@ const file_services_order_rpc_order_proto_rawDesc = "" +
 	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12\x1c\n" +
 	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\"S\n" +
 	"#CountActiveTicketsByUserProgramResp\x12,\n" +
-	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount2\xa9\x04\n" +
+	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount2\xe7\x04\n" +
 	"\bOrderRpc\x12<\n" +
 	"\vCreateOrder\x12\x15.order.CreateOrderReq\x1a\x16.order.CreateOrderResp\x129\n" +
 	"\n" +
@@ -1437,7 +1594,8 @@ const file_services_order_rpc_order_proto_rawDesc = "" +
 	"\bGetOrder\x12\x12.order.GetOrderReq\x1a\x16.order.OrderDetailInfo\x125\n" +
 	"\vCancelOrder\x12\x15.order.CancelOrderReq\x1a\x0f.order.BoolResp\x123\n" +
 	"\bPayOrder\x12\x12.order.PayOrderReq\x1a\x13.order.PayOrderResp\x123\n" +
-	"\bPayCheck\x12\x12.order.PayCheckReq\x1a\x13.order.PayCheckResp\x12Q\n" +
+	"\bPayCheck\x12\x12.order.PayCheckReq\x1a\x13.order.PayCheckResp\x12<\n" +
+	"\vRefundOrder\x12\x15.order.RefundOrderReq\x1a\x16.order.RefundOrderResp\x12Q\n" +
 	"\x12CloseExpiredOrders\x12\x1c.order.CloseExpiredOrdersReq\x1a\x1d.order.CloseExpiredOrdersResp\x12x\n" +
 	"\x1fCountActiveTicketsByUserProgram\x12).order.CountActiveTicketsByUserProgramReq\x1a*.order.CountActiveTicketsByUserProgramRespB\x06Z\x04./pbb\x06proto3"
 
@@ -1453,7 +1611,7 @@ func file_services_order_rpc_order_proto_rawDescGZIP() []byte {
 	return file_services_order_rpc_order_proto_rawDescData
 }
 
-var file_services_order_rpc_order_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_services_order_rpc_order_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_services_order_rpc_order_proto_goTypes = []any{
 	(*BoolResp)(nil),                            // 0: order.BoolResp
 	(*CreateOrderReq)(nil),                      // 1: order.CreateOrderReq
@@ -1469,10 +1627,12 @@ var file_services_order_rpc_order_proto_goTypes = []any{
 	(*PayOrderResp)(nil),                        // 11: order.PayOrderResp
 	(*PayCheckReq)(nil),                         // 12: order.PayCheckReq
 	(*PayCheckResp)(nil),                        // 13: order.PayCheckResp
-	(*CloseExpiredOrdersReq)(nil),               // 14: order.CloseExpiredOrdersReq
-	(*CloseExpiredOrdersResp)(nil),              // 15: order.CloseExpiredOrdersResp
-	(*CountActiveTicketsByUserProgramReq)(nil),  // 16: order.CountActiveTicketsByUserProgramReq
-	(*CountActiveTicketsByUserProgramResp)(nil), // 17: order.CountActiveTicketsByUserProgramResp
+	(*RefundOrderReq)(nil),                      // 14: order.RefundOrderReq
+	(*RefundOrderResp)(nil),                     // 15: order.RefundOrderResp
+	(*CloseExpiredOrdersReq)(nil),               // 16: order.CloseExpiredOrdersReq
+	(*CloseExpiredOrdersResp)(nil),              // 17: order.CloseExpiredOrdersResp
+	(*CountActiveTicketsByUserProgramReq)(nil),  // 18: order.CountActiveTicketsByUserProgramReq
+	(*CountActiveTicketsByUserProgramResp)(nil), // 19: order.CountActiveTicketsByUserProgramResp
 }
 var file_services_order_rpc_order_proto_depIdxs = []int32{
 	4,  // 0: order.ListOrdersResp.list:type_name -> order.OrderListInfo
@@ -1483,18 +1643,20 @@ var file_services_order_rpc_order_proto_depIdxs = []int32{
 	9,  // 5: order.OrderRpc.CancelOrder:input_type -> order.CancelOrderReq
 	10, // 6: order.OrderRpc.PayOrder:input_type -> order.PayOrderReq
 	12, // 7: order.OrderRpc.PayCheck:input_type -> order.PayCheckReq
-	14, // 8: order.OrderRpc.CloseExpiredOrders:input_type -> order.CloseExpiredOrdersReq
-	16, // 9: order.OrderRpc.CountActiveTicketsByUserProgram:input_type -> order.CountActiveTicketsByUserProgramReq
-	2,  // 10: order.OrderRpc.CreateOrder:output_type -> order.CreateOrderResp
-	5,  // 11: order.OrderRpc.ListOrders:output_type -> order.ListOrdersResp
-	8,  // 12: order.OrderRpc.GetOrder:output_type -> order.OrderDetailInfo
-	0,  // 13: order.OrderRpc.CancelOrder:output_type -> order.BoolResp
-	11, // 14: order.OrderRpc.PayOrder:output_type -> order.PayOrderResp
-	13, // 15: order.OrderRpc.PayCheck:output_type -> order.PayCheckResp
-	15, // 16: order.OrderRpc.CloseExpiredOrders:output_type -> order.CloseExpiredOrdersResp
-	17, // 17: order.OrderRpc.CountActiveTicketsByUserProgram:output_type -> order.CountActiveTicketsByUserProgramResp
-	10, // [10:18] is the sub-list for method output_type
-	2,  // [2:10] is the sub-list for method input_type
+	14, // 8: order.OrderRpc.RefundOrder:input_type -> order.RefundOrderReq
+	16, // 9: order.OrderRpc.CloseExpiredOrders:input_type -> order.CloseExpiredOrdersReq
+	18, // 10: order.OrderRpc.CountActiveTicketsByUserProgram:input_type -> order.CountActiveTicketsByUserProgramReq
+	2,  // 11: order.OrderRpc.CreateOrder:output_type -> order.CreateOrderResp
+	5,  // 12: order.OrderRpc.ListOrders:output_type -> order.ListOrdersResp
+	8,  // 13: order.OrderRpc.GetOrder:output_type -> order.OrderDetailInfo
+	0,  // 14: order.OrderRpc.CancelOrder:output_type -> order.BoolResp
+	11, // 15: order.OrderRpc.PayOrder:output_type -> order.PayOrderResp
+	13, // 16: order.OrderRpc.PayCheck:output_type -> order.PayCheckResp
+	15, // 17: order.OrderRpc.RefundOrder:output_type -> order.RefundOrderResp
+	17, // 18: order.OrderRpc.CloseExpiredOrders:output_type -> order.CloseExpiredOrdersResp
+	19, // 19: order.OrderRpc.CountActiveTicketsByUserProgram:output_type -> order.CountActiveTicketsByUserProgramResp
+	11, // [11:20] is the sub-list for method output_type
+	2,  // [2:11] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -1511,7 +1673,7 @@ func file_services_order_rpc_order_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_order_rpc_order_proto_rawDesc), len(file_services_order_rpc_order_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

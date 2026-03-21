@@ -17,8 +17,10 @@ type (
 		FindAvailableByProgramAndTicketCategoryForUpdate(ctx context.Context, session sqlx.Session, programId, ticketCategoryId int64) ([]*DSeat, error)
 		FindAvailableCountByProgramId(ctx context.Context, programId int64) ([]*SeatRemainAggregate, error)
 		FindByFreezeToken(ctx context.Context, freezeToken string) ([]*DSeat, error)
+		FindByProgramAndIDsForUpdate(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) ([]*DSeat, error)
 		BatchFreezeByIDs(ctx context.Context, session sqlx.Session, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		ReleaseByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
+		ReleaseSoldByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) error
 		ConfirmByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
 	}
 
@@ -98,6 +100,32 @@ func (m *customDSeatModel) FindByFreezeToken(ctx context.Context, freezeToken st
 	}
 }
 
+func (m *customDSeatModel) FindByProgramAndIDsForUpdate(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) ([]*DSeat, error) {
+	if len(seatIDs) == 0 {
+		return []*DSeat{}, nil
+	}
+
+	inClause, args := buildInt64InClause(seatIDs)
+	query := fmt.Sprintf(
+		"select %s from %s where `status` = 1 and `program_id` = ? and `id` in (%s) order by `id` asc for update",
+		dSeatRows,
+		m.table,
+		inClause,
+	)
+
+	var resp []*DSeat
+	args = append([]interface{}{programId}, args...)
+	err := m.withSession(session).(*customDSeatModel).conn.QueryRowsCtx(ctx, &resp, query, args...)
+	switch err {
+	case nil:
+		return resp, nil
+	case sqlx.ErrNotFound:
+		return []*DSeat{}, nil
+	default:
+		return nil, err
+	}
+}
+
 func (m *customDSeatModel) BatchFreezeByIDs(ctx context.Context, session sqlx.Session, seatIDs []int64, freezeToken string, expireTime time.Time) error {
 	if len(seatIDs) == 0 {
 		return nil
@@ -123,6 +151,23 @@ func (m *customDSeatModel) ReleaseByFreezeToken(ctx context.Context, session sql
 	)
 
 	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, time.Now(), freezeToken)
+	return err
+}
+
+func (m *customDSeatModel) ReleaseSoldByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) error {
+	if len(seatIDs) == 0 {
+		return nil
+	}
+
+	inClause, args := buildInt64InClause(seatIDs)
+	query := fmt.Sprintf(
+		"update %s set `seat_status` = 1, `freeze_token` = null, `freeze_expire_time` = null, `edit_time` = ? where `status` = 1 and `program_id` = ? and `seat_status` = 3 and `id` in (%s)",
+		m.table,
+		inClause,
+	)
+
+	args = append([]interface{}{time.Now(), programId}, args...)
+	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, args...)
 	return err
 }
 

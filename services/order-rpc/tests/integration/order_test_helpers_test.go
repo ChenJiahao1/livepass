@@ -23,12 +23,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-const testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
+var testOrderMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true")
 
 const (
 	testOrderStatusUnpaid    int64 = 1
 	testOrderStatusCancelled int64 = 2
 	testOrderStatusPaid      int64 = 3
+	testOrderStatusRefunded  int64 = 4
 )
 
 type orderFixture struct {
@@ -89,6 +90,15 @@ type fakeOrderProgramRPC struct {
 	confirmSeatFreezeErr     error
 	lastConfirmSeatFreezeReq *programrpc.ConfirmSeatFreezeReq
 	confirmSeatFreezeCalls   int
+
+	evaluateRefundRuleResp    *programrpc.EvaluateRefundRuleResp
+	evaluateRefundRuleErr     error
+	lastEvaluateRefundRuleReq *programrpc.EvaluateRefundRuleReq
+
+	releaseSoldSeatsResp    *programrpc.ReleaseSoldSeatsResp
+	releaseSoldSeatsErr     error
+	lastReleaseSoldSeatsReq *programrpc.ReleaseSoldSeatsReq
+	releaseSoldSeatsCalls   int
 }
 
 type fakeOrderUserRPC struct {
@@ -107,6 +117,11 @@ type fakeOrderPayRPC struct {
 	getPayBillErr     error
 	lastGetPayBillReq *payrpc.GetPayBillReq
 	getPayBillCalls   int
+
+	refundResp    *payrpc.RefundResp
+	refundErr     error
+	lastRefundReq *payrpc.RefundReq
+	refundCalls   int
 }
 
 func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC, *fakeOrderPayRPC) {
@@ -124,9 +139,11 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	programRPC := &fakeOrderProgramRPC{
 		releaseSeatFreezeResp: &programrpc.ReleaseSeatFreezeResp{Success: true},
 		confirmSeatFreezeResp: &programrpc.ConfirmSeatFreezeResp{Success: true},
+		releaseSoldSeatsResp:  &programrpc.ReleaseSoldSeatsResp{Success: true},
 	}
 	userRPC := &fakeOrderUserRPC{}
 	payRPC := &fakeOrderPayRPC{}
+	cfg.MySQL.DataSource = xmysql.WithLocalTime(cfg.MySQL.DataSource)
 	conn := sqlx.NewMysql(cfg.MySQL.DataSource)
 	svcCtx := &svc.ServiceContext{
 		Config:                cfg,
@@ -283,6 +300,17 @@ func (f *fakeOrderProgramRPC) ConfirmSeatFreeze(ctx context.Context, in *program
 	return f.confirmSeatFreezeResp, f.confirmSeatFreezeErr
 }
 
+func (f *fakeOrderProgramRPC) EvaluateRefundRule(ctx context.Context, in *programrpc.EvaluateRefundRuleReq, opts ...grpc.CallOption) (*programrpc.EvaluateRefundRuleResp, error) {
+	f.lastEvaluateRefundRuleReq = in
+	return f.evaluateRefundRuleResp, f.evaluateRefundRuleErr
+}
+
+func (f *fakeOrderProgramRPC) ReleaseSoldSeats(ctx context.Context, in *programrpc.ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*programrpc.ReleaseSoldSeatsResp, error) {
+	f.lastReleaseSoldSeatsReq = in
+	f.releaseSoldSeatsCalls++
+	return f.releaseSoldSeatsResp, f.releaseSoldSeatsErr
+}
+
 func (f *fakeOrderPayRPC) MockPay(ctx context.Context, in *payrpc.MockPayReq, opts ...grpc.CallOption) (*payrpc.MockPayResp, error) {
 	f.lastMockPayReq = in
 	f.mockPayCalls++
@@ -295,10 +323,16 @@ func (f *fakeOrderPayRPC) GetPayBill(ctx context.Context, in *payrpc.GetPayBillR
 	return f.getPayBillResp, f.getPayBillErr
 }
 
+func (f *fakeOrderPayRPC) Refund(ctx context.Context, in *payrpc.RefundReq, opts ...grpc.CallOption) (*payrpc.RefundResp, error) {
+	f.lastRefundReq = in
+	f.refundCalls++
+	return f.refundResp, f.refundErr
+}
+
 func openOrderTestDB(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 
-	db, err := sql.Open("mysql", dataSource)
+	db, err := sql.Open("mysql", xmysql.WithLocalTime(dataSource))
 	if err != nil {
 		t.Fatalf("sql.Open error: %v", err)
 	}

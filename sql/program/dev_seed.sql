@@ -14,9 +14,10 @@ INSERT INTO `d_program` (
   `entry_rule`, `child_purchase`, `invoice_specification`, `real_ticket_purchase_rule`, `abnormal_order_description`,
   `kind_reminder`, `performance_duration`, `entry_time`, `min_performance_count`, `main_actor`,
   `min_performance_duration`, `prohibited_item`, `deposit_specification`, `total_count`, `permit_refund`,
-  `refund_explain`, `rel_name_ticket_entrance`, `rel_name_ticket_entrance_explain`, `permit_choose_seat`,
-  `choose_seat_explain`, `electronic_delivery_ticket`, `electronic_delivery_ticket_explain`, `electronic_invoice`,
-  `electronic_invoice_explain`, `high_heat`, `program_status`, `issue_time`, `create_time`, `edit_time`, `status`
+  `refund_explain`, `refund_rule_json`, `rel_name_ticket_entrance`, `rel_name_ticket_entrance_explain`,
+  `permit_choose_seat`, `choose_seat_explain`, `electronic_delivery_ticket`,
+  `electronic_delivery_ticket_explain`, `electronic_invoice`, `electronic_invoice_explain`, `high_heat`,
+  `program_status`, `issue_time`, `create_time`, `edit_time`, `status`
 ) VALUES (
   10001, 20001, 1, 2, 11, 1,
   'Phase1 示例演出', '示例艺人', '北京示例剧场', 'https://example.com/program-10001.jpg', 1,
@@ -24,8 +25,8 @@ INSERT INTO `d_program` (
   6, 6, '票品为有价票券，不支持退换。', '不支持修改配送电话和地址。',
   '请按场馆规则入场。', '儿童一律凭票入场。', '演出开始前提交发票申请。', '一个订单对应一个证件。',
   '异常订购行为可能被取消订单。', '请提前规划行程。', '约120分钟', '提前30分钟入场', 20, '示例主演',
-  '约120分钟', '请勿携带违禁品。', '以现场为准', 1000, 0,
-  '不支持退换。', 0, '本场次无需实名入场。', 0,
+  '约120分钟', '请勿携带违禁品。', '以现场为准', 1000, 1,
+  '支持按时间阶梯退款。', '{"version":1,"stages":[{"beforeMinutes":10080,"refundPercent":100},{"beforeMinutes":1440,"refundPercent":80},{"beforeMinutes":120,"refundPercent":50}]}', 0, '本场次无需实名入场。', 0,
   '本项目不支持自主选座，同一个订单优先连座。', 1, '电子票扫码入场', 1,
   '电子发票将发送至邮箱。', 1, 1, '2026-06-01 09:00:00', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1
 );

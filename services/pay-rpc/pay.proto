@@ -33,7 +33,24 @@ message GetPayBillResp {
   string payTime = 8;
 }
 
+message RefundReq {
+  int64 orderNumber = 1;
+  int64 userId = 2;
+  int64 amount = 3;
+  string channel = 4;
+  string reason = 5;
+}
+
+message RefundResp {
+  int64 refundBillNo = 1;
+  int64 orderNumber = 2;
+  int64 refundAmount = 3;
+  int64 payStatus = 4;
+  string refundTime = 5;
+}
+
 service PayRpc {
   rpc MockPay(MockPayReq) returns (MockPayResp);
   rpc GetPayBill(GetPayBillReq) returns (GetPayBillResp);
+  rpc Refund(RefundReq) returns (RefundResp);
 }

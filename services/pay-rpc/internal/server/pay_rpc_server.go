@@ -32,3 +32,8 @@ func (s *PayRpcServer) GetPayBill(ctx context.Context, in *pb.GetPayBillReq) (*p
 	l := logic.NewGetPayBillLogic(ctx, s.svcCtx)
 	return l.GetPayBill(in)
 }
+
+func (s *PayRpcServer) Refund(ctx context.Context, in *pb.RefundReq) (*pb.RefundResp, error) {
+	l := logic.NewRefundLogic(ctx, s.svcCtx)
+	return l.Refund(in)
+}
