@@ -29,7 +29,7 @@ RepeatGuard:
   LockAcquireTimeout: 200ms
 Kafka:
   Brokers:
-    - 127.0.0.1:9092
+    - 127.0.0.1:9094
   TopicOrderCreate: order.create.command.v1
   ConsumerGroup: damai-go-order-create
   MaxMessageDelay: 5s

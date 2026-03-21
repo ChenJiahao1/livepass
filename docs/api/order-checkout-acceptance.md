@@ -5,7 +5,7 @@
 - 默认网关地址：`http://127.0.0.1:8081`
 - 默认渠道码：`0001`
 - 默认验收节目：`programId=10001`
-- `order-rpc` 现在依赖 Kafka；除 MySQL/Redis/etcd 外，还需要可访问的 Kafka broker，并与 `services/order-rpc/etc/order-rpc.yaml` 中的 `Kafka.Brokers` 对齐
+- `order-rpc` 现在依赖 Kafka；基础设施 compose 已包含 Kafka broker，本地默认通过 `127.0.0.1:9094` 暴露，并与 `services/order-rpc/etc/order-rpc.yaml` 中的 `Kafka.Brokers` 对齐
 - 本文档所有 HTTP 请求都只经过 `gateway-api`，不直接访问 `user-api`、`program-api`、`order-api` 或任何 RPC 服务。
 - 本文档默认本地安装 `curl`、`jq`、`docker`、`go`。
 - 建议先准备本次执行使用的环境变量：
@@ -67,9 +67,9 @@ docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml ps
 
 成功判定：
 
-- `mysql`、`redis`、`etcd` 容器状态均为 `Up`
+- `mysql`、`redis`、`etcd`、`kafka` 容器状态均为 `Up`
 - 没有持续重启或 `Exited` 的基础设施容器
-- Kafka broker 已单独启动，且 `order-rpc` 所用 topic / consumer group 可正常连通
+- Kafka broker 可通过 `127.0.0.1:9094` 连通，且 `order-rpc` 所用 topic / consumer group 可正常连通
 
 ## 导入 SQL
 
@@ -347,7 +347,7 @@ curl -sS -X POST "${BASE_URL}/order/get" \
 ## 常见失败点
 
 - `gateway-api` 可用，但下游 API/RPC 未启动或未注册到 `etcd`
-- Kafka broker 未启动，或 `services/order-rpc/etc/order-rpc.yaml` 的 `Kafka.Brokers` 不可达，导致 `/order/create` 返回内部错误
+- Kafka broker 未启动，或 `services/order-rpc/etc/order-rpc.yaml` 的 `Kafka.Brokers`（本地默认 `127.0.0.1:9094`）不可达，导致 `/order/create` 返回内部错误
 - MySQL 已启动，但 `programId=10001` 的节目、票档或座位种子数据未导入
 - `damai_program.d_seat` 没有为 `programId=10001` 导入座位行，导致 `/program/preorder/detail` 的 `remainNumber=0`，随后 `/order/create` 返回 `seat inventory insufficient`
 - 订单请求缺少 `Authorization` 或 `X-Channel-Code`

@@ -20,7 +20,7 @@ bash scripts/acceptance/order_checkout_failures.sh
 - 基础设施、SQL 与 `gateway-api`/各下游服务已按 [下单主路径验收](/home/chenjiahao/code/project/damai-go/docs/api/order-checkout-acceptance.md) 启动
 - 本机可用 `curl`、`jq`、`docker`、`go`
 - MySQL 仍通过容器 `docker-compose-mysql-1` 暴露，默认 root 密码为 `123456`
-- Kafka broker 已启动，且 `order-rpc` 所用 topic / consumer group 可正常连通
+- 基础设施 compose 已包含 Kafka，broker 默认通过 `127.0.0.1:9094` 暴露，且 `order-rpc` 所用 topic / consumer group 可正常连通
 - `order-rpc` 已启动；脚本会自行触发一次 `jobs/order-close/order_close.go` 来验证超时关单，不要求常驻启动 job
 
 ## 默认环境变量
