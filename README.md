@@ -80,6 +80,11 @@ go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 
 `gateway-api` 已启用 `Telemetry` 配置；若要得到完整链路，还需给下游 API/RPC 服务同步补齐 `Telemetry`。
 
+## 下单主路径验收
+
+完整步骤见 `docs/api/order-checkout-acceptance.md`。
+可执行脚本见 `scripts/acceptance/order_checkout.sh`。
+
 ## 手工验证用户链路
 
 注册：
