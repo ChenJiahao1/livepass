@@ -16,7 +16,7 @@ import (
 const (
 	payStatusCreated int64 = 1
 	payStatusPaid    int64 = 2
-	payStatusRefund  int64 = 3
+	payStatusRefunded int64 = 3
 
 	refundStatusCreated  int64 = 1
 	refundStatusRefunded int64 = 2
@@ -122,9 +122,17 @@ func mapRefundResp(refundBill *model.DRefundBill) *pb.RefundResp {
 		RefundBillNo: refundBill.RefundBillNo,
 		OrderNumber:  refundBill.OrderNumber,
 		RefundAmount: int64(refundBill.RefundAmount),
-		PayStatus:    payStatusRefund,
+		PayStatus:    mapRefundPayStatus(refundBill.RefundStatus),
 		RefundTime:   formatPayNullTime(refundBill.RefundTime),
 	}
+}
+
+func mapRefundPayStatus(refundStatus int64) int64 {
+	if refundStatus == refundStatusRefunded {
+		return payStatusRefunded
+	}
+
+	return payStatusPaid
 }
 
 func mapPayError(err error) error {

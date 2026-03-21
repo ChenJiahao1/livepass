@@ -43,6 +43,19 @@ type refundBillRow struct {
 	RefundAmount int64
 	RefundStatus int64
 	RefundReason string
+	RefundTime   string
+}
+
+type refundBillFixture struct {
+	ID           int64
+	RefundBillNo int64
+	OrderNumber  int64
+	PayBillID    int64
+	UserID       int64
+	RefundAmount int64
+	RefundStatus int64
+	RefundReason string
+	RefundTime   string
 }
 
 func newPayTestServiceContext(t *testing.T) *svc.ServiceContext {
@@ -107,6 +120,36 @@ func seedPayBillFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...p
 	}
 }
 
+func seedRefundBillFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...refundBillFixture) {
+	t.Helper()
+
+	db := openPayTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	for _, fixture := range fixtures {
+		fixture = withRefundBillFixtureDefaults(fixture)
+		mustExecPaySQL(
+			t,
+			db,
+			`INSERT INTO d_refund_bill (
+				id, refund_bill_no, order_number, pay_bill_id, user_id, refund_amount, refund_status, refund_reason, refund_time, create_time, edit_time, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			fixture.ID,
+			fixture.RefundBillNo,
+			fixture.OrderNumber,
+			fixture.PayBillID,
+			fixture.UserID,
+			fixture.RefundAmount,
+			fixture.RefundStatus,
+			nullStringIfEmpty(fixture.RefundReason),
+			nullTimeIfEmpty(fixture.RefundTime),
+			"2026-01-01 00:00:00",
+			"2026-01-01 00:00:00",
+			1,
+		)
+	}
+}
+
 func countPayBillRows(t *testing.T, dataSource string) int64 {
 	t.Helper()
 
@@ -157,10 +200,10 @@ func findRefundBillByOrderNumber(t *testing.T, dataSource string, orderNumber in
 
 	var row refundBillRow
 	if err := db.QueryRow(
-		`SELECT refund_bill_no, order_number, pay_bill_id, user_id, refund_amount, refund_status, COALESCE(refund_reason, '')
+		`SELECT refund_bill_no, order_number, pay_bill_id, user_id, refund_amount, refund_status, COALESCE(refund_reason, ''), COALESCE(DATE_FORMAT(refund_time, '%Y-%m-%d %H:%i:%s'), '')
 		FROM d_refund_bill WHERE order_number = ?`,
 		orderNumber,
-	).Scan(&row.RefundBillNo, &row.OrderNumber, &row.PayBillID, &row.UserID, &row.RefundAmount, &row.RefundStatus, &row.RefundReason); err != nil {
+	).Scan(&row.RefundBillNo, &row.OrderNumber, &row.PayBillID, &row.UserID, &row.RefundAmount, &row.RefundStatus, &row.RefundReason, &row.RefundTime); err != nil {
 		t.Fatalf("QueryRow refund bill error: %v", err)
 	}
 
@@ -230,6 +273,32 @@ func withPayBillFixtureDefaults(fixture payBillFixture) payBillFixture {
 	return fixture
 }
 
+func withRefundBillFixtureDefaults(fixture refundBillFixture) refundBillFixture {
+	if fixture.ID == 0 {
+		fixture.ID = fixture.OrderNumber + 3000
+	}
+	if fixture.RefundBillNo == 0 {
+		fixture.RefundBillNo = fixture.OrderNumber + 4000
+	}
+	if fixture.PayBillID == 0 {
+		fixture.PayBillID = fixture.OrderNumber + 1000
+	}
+	if fixture.UserID == 0 {
+		fixture.UserID = 3001
+	}
+	if fixture.RefundAmount == 0 {
+		fixture.RefundAmount = 399
+	}
+	if fixture.RefundStatus == 0 {
+		fixture.RefundStatus = 2
+	}
+	if fixture.RefundTime == "" {
+		fixture.RefundTime = "2026-01-01 11:00:00"
+	}
+
+	return fixture
+}
+
 func execPaySQLFile(t *testing.T, db *sql.DB, relativePath string) {
 	t.Helper()
 
@@ -260,6 +329,14 @@ func mustExecPaySQL(t *testing.T, db *sql.DB, query string, args ...interface{})
 	if _, err := db.Exec(query, args...); err != nil {
 		t.Fatalf("db.Exec error: %v, query=%s", err, query)
 	}
+}
+
+func nullStringIfEmpty(value string) interface{} {
+	if value == "" {
+		return nil
+	}
+
+	return value
 }
 
 func nullTimeIfEmpty(value string) sql.NullTime {
