@@ -1,0 +1,236 @@
+package integration_test
+
+import (
+	"bytes"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"damai-go/services/gateway-api/tests/testkit"
+)
+
+func TestGatewayForwardsUserRequestToUserAPI(t *testing.T) {
+	t.Parallel()
+
+	var gotPath string
+	userAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("X-Upstream", "user-api")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"service":"user"}`))
+	}))
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	defer server.Stop()
+
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/user/login", nil, nil)
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	if gotPath != "/user/login" {
+		t.Fatalf("expected upstream path /user/login, got %q", gotPath)
+	}
+	if got := resp.Header.Get("X-Upstream"); got != "user-api" {
+		t.Fatalf("expected X-Upstream user-api, got %q", got)
+	}
+	if string(body) != `{"service":"user"}` {
+		t.Fatalf("expected user body, got %s", string(body))
+	}
+}
+
+func TestGatewayForwardsProgramRequestToProgramAPI(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.NotFoundHandler())
+	defer userAPI.Close()
+
+	var gotPath string
+	programAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"service":"program"}`))
+	}))
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	defer server.Stop()
+
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/program/page", nil, bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	if gotPath != "/program/page" {
+		t.Fatalf("expected upstream path /program/page, got %q", gotPath)
+	}
+	if string(body) != `{"service":"program"}` {
+		t.Fatalf("expected program body, got %s", string(body))
+	}
+}
+
+func TestGatewayBlocksUnauthorizedOrderRequest(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.NotFoundHandler())
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	var called bool
+	orderAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer orderAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	defer server.Stop()
+
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/order/create", nil, bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+
+	if called {
+		t.Fatal("expected unauthorized request to be blocked before reaching order upstream")
+	}
+	if resp.StatusCode == http.StatusOK {
+		t.Fatalf("expected non-200 status for unauthorized request, got %d", resp.StatusCode)
+	}
+}
+
+func TestGatewayForwardsAuthorizedOrderRequest(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.NotFoundHandler())
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	var gotPath string
+	var gotAuthorization string
+	var gotChannelCode string
+	orderAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuthorization = r.Header.Get("Authorization")
+		gotChannelCode = r.Header.Get("X-Channel-Code")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"service":"order"}`))
+	}))
+	defer orderAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	defer server.Stop()
+
+	headers := map[string]string{
+		"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
+		"X-Channel-Code": "0001",
+	}
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/order/create", headers, bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d", resp.StatusCode)
+	}
+	if gotPath != "/order/create" {
+		t.Fatalf("expected upstream path /order/create, got %q", gotPath)
+	}
+	if gotAuthorization == "" {
+		t.Fatal("expected Authorization header forwarded to order upstream")
+	}
+	if gotChannelCode != "0001" {
+		t.Fatalf("expected X-Channel-Code 0001, got %q", gotChannelCode)
+	}
+	if string(body) != `{"service":"order"}` {
+		t.Fatalf("expected order body, got %s", string(body))
+	}
+}
+
+func TestGatewayPreservesUpstreamStatusCode(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "bad request from upstream", http.StatusBadRequest)
+	}))
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	defer server.Stop()
+
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/user/login", nil, bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", resp.StatusCode)
+	}
+	if !bytes.Contains(body, []byte("bad request from upstream")) {
+		t.Fatalf("expected upstream error body preserved, got %s", string(body))
+	}
+}
+
+func TestGatewayReturnsErrorWhenUpstreamTimeout(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 10))
+	defer server.Stop()
+
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/user/login", nil, bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		t.Fatalf("expected timeout request to return non-200 status, got %d", resp.StatusCode)
+	}
+}

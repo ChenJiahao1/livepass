@@ -4,6 +4,14 @@
 
 当前阶段：用户域链路已打通，`program` 域 Phase 1 只读链路已补齐（category/home/page/detail/ticket-category）。
 
+## 测试目录约束
+
+- 白盒单测保留在被测包旁边，仅用于测试未导出函数、未导出类型和纯内部算法。
+- 服务级集成测试统一放在 `services/<service>/tests/`，禁止继续放在 `internal/logic/`、`internal/middleware/`、`internal/config/` 等业务实现目录。
+- 跨服务验收测试统一放在根级 `tests/` 或 `scripts/acceptance/`。
+- 仅服务内部复用的测试辅助，优先放在 `services/<service>/tests/testkit/`；若只被单个集成测试包使用，可放在 `services/<service>/tests/integration/*_helpers_test.go`。
+- 新增或迁移测试时，先遵守本节，再参考 [docs/architecture/testing-layout.md](docs/architecture/testing-layout.md)。
+
 ## 本地基础设施启动
 
 ```bash
