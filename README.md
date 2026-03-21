@@ -86,6 +86,12 @@ go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 可执行脚本见 `scripts/acceptance/order_checkout.sh`。
 首次执行前，先按文档校验 `programId=10001` 的票档和 `d_seat` 座位种子已导入。
 
+## 下单失败分支验收
+
+失败分支说明见 `docs/api/order-checkout-failure-acceptance.md`。
+可执行脚本见 `scripts/acceptance/order_checkout_failures.sh`。
+当前覆盖重复观演人、库存不足、取消后支付失败、超时关单 4 条路径。
+
 ## 手工验证用户链路
 
 注册：

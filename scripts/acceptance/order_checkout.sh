@@ -21,6 +21,8 @@ TOKEN=""
 TICKET_USER_ID_1=""
 TICKET_USER_ID_2=""
 ORDER_NUMBER=""
+CURL_LAST_STATUS=""
+CURL_LAST_BODY=""
 
 log() {
   printf '[order-checkout] %s\n' "$*"
@@ -66,7 +68,7 @@ extract_required() {
   printf '%s' "${value}"
 }
 
-curl_json() {
+curl_request() {
   local path="$1"
   local payload="$2"
   local auth_required="${3:-0}"
@@ -106,12 +108,62 @@ curl_json() {
   body="$(cat "${tmp_file}")"
   rm -f "${tmp_file}"
 
-  if [[ ! "${http_code}" =~ ^2 ]]; then
-    print_json "${body}" >&2 || true
-    fail "unexpected http status ${http_code} for ${path}"
+  CURL_LAST_STATUS="${http_code}"
+  CURL_LAST_BODY="${body}"
+}
+
+curl_json() {
+  local path="$1"
+  local payload="$2"
+  local auth_required="${3:-0}"
+
+  curl_request "${path}" "${payload}" "${auth_required}"
+
+  if [[ ! "${CURL_LAST_STATUS}" =~ ^2 ]]; then
+    print_json "${CURL_LAST_BODY}" >&2 || true
+    fail "unexpected http status ${CURL_LAST_STATUS} for ${path}"
   fi
 
-  printf '%s' "${body}"
+  printf '%s' "${CURL_LAST_BODY}"
+}
+
+curl_json_expect_error() {
+  local path="$1"
+  local payload="$2"
+  local expected_message="${3:-}"
+  local auth_required="${4:-0}"
+  local expected_status="${5:-}"
+
+  curl_request "${path}" "${payload}" "${auth_required}"
+
+  if [[ "${CURL_LAST_STATUS}" =~ ^2 ]]; then
+    print_json "${CURL_LAST_BODY}" >&2 || true
+    fail "expected non-2xx http status for ${path}, got ${CURL_LAST_STATUS}"
+  fi
+
+  if [[ -n "${expected_status}" && "${CURL_LAST_STATUS}" != "${expected_status}" ]]; then
+    print_json "${CURL_LAST_BODY}" >&2 || true
+    fail "unexpected http status ${CURL_LAST_STATUS} for ${path}, expected ${expected_status}"
+  fi
+
+  if [[ -n "${expected_message}" && "${CURL_LAST_BODY}" != *"${expected_message}"* ]]; then
+    print_json "${CURL_LAST_BODY}" >&2 || true
+    fail "expected error body to contain '${expected_message}' for ${path}"
+  fi
+
+  printf '%s' "${CURL_LAST_BODY}"
+}
+
+get_preorder_remain_number() {
+  local ticket_category_id="$1"
+  local body remain
+
+  body="$(curl_json "/program/preorder/detail" "{\"id\":${PROGRAM_ID}}")"
+  remain="$(
+    printf '%s' "${body}" | jq -er --arg ticket_category_id "${ticket_category_id}" '.ticketCategoryVoList[] | select((.id | tostring) == $ticket_category_id) | .remainNumber'
+  )" || fail "missing remainNumber for ticketCategoryId=${ticket_category_id}"
+
+  printf '%s' "${remain}"
 }
 
 preflight() {
@@ -261,4 +313,6 @@ main() {
     "${ORDER_NUMBER}"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

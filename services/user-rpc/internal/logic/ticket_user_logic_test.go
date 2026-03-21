@@ -4,7 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"damai-go/pkg/xerr"
 	"damai-go/services/user-rpc/pb"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestAddTicketUserCreatesRecord(t *testing.T) {
@@ -35,6 +39,33 @@ func TestAddTicketUserCreatesRecord(t *testing.T) {
 	}
 	if len(list) != 1 || list[0].RelName != "王五" {
 		t.Fatalf("unexpected ticket users: %+v", list)
+	}
+}
+
+func TestAddTicketUserRejectsDuplicateIdentityDocument(t *testing.T) {
+	svcCtx := newTestServiceContext(t)
+	resetUserDomainState(t)
+	user := mustSeedUser(t, svcCtx, userSeed{
+		Mobile:   "13800000054",
+		Password: "123456",
+	})
+	mustSeedTicketUser(t, svcCtx, user.Id, "王五", 1, "440101199303031234")
+
+	l := NewAddTicketUserLogic(context.Background(), svcCtx)
+	_, err := l.AddTicketUser(&pb.AddTicketUserReq{
+		UserId:   user.Id,
+		RelName:  "王五-重复",
+		IdType:   1,
+		IdNumber: "440101199303031234",
+	})
+	if err == nil {
+		t.Fatalf("expected duplicate ticket user error")
+	}
+	if status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("expected already exists, got %s", status.Code(err))
+	}
+	if status.Convert(err).Message() != xerr.ErrTicketUserExists.Error() {
+		t.Fatalf("unexpected error message: %s", status.Convert(err).Message())
 	}
 }
 

@@ -26,6 +26,12 @@ export MOBILE="139${SUFFIX}"
 bash scripts/acceptance/order_checkout.sh
 ```
 
+失败分支单独见：
+
+```bash
+bash scripts/acceptance/order_checkout_failures.sh
+```
+
 脚本默认读取：
 
 - `BASE_URL`

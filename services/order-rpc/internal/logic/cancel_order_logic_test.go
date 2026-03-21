@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"damai-go/services/order-rpc/pb"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestCancelOrderCancelsOwnerUnpaidOrder(t *testing.T) {
@@ -89,5 +92,62 @@ func TestCancelOrderIsIdempotentForAlreadyCancelledOrder(t *testing.T) {
 	}
 	if programRPC.releaseSeatFreezeCalls != 0 {
 		t.Fatalf("expected no extra release call, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+}
+
+func TestCancelOrderReturnsNotFoundForAnotherUser(t *testing.T) {
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	seedOrderFixtures(t, svcCtx, orderFixture{
+		ID:          8001,
+		OrderNumber: 91002,
+		ProgramID:   10001,
+		UserID:      3002,
+		OrderStatus: testOrderStatusUnpaid,
+		FreezeToken: "freeze-cancel-owner",
+	})
+
+	l := NewCancelOrderLogic(context.Background(), svcCtx)
+	_, err := l.CancelOrder(&pb.CancelOrderReq{
+		UserId:      3001,
+		OrderNumber: 91002,
+	})
+	if err == nil {
+		t.Fatalf("expected not found error")
+	}
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("expected not found, got %s", status.Code(err))
+	}
+	if programRPC.releaseSeatFreezeCalls != 0 {
+		t.Fatalf("expected no release call, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+}
+
+func TestCancelOrderRejectsPaidOrder(t *testing.T) {
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	seedOrderFixtures(t, svcCtx, orderFixture{
+		ID:           8001,
+		OrderNumber:  91003,
+		ProgramID:    10001,
+		UserID:       3001,
+		OrderStatus:  testOrderStatusPaid,
+		FreezeToken:  "freeze-cancel-paid",
+		PayOrderTime: "2026-01-02 00:00:00",
+	})
+
+	l := NewCancelOrderLogic(context.Background(), svcCtx)
+	_, err := l.CancelOrder(&pb.CancelOrderReq{
+		UserId:      3001,
+		OrderNumber: 91003,
+	})
+	if err == nil {
+		t.Fatalf("expected failed precondition error")
+	}
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition, got %s", status.Code(err))
+	}
+	if programRPC.releaseSeatFreezeCalls != 0 {
+		t.Fatalf("expected no release call, got %d", programRPC.releaseSeatFreezeCalls)
 	}
 }
