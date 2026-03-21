@@ -18,7 +18,7 @@
 docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
 ```
 
-当前仓库提供的基础设施 compose 只覆盖 MySQL、Redis、etcd；订单创建链路已经改为 `Redis 锁座 + Kafka 异步落库`，因此还需要额外准备 Kafka broker，并与 `services/order-rpc/etc/order-rpc.yaml` 中的 `Kafka.Brokers` 保持一致。若 Kafka 不可用，`/order/create` 会在锁座后执行失败补偿并返回错误。
+当前仓库提供的基础设施 compose 已包含 MySQL、Redis、etcd、Kafka。`services/order-rpc/etc/order-rpc.yaml` 的本地 `Kafka.Brokers` 默认指向 `127.0.0.1:9094`，与 compose 暴露端口保持一致。若 Kafka 不可用，`/order/create` 会在锁座后执行失败补偿并返回错误。
 
 ## 初始化本地 SQL
 
