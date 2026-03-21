@@ -224,7 +224,7 @@ curl -X POST http://127.0.0.1:8081/program/seat/freeze \
 预期：
 
 - `/program/preorder/detail` 返回当前演出场次、限购字段、`permitChooseSeat=0`，以及按 `d_seat` 实时聚合的票档余量。
-- `/program/seat/freeze` 返回 `freezeToken`、`expireTime` 和系统自动分配的座位列表；当前阶段不支持用户手动选座。
+- `/program/seat/freeze` 返回 `freezeToken`、`expireTime` 和系统自动分配的座位列表；当前阶段不支持用户手动选座，系统优先分配同排连坐，找不到连坐时拆座兜底。
 
 ## 手工验证 order + pay Phase 1 链路
 

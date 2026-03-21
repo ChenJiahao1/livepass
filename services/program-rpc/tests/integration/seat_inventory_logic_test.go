@@ -75,6 +75,41 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 		}
 	})
 
+	t.Run("falls back to split seats when no same-row consecutive block exists", func(t *testing.T) {
+		svcCtx := newProgramTestServiceContext(t)
+		resetProgramDomainState(t)
+
+		const programID int64 = 51006
+		const ticketCategoryID int64 = 61006
+		seedSeatInventoryProgram(t, svcCtx, programID, ticketCategoryID)
+		seedSeatFixtures(t, svcCtx,
+			seatFixture{ID: 71101, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+			seatFixture{ID: 71102, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 3, SeatStatus: testSeatStatusAvailable},
+			seatFixture{ID: 71103, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 2, ColCode: 2, SeatStatus: testSeatStatusAvailable},
+		)
+
+		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
+		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
+			ProgramId:        programID,
+			TicketCategoryId: ticketCategoryID,
+			Count:            2,
+			RequestNo:        "req-seat-split-fallback",
+			FreezeSeconds:    900,
+		})
+		if err != nil {
+			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
+		}
+		if len(resp.Seats) != 2 {
+			t.Fatalf("expected 2 seats, got %d", len(resp.Seats))
+		}
+		if resp.Seats[0].SeatId != 71101 || resp.Seats[1].SeatId != 71102 {
+			t.Fatalf("expected split fallback seats [71101 71102], got %+v", resp.Seats)
+		}
+		if resp.Seats[0].RowCode != 1 || resp.Seats[0].ColCode != 1 || resp.Seats[1].RowCode != 1 || resp.Seats[1].ColCode != 3 {
+			t.Fatalf("expected non-consecutive fallback seats at (1,1) and (1,3), got %+v", resp.Seats)
+		}
+	})
+
 	t.Run("repeated requestNo returns same freeze token and seat set", func(t *testing.T) {
 		svcCtx := newProgramTestServiceContext(t)
 		resetProgramDomainState(t)
