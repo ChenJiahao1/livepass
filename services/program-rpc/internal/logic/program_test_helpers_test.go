@@ -200,6 +200,16 @@ func seedSeatInventoryProgram(t *testing.T, svcCtx *svc.ServiceContext, programI
 	})
 }
 
+func clearSeatInventoryByProgram(t *testing.T, svcCtx *svc.ServiceContext, programID int64) {
+	t.Helper()
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	mustExecProgramSQL(t, db, "DELETE FROM d_seat_freeze WHERE program_id = ?", programID)
+	mustExecProgramSQL(t, db, "DELETE FROM d_seat WHERE program_id = ?", programID)
+}
+
 func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 

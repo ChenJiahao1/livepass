@@ -95,6 +95,7 @@ docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_pay < sql/pay/
 ```bash
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS total FROM damai_program.d_program WHERE id = 10001;"
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS total FROM damai_program.d_ticket_category WHERE program_id = 10001;"
+docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT ticket_category_id, COUNT(*) AS total FROM damai_program.d_seat WHERE program_id = 10001 AND status = 1 AND seat_status = 1 GROUP BY ticket_category_id ORDER BY ticket_category_id;"
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS total FROM damai_order.d_order;"
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS total FROM damai_pay.d_pay_bill;"
 ```
@@ -103,6 +104,7 @@ docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS 
 
 - `damai_program.d_program` 中能查到 `id=10001`
 - `damai_program.d_ticket_category` 中能查到 `program_id=10001` 的票档
+- `damai_program.d_seat` 中能查到 `ticket_category_id=40001` 有 `100` 个可售座位、`ticket_category_id=40002` 有 `80` 个可售座位
 - `damai_order.d_order` 与 `damai_pay.d_pay_bill` 可正常查询
 
 ## 启动服务
@@ -300,10 +302,34 @@ curl -sS -X POST "${BASE_URL}/order/get" \
   - 已分配座位
   - 已支付状态
 
+一次已验证通过的成功标记示例：
+
+```text
+/program/preorder/detail:
+- ticketCategoryVoList[0].id = 40001
+- ticketCategoryVoList[0].remainNumber = 100
+- ticketCategoryVoList[1].id = 40002
+- ticketCategoryVoList[1].remainNumber = 80
+
+/order/pay:
+- orderStatus = 3
+- payStatus = 2
+- payBillNo > 0
+
+/order/get:
+- ticketCount = 2
+- orderStatus = 3
+- orderTicketInfoVoList[0].seatRow = 1
+- orderTicketInfoVoList[0].seatCol = 1
+- orderTicketInfoVoList[1].seatRow = 1
+- orderTicketInfoVoList[1].seatCol = 2
+```
+
 ## 常见失败点
 
 - `gateway-api` 可用，但下游 API/RPC 未启动或未注册到 `etcd`
 - MySQL 已启动，但 `programId=10001` 的节目、票档或座位种子数据未导入
+- `damai_program.d_seat` 没有为 `programId=10001` 导入座位行，导致 `/program/preorder/detail` 的 `remainNumber=0`，随后 `/order/create` 返回 `seat inventory insufficient`
 - 订单请求缺少 `Authorization` 或 `X-Channel-Code`
 - 观演人 ID 手写，导致 `/order/create` 返回观演人归属校验失败
 - `jq -e` 提取字段失败，说明前序接口没有返回预期结构

@@ -36,3 +36,53 @@ INSERT INTO `d_program_show_time` (`id`, `program_id`, `show_time`, `show_day_ti
 INSERT INTO `d_ticket_category` (`id`, `program_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) VALUES
   (40001, 10001, '普通票', 299, 100, 100, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),
   (40002, 10001, 'VIP票', 599, 80, 80, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
+
+INSERT INTO `d_seat` (
+  `id`, `program_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
+  `freeze_token`, `freeze_expire_time`, `create_time`, `edit_time`, `status`
+)
+WITH RECURSIVE `seq` AS (
+  SELECT 1 AS `n`
+  UNION ALL
+  SELECT `n` + 1 FROM `seq` WHERE `n` < 100
+)
+SELECT
+  50000 + `n`,
+  10001,
+  40001,
+  FLOOR((`n` - 1) / 10) + 1,
+  MOD(`n` - 1, 10) + 1,
+  1,
+  299,
+  1,
+  NULL,
+  NULL,
+  '2026-01-01 00:00:00',
+  '2026-01-01 00:00:00',
+  1
+FROM `seq`;
+
+INSERT INTO `d_seat` (
+  `id`, `program_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
+  `freeze_token`, `freeze_expire_time`, `create_time`, `edit_time`, `status`
+)
+WITH RECURSIVE `seq` AS (
+  SELECT 1 AS `n`
+  UNION ALL
+  SELECT `n` + 1 FROM `seq` WHERE `n` < 80
+)
+SELECT
+  60000 + `n`,
+  10001,
+  40002,
+  FLOOR((`n` - 1) / 10) + 11,
+  MOD(`n` - 1, 10) + 1,
+  1,
+  599,
+  1,
+  NULL,
+  NULL,
+  '2026-01-01 00:00:00',
+  '2026-01-01 00:00:00',
+  1
+FROM `seq`;

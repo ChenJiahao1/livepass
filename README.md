@@ -84,6 +84,7 @@ go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 
 完整步骤见 `docs/api/order-checkout-acceptance.md`。
 可执行脚本见 `scripts/acceptance/order_checkout.sh`。
+首次执行前，先按文档校验 `programId=10001` 的票档和 `d_seat` 座位种子已导入。
 
 ## 手工验证用户链路
 
