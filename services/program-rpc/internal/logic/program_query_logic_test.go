@@ -238,6 +238,7 @@ func TestListTicketCategoriesByProgramReturnsRemainNumbers(t *testing.T) {
 func TestGetProgramPreorderReturnsLiveRemainNumbersFromSeats(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
+	clearSeatInventoryByProgram(t, svcCtx, 10001)
 	seedSeatFixtures(t, svcCtx,
 		seatFixture{ID: 91001, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
 		seatFixture{ID: 91002, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusAvailable},
@@ -270,9 +271,29 @@ func TestGetProgramPreorderReturnsLiveRemainNumbersFromSeats(t *testing.T) {
 	}
 }
 
+func TestResetProgramDomainStateSeedsCheckoutInventory(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	l := NewGetProgramPreorderLogic(context.Background(), svcCtx)
+	resp, err := l.GetProgramPreorder(&pb.GetProgramDetailReq{Id: 10001})
+	if err != nil {
+		t.Fatalf("GetProgramPreorder returned error: %v", err)
+	}
+
+	remainByCategory := map[int64]int64{}
+	for _, item := range resp.TicketCategoryVoList {
+		remainByCategory[item.Id] = item.RemainNumber
+	}
+	if remainByCategory[40001] < 2 || remainByCategory[40002] < 2 {
+		t.Fatalf("expected checkout seed inventory for program 10001, got %+v", remainByCategory)
+	}
+}
+
 func TestGetProgramPreorderExcludesFrozenAndSoldSeats(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
+	clearSeatInventoryByProgram(t, svcCtx, 10001)
 	seedSeatFixtures(t, svcCtx,
 		seatFixture{ID: 93001, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
 		seatFixture{ID: 93002, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusFrozen, FreezeToken: "freeze-preorder-001", FreezeExpireTime: "2026-12-31 18:00:00"},
