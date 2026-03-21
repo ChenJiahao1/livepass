@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"damai-go/pkg/xerr"
+	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 	programrpc "damai-go/services/program-rpc/programrpc"
@@ -34,6 +35,19 @@ func NewCreateOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderResp, error) {
 	if err := validateCreateOrderReq(in); err != nil {
 		return nil, err
+	}
+
+	if l.svcCtx.RepeatGuard != nil {
+		unlock, err := l.svcCtx.RepeatGuard.Lock(l.ctx, repeatguard.OrderCreateKey(in.GetUserId(), in.GetProgramId()))
+		if err != nil {
+			if errors.Is(err, repeatguard.ErrLocked) {
+				return nil, mapOrderError(xerr.ErrOrderSubmitTooFrequent)
+			}
+			return nil, mapOrderError(err)
+		}
+		if unlock != nil {
+			defer unlock()
+		}
 	}
 
 	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramDetailReq{

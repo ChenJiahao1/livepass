@@ -412,6 +412,97 @@ func TestConcurrentSeatFreezeDoesNotOverlap(t *testing.T) {
 	}
 }
 
+func TestConcurrentSeatFreezeUsesDifferentHotspotKeysPerTicketCategory(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	const programID int64 = 53002
+	const ticketCategoryIDOne int64 = 63011
+	const ticketCategoryIDTwo int64 = 63012
+
+	seedProgramFixtures(t, svcCtx, programFixture{
+		ProgramID:               programID,
+		ProgramGroupID:          programID + 1000,
+		ParentProgramCategoryID: 1,
+		ProgramCategoryID:       11,
+		AreaID:                  1,
+		Title:                   "不同票档热点锁测试演出",
+		ShowTime:                "2026-12-31 19:30:00",
+		ShowDayTime:             "2026-12-31 00:00:00",
+		ShowWeekTime:            "周四",
+		TicketCategories: []ticketCategoryFixture{
+			{ID: ticketCategoryIDOne, Introduce: "普通票A", Price: 299, TotalNumber: 100, RemainNumber: 100},
+			{ID: ticketCategoryIDTwo, Introduce: "普通票B", Price: 399, TotalNumber: 100, RemainNumber: 100},
+		},
+	})
+	seedSeatFixtures(t, svcCtx,
+		seatFixture{ID: 78101, ProgramID: programID, TicketCategoryID: ticketCategoryIDOne, RowCode: 1, ColCode: 1},
+		seatFixture{ID: 78102, ProgramID: programID, TicketCategoryID: ticketCategoryIDOne, RowCode: 1, ColCode: 2},
+		seatFixture{ID: 78201, ProgramID: programID, TicketCategoryID: ticketCategoryIDTwo, RowCode: 2, ColCode: 1},
+		seatFixture{ID: 78202, ProgramID: programID, TicketCategoryID: ticketCategoryIDTwo, RowCode: 2, ColCode: 2},
+	)
+
+	recordingLocker := &recordingSeatFreezeLocker{}
+	svcCtx.SeatFreezeLocker = recordingLocker
+
+	var (
+		wg   sync.WaitGroup
+		mu   sync.Mutex
+		errs []error
+	)
+	requests := []*pb.AutoAssignAndFreezeSeatsReq{
+		{ProgramId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, RequestNo: "req-hotspot-cat-1", FreezeSeconds: 900},
+		{ProgramId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, RequestNo: "req-hotspot-cat-2", FreezeSeconds: 900},
+	}
+
+	for _, req := range requests {
+		wg.Add(1)
+		go func(req *pb.AutoAssignAndFreezeSeatsReq) {
+			defer wg.Done()
+			_, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(req)
+			mu.Lock()
+			errs = append(errs, err)
+			mu.Unlock()
+		}(req)
+	}
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			t.Fatalf("expected concurrent freeze success for different categories, got %v", err)
+		}
+	}
+
+	keys := recordingLocker.Keys()
+	if len(keys) != 2 {
+		t.Fatalf("expected 2 lock keys, got %v", keys)
+	}
+	if keys[0] == keys[1] {
+		t.Fatalf("expected different ticket categories to use different hotspot keys, got %v", keys)
+	}
+}
+
+type recordingSeatFreezeLocker struct {
+	mu   sync.Mutex
+	keys []string
+}
+
+func (l *recordingSeatFreezeLocker) Lock(key string) func() {
+	l.mu.Lock()
+	l.keys = append(l.keys, key)
+	l.mu.Unlock()
+	return func() {}
+}
+
+func (l *recordingSeatFreezeLocker) Keys() []string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	keys := make([]string, len(l.keys))
+	copy(keys, l.keys)
+	return keys
+}
+
 type seatRow struct {
 	ID          int64
 	SeatStatus  int

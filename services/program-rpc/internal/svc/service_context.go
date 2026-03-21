@@ -8,6 +8,10 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
+type SeatFreezeLocker interface {
+	Lock(key string) func()
+}
+
 type ServiceContext struct {
 	Config                config.Config
 	SqlConn               sqlx.SqlConn
@@ -18,6 +22,7 @@ type ServiceContext struct {
 	DSeatModel            model.DSeatModel
 	DSeatFreezeModel      model.DSeatFreezeModel
 	DTicketCategoryModel  model.DTicketCategoryModel
+	SeatFreezeLocker      SeatFreezeLocker
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {

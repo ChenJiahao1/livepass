@@ -32,6 +32,7 @@ var (
 	ErrOrderRefundRuleInvalid     = errors.New("order refund rule invalid")
 	ErrOrderTicketUserInvalid     = errors.New("order ticket user invalid")
 	ErrOrderPurchaseLimitExceeded = errors.New("order purchase limit exceeded")
+	ErrOrderSubmitTooFrequent     = errors.New("提交频繁，请稍后重试")
 
 	ErrPayBillNotFound = errors.New("pay bill not found")
 )

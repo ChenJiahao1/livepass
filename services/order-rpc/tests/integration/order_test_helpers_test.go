@@ -13,13 +13,16 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/services/order-rpc/internal/config"
 	"damai-go/services/order-rpc/internal/model"
+	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
 
+	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 )
 
@@ -73,9 +76,10 @@ type orderTicketUserFixture struct {
 }
 
 type fakeOrderProgramRPC struct {
-	getProgramPreorderResp    *programrpc.ProgramPreorderInfo
-	getProgramPreorderErr     error
-	lastGetProgramPreorderReq *programrpc.GetProgramDetailReq
+	getProgramPreorderResp            *programrpc.ProgramPreorderInfo
+	getProgramPreorderRespByProgramID map[int64]*programrpc.ProgramPreorderInfo
+	getProgramPreorderErr             error
+	lastGetProgramPreorderReq         *programrpc.GetProgramDetailReq
 
 	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
 	autoAssignAndFreezeSeatsErr     error
@@ -102,9 +106,10 @@ type fakeOrderProgramRPC struct {
 }
 
 type fakeOrderUserRPC struct {
-	getUserAndTicketUserListResp    *userrpc.GetUserAndTicketUserListResp
-	getUserAndTicketUserListErr     error
-	lastGetUserAndTicketUserListReq *userrpc.GetUserAndTicketUserListReq
+	getUserAndTicketUserListResp         *userrpc.GetUserAndTicketUserListResp
+	getUserAndTicketUserListRespByUserID map[int64]*userrpc.GetUserAndTicketUserListResp
+	getUserAndTicketUserListErr          error
+	lastGetUserAndTicketUserListReq      *userrpc.GetUserAndTicketUserListReq
 }
 
 type fakeOrderPayRPC struct {
@@ -124,15 +129,32 @@ type fakeOrderPayRPC struct {
 	refundCalls   int
 }
 
+type fakeOrderRepeatGuard struct {
+	lastKey     string
+	lockErr     error
+	lockCalls   int
+	unlockCalls int
+}
+
 func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC, *fakeOrderPayRPC) {
 	t.Helper()
 
 	cfg := config.Config{
+		RpcServerConf: zrpc.RpcServerConf{
+			Etcd: discov.EtcdConf{
+				Hosts: []string{"127.0.0.1:2379"},
+			},
+		},
 		MySQL: xmysql.Config{
 			DataSource: testOrderMySQLDataSource,
 		},
 		Order: config.OrderConfig{
 			CloseAfter: 15 * time.Minute,
+		},
+		RepeatGuard: config.RepeatGuardConfig{
+			Prefix:             "/damai-go/tests/repeat-guard/order-create/",
+			SessionTTL:         10,
+			LockAcquireTimeout: 200 * time.Millisecond,
 		},
 	}
 
@@ -156,6 +178,18 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	}
 
 	return svcCtx, programRPC, userRPC, payRPC
+}
+
+func (f *fakeOrderRepeatGuard) Lock(_ context.Context, key string) (repeatguard.UnlockFunc, error) {
+	f.lastKey = key
+	f.lockCalls++
+	if f.lockErr != nil {
+		return nil, f.lockErr
+	}
+
+	return func() {
+		f.unlockCalls++
+	}, nil
 }
 
 func resetOrderDomainState(t *testing.T) {
@@ -510,6 +544,9 @@ func (f *fakeOrderProgramRPC) GetProgramDetail(ctx context.Context, in *programr
 
 func (f *fakeOrderProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramDetailReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
 	f.lastGetProgramPreorderReq = in
+	if resp, ok := f.getProgramPreorderRespByProgramID[in.GetId()]; ok {
+		return resp, f.getProgramPreorderErr
+	}
 	return f.getProgramPreorderResp, f.getProgramPreorderErr
 }
 
@@ -586,6 +623,9 @@ func (f *fakeOrderUserRPC) DeleteTicketUser(ctx context.Context, in *userrpc.Del
 
 func (f *fakeOrderUserRPC) GetUserAndTicketUserList(ctx context.Context, in *userrpc.GetUserAndTicketUserListReq, opts ...grpc.CallOption) (*userrpc.GetUserAndTicketUserListResp, error) {
 	f.lastGetUserAndTicketUserListReq = in
+	if resp, ok := f.getUserAndTicketUserListRespByUserID[in.GetUserId()]; ok {
+		return resp, f.getUserAndTicketUserListErr
+	}
 	return f.getUserAndTicketUserListResp, f.getUserAndTicketUserListErr
 }
 

@@ -45,6 +45,9 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 		return nil, err
 	}
 
+	unlock := ensureSeatFreezeLocker(l.svcCtx).Lock(seatFreezeLockKey(in.GetProgramId(), in.GetTicketCategoryId()))
+	defer unlock()
+
 	now := time.Now()
 	var resp *pb.AutoAssignAndFreezeSeatsResp
 

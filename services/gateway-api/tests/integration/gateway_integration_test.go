@@ -251,6 +251,68 @@ func TestGatewayPreservesUpstreamStatusCode(t *testing.T) {
 	}
 }
 
+func TestGatewayPreservesOrderAPIStatusCodes(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		statusCode int
+		body       string
+	}{
+		{
+			name:       "too many requests",
+			statusCode: http.StatusTooManyRequests,
+			body:       `{"message":"提交频繁，请稍后重试"}`,
+		},
+		{
+			name:       "service unavailable",
+			statusCode: http.StatusServiceUnavailable,
+			body:       `{"message":"repeat guard unavailable"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			userAPI := httptest.NewServer(http.NotFoundHandler())
+			defer userAPI.Close()
+
+			programAPI := httptest.NewServer(http.NotFoundHandler())
+			defer programAPI.Close()
+
+			orderAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tc.statusCode)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer orderAPI.Close()
+
+			server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+			defer server.Stop()
+
+			headers := map[string]string{
+				"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
+				"X-Channel-Code": "0001",
+			}
+			resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/order/create", headers, bytes.NewBufferString(`{}`))
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("read response body: %v", err)
+			}
+
+			if resp.StatusCode != tc.statusCode {
+				t.Fatalf("expected status %d, got %d", tc.statusCode, resp.StatusCode)
+			}
+			if string(body) != tc.body {
+				t.Fatalf("expected body %s, got %s", tc.body, string(body))
+			}
+		})
+	}
+}
+
 func TestGatewayReturnsErrorWhenUpstreamTimeout(t *testing.T) {
 	t.Parallel()
 

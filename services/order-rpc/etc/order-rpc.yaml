@@ -23,3 +23,7 @@ UserRpc:
     Key: user.rpc
 Order:
   CloseAfter: 15m
+RepeatGuard:
+  Prefix: /damai-go/repeat-guard/order-create/
+  SessionTTL: 10
+  LockAcquireTimeout: 200ms

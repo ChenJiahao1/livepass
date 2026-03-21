@@ -293,6 +293,8 @@ func mapOrderError(err error) error {
 		return status.Error(codes.InvalidArgument, err.Error())
 	case errors.Is(err, xerr.ErrOrderNotFound), errors.Is(err, xerr.ErrPayBillNotFound):
 		return status.Error(codes.NotFound, err.Error())
+	case errors.Is(err, xerr.ErrOrderSubmitTooFrequent):
+		return status.Error(codes.ResourceExhausted, err.Error())
 	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid), errors.Is(err, xerr.ErrOrderRefundNotAllowed), errors.Is(err, xerr.ErrOrderRefundWindowClosed):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, xerr.ErrOrderRefundRuleInvalid):
