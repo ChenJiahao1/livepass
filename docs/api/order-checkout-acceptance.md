@@ -20,6 +20,36 @@ SUFFIX="$(printf '%08d' "$((RUN_ID % 100000000))")"
 export MOBILE="139${SUFFIX}"
 ```
 
+如需直接执行脚本：
+
+```bash
+bash scripts/acceptance/order_checkout.sh
+```
+
+脚本默认读取：
+
+- `BASE_URL`
+- `CHANNEL_CODE`
+- `PROGRAM_ID`
+- `TICKET_CATEGORY_ID`，可选；默认从 `/program/preorder/detail` 的首个票档解析
+
+脚本也支持额外覆盖：
+
+- `MOBILE`
+- `PASSWORD`
+- `RUN_ID`
+
+脚本成功时会打印：
+
+- `USER_ID`
+- `TOKEN`
+- `TICKET_USER_ID_1`
+- `TICKET_USER_ID_2`
+- `TICKET_CATEGORY_ID`
+- `ORDER_NUMBER`
+
+脚本失败时会在首个失败步骤立即停止；若依赖缺失，会先在预检阶段退出；若服务未就绪，则会在真实网络请求或关键字段提取处停止。
+
 ## 启动基础设施
 
 ```bash
