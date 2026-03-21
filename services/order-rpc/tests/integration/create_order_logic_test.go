@@ -2,11 +2,15 @@ package integration_test
 
 import (
 	"context"
+	"errors"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"damai-go/pkg/xerr"
+	orderevent "damai-go/services/order-rpc/internal/event"
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
@@ -18,9 +22,55 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestCreateOrderCreatesOrderAndSnapshots(t *testing.T) {
+func TestBuildOrderCreateEventCarriesSeatAndProgramSnapshots(t *testing.T) {
+	preorder := buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	userResp := buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+		&userrpc.TicketUserInfo{Id: 702, UserId: 3001, RelName: "李四", IdType: 1, IdNumber: "110101199002021234"},
+	)
+	freezeResp := &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-001",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+			{SeatId: 502, TicketCategoryId: 40001, RowCode: 1, ColCode: 2, Price: 299},
+		},
+	}
+
+	event, err := logicpkg.BuildOrderCreateEvent(
+		&pb.CreateOrderReq{
+			UserId:           3001,
+			ProgramId:        10001,
+			TicketCategoryId: 40001,
+			TicketUserIds:    []int64{701, 702},
+			DistributionMode: "express",
+			TakeTicketMode:   "paper",
+		},
+		preorder,
+		userResp,
+		freezeResp,
+		time.Date(2026, 3, 21, 20, 0, 0, 0, time.Local),
+		15*time.Minute,
+	)
+	if err != nil {
+		t.Fatalf("BuildOrderCreateEvent returned error: %v", err)
+	}
+	if event.OrderNumber == 0 || event.FreezeToken == "" {
+		t.Fatalf("unexpected event: %+v", event)
+	}
+	if len(event.SeatSnapshot) != 2 || event.ProgramSnapshot.Title == "" {
+		t.Fatalf("event snapshot incomplete: %+v", event)
+	}
+}
+
+func TestCreateOrderReturnsOrderNumberAfterKafkaSendSucceeds(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
 	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
@@ -52,14 +102,101 @@ func TestCreateOrderCreatesOrderAndSnapshots(t *testing.T) {
 	if resp.OrderNumber <= 0 {
 		t.Fatalf("expected generated order number, got %d", resp.OrderNumber)
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 1 {
-		t.Fatalf("expected one order row")
+	if producer.sendCalls != 1 {
+		t.Fatalf("expected producer send once, got %d", producer.sendCalls)
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 2 {
-		t.Fatalf("expected two order ticket rows")
+	if producer.lastKey != strconv.FormatInt(resp.OrderNumber, 10) {
+		t.Fatalf("expected producer key to be order number, got %s", producer.lastKey)
+	}
+	orderEvent, err := orderevent.UnmarshalOrderCreateEvent(producer.lastBody)
+	if err != nil {
+		t.Fatalf("UnmarshalOrderCreateEvent returned error: %v", err)
+	}
+	if orderEvent.OrderNumber != resp.OrderNumber || orderEvent.FreezeToken != "freeze-create-001" {
+		t.Fatalf("unexpected event body: %+v", orderEvent)
 	}
 	if programRPC.lastAutoAssignAndFreezeSeatsReq == nil || !strings.HasPrefix(programRPC.lastAutoAssignAndFreezeSeatsReq.RequestNo, "order-") {
 		t.Fatalf("expected freeze request no with order- prefix, got %+v", programRPC.lastAutoAssignAndFreezeSeatsReq)
+	}
+}
+
+func TestCreateOrderReleasesSeatFreezeWhenKafkaSendFails(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
+	producer.sendErr = errors.New("kafka send failed")
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-send-failed",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+
+	_, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701},
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+	})
+	if err == nil {
+		t.Fatalf("expected kafka send error")
+	}
+	if programRPC.releaseSeatFreezeCalls != 1 {
+		t.Fatalf("expected release seat freeze once, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+	if programRPC.lastReleaseSeatFreezeReq == nil || programRPC.lastReleaseSeatFreezeReq.FreezeToken != "freeze-create-send-failed" {
+		t.Fatalf("unexpected release seat freeze request: %+v", programRPC.lastReleaseSeatFreezeReq)
+	}
+}
+
+func TestCreateOrderDoesNotInsertOrderRowsSynchronously(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-async-window",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+
+	resp, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701},
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder returned error: %v", err)
+	}
+	if resp.OrderNumber <= 0 {
+		t.Fatalf("expected generated order number, got %d", resp.OrderNumber)
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
+		t.Fatalf("expected no order row before consumer writes database")
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 0 {
+		t.Fatalf("expected no order ticket rows before consumer writes database")
 	}
 }
 
@@ -393,9 +530,13 @@ func TestCreateOrderLeavesTablesEmptyWhenSeatFreezeFails(t *testing.T) {
 	}
 }
 
-func TestCreateOrderReleasesFreezeOnceWhenInsertFails(t *testing.T) {
+func TestCreateOrderDoesNotFailBeforeAsyncPersistence(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
 	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
@@ -417,25 +558,28 @@ func TestCreateOrderReleasesFreezeOnceWhenInsertFails(t *testing.T) {
 	)
 
 	l := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx)
-	_, err := l.CreateOrder(&pb.CreateOrderReq{
+	resp, err := l.CreateOrder(&pb.CreateOrderReq{
 		UserId:           3001,
 		ProgramId:        10001,
 		TicketCategoryId: 40001,
 		TicketUserIds:    []int64{701},
 	})
-	if err == nil {
-		t.Fatalf("expected insert failure")
+	if err != nil {
+		t.Fatalf("expected async create to succeed before consumer persistence, got %v", err)
 	}
-	if programRPC.releaseSeatFreezeCalls != 1 {
-		t.Fatalf("expected one compensation release call, got %d", programRPC.releaseSeatFreezeCalls)
+	if resp.OrderNumber <= 0 {
+		t.Fatalf("expected generated order number, got %+v", resp)
 	}
-	if programRPC.lastReleaseSeatFreezeReq == nil || programRPC.lastReleaseSeatFreezeReq.FreezeToken != "freeze-create-002" {
-		t.Fatalf("unexpected release request: %+v", programRPC.lastReleaseSeatFreezeReq)
+	if producer.sendCalls != 1 {
+		t.Fatalf("expected producer send once, got %d", producer.sendCalls)
+	}
+	if programRPC.releaseSeatFreezeCalls != 0 {
+		t.Fatalf("expected no compensation release call before async persistence, got %d", programRPC.releaseSeatFreezeCalls)
 	}
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
-		t.Fatalf("expected rolled back order row")
+		t.Fatalf("expected no order row before consumer persistence")
 	}
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 0 {
-		t.Fatalf("expected rolled back order ticket rows")
+		t.Fatalf("expected no order ticket rows before consumer persistence")
 	}
 }

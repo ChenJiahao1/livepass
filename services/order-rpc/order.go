@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 
 	"damai-go/services/order-rpc/internal/config"
+	"damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/internal/server"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
@@ -24,6 +26,13 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
 	ctx := svc.NewServiceContext(c)
+	stopOrderCreateConsumer := logic.StartOrderCreateConsumer(context.Background(), ctx)
+	defer stopOrderCreateConsumer()
+	defer func() {
+		if ctx.OrderCreateProducer != nil {
+			_ = ctx.OrderCreateProducer.Close()
+		}
+	}()
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		pb.RegisterOrderRpcServer(grpcServer, server.NewOrderRpcServer(ctx))

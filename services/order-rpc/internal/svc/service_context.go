@@ -4,6 +4,7 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/services/order-rpc/internal/config"
 	"damai-go/services/order-rpc/internal/model"
+	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
@@ -23,6 +24,8 @@ type ServiceContext struct {
 	ProgramRpc            programrpc.ProgramRpc
 	PayRpc                payrpc.PayRpc
 	UserRpc               userrpc.UserRpc
+	OrderCreateProducer   mq.OrderCreateProducer
+	OrderCreateConsumer   mq.OrderCreateConsumer
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -36,14 +39,51 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(err)
 	}
 
+	var orderCreateProducer mq.OrderCreateProducer
+	var orderCreateConsumer mq.OrderCreateConsumer
+	if len(c.Kafka.Brokers) > 0 {
+		orderCreateProducer = mq.NewOrderCreateProducer(c.Kafka)
+		orderCreateConsumer = mq.NewOrderCreateConsumer(c.Kafka)
+	}
+
 	return &ServiceContext{
 		Config:                c,
 		SqlConn:               conn,
 		DOrderModel:           model.NewDOrderModel(conn),
 		DOrderTicketUserModel: model.NewDOrderTicketUserModel(conn),
 		RepeatGuard:           repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
-		ProgramRpc:            programrpc.NewProgramRpc(zrpc.MustNewClient(c.ProgramRpc)),
-		PayRpc:                payrpc.NewPayRpc(zrpc.MustNewClient(c.PayRpc)),
-		UserRpc:               userrpc.NewUserRpc(zrpc.MustNewClient(c.UserRpc)),
+		ProgramRpc:            newProgramRPC(c.ProgramRpc),
+		PayRpc:                newPayRPC(c.PayRpc),
+		UserRpc:               newUserRPC(c.UserRpc),
+		OrderCreateProducer:   orderCreateProducer,
+		OrderCreateConsumer:   orderCreateConsumer,
 	}
+}
+
+func hasRPCClientConf(conf zrpc.RpcClientConf) bool {
+	return len(conf.Endpoints) > 0 || conf.Target != "" || len(conf.Etcd.Hosts) > 0
+}
+
+func newProgramRPC(conf zrpc.RpcClientConf) programrpc.ProgramRpc {
+	if !hasRPCClientConf(conf) {
+		return nil
+	}
+
+	return programrpc.NewProgramRpc(zrpc.MustNewClient(conf))
+}
+
+func newPayRPC(conf zrpc.RpcClientConf) payrpc.PayRpc {
+	if !hasRPCClientConf(conf) {
+		return nil
+	}
+
+	return payrpc.NewPayRpc(zrpc.MustNewClient(conf))
+}
+
+func newUserRPC(conf zrpc.RpcClientConf) userrpc.UserRpc {
+	if !hasRPCClientConf(conf) {
+		return nil
+	}
+
+	return userrpc.NewUserRpc(zrpc.MustNewClient(conf))
 }

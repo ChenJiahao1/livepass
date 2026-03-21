@@ -136,6 +136,22 @@ type fakeOrderRepeatGuard struct {
 	unlockCalls int
 }
 
+type fakeOrderCreateProducer struct {
+	sendErr    error
+	lastKey    string
+	lastBody   []byte
+	sendCalls  int
+	closeCalls int
+}
+
+type fakeOrderCreateConsumer struct {
+	startErr   error
+	startCalls int
+	closeCalls int
+	handler    func(context.Context, []byte) error
+	started    chan struct{}
+}
+
 func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC, *fakeOrderPayRPC) {
 	t.Helper()
 
@@ -165,6 +181,10 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	}
 	userRPC := &fakeOrderUserRPC{}
 	payRPC := &fakeOrderPayRPC{}
+	orderCreateProducer := &fakeOrderCreateProducer{}
+	orderCreateConsumer := &fakeOrderCreateConsumer{
+		started: make(chan struct{}, 1),
+	}
 	cfg.MySQL.DataSource = xmysql.WithLocalTime(cfg.MySQL.DataSource)
 	conn := sqlx.NewMysql(cfg.MySQL.DataSource)
 	svcCtx := &svc.ServiceContext{
@@ -175,9 +195,40 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		ProgramRpc:            programRPC,
 		UserRpc:               userRPC,
 		PayRpc:                payRPC,
+		OrderCreateProducer:   orderCreateProducer,
+		OrderCreateConsumer:   orderCreateConsumer,
 	}
 
 	return svcCtx, programRPC, userRPC, payRPC
+}
+
+func (f *fakeOrderCreateProducer) Send(_ context.Context, key string, value []byte) error {
+	f.lastKey = key
+	f.lastBody = append(f.lastBody[:0], value...)
+	f.sendCalls++
+	return f.sendErr
+}
+
+func (f *fakeOrderCreateProducer) Close() error {
+	f.closeCalls++
+	return nil
+}
+
+func (f *fakeOrderCreateConsumer) Start(_ context.Context, handler func(context.Context, []byte) error) error {
+	f.startCalls++
+	f.handler = handler
+	if f.started != nil {
+		select {
+		case f.started <- struct{}{}:
+		default:
+		}
+	}
+	return f.startErr
+}
+
+func (f *fakeOrderCreateConsumer) Close() error {
+	f.closeCalls++
+	return nil
 }
 
 func (f *fakeOrderRepeatGuard) Lock(_ context.Context, key string) (repeatguard.UnlockFunc, error) {

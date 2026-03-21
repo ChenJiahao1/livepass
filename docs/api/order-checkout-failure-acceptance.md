@@ -20,6 +20,7 @@ bash scripts/acceptance/order_checkout_failures.sh
 - 基础设施、SQL 与 `gateway-api`/各下游服务已按 [下单主路径验收](/home/chenjiahao/code/project/damai-go/docs/api/order-checkout-acceptance.md) 启动
 - 本机可用 `curl`、`jq`、`docker`、`go`
 - MySQL 仍通过容器 `docker-compose-mysql-1` 暴露，默认 root 密码为 `123456`
+- Kafka broker 已启动，且 `order-rpc` 所用 topic / consumer group 可正常连通
 - `order-rpc` 已启动；脚本会自行触发一次 `jobs/order-close/order_close.go` 来验证超时关单，不要求常驻启动 job
 
 ## 默认环境变量
@@ -38,6 +39,7 @@ export MYSQL_PASSWORD="${MYSQL_PASSWORD:-123456}"
 - `INVENTORY_FAIL_TICKET_CATEGORY_ID`：库存不足场景使用的票档；默认优先取预下单详情里的第 2 个票档，否则回退到第 1 个
 - `ORDER_CLOSE_CONFIG`：超时关单 job 的配置文件路径
 - `ORDER_CLOSE_WAIT_SECONDS`：等待 `order-close` 首次执行完成的秒数，默认 `30`
+- `ORDER_VISIBLE_WAIT_SECONDS`：创建后等待订单可见的最长秒数，默认 `15`
 
 ## 脚本行为
 
@@ -67,6 +69,7 @@ export MYSQL_PASSWORD="${MYSQL_PASSWORD:-123456}"
 ### 3. 订单取消后再次支付
 
 - 正常创建一笔未支付订单
+- 轮询 `/order/get` 直到订单可见；在可见前短时间返回 `order not found` 视为允许行为
 - 调用 `/order/cancel`
 - 再调 `/order/get`，期望 `orderStatus=2`
 - 再调 `/order/pay`
@@ -75,6 +78,7 @@ export MYSQL_PASSWORD="${MYSQL_PASSWORD:-123456}"
 ### 4. 超时关单
 
 - 再创建一笔未支付订单
+- 轮询 `/order/get` 直到订单可见；在可见前短时间返回 `order not found` 视为允许行为
 - 通过 MySQL 把该订单的 `order_expire_time` 改到当前时间之前
 - 启动一次 `go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml`
 - 再调 `/order/get`，期望 `orderStatus=2`
@@ -88,3 +92,4 @@ export MYSQL_PASSWORD="${MYSQL_PASSWORD:-123456}"
 - 4 个失败场景都命中预期错误语义
 - 库存不足场景的临时座位变更被恢复
 - 超时关单场景中，被关闭订单对应的座位余量恢复
+- 创建消息如果超过 `Kafka.MaxMessageDelay` 仍未消费，consumer 会主动释放锁座，不再补写订单

@@ -18,6 +18,8 @@
 docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
 ```
 
+当前仓库提供的基础设施 compose 只覆盖 MySQL、Redis、etcd；订单创建链路已经改为 `Redis 锁座 + Kafka 异步落库`，因此还需要额外准备 Kafka broker，并与 `services/order-rpc/etc/order-rpc.yaml` 中的 `Kafka.Brokers` 保持一致。若 Kafka 不可用，`/order/create` 会在锁座后执行失败补偿并返回错误。
+
 ## 初始化用户域表结构
 
 MySQL 容器启动后，执行以下命令导入用户域 SQL：
@@ -95,12 +97,14 @@ go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 完整步骤见 `docs/api/order-checkout-acceptance.md`。
 可执行脚本见 `scripts/acceptance/order_checkout.sh`。
 首次执行前，先按文档校验 `programId=10001` 的票档和 `d_seat` 座位种子已导入。
+创建成功后只代表 Kafka 已接收创建指令；`/order/get` 与 `/order/select/list` 允许短时间不可见。验收脚本会在支付前自动轮询订单可见性。
 
 ## 下单失败分支验收
 
 失败分支说明见 `docs/api/order-checkout-failure-acceptance.md`。
 可执行脚本见 `scripts/acceptance/order_checkout_failures.sh`。
 当前覆盖重复观演人、库存不足、取消后支付失败、超时关单 4 条路径。
+失败脚本同样会在需要操作订单前等待异步落库完成，避免把短暂的 `order not found` 误判成业务错误。
 
 ## 订单退款主路径验收
 
@@ -301,7 +305,8 @@ curl -X POST http://127.0.0.1:8081/order/cancel \
 预期：
 
 - 所有 order 接口都要求 `Authorization: Bearer <jwt>` 和 `X-Channel-Code: 0001`。
-- 创建成功后会返回新的 `orderNumber`，列表和详情只能看到当前登录用户的订单。
+- 创建成功后会返回新的 `orderNumber`，但这只表示 Kafka 已接收创建指令；短时间内 `/order/get`、`/order/select/list`、`/order/pay`、`/order/cancel` 仍可能返回 `order not found`。
+- 列表和详情只能看到当前登录用户的订单；如需支付、取消或退款，先轮询到订单可见再继续。
 - `/order/pay` 会同步创建模拟支付单、确认冻结座位并把订单状态推进到 `3 paid`。
 - `/order/pay/check` 在已支付后会返回支付单号、支付状态和支付时间。
 - `/order/refund` 会同步发起模拟退款、释放已售座位并把订单状态推进到 `4 refunded`。

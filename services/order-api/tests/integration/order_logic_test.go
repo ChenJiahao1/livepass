@@ -46,6 +46,39 @@ func TestCreateOrderUsesUserIDFromContext(t *testing.T) {
 	}
 }
 
+func TestCreateOrderMayNotBeImmediatelyVisible(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		createOrderResp: &orderrpc.CreateOrderResp{OrderNumber: 91001},
+		getOrderErr:     status.Error(codes.NotFound, xerr.ErrOrderNotFound.Error()),
+	}
+	ctx := xmiddleware.WithUserID(context.Background(), 3001)
+	serviceCtx := newOrderAPIServiceContext(fakeRPC)
+
+	createLogic := logicpkg.NewCreateOrderLogic(ctx, serviceCtx)
+	createResp, err := createLogic.CreateOrder(&types.CreateOrderReq{
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		TicketUserIds:    []int64{701, 702},
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder returned error: %v", err)
+	}
+	if createResp.OrderNumber != 91001 {
+		t.Fatalf("unexpected create response: %+v", createResp)
+	}
+
+	getLogic := logicpkg.NewGetOrderLogic(ctx, serviceCtx)
+	_, err = getLogic.GetOrder(&types.GetOrderReq{OrderNumber: createResp.OrderNumber})
+	if err == nil {
+		t.Fatalf("expected not found during async visibility window")
+	}
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("expected not found, got %s", status.Code(err))
+	}
+}
+
 func TestListOrdersUsesDefaultPageValuesWhenOmitted(t *testing.T) {
 	fakeRPC := &fakeOrderRPC{
 		listOrdersResp: &orderrpc.ListOrdersResp{

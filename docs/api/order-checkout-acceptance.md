@@ -5,6 +5,7 @@
 - 默认网关地址：`http://127.0.0.1:8081`
 - 默认渠道码：`0001`
 - 默认验收节目：`programId=10001`
+- `order-rpc` 现在依赖 Kafka；除 MySQL/Redis/etcd 外，还需要可访问的 Kafka broker，并与 `services/order-rpc/etc/order-rpc.yaml` 中的 `Kafka.Brokers` 对齐
 - 本文档所有 HTTP 请求都只经过 `gateway-api`，不直接访问 `user-api`、`program-api`、`order-api` 或任何 RPC 服务。
 - 本文档默认本地安装 `curl`、`jq`、`docker`、`go`。
 - 建议先准备本次执行使用的环境变量：
@@ -44,6 +45,7 @@ bash scripts/acceptance/order_checkout_failures.sh
 - `MOBILE`
 - `PASSWORD`
 - `RUN_ID`
+- `ORDER_VISIBLE_WAIT_SECONDS`，创建后等待订单可见的最长秒数，默认 `15`
 
 脚本成功时会打印：
 
@@ -67,6 +69,7 @@ docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml ps
 
 - `mysql`、`redis`、`etcd` 容器状态均为 `Up`
 - 没有持续重启或 `Exited` 的基础设施容器
+- Kafka broker 已单独启动，且 `order-rpc` 所用 topic / consumer group 可正常连通
 
 ## 导入 SQL
 
@@ -253,8 +256,25 @@ printf 'ORDER_NUMBER=%s\n' "${ORDER_NUMBER}"
 成功判定：
 
 - 返回非空 `orderNumber`
+- 这里的成功仅表示 `order-rpc` 已完成锁座并把创建指令写入 Kafka，不保证订单已经同步落库
 
-7. 调用 `/order/pay`
+7. 轮询 `/order/get`，等待订单异步可见
+
+```bash
+until curl -sS -X POST "${BASE_URL}/order/get" \
+  "${ORDER_HEADERS[@]}" \
+  -d "{\"orderNumber\":${ORDER_NUMBER}}" | jq -e ".orderNumber == ${ORDER_NUMBER}" >/dev/null 2>&1; do
+  sleep 1
+done
+```
+
+成功判定：
+
+- 在合理等待窗口内最终能查询到目标订单
+- 在订单真正落库前，`/order/get` 返回 `order not found` 视为允许行为
+- 同一窗口内，`/order/select/list`、`/order/pay`、`/order/cancel` 也可能暂时返回订单不存在
+
+8. 调用 `/order/pay`
 
 ```bash
 curl -sS -X POST "${BASE_URL}/order/pay" \
@@ -268,7 +288,7 @@ curl -sS -X POST "${BASE_URL}/order/pay" \
 - `payBillNo` 为非空
 - `payStatus` 为已支付状态
 
-8. 调用 `/order/pay/check`
+9. 调用 `/order/pay/check`
 
 ```bash
 curl -sS -X POST "${BASE_URL}/order/pay/check" \
@@ -281,7 +301,7 @@ curl -sS -X POST "${BASE_URL}/order/pay/check" \
 - 返回中的 `orderNumber` 等于目标订单
 - `payStatus` 仍为已支付状态
 
-9. 调用 `/order/get`
+10. 调用 `/order/get`
 
 ```bash
 curl -sS -X POST "${BASE_URL}/order/get" \
@@ -303,6 +323,7 @@ curl -sS -X POST "${BASE_URL}/order/get" \
 - 所有订单相关接口都显式携带：
   - `Authorization: Bearer <token>`
   - `X-Channel-Code: 0001`
+- `/order/create` 成功后允许存在短暂异步窗口，只有轮询到 `/order/get` 可见后，才继续支付或取消类操作
 - 最终订单详情里可见：
   - 2 个观演人
   - 已分配座位
@@ -312,6 +333,7 @@ curl -sS -X POST "${BASE_URL}/order/get" \
 
 - 当前项目不支持用户自主选座。
 - 系统分配座位时优先同排连坐；如果当前余座无法满足连坐，会自动拆座兜底。
+- 创建消息如果超过 `Kafka.MaxMessageDelay` 仍未被消费，consumer 会主动释放锁座，不再补写订单。
 
 一次已验证通过的成功标记示例：
 
@@ -339,8 +361,10 @@ curl -sS -X POST "${BASE_URL}/order/get" \
 ## 常见失败点
 
 - `gateway-api` 可用，但下游 API/RPC 未启动或未注册到 `etcd`
+- Kafka broker 未启动，或 `services/order-rpc/etc/order-rpc.yaml` 的 `Kafka.Brokers` 不可达，导致 `/order/create` 返回内部错误
 - MySQL 已启动，但 `programId=10001` 的节目、票档或座位种子数据未导入
 - `damai_program.d_seat` 没有为 `programId=10001` 导入座位行，导致 `/program/preorder/detail` 的 `remainNumber=0`，随后 `/order/create` 返回 `seat inventory insufficient`
 - 订单请求缺少 `Authorization` 或 `X-Channel-Code`
 - 观演人 ID 手写，导致 `/order/create` 返回观演人归属校验失败
+- 创建成功后立刻调用 `/order/get`、`/order/pay`、`/order/cancel`，可能命中短暂的订单不可见窗口
 - `jq -e` 提取字段失败，说明前序接口没有返回预期结构
