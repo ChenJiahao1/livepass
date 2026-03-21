@@ -22,6 +22,7 @@ type refundRuleResult struct {
 	RefundPercent int64
 	RefundAmount  int64
 	RejectReason  string
+	NoMatch       bool
 }
 
 func evaluateRefundRule(ruleJSON string, showTime, now time.Time, orderAmount int64) (refundRuleResult, error) {
@@ -58,5 +59,6 @@ func evaluateRefundRule(ruleJSON string, showTime, now time.Time, orderAmount in
 	return refundRuleResult{
 		AllowRefund:  false,
 		RejectReason: "refund stage not matched",
+		NoMatch:      true,
 	}, nil
 }

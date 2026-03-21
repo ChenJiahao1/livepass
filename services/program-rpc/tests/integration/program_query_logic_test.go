@@ -196,6 +196,9 @@ func TestGetProgramDetailReturnsComposedProgramInfo(t *testing.T) {
 	if resp.ShowTime != "2026-12-31 19:30:00" || resp.ShowDayTime != "2026-12-31 00:00:00" || resp.ShowWeekTime != "周四" {
 		t.Fatalf("unexpected show time fields: %+v", resp)
 	}
+	if resp.PermitRefund != 1 || resp.RefundTicketRule != "演出开始前 120 分钟外可退，开演前 24 小时外退 80%，开演前 7 天外退 100%。" || resp.RefundExplain != "请按退票规则办理。" {
+		t.Fatalf("unexpected refund fields: %+v", resp)
+	}
 	if resp.PermitChooseSeat != 0 || resp.ChooseSeatExplain != "本项目不支持自主选座，同一个订单优先连座。" {
 		t.Fatalf("unexpected choose seat fields: %+v", resp)
 	}

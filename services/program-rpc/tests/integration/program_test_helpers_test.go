@@ -68,6 +68,7 @@ type programFixture struct {
 	ShowDayTime               string
 	ShowWeekTime              string
 	PermitRefund              int64
+	RefundTicketRule          string
 	RefundExplain             string
 	RefundRuleJSON            string
 	GroupAreaName             string
@@ -337,9 +338,9 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		db,
 		`INSERT INTO d_program (
 			id, program_group_id, prime, area_id, program_category_id, parent_program_category_id,
-			title, actor, place, item_picture, detail, permit_refund, refund_explain, refund_rule_json,
+			title, actor, place, item_picture, detail, permit_refund, refund_ticket_rule, refund_explain, refund_rule_json,
 			high_heat, program_status, issue_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		fixture.ProgramID,
 		fixture.ProgramGroupID,
 		fixture.Prime,
@@ -352,6 +353,7 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		fixture.ItemPicture,
 		fixture.Detail,
 		fixture.PermitRefund,
+		nullIfEmpty(fixture.RefundTicketRule),
 		nullIfEmpty(fixture.RefundExplain),
 		nullIfEmpty(fixture.RefundRuleJSON),
 		fixture.HighHeat,

@@ -51,7 +51,7 @@ func (l *EvaluateRefundRuleLogic) EvaluateRefundRule(in *pb.EvaluateRefundRuleRe
 	case 0:
 		return &pb.EvaluateRefundRuleResp{
 			AllowRefund:  false,
-			RejectReason: "program does not permit refund",
+			RejectReason: programRefundDisabledReason(program),
 		}, nil
 	case 2:
 		return &pb.EvaluateRefundRuleResp{
@@ -64,17 +64,21 @@ func (l *EvaluateRefundRuleLogic) EvaluateRefundRule(in *pb.EvaluateRefundRuleRe
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
+		rejectReason := result.RejectReason
+		if result.NoMatch {
+			rejectReason = programRefundNoMatchReason(program, result.RejectReason)
+		}
 
 		return &pb.EvaluateRefundRuleResp{
 			AllowRefund:   result.AllowRefund,
 			RefundPercent: result.RefundPercent,
 			RefundAmount:  result.RefundAmount,
-			RejectReason:  result.RejectReason,
+			RejectReason:  rejectReason,
 		}, nil
 	default:
 		return &pb.EvaluateRefundRuleResp{
 			AllowRefund:  false,
-			RejectReason: "program does not permit refund",
+			RejectReason: programRefundDisabledReason(program),
 		}, nil
 	}
 }

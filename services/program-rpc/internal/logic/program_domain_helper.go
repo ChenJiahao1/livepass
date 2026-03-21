@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"sort"
+	"strings"
 	"time"
 
 	"damai-go/pkg/xerr"
@@ -279,6 +280,29 @@ func categoryName(category *model.DProgramCategory) string {
 		return ""
 	}
 	return category.Name
+}
+
+func programRefundDisabledReason(program *model.DProgram) string {
+	if reason := nullStringValue(program.RefundExplain); reason != "" {
+		return reason
+	}
+
+	return "program does not permit refund"
+}
+
+func programRefundNoMatchReason(program *model.DProgram, fallback string) string {
+	parts := make([]string, 0, 2)
+	if rule := nullStringValue(program.RefundTicketRule); rule != "" {
+		parts = append(parts, rule)
+	}
+	if explain := nullStringValue(program.RefundExplain); explain != "" {
+		parts = append(parts, explain)
+	}
+	if len(parts) > 0 {
+		return strings.Join(parts, "；")
+	}
+
+	return fallback
 }
 
 func nullStringValue(value sql.NullString) string {

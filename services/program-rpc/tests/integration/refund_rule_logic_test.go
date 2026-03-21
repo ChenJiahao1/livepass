@@ -12,11 +12,12 @@ import (
 const refundRuleTestDateTimeLayout = "2006-01-02 15:04:05"
 
 func TestEvaluateRefundRule(t *testing.T) {
-	t.Run("permitRefund=0 rejects", func(t *testing.T) {
+	t.Run("permitRefund=0 prefers refundExplain as reject reason", func(t *testing.T) {
 		svcCtx := newProgramTestServiceContext(t)
 		resetProgramDomainState(t)
 
 		const programID int64 = 54001
+		const rejectReason = "当前场次不支持退票"
 		seedProgramFixtures(t, svcCtx, programFixture{
 			ProgramID:               programID,
 			ProgramGroupID:          64001,
@@ -27,6 +28,7 @@ func TestEvaluateRefundRule(t *testing.T) {
 			ShowDayTime:             "2026-12-31 00:00:00",
 			ShowWeekTime:            "周四",
 			PermitRefund:            0,
+			RefundExplain:           rejectReason,
 		})
 
 		l := logicpkg.NewEvaluateRefundRuleLogic(context.Background(), svcCtx)
@@ -41,8 +43,8 @@ func TestEvaluateRefundRule(t *testing.T) {
 		if resp.AllowRefund {
 			t.Fatalf("expected refund rejected, got %+v", resp)
 		}
-		if resp.RejectReason == "" {
-			t.Fatalf("expected reject reason, got %+v", resp)
+		if resp.RejectReason != rejectReason {
+			t.Fatalf("expected reject reason %q, got %+v", rejectReason, resp)
 		}
 	})
 
@@ -109,6 +111,47 @@ func TestEvaluateRefundRule(t *testing.T) {
 		}
 		if !resp.AllowRefund || resp.RefundPercent != 80 || resp.RefundAmount != 478 {
 			t.Fatalf("unexpected staged refund response: %+v", resp)
+		}
+	})
+
+	t.Run("permitRefund=1 no-match prefers refundTicketRule/refundExplain copy", func(t *testing.T) {
+		svcCtx := newProgramTestServiceContext(t)
+		resetProgramDomainState(t)
+
+		const programID int64 = 54004
+		const refundTicketRule = "演出开始前 120 分钟外可退"
+		const refundExplain = "请按退票规则办理"
+		const rejectReason = "演出开始前 120 分钟外可退；请按退票规则办理"
+		showTime := time.Now().Add(90 * time.Minute).Format(refundRuleTestDateTimeLayout)
+		seedProgramFixtures(t, svcCtx, programFixture{
+			ProgramID:               programID,
+			ProgramGroupID:          64004,
+			ParentProgramCategoryID: 1,
+			ProgramCategoryID:       11,
+			AreaID:                  1,
+			ShowTime:                showTime,
+			ShowDayTime:             "2026-12-31 00:00:00",
+			ShowWeekTime:            "周四",
+			PermitRefund:            1,
+			RefundTicketRule:        refundTicketRule,
+			RefundExplain:           refundExplain,
+			RefundRuleJSON:          `{"version":1,"stages":[{"beforeMinutes":120,"refundPercent":50}]}`,
+		})
+
+		l := logicpkg.NewEvaluateRefundRuleLogic(context.Background(), svcCtx)
+		resp, err := l.EvaluateRefundRule(&pb.EvaluateRefundRuleReq{
+			ProgramId:     programID,
+			OrderShowTime: showTime,
+			OrderAmount:   598,
+		})
+		if err != nil {
+			t.Fatalf("EvaluateRefundRule returned error: %v", err)
+		}
+		if resp.AllowRefund {
+			t.Fatalf("expected refund rejected, got %+v", resp)
+		}
+		if resp.RejectReason != rejectReason {
+			t.Fatalf("expected reject reason %q, got %+v", rejectReason, resp)
 		}
 	})
 }
