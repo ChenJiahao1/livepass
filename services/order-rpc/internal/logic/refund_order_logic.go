@@ -3,7 +3,6 @@ package logic
 import (
 	"context"
 	"errors"
-	"time"
 
 	"damai-go/pkg/xerr"
 	"damai-go/services/order-rpc/internal/model"
@@ -13,7 +12,6 @@ import (
 	programrpc "damai-go/services/program-rpc/programrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type RefundOrderLogic struct {
@@ -89,7 +87,7 @@ func (l *RefundOrderLogic) RefundOrder(in *pb.RefundOrderReq) (*pb.RefundOrderRe
 		}
 	}
 
-	if err := l.markOrderRefunded(order.OrderNumber); err != nil {
+	if err := convergeOrderRefunded(l.ctx, l.svcCtx, order.OrderNumber); err != nil {
 		return nil, mapOrderError(err)
 	}
 
@@ -144,32 +142,4 @@ func (l *RefundOrderLogic) refundOrReuse(order *model.DOrder, payBill *payrpc.Ge
 	}
 
 	return refundResp, evaluateResp.GetRefundPercent(), nil
-}
-
-func (l *RefundOrderLogic) markOrderRefunded(orderNumber int64) error {
-	return l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
-		order, err := l.svcCtx.DOrderModel.FindOneByOrderNumberForUpdate(ctx, session, orderNumber)
-		if err != nil {
-			if errors.Is(err, model.ErrNotFound) {
-				return xerr.ErrOrderNotFound
-			}
-			return err
-		}
-		if order.OrderStatus == orderStatusRefunded {
-			return nil
-		}
-		if order.OrderStatus != orderStatusPaid {
-			return xerr.ErrOrderStatusInvalid
-		}
-
-		refundTime := time.Now()
-		if err := l.svcCtx.DOrderModel.UpdateRefundStatus(ctx, session, orderNumber, refundTime); err != nil {
-			return err
-		}
-		if err := l.svcCtx.DOrderTicketUserModel.UpdateRefundStatusByOrderNumber(ctx, session, orderNumber, refundTime); err != nil {
-			return err
-		}
-
-		return nil
-	})
 }

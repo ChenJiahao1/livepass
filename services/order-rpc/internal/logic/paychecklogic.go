@@ -8,8 +8,11 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
+	payrpc "damai-go/services/pay-rpc/payrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type PayCheckLogic struct {
@@ -41,8 +44,44 @@ func (l *PayCheckLogic) PayCheck(in *pb.PayCheckReq) (*pb.PayCheckResp, error) {
 	if order.UserId != in.GetUserId() {
 		return nil, mapOrderError(xerr.ErrOrderNotFound)
 	}
-	if order.OrderStatus != orderStatusPaid && order.OrderStatus != orderStatusRefunded {
+	if order.OrderStatus != orderStatusPaid && order.OrderStatus != orderStatusRefunded && order.OrderStatus != orderStatusCancelled {
 		return mapPayCheckResp(order, nil), nil
+	}
+	if order.OrderStatus == orderStatusCancelled {
+		payBill, err := l.svcCtx.PayRpc.GetPayBill(l.ctx, &payrpc.GetPayBillReq{OrderNumber: order.OrderNumber})
+		if err != nil {
+			if status.Code(err) == codes.NotFound {
+				return mapPayCheckResp(order, nil), nil
+			}
+			return nil, mapOrderError(err)
+		}
+		if payBill.GetPayStatus() == payStatusPaid {
+			refundResp, err := l.svcCtx.PayRpc.Refund(l.ctx, &payrpc.RefundReq{
+				OrderNumber: order.OrderNumber,
+				UserId:      in.GetUserId(),
+				Amount:      int64(order.OrderPrice),
+				Channel:     "mock",
+				Reason:      compensationRefundReason(),
+			})
+			if err != nil {
+				return nil, mapOrderError(err)
+			}
+			if err := convergeOrderRefunded(l.ctx, l.svcCtx, order.OrderNumber); err != nil {
+				return nil, mapOrderError(err)
+			}
+
+			order.OrderStatus = orderStatusRefunded
+			return mapPayCheckResp(order, applyRefundPayStatus(payBill, refundResp)), nil
+		}
+		if payBill.GetPayStatus() == payStatusRefunded {
+			if err := convergeOrderRefunded(l.ctx, l.svcCtx, order.OrderNumber); err != nil {
+				return nil, mapOrderError(err)
+			}
+
+			order.OrderStatus = orderStatusRefunded
+		}
+
+		return mapPayCheckResp(order, payBill), nil
 	}
 
 	payBill, err := mustGetPayBillForOrder(l.ctx, l.svcCtx, order.OrderNumber)

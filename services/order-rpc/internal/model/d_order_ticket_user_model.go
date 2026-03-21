@@ -122,7 +122,7 @@ func (m *customDOrderTicketUserModel) UpdatePayStatusByOrderNumber(ctx context.C
 
 func (m *customDOrderTicketUserModel) UpdateRefundStatusByOrderNumber(ctx context.Context, session sqlx.Session, orderNumber int64, refundTime time.Time) error {
 	query := fmt.Sprintf(
-		"update %s set `order_status` = 4, `edit_time` = ? where `status` = 1 and `order_number` = ? and `order_status` = 3",
+		"update %s set `order_status` = 4, `edit_time` = ? where `status` = 1 and `order_number` = ? and `order_status` in (2, 3)",
 		m.table,
 	)
 

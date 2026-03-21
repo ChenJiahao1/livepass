@@ -455,12 +455,14 @@ func buildRefundRequestNo(orderNumber int64) string {
 
 func refundRejectReasonToError(reason string) error {
 	switch reason {
+	case "":
+		return xerr.ErrOrderRefundNotAllowed
 	case "refund stage not matched":
 		return xerr.ErrOrderRefundWindowClosed
 	case "program does not permit refund":
 		return xerr.ErrOrderRefundNotAllowed
 	default:
-		return xerr.ErrOrderRefundNotAllowed
+		return status.Error(codes.FailedPrecondition, reason)
 	}
 }
 
@@ -474,4 +476,49 @@ func mustGetPayBillForOrder(ctx context.Context, svcCtx *svc.ServiceContext, ord
 	}
 
 	return resp, nil
+}
+
+func applyRefundPayStatus(payBill *payrpc.GetPayBillResp, refundResp *payrpc.RefundResp) *payrpc.GetPayBillResp {
+	if payBill == nil {
+		return nil
+	}
+
+	resp := *payBill
+	if refundResp != nil && refundResp.GetPayStatus() > 0 {
+		resp.PayStatus = refundResp.GetPayStatus()
+	}
+
+	return &resp
+}
+
+func compensationRefundReason() string {
+	return "订单已取消，支付晚到补偿退款"
+}
+
+func convergeOrderRefunded(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) error {
+	return svcCtx.SqlConn.TransactCtx(ctx, func(txCtx context.Context, session sqlx.Session) error {
+		order, err := svcCtx.DOrderModel.FindOneByOrderNumberForUpdate(txCtx, session, orderNumber)
+		if err != nil {
+			if errors.Is(err, model.ErrNotFound) {
+				return xerr.ErrOrderNotFound
+			}
+			return err
+		}
+		if order.OrderStatus == orderStatusRefunded {
+			return nil
+		}
+		if order.OrderStatus != orderStatusPaid && order.OrderStatus != orderStatusCancelled {
+			return xerr.ErrOrderStatusInvalid
+		}
+
+		refundTime := time.Now()
+		if err := svcCtx.DOrderModel.UpdateRefundStatus(txCtx, session, orderNumber, refundTime); err != nil {
+			return err
+		}
+		if err := svcCtx.DOrderTicketUserModel.UpdateRefundStatusByOrderNumber(txCtx, session, orderNumber, refundTime); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

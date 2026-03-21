@@ -8,6 +8,9 @@ import (
 	"damai-go/services/order-rpc/pb"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestRefundOrder(t *testing.T) {
@@ -133,6 +136,56 @@ func TestRefundOrder(t *testing.T) {
 		}
 		if programRPC.lastReleaseSoldSeatsReq == nil || programRPC.lastReleaseSoldSeatsReq.RequestNo != "refund-93002" {
 			t.Fatalf("expected release sold seats request, got %+v", programRPC.lastReleaseSoldSeatsReq)
+		}
+	})
+
+	t.Run("refund order returns java-facing reject copy", func(t *testing.T) {
+		svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
+		resetOrderDomainState(t)
+		seedOrderFixtures(t, svcCtx, orderFixture{
+			ID:              99003,
+			OrderNumber:     93003,
+			ProgramID:       10001,
+			UserID:          3001,
+			OrderStatus:     testOrderStatusPaid,
+			FreezeToken:     "freeze-refund-reject",
+			OrderExpireTime: "2026-12-31 20:00:00",
+			CreateOrderTime: "2026-12-31 19:00:00",
+			PayOrderTime:    "2026-12-31 19:05:00",
+		})
+		seedOrderTicketUserFixtures(t, svcCtx,
+			orderTicketUserFixture{ID: 99301, OrderNumber: 93003, UserID: 3001, TicketUserID: 701, SeatID: 50301, OrderStatus: testOrderStatusPaid},
+		)
+		payRPC.getPayBillResp = &payrpc.GetPayBillResp{
+			PayBillNo:   94003,
+			OrderNumber: 93003,
+			UserId:      3001,
+			Amount:      299,
+			PayStatus:   2,
+			PayTime:     "2026-12-31 19:05:00",
+		}
+		programRPC.evaluateRefundRuleResp = &programrpc.EvaluateRefundRuleResp{
+			AllowRefund:  false,
+			RejectReason: "演出开始前 120 分钟外可退；请按退票规则办理",
+		}
+
+		l := logicpkg.NewRefundOrderLogic(context.Background(), svcCtx)
+		_, err := l.RefundOrder(&pb.RefundOrderReq{
+			UserId:      3001,
+			OrderNumber: 93003,
+			Reason:      "行程变更",
+		})
+		if err == nil {
+			t.Fatalf("expected failed precondition error")
+		}
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("expected failed precondition, got %s", status.Code(err))
+		}
+		if status.Convert(err).Message() != "演出开始前 120 分钟外可退；请按退票规则办理" {
+			t.Fatalf("expected business reject copy, got %q", status.Convert(err).Message())
+		}
+		if payRPC.lastRefundReq != nil {
+			t.Fatalf("expected no refund rpc on reject, got %+v", payRPC.lastRefundReq)
 		}
 	})
 }
