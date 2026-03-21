@@ -107,6 +107,13 @@ go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 完整步骤见 `docs/api/order-refund-acceptance.md`。
 可执行脚本见 `scripts/acceptance/order_refund.sh`。
 首次执行前，除下单链路依赖外，还需确认 `sql/pay/d_refund_bill.sql` 已导入 `damai_pay`。
+默认执行主动退款路径：`REFUND_MODE=proactive bash scripts/acceptance/order_refund.sh`。
+补偿退款路径可执行：`REFUND_MODE=compensation bash scripts/acceptance/order_refund.sh`。
+
+当前退款验收覆盖两条链路：
+
+- 用户主动调用 `/order/refund`，订单、支付单和退款单统一收敛到退款终态。
+- 订单先取消，再模拟支付晚到，随后通过 `/order/pay/check` 触发补偿退款并收敛到相同终态。
 
 ## 手工验证用户链路
 

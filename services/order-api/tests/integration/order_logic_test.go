@@ -200,7 +200,7 @@ func TestRefundOrderForwardsUserIDAndPayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RefundOrder returned error: %v", err)
 	}
-	if resp.OrderStatus != 4 || resp.RefundBillNo != 92001 || resp.RefundAmount != 478 {
+	if resp.OrderStatus != 4 || resp.RefundAmount != 478 || resp.RefundPercent != 80 || resp.RefundBillNo != 92001 || resp.RefundTime != "2026-12-31 19:10:00" {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
 	if fakeRPC.lastRefundOrderReq == nil || fakeRPC.lastRefundOrderReq.UserId != 3001 || fakeRPC.lastRefundOrderReq.OrderNumber != 91001 || fakeRPC.lastRefundOrderReq.Reason != "行程变更" {
