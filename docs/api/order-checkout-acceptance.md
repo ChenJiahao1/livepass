@@ -73,37 +73,21 @@ docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml ps
 
 ## 导入 SQL
 
-按仓库现有初始化方式导入用户、节目、订单、支付域表结构和种子数据：
+执行仓库统一导入脚本，一次性导入用户、节目、订单、支付域表结构和种子数据：
 
 ```bash
-for f in sql/user/d_user.sql sql/user/d_user_mobile.sql sql/user/d_user_email.sql sql/user/d_ticket_user.sql; do
-  docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_user < "$f"
-done
-
-for f in \
-  sql/program/d_program_category.sql \
-  sql/program/d_program_group.sql \
-  sql/program/d_program.sql \
-  sql/program/d_program_show_time.sql \
-  sql/program/d_seat.sql \
-  sql/program/d_seat_freeze.sql \
-  sql/program/d_ticket_category.sql \
-  sql/program/dev_seed.sql; do
-  docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_program < "$f"
-done
-
-for f in sql/order/d_order.sql sql/order/d_order_ticket_user.sql; do
-  docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_order < "$f"
-done
-
-docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_pay < sql/pay/d_pay_bill.sql
+bash scripts/import_sql.sh
 ```
+
+该脚本会显式使用 `mysql --default-character-set=utf8mb4` 读取 SQL 文件，避免 `program` 域种子数据里的中文字段写成乱码。若此前已按旧命令导入过 `program` 域 SQL，请重新执行一次脚本以重建表数据。
 
 建议补一组快速校验：
 
 ```bash
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS total FROM damai_program.d_program WHERE id = 10001;"
+docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT title, place FROM damai_program.d_program WHERE id = 10001;"
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS total FROM damai_program.d_ticket_category WHERE program_id = 10001;"
+docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT id, introduce FROM damai_program.d_ticket_category WHERE program_id = 10001 ORDER BY id;"
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT ticket_category_id, COUNT(*) AS total FROM damai_program.d_seat WHERE program_id = 10001 AND status = 1 AND seat_status = 1 GROUP BY ticket_category_id ORDER BY ticket_category_id;"
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS total FROM damai_order.d_order;"
 docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS total FROM damai_pay.d_pay_bill;"
@@ -112,7 +96,9 @@ docker exec docker-compose-mysql-1 mysql -uroot -p123456 -e "SELECT COUNT(*) AS 
 成功判定：
 
 - `damai_program.d_program` 中能查到 `id=10001`
+- `damai_program.d_program` 中 `title=Phase1 示例演出`、`place=北京示例剧场`，没有中文乱码
 - `damai_program.d_ticket_category` 中能查到 `program_id=10001` 的票档
+- `damai_program.d_ticket_category` 中 `id=40001` 的 `introduce=普通票`、`id=40002` 的 `introduce=VIP票`
 - `damai_program.d_seat` 中能查到 `ticket_category_id=40001` 有 `100` 个可售座位、`ticket_category_id=40002` 有 `80` 个可售座位
 - `damai_order.d_order` 与 `damai_pay.d_pay_bill` 可正常查询
 

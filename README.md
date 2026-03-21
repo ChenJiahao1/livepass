@@ -20,53 +20,34 @@ docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
 
 当前仓库提供的基础设施 compose 只覆盖 MySQL、Redis、etcd；订单创建链路已经改为 `Redis 锁座 + Kafka 异步落库`，因此还需要额外准备 Kafka broker，并与 `services/order-rpc/etc/order-rpc.yaml` 中的 `Kafka.Brokers` 保持一致。若 Kafka 不可用，`/order/create` 会在锁座后执行失败补偿并返回错误。
 
-## 初始化用户域表结构
+## 初始化本地 SQL
 
-MySQL 容器启动后，执行以下命令导入用户域 SQL：
-
-```bash
-for f in sql/user/d_user.sql sql/user/d_user_mobile.sql sql/user/d_user_email.sql sql/user/d_ticket_user.sql; do
-  docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_user < "$f"
-done
-```
-
-## 初始化 program 域表结构
-
-`damai_program` 会在 MySQL 首次启动时由 `deploy/mysql/init/01-create-databases.sql` 自动创建。导入 program 域 Phase 1 只读表结构和种子数据：
+MySQL 容器启动后，执行统一导入脚本初始化 user/program/order/pay 域表结构和种子数据：
 
 ```bash
-for f in \
-  sql/program/d_program_category.sql \
-  sql/program/d_program_group.sql \
-  sql/program/d_program.sql \
-  sql/program/d_program_show_time.sql \
-  sql/program/d_seat.sql \
-  sql/program/d_seat_freeze.sql \
-  sql/program/d_ticket_category.sql \
-  sql/program/dev_seed.sql; do
-  docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_program < "$f"
-done
+bash scripts/import_sql.sh
 ```
 
-## 初始化 order 域表结构
+该脚本会显式使用 `mysql --default-character-set=utf8mb4` 读取 SQL 文件，避免 `sql/program/dev_seed.sql` 里的中文文案被错误字符集写坏。
 
-`damai_order` 会在 MySQL 首次启动时由 `deploy/mysql/init/01-create-databases.sql` 自动创建。导入订单域表结构：
+常用覆盖项：
 
 ```bash
-for f in sql/order/d_order.sql sql/order/d_order_ticket_user.sql; do
-  docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_order < "$f"
-done
+IMPORT_DOMAINS=program bash scripts/import_sql.sh
+MYSQL_CONTAINER=docker-compose-mysql-1 MYSQL_PASSWORD=123456 bash scripts/import_sql.sh
 ```
 
-## 初始化 pay 域表结构
-
-`damai_pay` 会在 MySQL 首次启动时由 `deploy/mysql/init/01-create-databases.sql` 自动创建。导入支付域表结构：
+可选数据库名覆盖：
 
 ```bash
-for f in sql/pay/d_pay_bill.sql sql/pay/d_refund_bill.sql; do
-  docker exec -i docker-compose-mysql-1 mysql -uroot -p123456 damai_pay < "$f"
-done
+MYSQL_DB_USER=damai_user \
+MYSQL_DB_PROGRAM=damai_program \
+MYSQL_DB_ORDER=damai_order \
+MYSQL_DB_PAY=damai_pay \
+bash scripts/import_sql.sh
 ```
+
+如果之前已经按旧命令导入过 `program` 域 SQL，直接重新执行一次该脚本即可重建表并修正中文乱码。
 
 ## 运行测试
 

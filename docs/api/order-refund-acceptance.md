@@ -7,6 +7,7 @@
 - 默认验收节目：`programId=10001`
 - 已完成 [下单主路径验收](/home/chenjiahao/code/project/damai-go/docs/api/order-checkout-acceptance.md) 中的基础设施、SQL 导入和服务启动步骤
 - 本机可用 `curl`、`jq`、`docker`、`go`
+- 推荐直接执行 `bash scripts/import_sql.sh` 完成 SQL 初始化；该脚本会显式以 `utf8mb4` 导入，避免 `program` 域中文种子数据乱码
 - `damai_pay` 已导入 `sql/pay/d_pay_bill.sql` 与 `sql/pay/d_refund_bill.sql`
 
 直接执行脚本：
