@@ -2,18 +2,10 @@
 
 from __future__ import annotations
 
+from app.orchestrator.graph import GraphOrchestrator
 from app.orchestrator.state import OrchestratorResult
 from app.session.models import SessionMessage
 from app.session.store import ConversationSessionStore
-
-
-class StubOrchestrator:
-    async def reply(self, session, *, message: str) -> OrchestratorResult:
-        return OrchestratorResult(
-            reply=f"已收到消息：{message}",
-            status="queued",
-            current_agent="stub",
-        )
 
 
 class ChatService:
@@ -47,3 +39,7 @@ class ChatService:
             "reply": result.reply,
             "status": result.status,
         }
+
+
+def build_default_orchestrator() -> GraphOrchestrator:
+    return GraphOrchestrator()

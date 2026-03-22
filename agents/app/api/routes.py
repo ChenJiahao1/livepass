@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.api.schemas import ChatRequest, ChatResponse
 from app.config import get_settings
-from app.orchestrator.service import ChatService, StubOrchestrator
+from app.orchestrator.service import ChatService, build_default_orchestrator
 from app.session.store import ConversationSessionStore
 
 router = APIRouter()
@@ -28,7 +28,7 @@ def get_chat_service() -> ChatService:
     )
     return ChatService(
         session_store=session_store,
-        orchestrator=StubOrchestrator(),
+        orchestrator=build_default_orchestrator(),
     )
 
 
