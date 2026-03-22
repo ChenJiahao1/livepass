@@ -39,7 +39,11 @@ class ToolCallingAgent:
             name=self.agent_name,
         )
         result = await agent.ainvoke({"messages": state.get("messages", [])})
-        return self.result(state, reply=self.extract_reply(result))
+        return self.result(
+            state,
+            reply=self.extract_reply(result),
+            messages=self.extract_new_messages(state, result),
+        )
 
     def result(
         self,
@@ -49,6 +53,7 @@ class ToolCallingAgent:
         need_handoff: bool = False,
         status: str = "completed",
         specialist_result: dict[str, Any] | None = None,
+        messages: list[Any] | None = None,
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "reply": reply,
@@ -58,6 +63,7 @@ class ToolCallingAgent:
             "need_handoff": need_handoff,
             "selected_order_id": state.get("selected_order_id"),
             "selected_program_id": state.get("selected_program_id"),
+            "messages": messages or [AIMessage(content=reply)],
         }
         if specialist_result is not None:
             payload["specialist_result"] = specialist_result
@@ -97,3 +103,13 @@ class ToolCallingAgent:
             if isinstance(message, AIMessage):
                 return str(message.content)
         return ""
+
+    def extract_new_messages(self, state: ConversationState, result: dict[str, Any]) -> list[Any]:
+        messages = list(result.get("messages", []))
+        existing_messages = state.get("messages", [])
+        if len(messages) > len(existing_messages):
+            return messages[len(existing_messages) :]
+        reply = self.extract_reply(result)
+        if reply:
+            return [AIMessage(content=reply)]
+        return []
