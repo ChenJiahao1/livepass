@@ -22,6 +22,9 @@ type KafkaConfig struct {
 	Brokers          []string      `json:",optional"`
 	TopicOrderCreate string        `json:",default=order.create.command.v1"`
 	ConsumerGroup    string        `json:",default=damai-go-order-create"`
+	// MaxMessageDelay follows the Java open-source flow:
+	// once exceeded, the consumer treats the create command as an expired order,
+	// releases the seat freeze, and skips order persistence.
 	MaxMessageDelay  time.Duration `json:",default=5s"`
 	ProducerTimeout  time.Duration `json:",default=3s"`
 	RetryBackoff     time.Duration `json:",default=1s"`

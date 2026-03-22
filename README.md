@@ -18,7 +18,7 @@
 docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
 ```
 
-当前仓库提供的基础设施 compose 已包含 MySQL、Redis、etcd、Kafka。`services/order-rpc/etc/order-rpc.yaml` 的本地 `Kafka.Brokers` 默认指向 `127.0.0.1:9094`，与 compose 暴露端口保持一致。若 Kafka 不可用，`/order/create` 会在锁座后执行失败补偿并返回错误。
+当前仓库提供的基础设施 compose 已包含 MySQL、Redis、etcd、Kafka。`services/order-rpc/etc/order-rpc.yaml` 的本地 `Kafka.Brokers` 默认指向 `127.0.0.1:9094`，与 compose 暴露端口保持一致。当前下单异步链路语义对齐原 Java 开源版：Kafka 发送失败时立即释放锁座并返回错误；创建消息超过 `Kafka.MaxMessageDelay` 仍未消费时，consumer 会按废单处理并释放锁座，不再补写订单。这不是“消息绝不丢失”的方案。
 
 ## 初始化本地 SQL
 
@@ -78,7 +78,7 @@ go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 完整步骤见 `docs/api/order-checkout-acceptance.md`。
 可执行脚本见 `scripts/acceptance/order_checkout.sh`。
 首次执行前，先按文档校验 `programId=10001` 的票档和 `d_seat` 座位种子已导入。
-创建成功后只代表 Kafka 已接收创建指令；`/order/get` 与 `/order/select/list` 允许短时间不可见。验收脚本会在支付前自动轮询订单可见性。
+创建成功后只代表 Kafka 发送已成功并进入异步落库阶段；`/order/get` 与 `/order/select/list` 允许短时间不可见。当前语义对齐 Java 开源版：发送失败回滚、超时废单回滚。验收脚本会在支付前自动轮询订单可见性。
 
 ## 下单失败分支验收
 
@@ -286,7 +286,8 @@ curl -X POST http://127.0.0.1:8081/order/cancel \
 预期：
 
 - 所有 order 接口都要求 `Authorization: Bearer <jwt>` 和 `X-Channel-Code: 0001`。
-- 创建成功后会返回新的 `orderNumber`，但这只表示 Kafka 已接收创建指令；短时间内 `/order/get`、`/order/select/list`、`/order/pay`、`/order/cancel` 仍可能返回 `order not found`。
+- 创建成功后会返回新的 `orderNumber`，但这只表示 Kafka 发送已成功，不表示订单已经同步落库；短时间内 `/order/get`、`/order/select/list`、`/order/pay`、`/order/cancel` 仍可能返回 `order not found`。
+- 当前创建链路对齐 Java 开源版：发送失败时立即回滚锁座；若创建消息延迟超过 `Kafka.MaxMessageDelay`，consumer 会按废单处理并释放锁座，不再补写订单。
 - 列表和详情只能看到当前登录用户的订单；如需支付、取消或退款，先轮询到订单可见再继续。
 - `/order/pay` 会同步创建模拟支付单、确认冻结座位并把订单状态推进到 `3 paid`。
 - `/order/pay/check` 在已支付后会返回支付单号、支付状态和支付时间。

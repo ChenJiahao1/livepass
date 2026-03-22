@@ -242,7 +242,8 @@ printf 'ORDER_NUMBER=%s\n' "${ORDER_NUMBER}"
 成功判定：
 
 - 返回非空 `orderNumber`
-- 这里的成功仅表示 `order-rpc` 已完成锁座并把创建指令写入 Kafka，不保证订单已经同步落库
+- 这里的成功仅表示 `order-rpc` 已完成锁座且 Kafka 发送成功，不保证订单已经同步落库
+- 当前创建链路语义对齐 Java 开源版：发送失败回滚、超时废单回滚，不是本地消息表或事务消息方案
 
 7. 轮询 `/order/get`，等待订单异步可见
 
@@ -319,7 +320,7 @@ curl -sS -X POST "${BASE_URL}/order/get" \
 
 - 当前项目不支持用户自主选座。
 - 系统分配座位时优先同排连坐；如果当前余座无法满足连坐，会自动拆座兜底。
-- 创建消息如果超过 `Kafka.MaxMessageDelay` 仍未被消费，consumer 会主动释放锁座，不再补写订单。
+- 创建消息如果超过 `Kafka.MaxMessageDelay` 仍未被消费，consumer 会主动释放锁座，不再补写订单；该行为视为“超时废单回滚”。
 
 一次已验证通过的成功标记示例：
 
