@@ -23,12 +23,19 @@ func TestNewOrderServiceContextBuildsKafkaProducer(t *testing.T) {
 	if svcCtx.OrderCreateProducer == nil {
 		t.Fatalf("expected kafka producer to be wired")
 	}
-	if svcCtx.OrderCreateConsumer == nil {
-		t.Fatalf("expected kafka consumer to be wired")
+	if svcCtx.OrderCreateConsumerFactory == nil {
+		t.Fatalf("expected kafka consumer factory to be wired")
 	}
 	t.Cleanup(func() {
-		_ = svcCtx.OrderCreateConsumer.Close()
 		_ = svcCtx.OrderCreateProducer.Close()
+	})
+
+	consumer := svcCtx.OrderCreateConsumerFactory.New(cfg.Kafka)
+	if consumer == nil {
+		t.Fatalf("expected kafka consumer to be creatable from factory")
+	}
+	t.Cleanup(func() {
+		_ = consumer.Close()
 	})
 }
 
@@ -38,7 +45,6 @@ func TestNewOrderServiceContextEnsuresKafkaTopicExists(t *testing.T) {
 
 	svcCtx := svc.NewServiceContext(cfg)
 	t.Cleanup(func() {
-		_ = svcCtx.OrderCreateConsumer.Close()
 		_ = svcCtx.OrderCreateProducer.Close()
 	})
 

@@ -15,6 +15,7 @@ import (
 	"damai-go/services/order-rpc/internal/config"
 	"damai-go/services/order-rpc/internal/limitcache"
 	"damai-go/services/order-rpc/internal/model"
+	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
@@ -149,12 +150,20 @@ type fakeOrderCreateProducer struct {
 }
 
 type fakeOrderCreateConsumer struct {
+	factory    *fakeOrderCreateConsumerFactory
 	startErr   error
 	startErrs  []error
 	startCalls int
 	closeCalls int
 	handler    func(context.Context, []byte) error
 	started    chan struct{}
+}
+
+type fakeOrderCreateConsumerFactory struct {
+	seedConsumers []*fakeOrderCreateConsumer
+	consumers     []*fakeOrderCreateConsumer
+	createCalls   int
+	closeCalls    int
 }
 
 func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC, *fakeOrderPayRPC) {
@@ -181,6 +190,11 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 			SessionTTL:         10,
 			LockAcquireTimeout: 200 * time.Millisecond,
 		},
+		Kafka: config.KafkaConfig{
+			TopicPartitions: 4,
+			ConsumerWorkers: 4,
+			RetryBackoff:    10 * time.Millisecond,
+		},
 	}
 
 	programRPC := &fakeOrderProgramRPC{
@@ -191,9 +205,7 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	userRPC := &fakeOrderUserRPC{}
 	payRPC := &fakeOrderPayRPC{}
 	orderCreateProducer := &fakeOrderCreateProducer{}
-	orderCreateConsumer := &fakeOrderCreateConsumer{
-		started: make(chan struct{}, 1),
-	}
+	orderCreateConsumerFactory := &fakeOrderCreateConsumerFactory{}
 	cfg.MySQL.DataSource = xmysql.WithLocalTime(cfg.MySQL.DataSource)
 	conn := sqlx.NewMysql(cfg.MySQL.DataSource)
 	redisClient := xredis.MustNew(cfg.StoreRedis)
@@ -203,17 +215,17 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		LoadingCooldown: 200 * time.Millisecond,
 	})
 	svcCtx := &svc.ServiceContext{
-		Config:                cfg,
-		SqlConn:               conn,
-		Redis:                 redisClient,
-		PurchaseLimitStore:    purchaseLimitStore,
-		DOrderModel:           model.NewDOrderModel(conn),
-		DOrderTicketUserModel: model.NewDOrderTicketUserModel(conn),
-		ProgramRpc:            programRPC,
-		UserRpc:               userRPC,
-		PayRpc:                payRPC,
-		OrderCreateProducer:   orderCreateProducer,
-		OrderCreateConsumer:   orderCreateConsumer,
+		Config:                     cfg,
+		SqlConn:                    conn,
+		Redis:                      redisClient,
+		PurchaseLimitStore:         purchaseLimitStore,
+		DOrderModel:                model.NewDOrderModel(conn),
+		DOrderTicketUserModel:      model.NewDOrderTicketUserModel(conn),
+		ProgramRpc:                 programRPC,
+		UserRpc:                    userRPC,
+		PayRpc:                     payRPC,
+		OrderCreateProducer:        orderCreateProducer,
+		OrderCreateConsumerFactory: orderCreateConsumerFactory,
 	}
 
 	return svcCtx, programRPC, userRPC, payRPC
@@ -299,7 +311,7 @@ func (f *fakeOrderCreateProducer) Close() error {
 	return nil
 }
 
-func (f *fakeOrderCreateConsumer) Start(_ context.Context, handler func(context.Context, []byte) error) error {
+func (f *fakeOrderCreateConsumer) Start(ctx context.Context, handler func(context.Context, []byte) error) error {
 	f.startCalls++
 	f.handler = handler
 	if f.started != nil {
@@ -315,12 +327,41 @@ func (f *fakeOrderCreateConsumer) Start(_ context.Context, handler func(context.
 			return err
 		}
 	}
-	return f.startErr
+	if f.startErr != nil {
+		return f.startErr
+	}
+
+	<-ctx.Done()
+	return nil
 }
 
 func (f *fakeOrderCreateConsumer) Close() error {
 	f.closeCalls++
+	if f.factory != nil {
+		f.factory.closeCalls++
+	}
 	return nil
+}
+
+func (f *fakeOrderCreateConsumerFactory) New(_ config.KafkaConfig) mq.OrderCreateConsumer {
+	f.createCalls++
+
+	var consumer *fakeOrderCreateConsumer
+	if len(f.seedConsumers) > 0 {
+		consumer = f.seedConsumers[0]
+		f.seedConsumers = f.seedConsumers[1:]
+	} else {
+		consumer = &fakeOrderCreateConsumer{
+			started: make(chan struct{}, 1),
+		}
+	}
+	consumer.factory = f
+	if consumer.started == nil {
+		consumer.started = make(chan struct{}, 1)
+	}
+	f.consumers = append(f.consumers, consumer)
+
+	return consumer
 }
 
 func (f *fakeOrderRepeatGuard) Lock(_ context.Context, key string) (repeatguard.UnlockFunc, error) {

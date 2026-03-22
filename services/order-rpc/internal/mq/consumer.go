@@ -14,23 +14,41 @@ type OrderCreateConsumer interface {
 	Close() error
 }
 
+type OrderCreateConsumerFactory interface {
+	New(cfg config.KafkaConfig) OrderCreateConsumer
+}
+
+type kafkaOrderCreateConsumerFactory struct{}
+
 type kafkaOrderCreateConsumer struct {
 	reader *kafka.Reader
 }
 
+func NewOrderCreateConsumerFactory() OrderCreateConsumerFactory {
+	return kafkaOrderCreateConsumerFactory{}
+}
+
+func (kafkaOrderCreateConsumerFactory) New(cfg config.KafkaConfig) OrderCreateConsumer {
+	return NewOrderCreateConsumer(cfg)
+}
+
 func NewOrderCreateConsumer(cfg config.KafkaConfig) OrderCreateConsumer {
 	return &kafkaOrderCreateConsumer{
-		reader: kafka.NewReader(kafka.ReaderConfig{
-			Brokers:        cfg.Brokers,
-			Topic:          OrderCreateTopic(cfg),
-			GroupID:        OrderCreateConsumerGroup(cfg),
-			MinBytes:       1,
-			MaxBytes:       10e6,
-			MaxAttempts:    3,
-			ReadBackoffMin: cfg.RetryBackoff,
-			ReadBackoffMax: cfg.RetryBackoff,
-		}),
+		reader: newOrderCreateReader(cfg),
 	}
+}
+
+func newOrderCreateReader(cfg config.KafkaConfig) *kafka.Reader {
+	return kafka.NewReader(kafka.ReaderConfig{
+		Brokers:        cfg.Brokers,
+		Topic:          OrderCreateTopic(cfg),
+		GroupID:        OrderCreateConsumerGroup(cfg),
+		MinBytes:       1,
+		MaxBytes:       10e6,
+		MaxAttempts:    3,
+		ReadBackoffMin: cfg.RetryBackoff,
+		ReadBackoffMax: cfg.RetryBackoff,
+	})
 }
 
 func (c *kafkaOrderCreateConsumer) Start(ctx context.Context, handler func(context.Context, []byte) error) error {

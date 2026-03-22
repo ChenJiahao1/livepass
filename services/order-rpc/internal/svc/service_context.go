@@ -19,18 +19,18 @@ import (
 )
 
 type ServiceContext struct {
-	Config                config.Config
-	SqlConn               sqlx.SqlConn
-	Redis                 *xredis.Client
-	PurchaseLimitStore    *limitcache.PurchaseLimitStore
-	DOrderModel           model.DOrderModel
-	DOrderTicketUserModel model.DOrderTicketUserModel
-	RepeatGuard           repeatguard.Guard
-	ProgramRpc            programrpc.ProgramRpc
-	PayRpc                payrpc.PayRpc
-	UserRpc               userrpc.UserRpc
-	OrderCreateProducer   mq.OrderCreateProducer
-	OrderCreateConsumer   mq.OrderCreateConsumer
+	Config                     config.Config
+	SqlConn                    sqlx.SqlConn
+	Redis                      *xredis.Client
+	PurchaseLimitStore         *limitcache.PurchaseLimitStore
+	DOrderModel                model.DOrderModel
+	DOrderTicketUserModel      model.DOrderTicketUserModel
+	RepeatGuard                repeatguard.Guard
+	ProgramRpc                 programrpc.ProgramRpc
+	PayRpc                     payrpc.PayRpc
+	UserRpc                    userrpc.UserRpc
+	OrderCreateProducer        mq.OrderCreateProducer
+	OrderCreateConsumerFactory mq.OrderCreateConsumerFactory
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -49,7 +49,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	var orderCreateProducer mq.OrderCreateProducer
-	var orderCreateConsumer mq.OrderCreateConsumer
+	var orderCreateConsumerFactory mq.OrderCreateConsumerFactory
 	if len(c.Kafka.Brokers) > 0 {
 		if err := mq.EnsureOrderCreateTopic(c.Kafka); err != nil {
 			panic(err)
@@ -67,22 +67,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			}
 		}
 		orderCreateProducer = mq.NewOrderCreateProducer(c.Kafka)
-		orderCreateConsumer = mq.NewOrderCreateConsumer(c.Kafka)
+		orderCreateConsumerFactory = mq.NewOrderCreateConsumerFactory()
 	}
 
 	return &ServiceContext{
-		Config:                c,
-		SqlConn:               conn,
-		Redis:                 rds,
-		PurchaseLimitStore:    limitcache.NewPurchaseLimitStore(rds, model.NewDOrderModel(conn), limitcache.Config{}),
-		DOrderModel:           model.NewDOrderModel(conn),
-		DOrderTicketUserModel: model.NewDOrderTicketUserModel(conn),
-		RepeatGuard:           repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
-		ProgramRpc:            newProgramRPC(c.ProgramRpc),
-		PayRpc:                newPayRPC(c.PayRpc),
-		UserRpc:               newUserRPC(c.UserRpc),
-		OrderCreateProducer:   orderCreateProducer,
-		OrderCreateConsumer:   orderCreateConsumer,
+		Config:                     c,
+		SqlConn:                    conn,
+		Redis:                      rds,
+		PurchaseLimitStore:         limitcache.NewPurchaseLimitStore(rds, model.NewDOrderModel(conn), limitcache.Config{}),
+		DOrderModel:                model.NewDOrderModel(conn),
+		DOrderTicketUserModel:      model.NewDOrderTicketUserModel(conn),
+		RepeatGuard:                repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
+		ProgramRpc:                 newProgramRPC(c.ProgramRpc),
+		PayRpc:                     newPayRPC(c.PayRpc),
+		UserRpc:                    newUserRPC(c.UserRpc),
+		OrderCreateProducer:        orderCreateProducer,
+		OrderCreateConsumerFactory: orderCreateConsumerFactory,
 	}
 }
 
