@@ -38,6 +38,11 @@ func (s *OrderRpcServer) GetOrder(ctx context.Context, in *pb.GetOrderReq) (*pb.
 	return l.GetOrder(in)
 }
 
+func (s *OrderRpcServer) GetOrderServiceView(ctx context.Context, in *pb.GetOrderServiceViewReq) (*pb.OrderServiceViewResp, error) {
+	l := logic.NewGetOrderServiceViewLogic(ctx, s.svcCtx)
+	return l.GetOrderServiceView(in)
+}
+
 func (s *OrderRpcServer) CancelOrder(ctx context.Context, in *pb.CancelOrderReq) (*pb.BoolResp, error) {
 	l := logic.NewCancelOrderLogic(ctx, s.svcCtx)
 	return l.CancelOrder(in)
@@ -51,6 +56,11 @@ func (s *OrderRpcServer) PayOrder(ctx context.Context, in *pb.PayOrderReq) (*pb.
 func (s *OrderRpcServer) PayCheck(ctx context.Context, in *pb.PayCheckReq) (*pb.PayCheckResp, error) {
 	l := logic.NewPayCheckLogic(ctx, s.svcCtx)
 	return l.PayCheck(in)
+}
+
+func (s *OrderRpcServer) PreviewRefundOrder(ctx context.Context, in *pb.PreviewRefundOrderReq) (*pb.PreviewRefundOrderResp, error) {
+	l := logic.NewPreviewRefundOrderLogic(ctx, s.svcCtx)
+	return l.PreviewRefundOrder(in)
 }
 
 func (s *OrderRpcServer) RefundOrder(ctx context.Context, in *pb.RefundOrderReq) (*pb.RefundOrderResp, error) {

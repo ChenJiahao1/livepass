@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.19.4
-// source: services/order-rpc/order.proto
+// source: order.proto
 
 package pb
 
@@ -22,9 +22,11 @@ const (
 	OrderRpc_CreateOrder_FullMethodName                     = "/order.OrderRpc/CreateOrder"
 	OrderRpc_ListOrders_FullMethodName                      = "/order.OrderRpc/ListOrders"
 	OrderRpc_GetOrder_FullMethodName                        = "/order.OrderRpc/GetOrder"
+	OrderRpc_GetOrderServiceView_FullMethodName             = "/order.OrderRpc/GetOrderServiceView"
 	OrderRpc_CancelOrder_FullMethodName                     = "/order.OrderRpc/CancelOrder"
 	OrderRpc_PayOrder_FullMethodName                        = "/order.OrderRpc/PayOrder"
 	OrderRpc_PayCheck_FullMethodName                        = "/order.OrderRpc/PayCheck"
+	OrderRpc_PreviewRefundOrder_FullMethodName              = "/order.OrderRpc/PreviewRefundOrder"
 	OrderRpc_RefundOrder_FullMethodName                     = "/order.OrderRpc/RefundOrder"
 	OrderRpc_CloseExpiredOrders_FullMethodName              = "/order.OrderRpc/CloseExpiredOrders"
 	OrderRpc_CountActiveTicketsByUserProgram_FullMethodName = "/order.OrderRpc/CountActiveTicketsByUserProgram"
@@ -37,9 +39,11 @@ type OrderRpcClient interface {
 	CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
 	ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 	GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
+	GetOrderServiceView(ctx context.Context, in *GetOrderServiceViewReq, opts ...grpc.CallOption) (*OrderServiceViewResp, error)
 	CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 	PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
 	PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error)
+	PreviewRefundOrder(ctx context.Context, in *PreviewRefundOrderReq, opts ...grpc.CallOption) (*PreviewRefundOrderResp, error)
 	RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error)
 	CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 	CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
@@ -83,6 +87,16 @@ func (c *orderRpcClient) GetOrder(ctx context.Context, in *GetOrderReq, opts ...
 	return out, nil
 }
 
+func (c *orderRpcClient) GetOrderServiceView(ctx context.Context, in *GetOrderServiceViewReq, opts ...grpc.CallOption) (*OrderServiceViewResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrderServiceViewResp)
+	err := c.cc.Invoke(ctx, OrderRpc_GetOrderServiceView_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *orderRpcClient) CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BoolResp)
@@ -107,6 +121,16 @@ func (c *orderRpcClient) PayCheck(ctx context.Context, in *PayCheckReq, opts ...
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PayCheckResp)
 	err := c.cc.Invoke(ctx, OrderRpc_PayCheck_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderRpcClient) PreviewRefundOrder(ctx context.Context, in *PreviewRefundOrderReq, opts ...grpc.CallOption) (*PreviewRefundOrderResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PreviewRefundOrderResp)
+	err := c.cc.Invoke(ctx, OrderRpc_PreviewRefundOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -150,9 +174,11 @@ type OrderRpcServer interface {
 	CreateOrder(context.Context, *CreateOrderReq) (*CreateOrderResp, error)
 	ListOrders(context.Context, *ListOrdersReq) (*ListOrdersResp, error)
 	GetOrder(context.Context, *GetOrderReq) (*OrderDetailInfo, error)
+	GetOrderServiceView(context.Context, *GetOrderServiceViewReq) (*OrderServiceViewResp, error)
 	CancelOrder(context.Context, *CancelOrderReq) (*BoolResp, error)
 	PayOrder(context.Context, *PayOrderReq) (*PayOrderResp, error)
 	PayCheck(context.Context, *PayCheckReq) (*PayCheckResp, error)
+	PreviewRefundOrder(context.Context, *PreviewRefundOrderReq) (*PreviewRefundOrderResp, error)
 	RefundOrder(context.Context, *RefundOrderReq) (*RefundOrderResp, error)
 	CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error)
 	CountActiveTicketsByUserProgram(context.Context, *CountActiveTicketsByUserProgramReq) (*CountActiveTicketsByUserProgramResp, error)
@@ -175,6 +201,9 @@ func (UnimplementedOrderRpcServer) ListOrders(context.Context, *ListOrdersReq) (
 func (UnimplementedOrderRpcServer) GetOrder(context.Context, *GetOrderReq) (*OrderDetailInfo, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOrder not implemented")
 }
+func (UnimplementedOrderRpcServer) GetOrderServiceView(context.Context, *GetOrderServiceViewReq) (*OrderServiceViewResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOrderServiceView not implemented")
+}
 func (UnimplementedOrderRpcServer) CancelOrder(context.Context, *CancelOrderReq) (*BoolResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelOrder not implemented")
 }
@@ -183,6 +212,9 @@ func (UnimplementedOrderRpcServer) PayOrder(context.Context, *PayOrderReq) (*Pay
 }
 func (UnimplementedOrderRpcServer) PayCheck(context.Context, *PayCheckReq) (*PayCheckResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method PayCheck not implemented")
+}
+func (UnimplementedOrderRpcServer) PreviewRefundOrder(context.Context, *PreviewRefundOrderReq) (*PreviewRefundOrderResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method PreviewRefundOrder not implemented")
 }
 func (UnimplementedOrderRpcServer) RefundOrder(context.Context, *RefundOrderReq) (*RefundOrderResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefundOrder not implemented")
@@ -268,6 +300,24 @@ func _OrderRpc_GetOrder_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrderRpc_GetOrderServiceView_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrderServiceViewReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).GetOrderServiceView(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_GetOrderServiceView_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).GetOrderServiceView(ctx, req.(*GetOrderServiceViewReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OrderRpc_CancelOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CancelOrderReq)
 	if err := dec(in); err != nil {
@@ -318,6 +368,24 @@ func _OrderRpc_PayCheck_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OrderRpcServer).PayCheck(ctx, req.(*PayCheckReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderRpc_PreviewRefundOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreviewRefundOrderReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).PreviewRefundOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_PreviewRefundOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).PreviewRefundOrder(ctx, req.(*PreviewRefundOrderReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -396,6 +464,10 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrderRpc_GetOrder_Handler,
 		},
 		{
+			MethodName: "GetOrderServiceView",
+			Handler:    _OrderRpc_GetOrderServiceView_Handler,
+		},
+		{
 			MethodName: "CancelOrder",
 			Handler:    _OrderRpc_CancelOrder_Handler,
 		},
@@ -406,6 +478,10 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PayCheck",
 			Handler:    _OrderRpc_PayCheck_Handler,
+		},
+		{
+			MethodName: "PreviewRefundOrder",
+			Handler:    _OrderRpc_PreviewRefundOrder_Handler,
 		},
 		{
 			MethodName: "RefundOrder",
@@ -421,5 +497,5 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/order-rpc/order.proto",
+	Metadata: "order.proto",
 }

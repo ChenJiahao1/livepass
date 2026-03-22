@@ -439,3 +439,134 @@ func convergeOrderRefunded(ctx context.Context, svcCtx *svc.ServiceContext, orde
 		return nil
 	})
 }
+
+func findOwnedOrder(ctx context.Context, svcCtx *svc.ServiceContext, userID, orderNumber int64) (*model.DOrder, error) {
+	order, err := svcCtx.DOrderModel.FindOneByOrderNumber(ctx, orderNumber)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return nil, xerr.ErrOrderNotFound
+		}
+		return nil, err
+	}
+	if order.UserId != userID {
+		return nil, xerr.ErrOrderNotFound
+	}
+
+	return order, nil
+}
+
+func deriveTicketStatus(order *model.DOrder, details []*model.DOrderTicketUser) int64 {
+	if len(details) == 0 {
+		if order == nil {
+			return 0
+		}
+		return order.OrderStatus
+	}
+
+	candidate := details[0].OrderStatus
+	for _, detail := range details[1:] {
+		if detail == nil || detail.OrderStatus != candidate {
+			if order == nil {
+				return candidate
+			}
+			return order.OrderStatus
+		}
+	}
+
+	return candidate
+}
+
+func derivePayStatus(ctx context.Context, svcCtx *svc.ServiceContext, order *model.DOrder) (int64, error) {
+	if order == nil {
+		return 0, nil
+	}
+	if order.OrderStatus != orderStatusPaid && order.OrderStatus != orderStatusRefunded {
+		return 0, nil
+	}
+
+	payBill, err := mustGetPayBillForOrder(ctx, svcCtx, order.OrderNumber)
+	if err != nil {
+		if order.OrderStatus == orderStatusRefunded && errors.Is(err, xerr.ErrPayBillNotFound) {
+			return payStatusRefunded, nil
+		}
+		return 0, err
+	}
+
+	return payBill.GetPayStatus(), nil
+}
+
+func previewRefundOrder(ctx context.Context, svcCtx *svc.ServiceContext, order *model.DOrder) (*pb.PreviewRefundOrderResp, error) {
+	resp := &pb.PreviewRefundOrderResp{}
+	if order == nil {
+		return resp, nil
+	}
+
+	resp.OrderNumber = order.OrderNumber
+	switch order.OrderStatus {
+	case orderStatusRefunded:
+		resp.RejectReason = "订单已退款"
+		return resp, nil
+	case orderStatusPaid:
+	default:
+		resp.RejectReason = "当前订单不可退"
+		return resp, nil
+	}
+
+	payBill, err := mustGetPayBillForOrder(ctx, svcCtx, order.OrderNumber)
+	if err != nil {
+		return nil, err
+	}
+	if payBill.GetPayStatus() == payStatusRefunded {
+		resp.RejectReason = "订单已退款"
+		return resp, nil
+	}
+	if payBill.GetPayStatus() != payStatusPaid {
+		resp.RejectReason = "当前订单不可退"
+		return resp, nil
+	}
+
+	evaluateResp, err := svcCtx.ProgramRpc.EvaluateRefundRule(ctx, &programrpc.EvaluateRefundRuleReq{
+		ProgramId:     order.ProgramId,
+		OrderShowTime: formatOrderTime(order.ProgramShowTime),
+		OrderAmount:   int64(order.OrderPrice),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !evaluateResp.GetAllowRefund() {
+		resp.RejectReason = evaluateResp.GetRejectReason()
+		if resp.RejectReason == "" {
+			resp.RejectReason = "当前订单不可退"
+		}
+		return resp, nil
+	}
+
+	resp.AllowRefund = true
+	resp.RefundAmount = evaluateResp.GetRefundAmount()
+	resp.RefundPercent = evaluateResp.GetRefundPercent()
+	return resp, nil
+}
+
+func mapOrderServiceView(order *model.DOrder, payStatus, ticketStatus int64, preview *pb.PreviewRefundOrderResp) *pb.OrderServiceViewResp {
+	if order == nil {
+		return &pb.OrderServiceViewResp{}
+	}
+
+	resp := &pb.OrderServiceViewResp{
+		OrderNumber:     order.OrderNumber,
+		OrderStatus:     order.OrderStatus,
+		PayStatus:       payStatus,
+		TicketStatus:    ticketStatus,
+		ProgramTitle:    order.ProgramTitle,
+		ProgramShowTime: formatOrderTime(order.ProgramShowTime),
+		TicketCount:     order.TicketCount,
+		OrderPrice:      int64(order.OrderPrice),
+	}
+	if preview == nil {
+		return resp
+	}
+
+	resp.CanRefund = preview.GetAllowRefund()
+	resp.RefundBlockedReason = preview.GetRejectReason()
+	return resp
+}

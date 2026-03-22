@@ -23,15 +23,19 @@ type (
 	CreateOrderReq                      = pb.CreateOrderReq
 	CreateOrderResp                     = pb.CreateOrderResp
 	GetOrderReq                         = pb.GetOrderReq
+	GetOrderServiceViewReq              = pb.GetOrderServiceViewReq
 	ListOrdersReq                       = pb.ListOrdersReq
 	ListOrdersResp                      = pb.ListOrdersResp
 	OrderDetailInfo                     = pb.OrderDetailInfo
 	OrderListInfo                       = pb.OrderListInfo
+	OrderServiceViewResp                = pb.OrderServiceViewResp
 	OrderTicketInfo                     = pb.OrderTicketInfo
 	PayCheckReq                         = pb.PayCheckReq
 	PayCheckResp                        = pb.PayCheckResp
 	PayOrderReq                         = pb.PayOrderReq
 	PayOrderResp                        = pb.PayOrderResp
+	PreviewRefundOrderReq               = pb.PreviewRefundOrderReq
+	PreviewRefundOrderResp              = pb.PreviewRefundOrderResp
 	RefundOrderReq                      = pb.RefundOrderReq
 	RefundOrderResp                     = pb.RefundOrderResp
 
@@ -39,9 +43,11 @@ type (
 		CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
 		ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 		GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
+		GetOrderServiceView(ctx context.Context, in *GetOrderServiceViewReq, opts ...grpc.CallOption) (*OrderServiceViewResp, error)
 		CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 		PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
 		PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error)
+		PreviewRefundOrder(ctx context.Context, in *PreviewRefundOrderReq, opts ...grpc.CallOption) (*PreviewRefundOrderResp, error)
 		RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error)
 		CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 		CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
@@ -73,6 +79,11 @@ func (m *defaultOrderRpc) GetOrder(ctx context.Context, in *GetOrderReq, opts ..
 	return client.GetOrder(ctx, in, opts...)
 }
 
+func (m *defaultOrderRpc) GetOrderServiceView(ctx context.Context, in *GetOrderServiceViewReq, opts ...grpc.CallOption) (*OrderServiceViewResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.GetOrderServiceView(ctx, in, opts...)
+}
+
 func (m *defaultOrderRpc) CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.CancelOrder(ctx, in, opts...)
@@ -86,6 +97,11 @@ func (m *defaultOrderRpc) PayOrder(ctx context.Context, in *PayOrderReq, opts ..
 func (m *defaultOrderRpc) PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.PayCheck(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) PreviewRefundOrder(ctx context.Context, in *PreviewRefundOrderReq, opts ...grpc.CallOption) (*PreviewRefundOrderResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.PreviewRefundOrder(ctx, in, opts...)
 }
 
 func (m *defaultOrderRpc) RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error) {

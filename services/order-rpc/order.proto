@@ -55,6 +55,24 @@ message GetOrderReq {
   int64 orderNumber = 2;
 }
 
+message GetOrderServiceViewReq {
+  int64 userId = 1;
+  int64 orderNumber = 2;
+}
+
+message OrderServiceViewResp {
+  int64 orderNumber = 1;
+  int64 orderStatus = 2;
+  int64 payStatus = 3;
+  int64 ticketStatus = 4;
+  string programTitle = 5;
+  string programShowTime = 6;
+  int64 ticketCount = 7;
+  int64 orderPrice = 8;
+  bool canRefund = 9;
+  string refundBlockedReason = 10;
+}
+
 message OrderTicketInfo {
   int64 ticketUserId = 1;
   string ticketUserName = 2;
@@ -128,6 +146,19 @@ message RefundOrderReq {
   string reason = 3;
 }
 
+message PreviewRefundOrderReq {
+  int64 userId = 1;
+  int64 orderNumber = 2;
+}
+
+message PreviewRefundOrderResp {
+  int64 orderNumber = 1;
+  bool allowRefund = 2;
+  int64 refundAmount = 3;
+  int64 refundPercent = 4;
+  string rejectReason = 5;
+}
+
 message RefundOrderResp {
   int64 orderNumber = 1;
   int64 orderStatus = 2;
@@ -158,9 +189,11 @@ service OrderRpc {
   rpc CreateOrder(CreateOrderReq) returns (CreateOrderResp);
   rpc ListOrders(ListOrdersReq) returns (ListOrdersResp);
   rpc GetOrder(GetOrderReq) returns (OrderDetailInfo);
+  rpc GetOrderServiceView(GetOrderServiceViewReq) returns (OrderServiceViewResp);
   rpc CancelOrder(CancelOrderReq) returns (BoolResp);
   rpc PayOrder(PayOrderReq) returns (PayOrderResp);
   rpc PayCheck(PayCheckReq) returns (PayCheckResp);
+  rpc PreviewRefundOrder(PreviewRefundOrderReq) returns (PreviewRefundOrderResp);
   rpc RefundOrder(RefundOrderReq) returns (RefundOrderResp);
   rpc CloseExpiredOrders(CloseExpiredOrdersReq) returns (CloseExpiredOrdersResp);
   rpc CountActiveTicketsByUserProgram(CountActiveTicketsByUserProgramReq) returns (CountActiveTicketsByUserProgramResp);
