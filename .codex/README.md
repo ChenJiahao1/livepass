@@ -15,6 +15,7 @@
 
 - `ai-context` 只作为 go-zero 开发流程、常见模式、goctl 用法的补充参考。
 - 不能覆盖项目根目录 `AGENTS.md` 中已经定义的服务边界、目录规范和命名约束。
+- 本项目所有新增或重生成的 `goctl` 代码一律使用 `--style go_zero`，不要根据仓库里的历史混用文件名反推 style。
 - `zero-skills` 已通过全局 skills 提供，本项目不在仓库内重复存放。
 
 更新说明：

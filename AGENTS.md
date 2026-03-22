@@ -21,6 +21,9 @@
 - 数据库表结构设计与实现优先参考原 Java 项目已有表定义
 - `go-zero` 服务按服务类型组织：HTTP 服务使用 `services/*-api/`，gRPC 服务使用 `services/*-rpc/`
 - 涉及 `go-zero` 服务开发时，使用 `zero-skills`
+- 所有 `goctl` 生成命令统一使用 `--style go_zero`，禁止省略 `--style` 或改用其他 style
+- `go-zero` 相关 Go 文件名统一使用下划线风格，例如 `refund_order_logic.go`、`service_context.go`、`order_rpc_server.go`
+- Go 标识符遵循 Go 原生驼峰命名，例如 `RefundOrderLogic`、`NewRefundOrderLogic`；文件名规则与标识符规则不要混用
 - 公共能力放在 `pkg/`，禁止把具体业务规则放入公共包
 - 各服务的命名使用简洁英文，和 Java 项目语义保持一致
 - 目录结构按 `go-zero` 生成结果扩展，不沿用 Java 的 `*-service` 目录形式
@@ -37,6 +40,7 @@
 - 当前项目的 Codex 本地补充上下文位于 `.codex/`
 - 执行 go-zero 相关任务时，先遵守本文件，再参考 `.codex/README.md`
 - `.codex/ai-context/` 中的静态规则仅补充 go-zero 工作流、模式和 goctl 用法，不覆盖本文件的项目约束
+- 仓库内历史上已经存在的非下划线风格文件，仅视为待收敛遗留，不作为后续生成或新增文件的命名依据
 - `zero-skills` 通过全局 skills 提供，本仓库内不重复 vendoring skills
 
 ## 业务命名

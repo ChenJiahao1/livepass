@@ -18,6 +18,7 @@
 ### Tool Usage
 
 - Use `goctl` commands in terminal, NOT manual code generation
+- For this repository, ALWAYS pass `--style go_zero` on `goctl` generation commands
 - `goctl api new` for new API services
 - `goctl rpc new` / `goctl rpc protoc` for new RPC services
 - `goctl api go` for code from spec
@@ -84,4 +85,4 @@ For complete implementation patterns, refer to `zero-skills`:
 - Manual SQL instead of generated models when generation applies
 - Missing context propagation
 - Skipping post-generation steps
-- Mismatched `--style` flag with existing code
+- Omitting `--style go_zero` or inferring style from legacy mixed file names

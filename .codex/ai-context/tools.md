@@ -7,6 +7,8 @@ which goctl && goctl --version
 go install github.com/zeromicro/go-zero/tools/goctl@latest
 ```
 
+For `damai-go`, all `goctl` generation must use `--style go_zero`. Do not follow legacy mixed naming in existing directories.
+
 ## create_api_service
 
 Create REST API service with goctl
@@ -104,4 +106,4 @@ After every generation:
 2. `go mod tidy`
 3. Verify imports match `go.mod` module path
 4. `go build ./...`
-5. Check `--style` matches the existing naming convention
+5. Check generated file names remain in `go_zero` snake_case
