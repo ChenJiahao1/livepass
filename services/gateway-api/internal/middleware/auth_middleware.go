@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 
 	"damai-go/pkg/xmiddleware"
 )
@@ -31,6 +32,7 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		r.Header.Set(userIDHeader, strconv.FormatInt(userID, 10))
 		next(w, r.WithContext(xmiddleware.WithUserID(r.Context(), userID)))
 	}
 }

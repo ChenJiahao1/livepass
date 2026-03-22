@@ -29,7 +29,7 @@ func MustCreateToken(t *testing.T, userID int64, secret string) string {
 	return token
 }
 
-func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget string, timeout int64) config.Config {
+func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget string, timeout int64, agentsTarget ...string) config.Config {
 	t.Helper()
 
 	var c config.Config
@@ -74,6 +74,18 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget string, 
 				{Method: http.MethodPost, Path: "/order/refund"},
 			},
 		},
+	}
+	if len(agentsTarget) > 0 && agentsTarget[0] != "" {
+		c.Upstreams = append(c.Upstreams, gateway.Upstream{
+			Name: "agents-api",
+			Http: &gateway.HttpClientConf{
+				Target:  mustHostFromURL(t, agentsTarget[0]),
+				Timeout: timeout,
+			},
+			Mappings: []gateway.RouteMapping{
+				{Method: http.MethodPost, Path: "/agent/chat"},
+			},
+		})
 	}
 
 	return c

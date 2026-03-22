@@ -218,6 +218,89 @@ func TestGatewayForwardsAuthorizedRefundOrderRequest(t *testing.T) {
 	}
 }
 
+func TestGatewayBlocksUnauthorizedAgentRequest(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.NotFoundHandler())
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	var called bool
+	agentsAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer agentsAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000, agentsAPI.URL))
+	defer server.Stop()
+
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/chat", nil, bytes.NewBufferString(`{"message":"hi"}`))
+	defer resp.Body.Close()
+
+	if called {
+		t.Fatal("expected unauthorized agent request to be blocked before reaching agents upstream")
+	}
+	if resp.StatusCode == http.StatusOK {
+		t.Fatalf("expected non-200 status for unauthorized agent request, got %d", resp.StatusCode)
+	}
+}
+
+func TestGatewayForwardsAuthorizedAgentRequestWithUserHeader(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.NotFoundHandler())
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	var gotPath string
+	var gotUserHeader string
+	agentsAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotUserHeader = r.Header.Get("X-User-Id")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"service":"agents"}`))
+	}))
+	defer agentsAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000, agentsAPI.URL))
+	defer server.Stop()
+
+	headers := map[string]string{
+		"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
+		"X-Channel-Code": "0001",
+	}
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/chat", headers, bytes.NewBufferString(`{"message":"hi"}`))
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	if gotPath != "/agent/chat" {
+		t.Fatalf("expected upstream path /agent/chat, got %q", gotPath)
+	}
+	if gotUserHeader != "3001" {
+		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
+	}
+	if string(body) != `{"service":"agents"}` {
+		t.Fatalf("expected agents body, got %s", string(body))
+	}
+}
+
 func TestGatewayPreservesUpstreamStatusCode(t *testing.T) {
 	t.Parallel()
 

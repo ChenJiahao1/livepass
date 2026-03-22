@@ -84,3 +84,10 @@ Upstreams:
         Path: /order/refund
       - Method: post
         Path: /order/select/list
+  - Name: agents-api
+    Http:
+      Target: 127.0.0.1:8891
+      Timeout: 3000
+    Mappings:
+      - Method: post
+        Path: /agent/chat

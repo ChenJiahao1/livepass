@@ -9,8 +9,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const userIDHeader = "X-User-Id"
+
 func requiresAuth(path string) bool {
-	return strings.HasPrefix(path, "/order/")
+	return strings.HasPrefix(path, "/order/") || strings.HasPrefix(path, "/agent/")
 }
 
 func writeUnauthorized(w http.ResponseWriter, r *http.Request, err error) {
