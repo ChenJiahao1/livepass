@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-OUT_DIR="${ROOT_DIR}/agents/app/clients/rpc/generated"
+OUT_DIR="${ROOT_DIR}/agents/app/rpc/generated"
 
 mkdir -p "${OUT_DIR}"
 
