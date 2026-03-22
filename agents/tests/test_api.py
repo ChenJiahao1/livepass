@@ -27,6 +27,13 @@ class FakeGraph:
     async def ainvoke(self, state_payload, config, context):
         self.calls.append({"state": state_payload, "config": config, "context": context})
         message = state_payload["messages"][-1]["content"]
+        if "人工" in message:
+            return {
+                **state_payload,
+                "reply": "已为你转接人工客服，请稍候。",
+                "current_agent": "handoff",
+                "need_handoff": True,
+            }
         return {
             **state_payload,
             "final_reply": f"已处理：{message}",
@@ -54,7 +61,41 @@ def test_chat_requires_user_header():
     assert response.status_code in {400, 401}
 
 
-def test_chat_api_persists_conversation_state_and_reuses_conversation_id():
+def test_chat_api_injects_thread_and_user_context():
+    app, graph, _store = build_test_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/agent/chat",
+        headers={"X-User-Id": "3001"},
+        json={"message": "帮我查订单"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert graph.calls[0]["config"]["configurable"]["thread_id"] == body["conversationId"]
+    assert graph.calls[0]["context"]["current_user_id"] == "3001"
+    assert body["status"] == "completed"
+    assert body["reply"] == "已处理：帮我查订单"
+
+
+def test_chat_api_maps_reply_fallback_and_handoff_status():
+    app, _graph, _store = build_test_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/agent/chat",
+        headers={"X-User-Id": "3001"},
+        json={"message": "我要人工客服"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "handoff"
+    assert body["reply"] == "已为你转接人工客服，请稍候。"
+
+
+def test_chat_api_reuses_conversation_id_and_starts_new_graph_turn_each_request():
     app, graph, _store = build_test_app()
     client = TestClient(app)
 
@@ -74,4 +115,5 @@ def test_chat_api_persists_conversation_state_and_reuses_conversation_id():
     assert second.json()["conversationId"] == first.json()["conversationId"]
     assert graph.calls[0]["config"]["configurable"]["thread_id"] == first.json()["conversationId"]
     assert graph.calls[1]["config"]["configurable"]["thread_id"] == first.json()["conversationId"]
-    assert [message["content"] for message in graph.calls[1]["state"]["messages"]] == ["订单 93001 可以退款吗"]
+    assert graph.calls[0]["state"]["messages"] == [{"role": "user", "content": "帮我查订单"}]
+    assert graph.calls[1]["state"]["messages"] == [{"role": "user", "content": "订单 93001 可以退款吗"}]
