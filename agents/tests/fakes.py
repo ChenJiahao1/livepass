@@ -1,3 +1,5 @@
+import inspect
+from functools import wraps
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -6,6 +8,8 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableLambda
 from langchain_core.tools import StructuredTool
 from pydantic import Field
+
+from app.mcp_client.tracing import append_tool_trace
 
 
 def make_tool_call_message(
@@ -108,8 +112,14 @@ class StubRegistry:
 
 
 def build_async_tool(*, name: str, description: str, coroutine):
+    @wraps(coroutine)
+    async def _wrapped(*args, **kwargs):
+        append_tool_trace(name)
+        return await coroutine(*args, **kwargs)
+
+    _wrapped.__signature__ = inspect.signature(coroutine)
     return StructuredTool.from_function(
-        coroutine=coroutine,
+        coroutine=_wrapped,
         name=name,
         description=description,
     )

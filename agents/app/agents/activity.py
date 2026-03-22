@@ -9,6 +9,15 @@ class ActivityAgent(ToolCallingAgent):
     toolset = "activity"
     prompt_template = "activity/system.md"
 
+    def build_prompt_context(self, state: ConversationState) -> dict[str, object]:
+        context = super().build_prompt_context(state)
+        context["selected_program_id"] = state.get("selected_program_id")
+        return context
+
+    def initial_trace(self, state: ConversationState) -> list[str]:
+        program_id = state.get("selected_program_id")
+        return [f"program:{program_id}"] if program_id else []
+
     async def handle(self, state: ConversationState) -> dict[str, object]:
         tools = await self.get_tools()
         program_id = state.get("selected_program_id")
@@ -22,7 +31,9 @@ class ActivityAgent(ToolCallingAgent):
                 return self.result(
                     state,
                     reply=f"节目《{title}》的演出时间是 {show_time}。",
-                    specialist_result=detail,
+                    trace=[*self.initial_trace(state), "tool:get_program_detail"],
+                    selected_program_id=program_id,
+                    result_summary=f"节目《{title}》详情已返回",
                 )
 
         page_tool = self.find_tool(tools, "page_programs")
@@ -36,7 +47,8 @@ class ActivityAgent(ToolCallingAgent):
                 return self.result(
                     state,
                     reply=f"当前可关注节目有《{title}》，演出时间 {show_time}。",
-                    specialist_result={"programs": items},
+                    trace=["tool:page_programs"],
+                    result_summary=f"节目《{title}》概览已返回",
                 )
 
-        return await self.run_tool_agent(state)
+        return await super().handle(state)
