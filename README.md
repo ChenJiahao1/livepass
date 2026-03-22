@@ -150,6 +150,15 @@ bash scripts/perf/collect_order_baseline.sh
 - `skip expired order create event` 不持续增长
 - 压测停止后 Kafka consumer lag 能回落到接近 `0`
 
+Operator checklist：
+
+1. 启动基础设施：`docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d`
+2. 启动 perf 配置：`order-rpc.perf.yaml`、`order-api.perf.yaml`、`gateway-api.perf.yaml`
+3. 准备 Kafka topic：`bash scripts/perf/prepare_order_kafka_topic.sh`
+4. 预热账本：`bash scripts/perf/prewarm_order_ledgers.sh`
+5. 执行 baseline：`k6 run -e ENV_FILE=scripts/perf/order_create_gateway_baseline.env.example scripts/perf/order_create_gateway_baseline.js`
+6. 采集结果：`bash scripts/perf/collect_order_baseline.sh`
+
 ## 下单主路径验收
 
 完整步骤见 `docs/api/order-checkout-acceptance.md`。
