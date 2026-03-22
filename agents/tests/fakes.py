@@ -1,23 +1,102 @@
+from typing import Any
+
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.runnables import RunnableLambda
 from langchain_core.tools import StructuredTool
+from pydantic import Field
 
 
-class ScriptedChatModel:
-    def __init__(self, *, structured_responses: list[dict] | None = None, responses: list[str] | None = None):
-        self.structured_responses = list(structured_responses or [])
-        self.responses = list(responses or [])
+def make_tool_call_message(
+    name: str,
+    args: dict[str, Any],
+    *,
+    call_id: str = "call-1",
+) -> AIMessage:
+    return AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "id": call_id,
+                "name": name,
+                "args": args,
+                "type": "tool_call",
+            }
+        ],
+    )
 
-    def with_structured_output(self, schema):
-        return _StructuredScriptedChatModel(self, schema)
 
+class ScriptedChatModel(BaseChatModel):
+    responses: list[AIMessage | str] = Field(default_factory=list)
+    structured_responses: list[Any] = Field(default_factory=list)
+    calls: list[list[BaseMessage]] = Field(default_factory=list)
+    structured_calls: list[Any] = Field(default_factory=list)
+    bound_tool_names: list[list[str]] = Field(default_factory=list)
+    _response_index: int = 0
+    _structured_index: int = 0
 
-class _StructuredScriptedChatModel:
-    def __init__(self, parent: ScriptedChatModel, schema):
-        self._parent = parent
-        self._schema = schema
+    @property
+    def _llm_type(self) -> str:
+        return "scripted-chat-model"
 
-    def invoke(self, _messages):
-        payload = self._parent.structured_responses.pop(0)
-        return self._schema.model_validate(payload)
+    @property
+    def _identifying_params(self) -> dict[str, Any]:
+        return {}
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager=None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        self.calls.append(list(messages))
+        response = self.responses[self._response_index]
+        self._response_index += 1
+        if not isinstance(response, AIMessage):
+            response = AIMessage(content=str(response))
+        return ChatResult(generations=[ChatGeneration(message=response)])
+
+    def bind_tools(self, tools, *, tool_choice: str | None = None, **kwargs: Any):
+        self.bound_tool_names.append([self._tool_name(tool) for tool in tools])
+        return self
+
+    def with_structured_output(
+        self,
+        schema,
+        *,
+        include_raw: bool = False,
+        **kwargs: Any,
+    ):
+        def _invoke(messages: Any):
+            self.structured_calls.append(messages)
+            response = self.structured_responses[self._structured_index]
+            self._structured_index += 1
+            parsed = response
+            if isinstance(schema, type) and hasattr(schema, "model_validate"):
+                parsed = schema.model_validate(response)
+            if include_raw:
+                return {
+                    "raw": AIMessage(content=str(response)),
+                    "parsed": parsed,
+                    "parsing_error": None,
+                }
+            return parsed
+
+        return RunnableLambda(_invoke)
+
+    def _tool_name(self, tool: Any) -> str:
+        if hasattr(tool, "name"):
+            return str(tool.name)
+        if hasattr(tool, "__name__"):
+            return str(tool.__name__)
+        if isinstance(tool, dict):
+            if "name" in tool:
+                return str(tool["name"])
+            if "function" in tool and isinstance(tool["function"], dict):
+                return str(tool["function"].get("name", "unknown"))
+        return "unknown"
 
 
 class StubRegistry:
