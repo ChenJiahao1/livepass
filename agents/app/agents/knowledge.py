@@ -39,7 +39,12 @@ class KnowledgeAgent:
     def _latest_user_message(self, state: ConversationState) -> str:
         messages = state.get("messages", [])
         for message in reversed(messages):
-            if message.get("role") == "user":
+            role = getattr(message, "type", None)
+            if role is None and hasattr(message, "get"):
+                role = message.get("role")
+            if role in {"human", "user"}:
+                if hasattr(message, "content"):
+                    return str(message.content)
                 return str(message.get("content", ""))
         return ""
 

@@ -9,13 +9,17 @@ Intent = Literal["activity", "order", "refund", "handoff", "knowledge", "unknown
 
 
 class ConversationState(MessagesState):
+    coordinator_action: NotRequired[Literal["respond", "clarify", "delegate"]]
+    next_agent: NotRequired[Literal["activity", "order", "refund", "handoff", "knowledge", "finish"]]
     route: NotRequired[Intent | None]
     last_intent: NotRequired[Intent]
     selected_program_id: NotRequired[str | None]
     selected_order_id: NotRequired[str | None]
     current_user_id: NotRequired[str | None]
+    reply: NotRequired[str]
     specialist_result: NotRequired[dict[str, Any] | None]
     need_handoff: NotRequired[bool]
+    status: NotRequired[str]
     trace: NotRequired[list[str]]
     current_agent: NotRequired[str]
     final_reply: NotRequired[str]
