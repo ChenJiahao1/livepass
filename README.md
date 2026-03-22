@@ -132,7 +132,7 @@ k6 run -e ENV_FILE=scripts/perf/order_create_gateway_baseline.env.example \
   scripts/perf/order_create_gateway_baseline.js
 ```
 
-可通过 env 文件或命令行覆盖 `JWT`、`PROGRAM_ID`、`TICKET_CATEGORY_ID`、`TICKET_USER_IDS`、`WARMUP_VUS`、`STEADY_VUS` 等参数。运行前需本机安装 `k6`。
+可通过 env 文件或命令行覆盖 `JWT`、`PROGRAM_ID`、`TICKET_CATEGORY_ID`、`TICKET_USER_IDS`、`WARMUP_VUS`、`STEADY_VUS` 等参数。`STEADY_START_TIME` 可显式指定稳态阶段启动时间；未设置时默认取 `WARMUP_DURATION + ITERATION_SLEEP_SECONDS + 1s`，避免 warmup 与 steady 在短压测参数下重叠。运行前需本机安装 `k6`。
 
 结果采集：
 

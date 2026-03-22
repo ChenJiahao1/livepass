@@ -1,6 +1,12 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
+import {
+  buildOrderCreatePayload,
+  parseTicketUserIdLiterals,
+  resolveSteadyStartTime,
+} from './order_create_gateway_baseline_payload.js';
+
 function parseEnvFile(content) {
   return content
     .split(/\r?\n/)
@@ -49,27 +55,25 @@ function integerEnv(name, fallback) {
   return parseInt(env(name, String(fallback)), 10);
 }
 
-function parseTicketUserIds() {
-  return requiredEnv('TICKET_USER_IDS')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .map((value) => Number(value));
-}
-
 const gatewayBaseUrl = env('GATEWAY_BASE_URL', 'http://127.0.0.1:8081');
 const channelCode = env('CHANNEL_CODE', '0001');
 const jwt = requiredEnv('JWT');
-const ticketUserIds = parseTicketUserIds();
-const payload = JSON.stringify({
+const ticketUserIdLiterals = parseTicketUserIdLiterals(requiredEnv('TICKET_USER_IDS'));
+const payload = buildOrderCreatePayload({
   programId: integerEnv('PROGRAM_ID', 10001),
   ticketCategoryId: integerEnv('TICKET_CATEGORY_ID', 40001),
-  ticketUserIds,
+  ticketUserIdLiterals,
   distributionMode: env('DISTRIBUTION_MODE', 'express'),
   takeTicketMode: env('TAKE_TICKET_MODE', 'paper'),
 });
 
 const warmupDuration = env('WARMUP_DURATION', '15s');
+const iterationSleepSeconds = Number(env('ITERATION_SLEEP_SECONDS', '0'));
+const steadyStartTime = resolveSteadyStartTime({
+  warmupDuration,
+  iterationSleepSeconds,
+  explicitSteadyStartTime: env('STEADY_START_TIME'),
+});
 
 export const options = {
   thresholds: {
@@ -88,7 +92,7 @@ export const options = {
       exec: 'createOrder',
       vus: integerEnv('STEADY_VUS', 4),
       duration: env('STEADY_DURATION', '60s'),
-      startTime: warmupDuration,
+      startTime: steadyStartTime,
     },
   },
 };
@@ -117,8 +121,7 @@ export function createOrder() {
     'order create returns orderNumber': () => Number(parsedBody.orderNumber || 0) > 0,
   });
 
-  const sleepSeconds = Number(env('ITERATION_SLEEP_SECONDS', '0'));
-  if (sleepSeconds > 0) {
-    sleep(sleepSeconds);
+  if (iterationSleepSeconds > 0) {
+    sleep(iterationSleepSeconds);
   }
 }

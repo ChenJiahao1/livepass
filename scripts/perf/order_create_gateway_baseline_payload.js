@@ -1,0 +1,99 @@
+function assertDigits(value, fieldName) {
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`invalid ${fieldName}: ${value}`);
+  }
+}
+
+function parseDurationToMilliseconds(value) {
+  const normalized = String(value).trim();
+  if (!normalized) {
+    throw new Error('missing duration');
+  }
+
+  const pattern = /(\d+(?:\.\d+)?)(ms|h|m|s)/g;
+  let total = 0;
+  let cursor = 0;
+  let matched = false;
+
+  for (const match of normalized.matchAll(pattern)) {
+    if (match.index !== cursor) {
+      throw new Error(`invalid duration: ${value}`);
+    }
+
+    const amount = Number(match[1]);
+    const unit = match[2];
+    const unitMilliseconds = unit === 'h' ? 3600000 : unit === 'm' ? 60000 : unit === 's' ? 1000 : 1;
+
+    total += amount * unitMilliseconds;
+    cursor += match[0].length;
+    matched = true;
+  }
+
+  if (!matched || cursor !== normalized.length) {
+    throw new Error(`invalid duration: ${value}`);
+  }
+
+  return total;
+}
+
+function formatDurationMilliseconds(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`invalid duration milliseconds: ${value}`);
+  }
+
+  if (value % 1000 === 0) {
+    return `${value / 1000}s`;
+  }
+
+  return `${value}ms`;
+}
+
+export function parseTicketUserIdLiterals(rawValue) {
+  return rawValue
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => {
+      assertDigits(value, 'ticket user id');
+      return value;
+    });
+}
+
+export function buildOrderCreatePayload({
+  programId,
+  ticketCategoryId,
+  ticketUserIdLiterals,
+  distributionMode,
+  takeTicketMode,
+}) {
+  if (!Array.isArray(ticketUserIdLiterals) || ticketUserIdLiterals.length === 0) {
+    throw new Error('missing ticket user ids');
+  }
+
+  const ticketUserIdsJson = ticketUserIdLiterals
+    .map((value) => {
+      assertDigits(value, 'ticket user id');
+      return value;
+    })
+    .join(',');
+
+  return `{"programId":${JSON.stringify(programId)},"ticketCategoryId":${JSON.stringify(ticketCategoryId)},"ticketUserIds":[${ticketUserIdsJson}],"distributionMode":${JSON.stringify(distributionMode)},"takeTicketMode":${JSON.stringify(takeTicketMode)}}`;
+}
+
+export function resolveSteadyStartTime({
+  warmupDuration,
+  iterationSleepSeconds,
+  explicitSteadyStartTime,
+  guardMilliseconds = 1000,
+}) {
+  if (explicitSteadyStartTime) {
+    return explicitSteadyStartTime;
+  }
+
+  const totalMilliseconds =
+    parseDurationToMilliseconds(warmupDuration) +
+    Math.max(0, Number(iterationSleepSeconds) || 0) * 1000 +
+    guardMilliseconds;
+
+  return formatDurationMilliseconds(totalMilliseconds);
+}
