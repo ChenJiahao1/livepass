@@ -51,6 +51,14 @@ func (l *ConfirmSeatFreezeLogic) ConfirmSeatFreeze(in *pb.ConfirmSeatFreezeReq) 
 			return xerr.ErrSeatFreezeStatusInvalid
 		}
 
+		seatStore := ensureSeatStockStore(l.svcCtx)
+		if seatStore == nil {
+			return xerr.ErrProgramSeatLedgerNotReady
+		}
+		if err := seatStore.ConfirmFrozenSeats(ctx, freeze.ProgramId, freeze.TicketCategoryId, freeze.FreezeToken); err != nil {
+			return err
+		}
+
 		if err := seatModel.ConfirmByFreezeToken(ctx, session, freeze.FreezeToken); err != nil {
 			return err
 		}
