@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     openai_base_url: str | None = None
     openai_model: str = "gpt-4.1-mini"
     redis_url: str = "redis://127.0.0.1:6379/0"
+    session_ttl_seconds: int = 1800
+    session_key_prefix: str = "agents:conversation"
     order_rpc_target: str = "127.0.0.1:8083"
     program_rpc_target: str = "127.0.0.1:8082"
     user_rpc_target: str = "127.0.0.1:8081"
