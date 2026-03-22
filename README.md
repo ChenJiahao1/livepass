@@ -91,6 +91,40 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 
 `gateway-api` 已启用 `Telemetry` 配置；若要得到完整链路，还需给下游 API/RPC 服务同步补齐 `Telemetry`。
 
+## Order 压测基线准备
+
+启动 order baseline 的 perf 配置：
+
+```bash
+go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.perf.yaml
+go run services/order-api/order.go -f services/order-api/etc/order-api.perf.yaml
+go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.perf.yaml
+```
+
+Kafka topic 预处理：
+
+```bash
+PARTITIONS=4 bash scripts/perf/prepare_order_kafka_topic.sh
+```
+
+订单账本预热：
+
+```bash
+JWT=<user-jwt> \
+PROGRAM_ID=10001 \
+TICKET_CATEGORY_ID=40001 \
+TICKET_USER_IDS=701,702 \
+bash scripts/perf/prewarm_order_ledgers.sh
+```
+
+`TICKET_USER_IDS` 使用逗号分隔的观演人 ID 列表，不带方括号。预热脚本会调用 `/order/create`，并轮询 `/order/get` 直到订单可见；如果 `ledger not ready` 或 `order not found` 持续超过阈值，脚本会失败退出。
+
+Prometheus 抓取端点：
+
+- `gateway-api`: `http://127.0.0.1:9101/metrics`
+- `order-api`: `http://127.0.0.1:9102/metrics`
+- `order-rpc`: `http://127.0.0.1:9103/metrics`
+
 ## 下单主路径验收
 
 完整步骤见 `docs/api/order-checkout-acceptance.md`。
