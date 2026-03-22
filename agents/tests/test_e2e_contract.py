@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.api.routes import get_graph, get_llm, get_state_store, get_tool_registry
+from app.api.routes import get_graph, get_llm, get_session_store, get_tool_registry
 from app.main import create_app
 from app.session.store import ConversationStateStore
 
@@ -21,7 +21,7 @@ class FakeRedis:
 
 
 class FakeGraph:
-    async def ainvoke(self, state_payload, context):
+    async def ainvoke(self, state_payload, config, context):
         message = state_payload["messages"][-1]["content"]
         if "人工" in message:
             return {
@@ -41,7 +41,7 @@ class FakeGraph:
 def build_test_client() -> TestClient:
     app = create_app()
     app.dependency_overrides[get_graph] = lambda: FakeGraph()
-    app.dependency_overrides[get_state_store] = lambda: ConversationStateStore(
+    app.dependency_overrides[get_session_store] = lambda: ConversationStateStore(
         redis_client=FakeRedis(),
         ttl_seconds=600,
     )

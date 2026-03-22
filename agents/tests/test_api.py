@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.api.routes import get_graph, get_llm, get_state_store, get_tool_registry
+from app.api.routes import get_graph, get_llm, get_session_store, get_tool_registry
 from app.main import create_app
 from app.session.store import ConversationStateStore
 
@@ -24,8 +24,8 @@ class FakeGraph:
     def __init__(self):
         self.calls: list[dict] = []
 
-    async def ainvoke(self, state_payload, context):
-        self.calls.append({"state": state_payload, "context": context})
+    async def ainvoke(self, state_payload, config, context):
+        self.calls.append({"state": state_payload, "config": config, "context": context})
         message = state_payload["messages"][-1]["content"]
         return {
             **state_payload,
@@ -40,7 +40,7 @@ def build_test_app():
     store = ConversationStateStore(redis_client=FakeRedis(), ttl_seconds=600)
     app = create_app()
     app.dependency_overrides[get_graph] = lambda: graph
-    app.dependency_overrides[get_state_store] = lambda: store
+    app.dependency_overrides[get_session_store] = lambda: store
     app.dependency_overrides[get_tool_registry] = lambda: object()
     app.dependency_overrides[get_llm] = lambda: object()
     return app, graph, store
@@ -72,5 +72,6 @@ def test_chat_api_persists_conversation_state_and_reuses_conversation_id():
     assert first.status_code == 200
     assert second.status_code == 200
     assert second.json()["conversationId"] == first.json()["conversationId"]
-    assert graph.calls[1]["state"]["messages"][0]["content"] == "帮我查订单"
-    assert graph.calls[1]["state"]["messages"][1]["content"] == "已处理：帮我查订单"
+    assert graph.calls[0]["config"]["configurable"]["thread_id"] == first.json()["conversationId"]
+    assert graph.calls[1]["config"]["configurable"]["thread_id"] == first.json()["conversationId"]
+    assert [message["content"] for message in graph.calls[1]["state"]["messages"]] == ["订单 93001 可以退款吗"]

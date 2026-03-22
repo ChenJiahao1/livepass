@@ -27,7 +27,6 @@ def test_state_store_generates_conversation_id_when_missing():
 
     assert session.user_id == 3001
     assert session.conversation_id
-    assert session.state == {"messages": []}
 
 
 def test_state_store_rejects_user_mismatch():
@@ -44,15 +43,14 @@ def test_state_store_saves_state_and_refreshes_ttl():
     store = ConversationStateStore(redis_client=redis_client, ttl_seconds=600)
 
     session = store.get_or_create(user_id=3001, conversation_id=None)
-    session.state["messages"].append({"role": "user", "content": "你好"})
     store.save(session)
 
     loaded = store.get_or_create(user_id=3001, conversation_id=session.conversation_id)
-    loaded.state["messages"].append({"role": "assistant", "content": "您好"})
     store.save(loaded)
 
     reloaded = store.get_or_create(user_id=3001, conversation_id=session.conversation_id)
-    assert [message["content"] for message in reloaded.state["messages"]] == ["你好", "您好"]
+    assert reloaded.user_id == 3001
+    assert reloaded.conversation_id == session.conversation_id
     assert redis_client.expire_calls == [
         (f"agents:conversation:{session.conversation_id}", 600),
         (f"agents:conversation:{session.conversation_id}", 600),

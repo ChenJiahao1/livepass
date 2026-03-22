@@ -6,6 +6,7 @@ from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
+from langchain_core.messages import AIMessage
 
 from app.agents.activity import ActivityAgent
 from app.agents.coordinator import CoordinatorAgent
@@ -18,7 +19,7 @@ from app.router import route_intent
 from app.state import ConversationState, GraphContext
 
 
-def build_graph_app():
+def build_graph_app(*, checkpointer=None):
     builder = StateGraph(ConversationState, context_schema=GraphContext)
     builder.add_node("coordinator", _coordinator_node)
     builder.add_node("supervisor", _supervisor_node)
@@ -49,12 +50,12 @@ def build_graph_app():
             "finish": END,
         },
     )
-    builder.add_edge("activity", "supervisor")
-    builder.add_edge("order", "supervisor")
-    builder.add_edge("refund", "supervisor")
-    builder.add_edge("handoff", "supervisor")
-    builder.add_edge("knowledge", "supervisor")
-    return builder.compile()
+    builder.add_edge("activity", END)
+    builder.add_edge("order", END)
+    builder.add_edge("refund", END)
+    builder.add_edge("handoff", END)
+    builder.add_edge("knowledge", END)
+    return builder.compile(checkpointer=checkpointer)
 
 
 def _coordinator_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
@@ -69,6 +70,7 @@ def _coordinator_node(state: ConversationState, runtime: Runtime[GraphContext]) 
                 "current_agent": "coordinator",
                 "reply": reply,
                 "final_reply": reply,
+                "messages": [AIMessage(content=reply)],
                 "trace": _append_trace(hydrated, "coordinator:clarify"),
             }
         return {
@@ -88,6 +90,7 @@ def _coordinator_node(state: ConversationState, runtime: Runtime[GraphContext]) 
         payload["current_agent"] = "coordinator"
         payload["reply"] = decision["reply"]
         payload["final_reply"] = decision["reply"]
+        payload["messages"] = [AIMessage(content=decision["reply"])]
     return payload
 
 

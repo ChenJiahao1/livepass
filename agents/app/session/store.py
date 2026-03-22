@@ -1,8 +1,7 @@
-"""Redis-backed conversation state store."""
+"""Redis-backed conversation ownership store."""
 
 from __future__ import annotations
 
-from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -11,17 +10,11 @@ from pydantic import BaseModel, ConfigDict, Field
 class SessionOwnershipError(ValueError):
     """Raised when a conversation is accessed by another user."""
 
-
-def _default_state() -> dict[str, Any]:
-    return {"messages": []}
-
-
 class StoredConversation(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     conversation_id: str = Field(alias="conversationId")
     user_id: int = Field(alias="userId")
-    state: dict[str, Any] = Field(default_factory=_default_state)
 
 
 class ConversationStateStore:
