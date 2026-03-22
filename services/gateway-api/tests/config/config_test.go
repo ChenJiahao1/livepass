@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/gateway"
 
 	"damai-go/services/gateway-api/internal/config"
 )
@@ -61,4 +62,53 @@ Auth:
 	if len(c.Upstreams) != 3 {
 		t.Fatalf("expected 3 upstreams, got %d", len(c.Upstreams))
 	}
+}
+
+func TestLoadGatewayRuntimeConfigIncludesPrometheus(t *testing.T) {
+	t.Parallel()
+
+	var c config.Config
+	configFile := filepath.Join("..", "..", "etc", "gateway-api.yaml")
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.Prometheus.Host == "" || c.Prometheus.Port == 0 {
+		t.Fatalf("expected prometheus config to load, got host=%q port=%d", c.Prometheus.Host, c.Prometheus.Port)
+	}
+}
+
+func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
+	t.Parallel()
+
+	var c config.Config
+	configFile := filepath.Join("..", "..", "etc", "gateway-api.perf.yaml")
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.Prometheus.Host == "" || c.Prometheus.Port == 0 {
+		t.Fatalf("expected prometheus config to load, got host=%q port=%d", c.Prometheus.Host, c.Prometheus.Port)
+	}
+
+	orderAPIUpstream := findGatewayUpstream(t, c.Upstreams, "order-api")
+	if orderAPIUpstream.Http == nil {
+		t.Fatalf("expected order-api http upstream to be configured")
+	}
+	if orderAPIUpstream.Http.Timeout != 10000 {
+		t.Fatalf("expected order-api timeout 10000, got %d", orderAPIUpstream.Http.Timeout)
+	}
+}
+
+func findGatewayUpstream(t *testing.T, upstreams []gateway.Upstream, name string) gateway.Upstream {
+	t.Helper()
+
+	for _, upstream := range upstreams {
+		if upstream.Name == name {
+			return upstream
+		}
+	}
+
+	t.Fatalf("expected upstream %q to exist", name)
+	return gateway.Upstream{}
 }

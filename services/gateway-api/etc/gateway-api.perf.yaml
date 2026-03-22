@@ -71,7 +71,7 @@ Upstreams:
   - Name: order-api
     Http:
       Target: 127.0.0.1:8890
-      Timeout: 3000
+      Timeout: 10000
     Mappings:
       - Method: post
         Path: /order/cancel
