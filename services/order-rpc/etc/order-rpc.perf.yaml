@@ -35,10 +35,8 @@ Kafka:
     - 127.0.0.1:9094
   TopicOrderCreate: order.create.command.v1
   ConsumerGroup: damai-go-order-create
-  TopicPartitions: 1
-  ConsumerWorkers: 1
-  # 对齐 Java 开源版语义：超过该延迟的创建消息按废单处理，consumer 释放锁座且不补单。
-  # 这不是“消息绝不丢失”的配置项，而是“超时废单回滚”阈值。
-  MaxMessageDelay: 5s
+  TopicPartitions: 4
+  ConsumerWorkers: 4
+  MaxMessageDelay: 60s
   ProducerTimeout: 3s
   RetryBackoff: 1s

@@ -2,6 +2,8 @@ package integration_test
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"damai-go/services/order-rpc/internal/svc"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -50,6 +53,114 @@ func TestNewOrderServiceContextEnsuresKafkaTopicExists(t *testing.T) {
 	t.Fatalf("expected kafka topic %q to exist after service context init", topic)
 }
 
+func TestLoadOrderKafkaConfig(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	configFile := filepath.Join(dir, "order-rpc.yaml")
+	content := []byte(`
+Name: order.rpc
+ListenOn: 0.0.0.0:8082
+Etcd:
+  Hosts:
+    - 127.0.0.1:2379
+  Key: order.rpc
+MySQL:
+  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+ProgramRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: program.rpc
+PayRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: pay.rpc
+UserRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: user.rpc
+Kafka:
+  Brokers:
+    - 127.0.0.1:9094
+  TopicOrderCreate: order.create.command.test
+  ConsumerGroup: damai-go-order-create
+  TopicPartitions: 4
+  ConsumerWorkers: 4
+  MaxMessageDelay: 60s
+`)
+	if err := os.WriteFile(configFile, content, 0o644); err != nil {
+		t.Fatalf("write %s: %v", configFile, err)
+	}
+
+	var c config.Config
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.Kafka.TopicPartitions != 4 {
+		t.Fatalf("expected topic partitions 4, got %d", c.Kafka.TopicPartitions)
+	}
+	if c.Kafka.ConsumerWorkers != 4 {
+		t.Fatalf("expected consumer workers 4, got %d", c.Kafka.ConsumerWorkers)
+	}
+	if c.Kafka.MaxMessageDelay != 60*time.Second {
+		t.Fatalf("expected max message delay 60s, got %s", c.Kafka.MaxMessageDelay)
+	}
+}
+
+func TestLoadOrderKafkaConfigDefaults(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	configFile := filepath.Join(dir, "order-rpc-defaults.yaml")
+	content := []byte(`
+Name: order.rpc
+ListenOn: 0.0.0.0:8082
+Etcd:
+  Hosts:
+    - 127.0.0.1:2379
+  Key: order.rpc
+MySQL:
+  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+ProgramRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: program.rpc
+PayRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: pay.rpc
+UserRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: user.rpc
+Kafka:
+  Brokers:
+    - 127.0.0.1:9094
+`)
+	if err := os.WriteFile(configFile, content, 0o644); err != nil {
+		t.Fatalf("write %s: %v", configFile, err)
+	}
+
+	var c config.Config
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.Kafka.TopicPartitions != 1 {
+		t.Fatalf("expected default topic partitions 1, got %d", c.Kafka.TopicPartitions)
+	}
+	if c.Kafka.ConsumerWorkers != 1 {
+		t.Fatalf("expected default consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
+	}
+}
+
 func buildKafkaServiceContextConfig(topic string) config.Config {
 	cfg := config.Config{
 		RpcServerConf: zrpc.RpcServerConf{
@@ -72,6 +183,8 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 			Brokers:          []string{"127.0.0.1:9094"},
 			TopicOrderCreate: topic,
 			ConsumerGroup:    "damai-go-order-create",
+			TopicPartitions:  4,
+			ConsumerWorkers:  4,
 			MaxMessageDelay:  5 * time.Second,
 			ProducerTimeout:  3 * time.Second,
 			RetryBackoff:     time.Second,
