@@ -55,6 +55,14 @@ uv run pytest tests/test_session_store.py tests/test_api.py tests/test_e2e_contr
 uv run pytest tests/test_docs.py -v
 ```
 
+最终验收：
+
+```bash
+uv run pytest -v
+uv run python -c "from app.main import create_app; app=create_app(); print(app.title)"
+uv run python -c "from app.mcp_server.server import build_server; print(build_server('order'))"
+```
+
 ## 已知限制
 
 - `knowledge` 依赖外部 `LightRAG` HTTP 服务；当前实现保留接口，但本地未做在线验证。
