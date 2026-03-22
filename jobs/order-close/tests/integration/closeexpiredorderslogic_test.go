@@ -32,6 +32,10 @@ func (f *fakeJobOrderRPC) GetOrder(ctx context.Context, in *orderrpc.GetOrderReq
 	return nil, nil
 }
 
+func (f *fakeJobOrderRPC) GetOrderServiceView(ctx context.Context, in *orderrpc.GetOrderServiceViewReq, opts ...grpc.CallOption) (*orderrpc.OrderServiceViewResp, error) {
+	return nil, nil
+}
+
 func (f *fakeJobOrderRPC) CancelOrder(ctx context.Context, in *orderrpc.CancelOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
 	return nil, nil
 }
@@ -41,6 +45,10 @@ func (f *fakeJobOrderRPC) PayOrder(ctx context.Context, in *orderrpc.PayOrderReq
 }
 
 func (f *fakeJobOrderRPC) PayCheck(ctx context.Context, in *orderrpc.PayCheckReq, opts ...grpc.CallOption) (*orderrpc.PayCheckResp, error) {
+	return nil, nil
+}
+
+func (f *fakeJobOrderRPC) PreviewRefundOrder(ctx context.Context, in *orderrpc.PreviewRefundOrderReq, opts ...grpc.CallOption) (*orderrpc.PreviewRefundOrderResp, error) {
 	return nil, nil
 }
 
