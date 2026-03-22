@@ -70,7 +70,7 @@ func buildOrderSnapshotBundle(
 	now time.Time,
 	closeAfter time.Duration,
 ) (*orderSnapshotBundle, error) {
-	orderEvent, err := buildOrderCreateEvent(in, preorder, userResp, freezeResp, now, closeAfter)
+	orderEvent, err := buildOrderCreateEvent(xid.New(), in, preorder, userResp, freezeResp, now, closeAfter)
 	if err != nil {
 		return nil, err
 	}

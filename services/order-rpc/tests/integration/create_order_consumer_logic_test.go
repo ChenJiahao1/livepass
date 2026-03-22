@@ -94,6 +94,7 @@ func TestCreateOrderConsumerSkipsExpiredMessageAndReleasesFreeze(t *testing.T) {
 		3001,
 		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 1, map[int64]int64{9001: 1})
 	event := mustBuildOrderCreateEventForTest(t, programRPC.getProgramPreorderResp, userRPC.getUserAndTicketUserListResp, &programrpc.AutoAssignAndFreezeSeatsResp{
 		FreezeToken: "freeze-create-consumer-expired",
 		ExpireTime:  "2026-12-31 19:45:00",
@@ -117,6 +118,10 @@ func TestCreateOrderConsumerSkipsExpiredMessageAndReleasesFreeze(t *testing.T) {
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
 		t.Fatalf("expected expired message to skip order persistence")
 	}
+	snapshot := requirePurchaseLimitSnapshot(t, svcCtx, 3001, 10001)
+	if snapshot.ActiveCount != 0 || len(snapshot.Reservations) != 0 {
+		t.Fatalf("expected expired message to rollback purchase limit ledger, got %+v", snapshot)
+	}
 }
 
 func mustBuildOrderCreateEventForTest(
@@ -128,7 +133,7 @@ func mustBuildOrderCreateEventForTest(
 ) interface{ Marshal() ([]byte, error) } {
 	t.Helper()
 
-	event, err := logicpkg.BuildOrderCreateEvent(&pb.CreateOrderReq{
+	event, err := logicpkg.BuildOrderCreateEvent(9001, &pb.CreateOrderReq{
 		UserId:           3001,
 		ProgramId:        10001,
 		TicketCategoryId: 40001,

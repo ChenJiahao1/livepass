@@ -272,6 +272,21 @@ func waitPurchaseLimitLedgerReady(t *testing.T, svcCtx *svc.ServiceContext, user
 	return nil
 }
 
+func primePurchaseLimitLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
+	t.Helper()
+
+	activeCount, err := svcCtx.DOrderModel.CountActiveTicketsByUserProgram(context.Background(), userID, programID)
+	if err != nil {
+		t.Fatalf("count active tickets for purchase limit ledger error: %v", err)
+	}
+	reservations, err := svcCtx.DOrderModel.ListUnpaidReservationsByUserProgram(context.Background(), userID, programID)
+	if err != nil {
+		t.Fatalf("list unpaid reservations for purchase limit ledger error: %v", err)
+	}
+
+	seedPurchaseLimitLedger(t, svcCtx, userID, programID, activeCount, reservations)
+}
+
 func (f *fakeOrderCreateProducer) Send(_ context.Context, key string, value []byte) error {
 	f.lastKey = key
 	f.lastBody = append(f.lastBody[:0], value...)

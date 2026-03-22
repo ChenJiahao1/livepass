@@ -13,6 +13,7 @@ import (
 )
 
 func BuildOrderCreateEvent(
+	orderNumber int64,
 	in *pb.CreateOrderReq,
 	preorder *programrpc.ProgramPreorderInfo,
 	userResp *userrpc.GetUserAndTicketUserListResp,
@@ -20,10 +21,11 @@ func BuildOrderCreateEvent(
 	now time.Time,
 	closeAfter time.Duration,
 ) (*orderevent.OrderCreateEvent, error) {
-	return buildOrderCreateEvent(in, preorder, userResp, freezeResp, now, closeAfter)
+	return buildOrderCreateEvent(orderNumber, in, preorder, userResp, freezeResp, now, closeAfter)
 }
 
 func buildOrderCreateEvent(
+	orderNumber int64,
 	in *pb.CreateOrderReq,
 	preorder *programrpc.ProgramPreorderInfo,
 	userResp *userrpc.GetUserAndTicketUserListResp,
@@ -32,6 +34,9 @@ func buildOrderCreateEvent(
 	closeAfter time.Duration,
 ) (*orderevent.OrderCreateEvent, error) {
 	if preorder == nil || userResp == nil || freezeResp == nil {
+		return nil, xerr.ErrInternal
+	}
+	if orderNumber <= 0 {
 		return nil, xerr.ErrInternal
 	}
 
@@ -50,8 +55,6 @@ func buildOrderCreateEvent(
 		}
 		ticketUsers[ticketUser.GetId()] = ticketUser
 	}
-
-	orderNumber := xid.New()
 	freezeExpireTime := freezeResp.GetExpireTime()
 	if freezeExpireTime == "" {
 		freezeExpireTime = formatOrderTime(now.Add(closeAfter))
