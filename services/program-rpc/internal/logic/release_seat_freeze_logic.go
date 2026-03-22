@@ -57,6 +57,14 @@ func (l *ReleaseSeatFreezeLogic) ReleaseSeatFreeze(in *pb.ReleaseSeatFreezeReq) 
 			return nil
 		}
 
+		seatStore := ensureSeatStockStore(l.svcCtx)
+		if seatStore == nil {
+			return xerr.ErrProgramSeatLedgerNotReady
+		}
+		if err := seatStore.ReleaseFrozenSeats(ctx, freeze.ProgramId, freeze.TicketCategoryId, freeze.FreezeToken); err != nil {
+			return err
+		}
+
 		if !freeze.ExpireTime.After(now) {
 			if err := seatModel.ReleaseByFreezeToken(ctx, session, freeze.FreezeToken); err != nil {
 				return err

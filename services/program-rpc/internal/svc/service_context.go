@@ -5,6 +5,7 @@ import (
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/config"
 	"damai-go/services/program-rpc/internal/model"
+	"damai-go/services/program-rpc/internal/seatcache"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -17,6 +18,7 @@ type ServiceContext struct {
 	Config                config.Config
 	SqlConn               sqlx.SqlConn
 	Redis                 *xredis.Client
+	SeatStockStore        *seatcache.SeatStockStore
 	DProgramModel         model.DProgramModel
 	DProgramCategoryModel model.DProgramCategoryModel
 	DProgramGroupModel    model.DProgramGroupModel
@@ -39,6 +41,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:                c,
 		SqlConn:               conn,
 		Redis:                 rds,
+		SeatStockStore:        seatcache.NewSeatStockStore(rds, model.NewDSeatModel(conn), seatcache.Config{}),
 		DProgramModel:         model.NewDProgramModel(conn),
 		DProgramCategoryModel: model.NewDProgramCategoryModel(conn),
 		DProgramGroupModel:    model.NewDProgramGroupModel(conn),

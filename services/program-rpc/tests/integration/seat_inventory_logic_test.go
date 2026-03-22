@@ -36,6 +36,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			seatFixture{ID: 71002, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusAvailable},
 			seatFixture{ID: 71003, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 2, ColCode: 1, SeatStatus: testSeatStatusAvailable},
 		)
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
@@ -87,6 +88,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			seatFixture{ID: 71102, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 3, SeatStatus: testSeatStatusAvailable},
 			seatFixture{ID: 71103, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 2, ColCode: 2, SeatStatus: testSeatStatusAvailable},
 		)
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
@@ -122,6 +124,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			seatFixture{ID: 72002, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2},
 			seatFixture{ID: 72003, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 3},
 		)
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		first, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
@@ -180,6 +183,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			FreezeStatus:     testFreezeStatusFrozen,
 			ExpireTime:       "2026-03-01 10:00:00",
 		})
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
@@ -216,6 +220,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 		seedSeatFixtures(t, svcCtx,
 			seatFixture{ID: 74001, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1},
 		)
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		_, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
@@ -272,6 +277,7 @@ func TestReleaseSeatFreeze(t *testing.T) {
 			seatFixture{ID: 76002, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2},
 			seatFixture{ID: 76003, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 2, ColCode: 1},
 		)
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		autoLogic := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		freezeResp, err := autoLogic.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
@@ -319,6 +325,7 @@ func TestReleaseSeatFreeze(t *testing.T) {
 			seatFixture{ID: 77001, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1},
 			seatFixture{ID: 77002, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2},
 		)
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		autoLogic := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		freezeResp, err := autoLogic.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
@@ -361,6 +368,7 @@ func TestConcurrentSeatFreezeDoesNotOverlap(t *testing.T) {
 		seatFixture{ID: 78003, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 3},
 		seatFixture{ID: 78004, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 4},
 	)
+	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 	var (
 		wg    sync.WaitGroup
@@ -441,6 +449,8 @@ func TestConcurrentSeatFreezeUsesDifferentHotspotKeysPerTicketCategory(t *testin
 		seatFixture{ID: 78201, ProgramID: programID, TicketCategoryID: ticketCategoryIDTwo, RowCode: 2, ColCode: 1},
 		seatFixture{ID: 78202, ProgramID: programID, TicketCategoryID: ticketCategoryIDTwo, RowCode: 2, ColCode: 2},
 	)
+	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryIDOne)
+	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryIDTwo)
 
 	recordingLocker := &recordingSeatFreezeLocker{}
 	svcCtx.SeatFreezeLocker = recordingLocker

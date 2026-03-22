@@ -15,6 +15,7 @@ type (
 		dSeatModel
 		withSession(session sqlx.Session) DSeatModel
 		FindAvailableByProgramAndTicketCategoryForUpdate(ctx context.Context, session sqlx.Session, programId, ticketCategoryId int64) ([]*DSeat, error)
+		FindByProgramAndTicketCategoryAndSeatStatus(ctx context.Context, programId, ticketCategoryId, seatStatus int64) ([]*DSeat, error)
 		FindAvailableCountByProgramId(ctx context.Context, programId int64) ([]*SeatRemainAggregate, error)
 		FindByFreezeToken(ctx context.Context, freezeToken string) ([]*DSeat, error)
 		FindByProgramAndIDsForUpdate(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) ([]*DSeat, error)
@@ -53,6 +54,25 @@ func (m *customDSeatModel) FindAvailableByProgramAndTicketCategoryForUpdate(ctx 
 
 	var resp []*DSeat
 	err := m.withSession(session).(*customDSeatModel).conn.QueryRowsCtx(ctx, &resp, query, programId, ticketCategoryId)
+	switch err {
+	case nil:
+		return resp, nil
+	case sqlx.ErrNotFound:
+		return []*DSeat{}, nil
+	default:
+		return nil, err
+	}
+}
+
+func (m *customDSeatModel) FindByProgramAndTicketCategoryAndSeatStatus(ctx context.Context, programId, ticketCategoryId, seatStatus int64) ([]*DSeat, error) {
+	query := fmt.Sprintf(
+		"select %s from %s where `status` = 1 and `program_id` = ? and `ticket_category_id` = ? and `seat_status` = ? order by `row_code` asc, `col_code` asc, `id` asc",
+		dSeatRows,
+		m.table,
+	)
+
+	var resp []*DSeat
+	err := m.conn.QueryRowsCtx(ctx, &resp, query, programId, ticketCategoryId, seatStatus)
 	switch err {
 	case nil:
 		return resp, nil

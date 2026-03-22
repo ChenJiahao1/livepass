@@ -10,6 +10,7 @@ import (
 	"damai-go/pkg/xerr"
 	"damai-go/pkg/xid"
 	"damai-go/services/program-rpc/internal/model"
+	"damai-go/services/program-rpc/internal/seatcache"
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 
@@ -26,6 +27,7 @@ type AutoAssignAndFreezeSeatsLogic struct {
 }
 
 const (
+	seatStatusAvailable       int64 = 1
 	seatFreezeStatusFrozen    int64 = 1
 	seatFreezeStatusReleased  int64 = 2
 	seatFreezeStatusExpired   int64 = 3
@@ -40,6 +42,14 @@ func NewAutoAssignAndFreezeSeatsLogic(ctx context.Context, svcCtx *svc.ServiceCo
 	}
 }
 
+func ensureSeatStockStore(svcCtx *svc.ServiceContext) *seatcache.SeatStockStore {
+	if svcCtx == nil {
+		return nil
+	}
+
+	return svcCtx.SeatStockStore
+}
+
 func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssignAndFreezeSeatsReq) (*pb.AutoAssignAndFreezeSeatsResp, error) {
 	if err := validateAutoAssignAndFreezeSeatsReq(in); err != nil {
 		return nil, err
@@ -50,6 +60,8 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 
 	now := time.Now()
 	var resp *pb.AutoAssignAndFreezeSeatsResp
+	var freezeToken string
+	var reservedSeats []seatcache.Seat
 
 	err := l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
 		sessionConn := sqlx.NewSqlConnFromSession(session)
@@ -96,22 +108,27 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 			return err
 		}
 
-		if err := recycleExpiredSeatFreezes(ctx, seatModel, seatFreezeModel, session, in.GetProgramId(), in.GetTicketCategoryId(), now); err != nil {
+		seatStore := ensureSeatStockStore(l.svcCtx)
+		if seatStore == nil {
+			return xerr.ErrProgramSeatLedgerNotReady
+		}
+
+		if err := recycleExpiredSeatFreezes(ctx, seatModel, seatFreezeModel, session, seatStore, in.GetProgramId(), in.GetTicketCategoryId(), now); err != nil {
 			return err
 		}
 
-		availableSeats, err := seatModel.FindAvailableByProgramAndTicketCategoryForUpdate(ctx, session, in.GetProgramId(), in.GetTicketCategoryId())
+		freezeToken = generateFreezeToken()
+		reservedSeats, err = seatStore.FreezeAutoAssignedSeats(ctx, in.GetProgramId(), in.GetTicketCategoryId(), freezeToken, in.GetCount())
 		if err != nil {
 			return err
 		}
 
-		selectedSeats, err := assignSeats(toSeatCandidates(availableSeats), int(in.GetCount()))
-		if err != nil {
+		selectedSeats := toSeatCandidatesFromLedger(reservedSeats)
+		if err := ensureSeatsAvailableForFreeze(ctx, seatModel, session, in.GetProgramId(), selectedSeats); err != nil {
 			return err
 		}
 
 		expireTime := calculateFreezeExpireTime(now, showTime, in.GetFreezeSeconds())
-		freezeToken := generateFreezeToken()
 		freeze := &model.DSeatFreeze{
 			Id:               xid.New(),
 			FreezeToken:      freezeToken,
@@ -143,6 +160,11 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 		return nil
 	})
 	if err != nil {
+		if freezeToken != "" && len(reservedSeats) > 0 {
+			if seatStore := ensureSeatStockStore(l.svcCtx); seatStore != nil {
+				_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetProgramId(), in.GetTicketCategoryId(), freezeToken)
+			}
+		}
 		return nil, mapAutoAssignSeatError(err)
 	}
 
@@ -182,7 +204,7 @@ func buildExistingSeatFreezeResp(ctx context.Context, seatModel model.DSeatModel
 	}, nil
 }
 
-func recycleExpiredSeatFreezes(ctx context.Context, seatModel model.DSeatModel, seatFreezeModel model.DSeatFreezeModel, session sqlx.Session, programId, ticketCategoryId int64, now time.Time) error {
+func recycleExpiredSeatFreezes(ctx context.Context, seatModel model.DSeatModel, seatFreezeModel model.DSeatFreezeModel, session sqlx.Session, seatStore *seatcache.SeatStockStore, programId, ticketCategoryId int64, now time.Time) error {
 	expiredFreezes, err := seatFreezeModel.FindExpiredByProgramAndTicketCategory(ctx, session, programId, ticketCategoryId, now)
 	if err != nil {
 		return err
@@ -194,6 +216,11 @@ func recycleExpiredSeatFreezes(ctx context.Context, seatModel model.DSeatModel, 
 	freezeTokens := make([]string, 0, len(expiredFreezes))
 	for _, freeze := range expiredFreezes {
 		freezeTokens = append(freezeTokens, freeze.FreezeToken)
+		if seatStore != nil {
+			if err := seatStore.ReleaseFrozenSeats(ctx, programId, ticketCategoryId, freeze.FreezeToken); err != nil {
+				return err
+			}
+		}
 		if err := seatModel.ReleaseByFreezeToken(ctx, session, freeze.FreezeToken); err != nil {
 			return err
 		}
@@ -243,6 +270,50 @@ func toSeatCandidates(seats []*model.DSeat) []seatCandidate {
 	}
 
 	return resp
+}
+
+func toSeatCandidatesFromLedger(seats []seatcache.Seat) []seatCandidate {
+	resp := make([]seatCandidate, 0, len(seats))
+	for _, seat := range seats {
+		resp = append(resp, seatCandidate{
+			ID:               seat.SeatID,
+			TicketCategoryID: seat.TicketCategoryID,
+			RowCode:          seat.RowCode,
+			ColCode:          seat.ColCode,
+			Price:            float64(seat.Price),
+		})
+	}
+
+	return resp
+}
+
+func ensureSeatsAvailableForFreeze(ctx context.Context, seatModel model.DSeatModel, session sqlx.Session, programID int64, selectedSeats []seatCandidate) error {
+	if len(selectedSeats) == 0 {
+		return xerr.ErrSeatInventoryInsufficient
+	}
+
+	seatRows, err := seatModel.FindByProgramAndIDsForUpdate(ctx, session, programID, seatCandidateIDs(selectedSeats))
+	if err != nil {
+		return err
+	}
+	if len(seatRows) != len(selectedSeats) {
+		return xerr.ErrSeatInventoryInsufficient
+	}
+
+	seatByID := make(map[int64]*model.DSeat, len(seatRows))
+	for _, seat := range seatRows {
+		if seat.SeatStatus != seatStatusAvailable {
+			return xerr.ErrSeatInventoryInsufficient
+		}
+		seatByID[seat.Id] = seat
+	}
+	for _, seat := range selectedSeats {
+		if _, ok := seatByID[seat.ID]; !ok {
+			return xerr.ErrSeatInventoryInsufficient
+		}
+	}
+
+	return nil
 }
 
 func seatCandidateIDs(seats []seatCandidate) []int64 {
