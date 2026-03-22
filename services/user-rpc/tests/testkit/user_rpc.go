@@ -45,6 +45,18 @@ type UserSeed struct {
 func NewServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
 
+	_ = xid.Close()
+	if err := xid.InitEtcd(context.Background(), xid.Config{
+		Hosts:   []string{"127.0.0.1:2379"},
+		Prefix:  "/damai-go/tests/snowflake/user-rpc/",
+		Service: "user-rpc-test",
+	}); err != nil {
+		t.Fatalf("init xid error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = xid.Close()
+	})
+
 	return svc.NewServiceContext(config.Config{
 		MySQL: xmysql.Config{
 			DataSource: TestMySQLDataSource,

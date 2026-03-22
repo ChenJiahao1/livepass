@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"damai-go/pkg/xid"
 	"damai-go/pkg/xmysql"
 	"damai-go/services/pay-rpc/internal/config"
 	"damai-go/services/pay-rpc/internal/model"
@@ -60,6 +62,18 @@ type refundBillFixture struct {
 
 func newPayTestServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
+
+	_ = xid.Close()
+	if err := xid.InitEtcd(context.Background(), xid.Config{
+		Hosts:   []string{"127.0.0.1:2379"},
+		Prefix:  "/damai-go/tests/snowflake/pay-rpc/",
+		Service: "pay-rpc-test",
+	}); err != nil {
+		t.Fatalf("init xid error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = xid.Close()
+	})
 
 	cfg := config.Config{
 		MySQL: xmysql.Config{

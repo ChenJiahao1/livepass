@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 
+	"damai-go/pkg/xid"
 	"damai-go/services/user-rpc/internal/config"
 	"damai-go/services/user-rpc/internal/server"
 	"damai-go/services/user-rpc/internal/svc"
@@ -23,6 +25,13 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
+	xid.MustInitEtcd(context.Background(), xid.Config{
+		Hosts:   c.Etcd.Hosts,
+		Service: "user-rpc",
+	})
+	defer func() {
+		_ = xid.Close()
+	}()
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {

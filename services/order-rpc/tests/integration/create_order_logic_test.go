@@ -23,6 +23,8 @@ import (
 )
 
 func TestBuildOrderCreateEventCarriesSeatAndProgramSnapshots(t *testing.T) {
+	mustInitOrderTestXid(t)
+
 	preorder := buildTestProgramPreorder(10001, 40001, 2, 4, 299)
 	userResp := buildTestUserAndTicketUsers(
 		3001,

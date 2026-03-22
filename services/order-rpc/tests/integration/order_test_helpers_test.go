@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"damai-go/pkg/xid"
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
@@ -169,6 +170,8 @@ type fakeOrderCreateConsumerFactory struct {
 func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC, *fakeOrderPayRPC) {
 	t.Helper()
 
+	mustInitOrderTestXid(t)
+
 	cfg := config.Config{
 		RpcServerConf: zrpc.RpcServerConf{
 			Etcd: discov.EtcdConf{
@@ -229,6 +232,22 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	}
 
 	return svcCtx, programRPC, userRPC, payRPC
+}
+
+func mustInitOrderTestXid(t *testing.T) {
+	t.Helper()
+
+	_ = xid.Close()
+	if err := xid.InitEtcd(context.Background(), xid.Config{
+		Hosts:   []string{"127.0.0.1:2379"},
+		Prefix:  "/damai-go/tests/snowflake/order-rpc/",
+		Service: "order-rpc-test",
+	}); err != nil {
+		t.Fatalf("init xid error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = xid.Close()
+	})
 }
 
 func clearPurchaseLimitLedger(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {

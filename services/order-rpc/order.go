@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 
+	"damai-go/pkg/xid"
 	"damai-go/services/order-rpc/internal/config"
 	"damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/internal/server"
@@ -25,6 +26,13 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
+	xid.MustInitEtcd(context.Background(), xid.Config{
+		Hosts:   c.Etcd.Hosts,
+		Service: "order-rpc",
+	})
+	defer func() {
+		_ = xid.Close()
+	}()
 	ctx := svc.NewServiceContext(c)
 	stopOrderCreateConsumer := logic.StartOrderCreateConsumer(context.Background(), ctx)
 	defer stopOrderCreateConsumer()

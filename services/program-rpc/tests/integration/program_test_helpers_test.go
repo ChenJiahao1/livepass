@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"damai-go/pkg/xid"
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/config"
@@ -84,6 +85,18 @@ type programFixture struct {
 
 func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
+
+	_ = xid.Close()
+	if err := xid.InitEtcd(context.Background(), xid.Config{
+		Hosts:   []string{"127.0.0.1:2379"},
+		Prefix:  "/damai-go/tests/snowflake/program-rpc/",
+		Service: "program-rpc-test",
+	}); err != nil {
+		t.Fatalf("init xid error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = xid.Close()
+	})
 
 	svcCtx := svc.NewServiceContext(config.Config{
 		MySQL: xmysql.Config{
