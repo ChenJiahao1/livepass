@@ -14,8 +14,29 @@ class SupervisorAgent:
         self.prompt_renderer = prompt_renderer or PromptRenderer()
 
     def handle(self, state: ConversationState) -> dict[str, object]:
-        system_prompt = self.prompt_renderer.render("supervisor/system.md")
+        system_prompt = self.prompt_renderer.render(
+            "supervisor/system.md",
+            selected_order_id=state.get("selected_order_id"),
+            route=state.get("route"),
+            specialist_result=state.get("specialist_result"),
+            current_user_id=state.get("current_user_id"),
+        )
         decision = self.llm.with_structured_output(SupervisorDecision).invoke(
             [SystemMessage(content=system_prompt), *convert_to_messages(state.get("messages", []))]
         )
-        return decision.model_dump()
+        route = state.get("route")
+        if decision.next_agent in {"activity", "order", "refund", "handoff", "knowledge"}:
+            route = decision.next_agent
+        elif route is None:
+            specialist_result = state.get("specialist_result") or {}
+            route = specialist_result.get("agent") or state.get("last_intent", "unknown")
+
+        return {
+            "agent": "supervisor",
+            "next_agent": decision.next_agent,
+            "route": route,
+            "reply": "",
+            "trace": [f"route:{route}"] if decision.next_agent != "finish" else [],
+            "need_handoff": decision.need_handoff,
+            "selected_order_id": decision.selected_order_id,
+        }
