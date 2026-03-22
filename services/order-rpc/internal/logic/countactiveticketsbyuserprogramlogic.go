@@ -28,7 +28,7 @@ func (l *CountActiveTicketsByUserProgramLogic) CountActiveTicketsByUserProgram(i
 		return nil, err
 	}
 
-	count, err := l.svcCtx.DOrderModel.CountByUserProgramAndStatus(l.ctx, in.GetUserId(), in.GetProgramId(), orderStatusUnpaid)
+	count, err := l.svcCtx.DOrderModel.CountActiveTicketsByUserProgram(l.ctx, in.GetUserId(), in.GetProgramId())
 	if err != nil {
 		return nil, err
 	}

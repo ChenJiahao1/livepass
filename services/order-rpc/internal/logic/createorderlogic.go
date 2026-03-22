@@ -69,7 +69,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, mapOrderError(xerr.ErrOrderPurchaseLimitExceeded)
 	}
 
-	activeTicketCount, err := l.svcCtx.DOrderModel.CountByUserProgramAndStatus(l.ctx, in.GetUserId(), in.GetProgramId(), orderStatusUnpaid)
+	activeTicketCount, err := l.svcCtx.DOrderModel.CountActiveTicketsByUserProgram(l.ctx, in.GetUserId(), in.GetProgramId())
 	if err != nil {
 		return nil, err
 	}

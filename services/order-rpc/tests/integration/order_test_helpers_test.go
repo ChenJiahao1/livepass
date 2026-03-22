@@ -146,6 +146,7 @@ type fakeOrderCreateProducer struct {
 
 type fakeOrderCreateConsumer struct {
 	startErr   error
+	startErrs  []error
 	startCalls int
 	closeCalls int
 	handler    func(context.Context, []byte) error
@@ -221,6 +222,13 @@ func (f *fakeOrderCreateConsumer) Start(_ context.Context, handler func(context.
 		select {
 		case f.started <- struct{}{}:
 		default:
+		}
+	}
+	if len(f.startErrs) > 0 {
+		err := f.startErrs[0]
+		f.startErrs = f.startErrs[1:]
+		if err != nil {
+			return err
 		}
 	}
 	return f.startErr

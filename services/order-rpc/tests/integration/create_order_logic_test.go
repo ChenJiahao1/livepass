@@ -315,6 +315,42 @@ func TestCreateOrderRejectsPerAccountLimitExceeded(t *testing.T) {
 	}
 }
 
+func TestCreateOrderRejectsPerAccountLimitExceededByPaidOrders(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	seedOrderFixtures(t, svcCtx, orderFixture{
+		ID:           8002,
+		OrderNumber:  9002,
+		ProgramID:    10001,
+		UserID:       3001,
+		TicketCount:  2,
+		OrderStatus:  testOrderStatusPaid,
+		FreezeToken:  "freeze-existing-paid-001",
+		PayOrderTime: "2026-01-01 01:00:00",
+	})
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 3, 3, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+		&userrpc.TicketUserInfo{Id: 702, UserId: 3001, RelName: "李四", IdType: 1, IdNumber: "110101199002021234"},
+	)
+
+	l := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx)
+	_, err := l.CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701, 702},
+	})
+	if err == nil {
+		t.Fatalf("expected account purchase limit error from paid tickets")
+	}
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition, got %s", status.Code(err))
+	}
+}
+
 func TestCreateOrderRejectsConcurrentDuplicateSubmission(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)

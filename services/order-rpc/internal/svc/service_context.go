@@ -42,6 +42,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var orderCreateProducer mq.OrderCreateProducer
 	var orderCreateConsumer mq.OrderCreateConsumer
 	if len(c.Kafka.Brokers) > 0 {
+		if err := mq.EnsureOrderCreateTopic(c.Kafka); err != nil {
+			panic(err)
+		}
 		orderCreateProducer = mq.NewOrderCreateProducer(c.Kafka)
 		orderCreateConsumer = mq.NewOrderCreateConsumer(c.Kafka)
 	}

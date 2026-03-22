@@ -22,6 +22,7 @@ type (
 		FindOneByOrderNumberForUpdate(ctx context.Context, session sqlx.Session, orderNumber int64) (*DOrder, error)
 		FindPageByUserAndStatus(ctx context.Context, userId, orderStatus, pageNumber, pageSize int64) ([]*DOrder, int64, error)
 		CountByUserProgramAndStatus(ctx context.Context, userId, programId, orderStatus int64) (int64, error)
+		CountActiveTicketsByUserProgram(ctx context.Context, userId, programId int64) (int64, error)
 		FindExpiredUnpaid(ctx context.Context, before time.Time, limit int64) ([]*DOrder, error)
 		UpdateCancelStatus(ctx context.Context, session sqlx.Session, orderNumber int64, cancelTime time.Time) error
 		UpdatePayStatus(ctx context.Context, session sqlx.Session, orderNumber int64, payTime time.Time) error
@@ -165,6 +166,20 @@ func (m *customDOrderModel) CountByUserProgramAndStatus(ctx context.Context, use
 
 	var total sumAggregate
 	if err := m.conn.QueryRowCtx(ctx, &total, query, userId, programId, orderStatus); err != nil {
+		return 0, err
+	}
+
+	return total.Total, nil
+}
+
+func (m *customDOrderModel) CountActiveTicketsByUserProgram(ctx context.Context, userId, programId int64) (int64, error) {
+	query := fmt.Sprintf(
+		"select coalesce(sum(`ticket_count`), 0) as `total` from %s where `status` = 1 and `user_id` = ? and `program_id` = ? and `order_status` in (1, 3)",
+		m.table,
+	)
+
+	var total sumAggregate
+	if err := m.conn.QueryRowCtx(ctx, &total, query, userId, programId); err != nil {
 		return 0, err
 	}
 
