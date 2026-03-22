@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"damai-go/pkg/xmysql"
+	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
+	"damai-go/services/order-rpc/internal/limitcache"
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
@@ -27,6 +29,8 @@ import (
 )
 
 var testOrderMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true")
+
+const testPurchaseLimitLedgerPrefix = "damai-go:test:order:purchase-limit"
 
 const (
 	testOrderStatusUnpaid    int64 = 1
@@ -165,6 +169,10 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		MySQL: xmysql.Config{
 			DataSource: testOrderMySQLDataSource,
 		},
+		StoreRedis: xredis.Config{
+			Host: "127.0.0.1:6379",
+			Type: "node",
+		},
 		Order: config.OrderConfig{
 			CloseAfter: 15 * time.Minute,
 		},
@@ -188,9 +196,17 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	}
 	cfg.MySQL.DataSource = xmysql.WithLocalTime(cfg.MySQL.DataSource)
 	conn := sqlx.NewMysql(cfg.MySQL.DataSource)
+	redisClient := xredis.MustNew(cfg.StoreRedis)
+	purchaseLimitStore := limitcache.NewPurchaseLimitStore(redisClient, model.NewDOrderModel(conn), limitcache.Config{
+		Prefix:          testPurchaseLimitLedgerPrefix,
+		LedgerTTL:       time.Hour,
+		LoadingCooldown: 200 * time.Millisecond,
+	})
 	svcCtx := &svc.ServiceContext{
 		Config:                cfg,
 		SqlConn:               conn,
+		Redis:                 redisClient,
+		PurchaseLimitStore:    purchaseLimitStore,
 		DOrderModel:           model.NewDOrderModel(conn),
 		DOrderTicketUserModel: model.NewDOrderTicketUserModel(conn),
 		ProgramRpc:            programRPC,
@@ -201,6 +217,59 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	}
 
 	return svcCtx, programRPC, userRPC, payRPC
+}
+
+func clearPurchaseLimitLedger(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
+	t.Helper()
+
+	if svcCtx.PurchaseLimitStore == nil {
+		t.Fatalf("expected purchase limit store to be configured")
+	}
+	if err := svcCtx.PurchaseLimitStore.Clear(context.Background(), userID, programID); err != nil {
+		t.Fatalf("clear purchase limit ledger error: %v", err)
+	}
+}
+
+func seedPurchaseLimitLedger(t *testing.T, svcCtx *svc.ServiceContext, userID, programID, activeCount int64, reservations map[int64]int64) {
+	t.Helper()
+
+	if svcCtx.PurchaseLimitStore == nil {
+		t.Fatalf("expected purchase limit store to be configured")
+	}
+	if err := svcCtx.PurchaseLimitStore.Seed(context.Background(), userID, programID, activeCount, reservations); err != nil {
+		t.Fatalf("seed purchase limit ledger error: %v", err)
+	}
+}
+
+func requirePurchaseLimitSnapshot(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) *limitcache.PurchaseLimitSnapshot {
+	t.Helper()
+
+	if svcCtx.PurchaseLimitStore == nil {
+		t.Fatalf("expected purchase limit store to be configured")
+	}
+
+	snapshot, err := svcCtx.PurchaseLimitStore.Snapshot(context.Background(), userID, programID)
+	if err != nil {
+		t.Fatalf("snapshot purchase limit ledger error: %v", err)
+	}
+
+	return snapshot
+}
+
+func waitPurchaseLimitLedgerReady(t *testing.T, svcCtx *svc.ServiceContext, userID, programID, expectedActiveCount int64) *limitcache.PurchaseLimitSnapshot {
+	t.Helper()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		snapshot := requirePurchaseLimitSnapshot(t, svcCtx, userID, programID)
+		if snapshot.Ready && snapshot.ActiveCount == expectedActiveCount {
+			return snapshot
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	t.Fatalf("purchase limit ledger was not ready before deadline, userID=%d programID=%d", userID, programID)
+	return nil
 }
 
 func (f *fakeOrderCreateProducer) Send(_ context.Context, key string, value []byte) error {

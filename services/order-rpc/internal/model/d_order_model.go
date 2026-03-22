@@ -23,6 +23,7 @@ type (
 		FindPageByUserAndStatus(ctx context.Context, userId, orderStatus, pageNumber, pageSize int64) ([]*DOrder, int64, error)
 		CountByUserProgramAndStatus(ctx context.Context, userId, programId, orderStatus int64) (int64, error)
 		CountActiveTicketsByUserProgram(ctx context.Context, userId, programId int64) (int64, error)
+		ListUnpaidReservationsByUserProgram(ctx context.Context, userId, programId int64) (map[int64]int64, error)
 		FindExpiredUnpaid(ctx context.Context, before time.Time, limit int64) ([]*DOrder, error)
 		UpdateCancelStatus(ctx context.Context, session sqlx.Session, orderNumber int64, cancelTime time.Time) error
 		UpdatePayStatus(ctx context.Context, session sqlx.Session, orderNumber int64, payTime time.Time) error
@@ -35,6 +36,11 @@ type (
 
 	sumAggregate struct {
 		Total int64 `db:"total"`
+	}
+
+	orderReservation struct {
+		OrderNumber int64 `db:"order_number"`
+		TicketCount int64 `db:"ticket_count"`
 	}
 )
 
@@ -184,6 +190,33 @@ func (m *customDOrderModel) CountActiveTicketsByUserProgram(ctx context.Context,
 	}
 
 	return total.Total, nil
+}
+
+func (m *customDOrderModel) ListUnpaidReservationsByUserProgram(ctx context.Context, userId, programId int64) (map[int64]int64, error) {
+	query := fmt.Sprintf(
+		"select `order_number`, `ticket_count` from %s where `status` = 1 and `user_id` = ? and `program_id` = ? and `order_status` = 1",
+		m.table,
+	)
+
+	var rows []*orderReservation
+	err := m.conn.QueryRowsCtx(ctx, &rows, query, userId, programId)
+	switch err {
+	case nil:
+	case sqlx.ErrNotFound:
+		return map[int64]int64{}, nil
+	default:
+		return nil, err
+	}
+
+	reservations := make(map[int64]int64, len(rows))
+	for _, row := range rows {
+		if row == nil {
+			continue
+		}
+		reservations[row.OrderNumber] = row.TicketCount
+	}
+
+	return reservations, nil
 }
 
 func (m *customDOrderModel) FindExpiredUnpaid(ctx context.Context, before time.Time, limit int64) ([]*DOrder, error) {

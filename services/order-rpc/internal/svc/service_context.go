@@ -4,6 +4,7 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
+	"damai-go/services/order-rpc/internal/limitcache"
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
@@ -20,6 +21,7 @@ type ServiceContext struct {
 	Config                config.Config
 	SqlConn               sqlx.SqlConn
 	Redis                 *xredis.Client
+	PurchaseLimitStore    *limitcache.PurchaseLimitStore
 	DOrderModel           model.DOrderModel
 	DOrderTicketUserModel model.DOrderTicketUserModel
 	RepeatGuard           repeatguard.Guard
@@ -59,6 +61,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:                c,
 		SqlConn:               conn,
 		Redis:                 rds,
+		PurchaseLimitStore:    limitcache.NewPurchaseLimitStore(rds, model.NewDOrderModel(conn), limitcache.Config{}),
 		DOrderModel:           model.NewDOrderModel(conn),
 		DOrderTicketUserModel: model.NewDOrderTicketUserModel(conn),
 		RepeatGuard:           repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
