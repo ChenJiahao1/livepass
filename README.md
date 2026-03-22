@@ -125,6 +125,31 @@ Prometheus 抓取端点：
 - `order-api`: `http://127.0.0.1:9102/metrics`
 - `order-rpc`: `http://127.0.0.1:9103/metrics`
 
+`k6` 基线压测脚本：
+
+```bash
+k6 run -e ENV_FILE=scripts/perf/order_create_gateway_baseline.env.example \
+  scripts/perf/order_create_gateway_baseline.js
+```
+
+可通过 env 文件或命令行覆盖 `JWT`、`PROGRAM_ID`、`TICKET_CATEGORY_ID`、`TICKET_USER_IDS`、`WARMUP_VUS`、`STEADY_VUS` 等参数。运行前需本机安装 `k6`。
+
+结果采集：
+
+```bash
+BASELINE_START_ORDER_COUNT=<run-before-count> \
+SAMPLE_ORDER_NUMBER=<sample-order-number> \
+JWT=<user-jwt> \
+bash scripts/perf/collect_order_baseline.sh
+```
+
+第一版 baseline 通过标准建议至少满足：
+
+- `http_req_failed < 1%`
+- `http_req_duration p99 < 10000ms`
+- `skip expired order create event` 不持续增长
+- 压测停止后 Kafka consumer lag 能回落到接近 `0`
+
 ## 下单主路径验收
 
 完整步骤见 `docs/api/order-checkout-acceptance.md`。
