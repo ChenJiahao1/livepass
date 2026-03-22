@@ -12,6 +12,7 @@ import (
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/zrpc"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -52,6 +53,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if len(c.Kafka.Brokers) > 0 {
 		if err := mq.EnsureOrderCreateTopic(c.Kafka); err != nil {
 			panic(err)
+		}
+		if currentPartitions, err := mq.OrderCreateTopicPartitionCount(c.Kafka); err != nil {
+			logx.Errorf("inspect order create topic partitions failed: %v", err)
+		} else {
+			desiredPartitions := c.Kafka.TopicPartitions
+			if desiredPartitions <= 0 {
+				desiredPartitions = 1
+			}
+			if currentPartitions < desiredPartitions {
+				logx.Infof("[WARN] order create topic has fewer partitions than configured, topic=%s current=%d desired=%d",
+					mq.OrderCreateTopic(c.Kafka), currentPartitions, desiredPartitions)
+			}
 		}
 		orderCreateProducer = mq.NewOrderCreateProducer(c.Kafka)
 		orderCreateConsumer = mq.NewOrderCreateConsumer(c.Kafka)

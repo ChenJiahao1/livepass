@@ -45,6 +45,10 @@ func TestNewOrderServiceContextEnsuresKafkaTopicExists(t *testing.T) {
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		if kafkaTopicExists(t, cfg.Kafka.Brokers[0], topic) {
+			partitions := kafkaTopicPartitionCount(t, cfg.Kafka.Brokers[0], topic)
+			if partitions != cfg.Kafka.TopicPartitions {
+				t.Fatalf("expected kafka topic %q to have %d partitions, got %d", topic, cfg.Kafka.TopicPartitions, partitions)
+			}
 			return
 		}
 		time.Sleep(50 * time.Millisecond)
@@ -214,4 +218,28 @@ func kafkaTopicExists(t *testing.T, broker, topic string) bool {
 	}
 
 	return false
+}
+
+func kafkaTopicPartitionCount(t *testing.T, broker, topic string) int {
+	t.Helper()
+
+	conn, err := kafka.Dial("tcp", broker)
+	if err != nil {
+		t.Fatalf("dial kafka broker: %v", err)
+	}
+	defer conn.Close()
+
+	partitions, err := conn.ReadPartitions()
+	if err != nil {
+		t.Fatalf("read kafka partitions: %v", err)
+	}
+
+	count := 0
+	for _, partition := range partitions {
+		if partition.Topic == topic {
+			count++
+		}
+	}
+
+	return count
 }
