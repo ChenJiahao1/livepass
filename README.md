@@ -69,6 +69,24 @@ go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.y
 go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 ```
 
+`agents` 组件独立于 go-zero 服务目录，使用 `uv` 启动：
+
+```bash
+cd agents
+bash scripts/generate_proto_stubs.sh
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
+```
+
+本地联调时建议启动顺序：
+
+1. 基础设施：MySQL、Redis、etcd、Kafka
+2. `user-rpc`、`program-rpc`、`order-rpc`
+3. `user-api`、`program-api`、`order-api`
+4. `agents`
+5. `gateway-api`
+
+`agents` 运行配置可参考 [agents/.env.example](agents/.env.example)，其中至少需要确认 `REDIS_URL`、`USER_RPC_TARGET`、`PROGRAM_RPC_TARGET`、`ORDER_RPC_TARGET`。
+
 `user-rpc`、`program-rpc`、`pay-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-rpc` 默认监听 `8080`，`order-rpc` 默认监听 `8082`，`program-rpc` 默认监听 `8083`，`pay-rpc` 默认监听 `8084`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`，`gateway-api` 默认监听 `8081`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
 
 `gateway-api` 已启用 `Telemetry` 配置；若要得到完整链路，还需给下游 API/RPC 服务同步补齐 `Telemetry`。
@@ -99,6 +117,25 @@ go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 
 - 用户主动调用 `/order/refund`，订单、支付单和退款单统一收敛到退款终态。
 - 订单先取消，再模拟支付晚到，随后通过 `/order/pay/check` 触发补偿退款并收敛到相同终态。
+
+## Agents Chat 验收
+
+`gateway-api` 已透传 `/agent/chat` 到根级 `agents` 服务，并在鉴权成功后注入 `X-User-Id`。
+
+Python 侧 JSON 契约测试：
+
+```bash
+cd agents
+uv run pytest tests/test_e2e_contract.py -v
+```
+
+真实联调脚本：
+
+```bash
+JWT=<user-jwt> bash scripts/acceptance/agent_chat.sh
+```
+
+该脚本默认通过 `http://127.0.0.1:8081/agent/chat` 访问网关，并覆盖活动咨询、订单查询、退款预检、退款发起和人工转接；其中订单查询到退款预检会复用同一个 `conversationId`，用于验证多轮会话续接。
 
 ## 手工验证用户链路
 

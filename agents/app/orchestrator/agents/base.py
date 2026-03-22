@@ -22,10 +22,17 @@ class BaseAgent:
             return None
         return int(match.group(1))
 
-    def result(self, *, reply: str, current_agent: str, need_handoff: bool = False) -> OrchestratorResult:
+    def result(
+        self,
+        *,
+        reply: str,
+        current_agent: str,
+        need_handoff: bool = False,
+        status: str = "completed",
+    ) -> OrchestratorResult:
         return OrchestratorResult(
             reply=reply,
-            status="completed",
+            status=status,
             current_agent=current_agent,
             need_handoff=need_handoff,
         )

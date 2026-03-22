@@ -10,4 +10,5 @@ class HandoffAgent(BaseAgent):
             reply="已为你转接人工客服，请稍候。",
             current_agent="handoff",
             need_handoff=True,
+            status="handoff",
         )
