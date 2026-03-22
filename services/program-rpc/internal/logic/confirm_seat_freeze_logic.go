@@ -75,7 +75,7 @@ func mapConfirmSeatFreezeError(err error) error {
 		return err
 	case errors.Is(err, xerr.ErrSeatFreezeNotFound):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, xerr.ErrSeatFreezeStatusInvalid):
+	case errors.Is(err, xerr.ErrSeatFreezeStatusInvalid), errors.Is(err, xerr.ErrProgramSeatLedgerNotReady):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return err

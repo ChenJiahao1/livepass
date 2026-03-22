@@ -22,6 +22,7 @@ var (
 	ErrSeatFreezeNotFound            = errors.New("seat freeze not found")
 	ErrSeatFreezeRequestConflict     = errors.New("seat freeze request conflict")
 	ErrSeatFreezeStatusInvalid       = errors.New("seat freeze status invalid")
+	ErrProgramSeatLedgerNotReady     = errors.New("program seat ledger not ready")
 
 	ErrOrderNotFound              = errors.New("order not found")
 	ErrOrderExpired               = errors.New("order expired")
@@ -32,6 +33,7 @@ var (
 	ErrOrderRefundRuleInvalid     = errors.New("order refund rule invalid")
 	ErrOrderTicketUserInvalid     = errors.New("order ticket user invalid")
 	ErrOrderPurchaseLimitExceeded = errors.New("order purchase limit exceeded")
+	ErrOrderLimitLedgerNotReady   = errors.New("order limit ledger not ready")
 	ErrOrderSubmitTooFrequent     = errors.New("提交频繁，请稍后重试")
 
 	ErrPayBillNotFound = errors.New("pay bill not found")

@@ -2,6 +2,7 @@ package svc
 
 import (
 	"damai-go/pkg/xmysql"
+	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/mq"
@@ -18,6 +19,7 @@ import (
 type ServiceContext struct {
 	Config                config.Config
 	SqlConn               sqlx.SqlConn
+	Redis                 *xredis.Client
 	DOrderModel           model.DOrderModel
 	DOrderTicketUserModel model.DOrderTicketUserModel
 	RepeatGuard           repeatguard.Guard
@@ -31,6 +33,10 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	c.MySQL.DataSource = xmysql.WithLocalTime(c.MySQL.DataSource)
 	conn := sqlx.NewMysql(c.MySQL.DataSource)
+	var rds *xredis.Client
+	if c.StoreRedis.Host != "" {
+		rds = xredis.MustNew(c.StoreRedis)
+	}
 	etcdClient, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Etcd.Hosts,
 		DialTimeout: c.RepeatGuard.LockAcquireTimeout,
@@ -52,6 +58,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config:                c,
 		SqlConn:               conn,
+		Redis:                 rds,
 		DOrderModel:           model.NewDOrderModel(conn),
 		DOrderTicketUserModel: model.NewDOrderTicketUserModel(conn),
 		RepeatGuard:           repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
