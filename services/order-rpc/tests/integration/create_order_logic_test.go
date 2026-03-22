@@ -39,6 +39,7 @@ func TestBuildOrderCreateEventCarriesSeatAndProgramSnapshots(t *testing.T) {
 	}
 
 	event, err := logicpkg.BuildOrderCreateEvent(
+		9001,
 		&pb.CreateOrderReq{
 			UserId:           3001,
 			ProgramId:        10001,
@@ -86,6 +87,7 @@ func TestCreateOrderReturnsOrderNumberAfterKafkaSendSucceeds(t *testing.T) {
 		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 		&userrpc.TicketUserInfo{Id: 702, UserId: 3001, RelName: "李四", IdType: 1, IdNumber: "110101199002021234"},
 	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
 
 	l := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx)
 	resp, err := l.CreateOrder(&pb.CreateOrderReq{
@@ -120,6 +122,35 @@ func TestCreateOrderReturnsOrderNumberAfterKafkaSendSucceeds(t *testing.T) {
 	}
 }
 
+func TestCreateOrderRejectsWhenPurchaseLimitLedgerMissing(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	clearPurchaseLimitLedger(t, svcCtx, 3001, 10001)
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+
+	_, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701},
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition, got %v", err)
+	}
+	if status.Convert(err).Message() != xerr.ErrOrderLimitLedgerNotReady.Error() {
+		t.Fatalf("unexpected error message: %s", status.Convert(err).Message())
+	}
+	if programRPC.lastAutoAssignAndFreezeSeatsReq != nil {
+		t.Fatalf("expected seat freeze to be skipped when purchase limit ledger is missing")
+	}
+	waitPurchaseLimitLedgerReady(t, svcCtx, 3001, 10001, 0)
+}
+
 func TestCreateOrderReleasesSeatFreezeWhenKafkaSendFails(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
@@ -141,6 +172,7 @@ func TestCreateOrderReleasesSeatFreezeWhenKafkaSendFails(t *testing.T) {
 		3001,
 		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
 
 	_, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
 		UserId:           3001,
@@ -161,6 +193,45 @@ func TestCreateOrderReleasesSeatFreezeWhenKafkaSendFails(t *testing.T) {
 	}
 }
 
+func TestCreateOrderRollsBackPurchaseLimitWhenKafkaSendFails(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
+	producer.sendErr = errors.New("kafka send failed")
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-rollback-send-failed",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
+
+	_, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701},
+	})
+	if err == nil {
+		t.Fatalf("expected kafka send error")
+	}
+
+	snapshot := requirePurchaseLimitSnapshot(t, svcCtx, 3001, 10001)
+	if snapshot.ActiveCount != 0 || len(snapshot.Reservations) != 0 {
+		t.Fatalf("expected purchase limit ledger rollback after kafka send failure, got %+v", snapshot)
+	}
+}
+
 func TestCreateOrderDoesNotInsertOrderRowsSynchronously(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
@@ -177,6 +248,7 @@ func TestCreateOrderDoesNotInsertOrderRowsSynchronously(t *testing.T) {
 		3001,
 		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
 
 	resp, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
 		UserId:           3001,
@@ -264,6 +336,7 @@ func TestCreateOrderRejectsPerOrderLimitExceeded(t *testing.T) {
 		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 		&userrpc.TicketUserInfo{Id: 702, UserId: 3001, RelName: "李四", IdType: 1, IdNumber: "110101199002021234"},
 	)
+	primePurchaseLimitLedgerFromDB(t, svcCtx, 3001, 10001)
 
 	l := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx)
 	_, err := l.CreateOrder(&pb.CreateOrderReq{
@@ -299,6 +372,7 @@ func TestCreateOrderRejectsPerAccountLimitExceeded(t *testing.T) {
 		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 		&userrpc.TicketUserInfo{Id: 702, UserId: 3001, RelName: "李四", IdType: 1, IdNumber: "110101199002021234"},
 	)
+	primePurchaseLimitLedgerFromDB(t, svcCtx, 3001, 10001)
 
 	l := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx)
 	_, err := l.CreateOrder(&pb.CreateOrderReq{
@@ -368,6 +442,7 @@ func TestCreateOrderRejectsConcurrentDuplicateSubmission(t *testing.T) {
 		3001,
 		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
 
 	req := &pb.CreateOrderReq{
 		UserId:           3001,
@@ -464,6 +539,8 @@ func TestCreateOrderAllowsDifferentProgramsConcurrently(t *testing.T) {
 			&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 		),
 	}
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10002, 0, nil)
 
 	req1 := &pb.CreateOrderReq{UserId: 3001, ProgramId: 10001, TicketCategoryId: 40001, TicketUserIds: []int64{701}}
 	req2 := &pb.CreateOrderReq{UserId: 3001, ProgramId: 10002, TicketCategoryId: 40001, TicketUserIds: []int64{701}}
@@ -499,6 +576,8 @@ func TestCreateOrderAllowsDifferentUsersConcurrently(t *testing.T) {
 			&userrpc.TicketUserInfo{Id: 702, UserId: 3002, RelName: "李四", IdType: 1, IdNumber: "110101199202021234"},
 		),
 	}
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
+	seedPurchaseLimitLedger(t, svcCtx, 3002, 10001, 0, nil)
 
 	req1 := &pb.CreateOrderReq{UserId: 3001, ProgramId: 10001, TicketCategoryId: 40001, TicketUserIds: []int64{701}}
 	req2 := &pb.CreateOrderReq{UserId: 3002, ProgramId: 10001, TicketCategoryId: 40001, TicketUserIds: []int64{702}}
@@ -544,6 +623,7 @@ func TestCreateOrderLeavesTablesEmptyWhenSeatFreezeFails(t *testing.T) {
 		3001,
 		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
 
 	l := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx)
 	_, err := l.CreateOrder(&pb.CreateOrderReq{
@@ -563,6 +643,34 @@ func TestCreateOrderLeavesTablesEmptyWhenSeatFreezeFails(t *testing.T) {
 	}
 	if programRPC.releaseSeatFreezeCalls != 0 {
 		t.Fatalf("expected no compensation release call, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+}
+
+func TestCreateOrderRollsBackPurchaseLimitWhenProgramFreezeFails(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	programRPC.autoAssignAndFreezeSeatsErr = status.Error(codes.FailedPrecondition, xerr.ErrSeatInventoryInsufficient.Error())
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
+
+	_, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701},
+	})
+	if err == nil {
+		t.Fatalf("expected seat freeze error")
+	}
+
+	snapshot := requirePurchaseLimitSnapshot(t, svcCtx, 3001, 10001)
+	if snapshot.ActiveCount != 0 || len(snapshot.Reservations) != 0 {
+		t.Fatalf("expected purchase limit ledger rollback after seat freeze failure, got %+v", snapshot)
 	}
 }
 
@@ -592,6 +700,7 @@ func TestCreateOrderDoesNotFailBeforeAsyncPersistence(t *testing.T) {
 			IdNumber: "110101199001011234",
 		},
 	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
 
 	l := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx)
 	resp, err := l.CreateOrder(&pb.CreateOrderReq{
@@ -617,5 +726,46 @@ func TestCreateOrderDoesNotFailBeforeAsyncPersistence(t *testing.T) {
 	}
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 0 {
 		t.Fatalf("expected no order ticket rows before consumer persistence")
+	}
+}
+
+func TestCreateOrderUsesReservedOrderNumberForPurchaseLimitLedger(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-ledger-order-number",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+			{SeatId: 502, TicketCategoryId: 40001, RowCode: 1, ColCode: 2, Price: 299},
+		},
+	}
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+		&userrpc.TicketUserInfo{Id: 702, UserId: 3001, RelName: "李四", IdType: 1, IdNumber: "110101199002021234"},
+	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
+
+	resp, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701, 702},
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder returned error: %v", err)
+	}
+
+	snapshot := requirePurchaseLimitSnapshot(t, svcCtx, 3001, 10001)
+	if snapshot.ActiveCount != 2 {
+		t.Fatalf("expected active count 2, got %d", snapshot.ActiveCount)
+	}
+	if snapshot.Reservations[resp.OrderNumber] != 2 {
+		t.Fatalf("expected reservation to use response order number, got %+v", snapshot.Reservations)
 	}
 }

@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -8,13 +9,18 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"damai-go/pkg/xmysql"
+	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/config"
+	"damai-go/services/program-rpc/internal/seatcache"
 	"damai-go/services/program-rpc/internal/svc"
 )
 
 var testProgramMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true")
+
+const testProgramSeatLedgerPrefix = "damai-go:test:program:seat-ledger"
 
 type ticketCategoryFixture struct {
 	ID           int64
@@ -79,11 +85,77 @@ type programFixture struct {
 func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
 
-	return svc.NewServiceContext(config.Config{
+	svcCtx := svc.NewServiceContext(config.Config{
 		MySQL: xmysql.Config{
 			DataSource: testProgramMySQLDataSource,
 		},
+		StoreRedis: xredis.Config{
+			Host: "127.0.0.1:6379",
+			Type: "node",
+		},
 	})
+
+	svcCtx.SeatStockStore = seatcache.NewSeatStockStore(svcCtx.Redis, svcCtx.DSeatModel, seatcache.Config{
+		Prefix:          testProgramSeatLedgerPrefix,
+		StockTTL:        time.Hour,
+		SeatTTL:         time.Hour,
+		LoadingCooldown: 200 * time.Millisecond,
+	})
+
+	return svcCtx
+}
+
+func clearProgramSeatLedger(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) {
+	t.Helper()
+
+	if svcCtx.SeatStockStore == nil {
+		t.Fatalf("expected seat stock store to be configured")
+	}
+	if err := svcCtx.SeatStockStore.Clear(context.Background(), programID, ticketCategoryID); err != nil {
+		t.Fatalf("clear program seat ledger error: %v", err)
+	}
+}
+
+func primeProgramSeatLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) {
+	t.Helper()
+
+	if svcCtx.SeatStockStore == nil {
+		t.Fatalf("expected seat stock store to be configured")
+	}
+	if err := svcCtx.SeatStockStore.PrimeFromDB(context.Background(), programID, ticketCategoryID); err != nil {
+		t.Fatalf("prime program seat ledger from db error: %v", err)
+	}
+}
+
+func requireProgramSeatLedgerSnapshot(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) *seatcache.SeatLedgerSnapshot {
+	t.Helper()
+
+	if svcCtx.SeatStockStore == nil {
+		t.Fatalf("expected seat stock store to be configured")
+	}
+
+	snapshot, err := svcCtx.SeatStockStore.Snapshot(context.Background(), programID, ticketCategoryID)
+	if err != nil {
+		t.Fatalf("snapshot program seat ledger error: %v", err)
+	}
+
+	return snapshot
+}
+
+func waitProgramSeatLedgerReady(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID, expectedAvailableCount int64) *seatcache.SeatLedgerSnapshot {
+	t.Helper()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		snapshot := requireProgramSeatLedgerSnapshot(t, svcCtx, programID, ticketCategoryID)
+		if snapshot.Ready && snapshot.AvailableCount == expectedAvailableCount {
+			return snapshot
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	t.Fatalf("program seat ledger was not ready before deadline, programID=%d ticketCategoryID=%d", programID, ticketCategoryID)
+	return nil
 }
 
 func resetProgramDomainState(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"damai-go/pkg/xerr"
+	"damai-go/pkg/xid"
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
@@ -69,14 +70,19 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, mapOrderError(xerr.ErrOrderPurchaseLimitExceeded)
 	}
 
-	activeTicketCount, err := l.svcCtx.DOrderModel.CountActiveTicketsByUserProgram(l.ctx, in.GetUserId(), in.GetProgramId())
-	if err != nil {
-		return nil, err
+	orderNumber := xid.New()
+	if preorder.GetPerAccountLimitPurchaseCount() > 0 {
+		if err := l.svcCtx.PurchaseLimitStore.Reserve(
+			l.ctx,
+			in.GetUserId(),
+			in.GetProgramId(),
+			orderNumber,
+			int64(len(in.GetTicketUserIds())),
+			preorder.GetPerAccountLimitPurchaseCount(),
+		); err != nil {
+			return nil, mapOrderError(err)
+		}
 	}
-	if preorder.GetPerAccountLimitPurchaseCount() > 0 && activeTicketCount+int64(len(in.GetTicketUserIds())) > preorder.GetPerAccountLimitPurchaseCount() {
-		return nil, mapOrderError(xerr.ErrOrderPurchaseLimitExceeded)
-	}
-
 	closeAfter := l.svcCtx.Config.Order.CloseAfter
 	if closeAfter <= 0 {
 		closeAfter = 15 * time.Minute
@@ -89,29 +95,30 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		FreezeSeconds:    int64(closeAfter / time.Second),
 	})
 	if err != nil {
+		compensateOrderCreateSeatFreezeFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber)
 		return nil, err
 	}
 
 	now := time.Now()
-	orderEvent, err := buildOrderCreateEvent(in, preorder, userResp, freezeResp, now, closeAfter)
+	orderEvent, err := buildOrderCreateEvent(orderNumber, in, preorder, userResp, freezeResp, now, closeAfter)
 	if err != nil {
-		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, freezeResp.GetFreezeToken())
+		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(err)
 	}
 
 	if l.svcCtx.OrderCreateProducer == nil {
-		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, freezeResp.GetFreezeToken())
+		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(xerr.ErrInternal)
 	}
 
 	body, err := orderEvent.Marshal()
 	if err != nil {
-		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, freezeResp.GetFreezeToken())
+		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(xerr.ErrInternal)
 	}
 	if err := l.svcCtx.OrderCreateProducer.Send(l.ctx, strconv.FormatInt(orderEvent.OrderNumber, 10), body); err != nil {
 		l.Errorf("send order create event failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, freezeResp.GetFreezeToken())
+		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(xerr.ErrInternal)
 	}
 

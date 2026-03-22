@@ -70,7 +70,7 @@ func buildOrderSnapshotBundle(
 	now time.Time,
 	closeAfter time.Duration,
 ) (*orderSnapshotBundle, error) {
-	orderEvent, err := buildOrderCreateEvent(in, preorder, userResp, freezeResp, now, closeAfter)
+	orderEvent, err := buildOrderCreateEvent(xid.New(), in, preorder, userResp, freezeResp, now, closeAfter)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func mapOrderError(err error) error {
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, xerr.ErrOrderSubmitTooFrequent):
 		return status.Error(codes.ResourceExhausted, err.Error())
-	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid), errors.Is(err, xerr.ErrOrderRefundNotAllowed), errors.Is(err, xerr.ErrOrderRefundWindowClosed):
+	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderLimitLedgerNotReady), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid), errors.Is(err, xerr.ErrOrderRefundNotAllowed), errors.Is(err, xerr.ErrOrderRefundWindowClosed):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, xerr.ErrOrderRefundRuleInvalid):
 		return status.Error(codes.Internal, err.Error())

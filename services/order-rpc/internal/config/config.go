@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"damai-go/pkg/xmysql"
+	"damai-go/pkg/xredis"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -19,20 +20,21 @@ type RepeatGuardConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers          []string      `json:",optional"`
-	TopicOrderCreate string        `json:",default=order.create.command.v1"`
-	ConsumerGroup    string        `json:",default=damai-go-order-create"`
+	Brokers          []string `json:",optional"`
+	TopicOrderCreate string   `json:",default=order.create.command.v1"`
+	ConsumerGroup    string   `json:",default=damai-go-order-create"`
 	// MaxMessageDelay follows the Java open-source flow:
 	// once exceeded, the consumer treats the create command as an expired order,
 	// releases the seat freeze, and skips order persistence.
-	MaxMessageDelay  time.Duration `json:",default=5s"`
-	ProducerTimeout  time.Duration `json:",default=3s"`
-	RetryBackoff     time.Duration `json:",default=1s"`
+	MaxMessageDelay time.Duration `json:",default=5s"`
+	ProducerTimeout time.Duration `json:",default=3s"`
+	RetryBackoff    time.Duration `json:",default=1s"`
 }
 
 type Config struct {
 	zrpc.RpcServerConf
 	MySQL       xmysql.Config
+	StoreRedis  xredis.Config `json:"StoreRedis,optional"`
 	ProgramRpc  zrpc.RpcClientConf
 	PayRpc      zrpc.RpcClientConf
 	UserRpc     zrpc.RpcClientConf

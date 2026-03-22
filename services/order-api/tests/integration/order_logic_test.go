@@ -2,10 +2,14 @@ package integration_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"damai-go/pkg/xerr"
 	"damai-go/pkg/xmiddleware"
+	"damai-go/services/order-api/internal/handler"
 	logicpkg "damai-go/services/order-api/internal/logic"
 	"damai-go/services/order-api/internal/svc"
 	"damai-go/services/order-api/internal/types"
@@ -76,6 +80,30 @@ func TestCreateOrderMayNotBeImmediatelyVisible(t *testing.T) {
 	}
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("expected not found, got %s", status.Code(err))
+	}
+}
+
+func TestCreateOrderPropagatesLedgerNotReady(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		createOrderErr: status.Error(codes.FailedPrecondition, xerr.ErrOrderLimitLedgerNotReady.Error()),
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/order/create", strings.NewReader(`{"programId":10001,"ticketCategoryId":40001,"ticketUserIds":[701],"distributionMode":"express","takeTicketMode":"paper"}`))
+	req = req.WithContext(xmiddleware.WithUserID(req.Context(), 3001))
+	req.Header.Set("Content-Type", "application/json")
+
+	recorder := httptest.NewRecorder()
+	handler.CreateOrderHandler(newOrderAPIServiceContext(fakeRPC))(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+	body := recorder.Body.String()
+	if !strings.Contains(body, xerr.ErrOrderLimitLedgerNotReady.Error()) {
+		t.Fatalf("expected response body to contain ledger not ready message, got %s", body)
+	}
+	if strings.Contains(body, xerr.ErrInternal.Error()) {
+		t.Fatalf("expected response body not to contain internal error, got %s", body)
 	}
 }
 

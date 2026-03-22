@@ -21,6 +21,10 @@ type fakeOrderRPC struct {
 	getOrderErr     error
 	lastGetOrderReq *orderrpc.GetOrderReq
 
+	getOrderServiceViewResp    *orderrpc.OrderServiceViewResp
+	getOrderServiceViewErr     error
+	lastGetOrderServiceViewReq *orderrpc.GetOrderServiceViewReq
+
 	cancelOrderResp    *orderrpc.BoolResp
 	cancelOrderErr     error
 	lastCancelOrderReq *orderrpc.CancelOrderReq
@@ -32,6 +36,10 @@ type fakeOrderRPC struct {
 	payCheckResp    *orderrpc.PayCheckResp
 	payCheckErr     error
 	lastPayCheckReq *orderrpc.PayCheckReq
+
+	previewRefundOrderResp    *orderrpc.PreviewRefundOrderResp
+	previewRefundOrderErr     error
+	lastPreviewRefundOrderReq *orderrpc.PreviewRefundOrderReq
 
 	refundOrderResp    *orderrpc.RefundOrderResp
 	refundOrderErr     error
@@ -53,6 +61,11 @@ func (f *fakeOrderRPC) GetOrder(ctx context.Context, in *orderrpc.GetOrderReq, o
 	return f.getOrderResp, f.getOrderErr
 }
 
+func (f *fakeOrderRPC) GetOrderServiceView(ctx context.Context, in *orderrpc.GetOrderServiceViewReq, opts ...grpc.CallOption) (*orderrpc.OrderServiceViewResp, error) {
+	f.lastGetOrderServiceViewReq = in
+	return f.getOrderServiceViewResp, f.getOrderServiceViewErr
+}
+
 func (f *fakeOrderRPC) CancelOrder(ctx context.Context, in *orderrpc.CancelOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
 	f.lastCancelOrderReq = in
 	return f.cancelOrderResp, f.cancelOrderErr
@@ -66,6 +79,11 @@ func (f *fakeOrderRPC) PayOrder(ctx context.Context, in *orderrpc.PayOrderReq, o
 func (f *fakeOrderRPC) PayCheck(ctx context.Context, in *orderrpc.PayCheckReq, opts ...grpc.CallOption) (*orderrpc.PayCheckResp, error) {
 	f.lastPayCheckReq = in
 	return f.payCheckResp, f.payCheckErr
+}
+
+func (f *fakeOrderRPC) PreviewRefundOrder(ctx context.Context, in *orderrpc.PreviewRefundOrderReq, opts ...grpc.CallOption) (*orderrpc.PreviewRefundOrderResp, error) {
+	f.lastPreviewRefundOrderReq = in
+	return f.previewRefundOrderResp, f.previewRefundOrderErr
 }
 
 func (f *fakeOrderRPC) RefundOrder(ctx context.Context, in *orderrpc.RefundOrderReq, opts ...grpc.CallOption) (*orderrpc.RefundOrderResp, error) {

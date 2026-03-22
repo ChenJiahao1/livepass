@@ -43,7 +43,7 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		return err
 	}
 	if maxDelay := l.svcCtx.Config.Kafka.MaxMessageDelay; maxDelay > 0 && time.Since(occurredAt) > maxDelay {
-		compensateOrderCreateExpired(l.ctx, l.svcCtx, orderEvent.FreezeToken)
+		compensateOrderCreateExpired(l.ctx, l.svcCtx, orderEvent.UserID, orderEvent.ProgramID, orderEvent.OrderNumber, orderEvent.FreezeToken)
 		l.Infof("skip expired order create event, orderNumber=%d occurredAt=%s", orderEvent.OrderNumber, orderEvent.OccurredAt)
 		return nil
 	}
