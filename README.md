@@ -2,7 +2,12 @@
 
 基于 Go 与 go-zero 的大麦业务总线重建项目。
 
-当前阶段：用户域链路已打通，`program` 域 Phase 1 只读链路已补齐（category/home/page/detail/ticket-category）。
+当前已落地能力：
+
+- `user`：注册、登录、用户资料与观演人链路
+- `program`：查询链路（category/home/page/detail/ticket-category）、预下单详情、系统自动分配座位冻结
+- `order` / `pay`：下单、查单、取消、模拟支付、退款、超时关单
+- `gateway` / `agents`：统一 HTTP 入口与 `/agent/chat` 智能客服联调
 
 ## 测试目录约束
 
@@ -51,22 +56,30 @@ bash scripts/import_sql.sh
 
 ## 运行测试
 
+Go 服务与作业：
+
 ```bash
 go test ./...
+```
+
+`agents` 组件测试：
+
+```bash
+cd agents
+uv run pytest -v
 ```
 
 ## 启动服务
 
 ```bash
 go run services/user-rpc/user.go -f services/user-rpc/etc/user-rpc.yaml
-go run services/user-api/user.go -f services/user-api/etc/user-api.yaml
 go run services/program-rpc/program.go -f services/program-rpc/etc/program-rpc.yaml
-go run services/program-api/program.go -f services/program-api/etc/program-api.yaml
 go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay-rpc.yaml
 go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml
+go run services/user-api/user.go -f services/user-api/etc/user-api.yaml
+go run services/program-api/program.go -f services/program-api/etc/program-api.yaml
 go run services/order-api/order.go -f services/order-api/etc/order-api.yaml
 go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.yaml
-go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
 ```
 
 `agents` 组件独立于 go-zero 服务目录，使用 `uv` 启动：
@@ -80,12 +93,20 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 本地联调时建议启动顺序：
 
 1. 基础设施：MySQL、Redis、etcd、Kafka
-2. `user-rpc`、`program-rpc`、`order-rpc`
-3. `user-api`、`program-api`、`order-api`
-4. `agents`
-5. `gateway-api`
+2. `user-rpc`、`program-rpc`、`pay-rpc`
+3. `order-rpc`
+4. `user-api`、`program-api`、`order-api`
+5. `agents`
+6. `gateway-api`
 
-`agents` 运行配置可参考 [agents/.env.example](agents/.env.example)，其中至少需要确认 `REDIS_URL`、`USER_RPC_TARGET`、`PROGRAM_RPC_TARGET`、`ORDER_RPC_TARGET`。
+`agents` 运行配置可参考 [agents/README.md](agents/README.md) 和 [agents/.env.example](agents/.env.example)，其中至少需要确认：
+
+- `REDIS_URL=redis://127.0.0.1:6379/0`
+- `USER_RPC_TARGET=127.0.0.1:8080`
+- `PROGRAM_RPC_TARGET=127.0.0.1:8083`
+- `ORDER_RPC_TARGET=127.0.0.1:8082`
+
+`jobs/order-close` 代码仍保留在仓库中，但当前不作为常驻定时任务写入默认启动清单；只在验证“超时关单”场景时，按 [docs/api/order-checkout-failure-acceptance.md](docs/api/order-checkout-failure-acceptance.md) 手动触发一次。
 
 `user-rpc`、`program-rpc`、`pay-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-rpc` 默认监听 `8080`，`order-rpc` 默认监听 `8082`，`program-rpc` 默认监听 `8083`，`pay-rpc` 默认监听 `8084`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`，`gateway-api` 默认监听 `8081`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
 
