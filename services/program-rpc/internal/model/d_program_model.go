@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -51,8 +52,17 @@ func NewDProgramModel(conn sqlx.SqlConn) DProgramModel {
 	}
 }
 
+// NewCachedDProgramModel returns a cached model for the database table.
+func NewCachedDProgramModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) DProgramModel {
+	return &customDProgramModel{
+		defaultDProgramModel: newCachedDProgramModel(conn, c, opts...),
+	}
+}
+
 func (m *customDProgramModel) withSession(session sqlx.Session) DProgramModel {
-	return NewDProgramModel(sqlx.NewSqlConnFromSession(session))
+	return &customDProgramModel{
+		defaultDProgramModel: m.defaultDProgramModel.withSession(session),
+	}
 }
 
 func (m *customDProgramModel) FindHomeList(ctx context.Context, q *ProgramHomeListQuery) ([]*DProgram, error) {

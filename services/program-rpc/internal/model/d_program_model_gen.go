@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
+	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
 )
@@ -21,6 +23,8 @@ var (
 	dProgramRows                = strings.Join(dProgramFieldNames, ",")
 	dProgramRowsExpectAutoSet   = strings.Join(stringx.Remove(dProgramFieldNames, "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), ",")
 	dProgramRowsWithPlaceHolder = strings.Join(stringx.Remove(dProgramFieldNames, "`id`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), "=?,") + "=?"
+
+	cacheDProgramIdPrefix = "cache:dProgram:id:"
 )
 
 type (
@@ -32,8 +36,12 @@ type (
 	}
 
 	defaultDProgramModel struct {
-		conn  sqlx.SqlConn
-		table string
+		sqlc.CachedConn
+		conn      sqlx.SqlConn
+		table     string
+		cached    bool
+		cacheConf cache.CacheConf
+		cacheOpts []cache.Option
 	}
 
 	DProgram struct {
@@ -96,19 +104,61 @@ func newDProgramModel(conn sqlx.SqlConn) *defaultDProgramModel {
 	}
 }
 
+func newCachedDProgramModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) *defaultDProgramModel {
+	return &defaultDProgramModel{
+		CachedConn: sqlc.NewConn(conn, c, opts...),
+		conn:       conn,
+		table:      "`d_program`",
+		cached:     true,
+		cacheConf:  c,
+		cacheOpts:  append([]cache.Option(nil), opts...),
+	}
+}
+
+func (m *defaultDProgramModel) withSession(session sqlx.Session) *defaultDProgramModel {
+	conn := sqlx.NewSqlConnFromSession(session)
+	if m.cached {
+		return newCachedDProgramModel(conn, m.cacheConf, m.cacheOpts...)
+	}
+
+	return newDProgramModel(conn)
+}
+
 func (m *defaultDProgramModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	if !m.cached {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		_, err := m.conn.ExecCtx(ctx, query, id)
+		return err
+	}
+
+	dProgramIdKey := fmt.Sprintf("%s%v", cacheDProgramIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, dProgramIdKey)
 	return err
 }
 
 func (m *defaultDProgramModel) FindOne(ctx context.Context, id int64) (*DProgram, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramRows, m.table)
 	var resp DProgram
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	var err error
+
+	if m.cached {
+		dProgramIdKey := fmt.Sprintf("%s%v", cacheDProgramIdPrefix, id)
+		err = m.QueryRowCtx(ctx, &resp, dProgramIdKey, func(ctx context.Context, conn sqlx.SqlConn, v any) error {
+			query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramRows, m.table)
+			return conn.QueryRowCtx(ctx, v, query, id)
+		})
+	} else {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramRows, m.table)
+		err = m.conn.QueryRowCtx(ctx, &resp, query, id)
+	}
+
 	switch err {
 	case nil:
 		return &resp, nil
+	case sqlc.ErrNotFound:
+		return nil, ErrNotFound
 	case sqlx.ErrNotFound:
 		return nil, ErrNotFound
 	default:
@@ -117,14 +167,30 @@ func (m *defaultDProgramModel) FindOne(ctx context.Context, id int64) (*DProgram
 }
 
 func (m *defaultDProgramModel) Insert(ctx context.Context, data *DProgram) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramGroupId, data.Prime, data.AreaId, data.ProgramCategoryId, data.ParentProgramCategoryId, data.Title, data.Actor, data.Place, data.ItemPicture, data.PreSell, data.PreSellInstruction, data.ImportantNotice, data.Detail, data.PerOrderLimitPurchaseCount, data.PerAccountLimitPurchaseCount, data.RefundTicketRule, data.DeliveryInstruction, data.EntryRule, data.ChildPurchase, data.InvoiceSpecification, data.RealTicketPurchaseRule, data.AbnormalOrderDescription, data.KindReminder, data.PerformanceDuration, data.EntryTime, data.MinPerformanceCount, data.MainActor, data.MinPerformanceDuration, data.ProhibitedItem, data.DepositSpecification, data.TotalCount, data.PermitRefund, data.RefundExplain, data.RefundRuleJson, data.RelNameTicketEntrance, data.RelNameTicketEntranceExplain, data.PermitChooseSeat, data.ChooseSeatExplain, data.ElectronicDeliveryTicket, data.ElectronicDeliveryTicketExplain, data.ElectronicInvoice, data.ElectronicInvoiceExplain, data.HighHeat, data.ProgramStatus, data.IssueTime, data.EditTime, data.Status)
-	return ret, err
+	if !m.cached {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramRowsExpectAutoSet)
+		return m.conn.ExecCtx(ctx, query, data.Id, data.ProgramGroupId, data.Prime, data.AreaId, data.ProgramCategoryId, data.ParentProgramCategoryId, data.Title, data.Actor, data.Place, data.ItemPicture, data.PreSell, data.PreSellInstruction, data.ImportantNotice, data.Detail, data.PerOrderLimitPurchaseCount, data.PerAccountLimitPurchaseCount, data.RefundTicketRule, data.DeliveryInstruction, data.EntryRule, data.ChildPurchase, data.InvoiceSpecification, data.RealTicketPurchaseRule, data.AbnormalOrderDescription, data.KindReminder, data.PerformanceDuration, data.EntryTime, data.MinPerformanceCount, data.MainActor, data.MinPerformanceDuration, data.ProhibitedItem, data.DepositSpecification, data.TotalCount, data.PermitRefund, data.RefundExplain, data.RefundRuleJson, data.RelNameTicketEntrance, data.RelNameTicketEntranceExplain, data.PermitChooseSeat, data.ChooseSeatExplain, data.ElectronicDeliveryTicket, data.ElectronicDeliveryTicketExplain, data.ElectronicInvoice, data.ElectronicInvoiceExplain, data.HighHeat, data.ProgramStatus, data.IssueTime, data.EditTime, data.Status)
+	}
+
+	dProgramIdKey := fmt.Sprintf("%s%v", cacheDProgramIdPrefix, data.Id)
+	return m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.Id, data.ProgramGroupId, data.Prime, data.AreaId, data.ProgramCategoryId, data.ParentProgramCategoryId, data.Title, data.Actor, data.Place, data.ItemPicture, data.PreSell, data.PreSellInstruction, data.ImportantNotice, data.Detail, data.PerOrderLimitPurchaseCount, data.PerAccountLimitPurchaseCount, data.RefundTicketRule, data.DeliveryInstruction, data.EntryRule, data.ChildPurchase, data.InvoiceSpecification, data.RealTicketPurchaseRule, data.AbnormalOrderDescription, data.KindReminder, data.PerformanceDuration, data.EntryTime, data.MinPerformanceCount, data.MainActor, data.MinPerformanceDuration, data.ProhibitedItem, data.DepositSpecification, data.TotalCount, data.PermitRefund, data.RefundExplain, data.RefundRuleJson, data.RelNameTicketEntrance, data.RelNameTicketEntranceExplain, data.PermitChooseSeat, data.ChooseSeatExplain, data.ElectronicDeliveryTicket, data.ElectronicDeliveryTicketExplain, data.ElectronicInvoice, data.ElectronicInvoiceExplain, data.HighHeat, data.ProgramStatus, data.IssueTime, data.EditTime, data.Status)
+	}, dProgramIdKey)
 }
 
 func (m *defaultDProgramModel) Update(ctx context.Context, data *DProgram) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.ProgramGroupId, data.Prime, data.AreaId, data.ProgramCategoryId, data.ParentProgramCategoryId, data.Title, data.Actor, data.Place, data.ItemPicture, data.PreSell, data.PreSellInstruction, data.ImportantNotice, data.Detail, data.PerOrderLimitPurchaseCount, data.PerAccountLimitPurchaseCount, data.RefundTicketRule, data.DeliveryInstruction, data.EntryRule, data.ChildPurchase, data.InvoiceSpecification, data.RealTicketPurchaseRule, data.AbnormalOrderDescription, data.KindReminder, data.PerformanceDuration, data.EntryTime, data.MinPerformanceCount, data.MainActor, data.MinPerformanceDuration, data.ProhibitedItem, data.DepositSpecification, data.TotalCount, data.PermitRefund, data.RefundExplain, data.RefundRuleJson, data.RelNameTicketEntrance, data.RelNameTicketEntranceExplain, data.PermitChooseSeat, data.ChooseSeatExplain, data.ElectronicDeliveryTicket, data.ElectronicDeliveryTicketExplain, data.ElectronicInvoice, data.ElectronicInvoiceExplain, data.HighHeat, data.ProgramStatus, data.IssueTime, data.EditTime, data.Status, data.Id)
+	if !m.cached {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramRowsWithPlaceHolder)
+		_, err := m.conn.ExecCtx(ctx, query, data.ProgramGroupId, data.Prime, data.AreaId, data.ProgramCategoryId, data.ParentProgramCategoryId, data.Title, data.Actor, data.Place, data.ItemPicture, data.PreSell, data.PreSellInstruction, data.ImportantNotice, data.Detail, data.PerOrderLimitPurchaseCount, data.PerAccountLimitPurchaseCount, data.RefundTicketRule, data.DeliveryInstruction, data.EntryRule, data.ChildPurchase, data.InvoiceSpecification, data.RealTicketPurchaseRule, data.AbnormalOrderDescription, data.KindReminder, data.PerformanceDuration, data.EntryTime, data.MinPerformanceCount, data.MainActor, data.MinPerformanceDuration, data.ProhibitedItem, data.DepositSpecification, data.TotalCount, data.PermitRefund, data.RefundExplain, data.RefundRuleJson, data.RelNameTicketEntrance, data.RelNameTicketEntranceExplain, data.PermitChooseSeat, data.ChooseSeatExplain, data.ElectronicDeliveryTicket, data.ElectronicDeliveryTicketExplain, data.ElectronicInvoice, data.ElectronicInvoiceExplain, data.HighHeat, data.ProgramStatus, data.IssueTime, data.EditTime, data.Status, data.Id)
+		return err
+	}
+
+	dProgramIdKey := fmt.Sprintf("%s%v", cacheDProgramIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.ProgramGroupId, data.Prime, data.AreaId, data.ProgramCategoryId, data.ParentProgramCategoryId, data.Title, data.Actor, data.Place, data.ItemPicture, data.PreSell, data.PreSellInstruction, data.ImportantNotice, data.Detail, data.PerOrderLimitPurchaseCount, data.PerAccountLimitPurchaseCount, data.RefundTicketRule, data.DeliveryInstruction, data.EntryRule, data.ChildPurchase, data.InvoiceSpecification, data.RealTicketPurchaseRule, data.AbnormalOrderDescription, data.KindReminder, data.PerformanceDuration, data.EntryTime, data.MinPerformanceCount, data.MainActor, data.MinPerformanceDuration, data.ProhibitedItem, data.DepositSpecification, data.TotalCount, data.PermitRefund, data.RefundExplain, data.RefundRuleJson, data.RelNameTicketEntrance, data.RelNameTicketEntranceExplain, data.PermitChooseSeat, data.ChooseSeatExplain, data.ElectronicDeliveryTicket, data.ElectronicDeliveryTicketExplain, data.ElectronicInvoice, data.ElectronicInvoiceExplain, data.HighHeat, data.ProgramStatus, data.IssueTime, data.EditTime, data.Status, data.Id)
+	}, dProgramIdKey)
 	return err
 }
 

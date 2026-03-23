@@ -17,6 +17,9 @@ import (
 	"damai-go/services/program-rpc/internal/config"
 	"damai-go/services/program-rpc/internal/seatcache"
 	"damai-go/services/program-rpc/internal/svc"
+
+	"github.com/zeromicro/go-zero/core/stores/cache"
+	gzredis "github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 var testProgramMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true")
@@ -105,6 +108,21 @@ func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 		StoreRedis: xredis.Config{
 			Host: "127.0.0.1:6379",
 			Type: "node",
+		},
+		Cache: cache.CacheConf{
+			{
+				RedisConf: gzredis.RedisConf{
+					Host: "127.0.0.1:6379",
+					Type: "node",
+				},
+				Weight: 100,
+			},
+		},
+		LocalCache: config.LocalCacheConfig{
+			DetailTTL:           20 * time.Second,
+			DetailNotFoundTTL:   5 * time.Second,
+			DetailCacheLimit:    5000,
+			CategorySnapshotTTL: 5 * time.Minute,
 		},
 	})
 

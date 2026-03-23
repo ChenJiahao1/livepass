@@ -14,3 +14,12 @@ MySQL:
 StoreRedis:
   Host: 127.0.0.1:6379
   Type: node
+Cache:
+  - Host: 127.0.0.1:6379
+    Type: node
+    Weight: 100
+LocalCache:
+  DetailTTL: 20s
+  DetailNotFoundTTL: 5s
+  DetailCacheLimit: 5000
+  CategorySnapshotTTL: 5m

@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
+	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
 )
@@ -21,6 +23,8 @@ var (
 	dProgramGroupRows                = strings.Join(dProgramGroupFieldNames, ",")
 	dProgramGroupRowsExpectAutoSet   = strings.Join(stringx.Remove(dProgramGroupFieldNames, "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), ",")
 	dProgramGroupRowsWithPlaceHolder = strings.Join(stringx.Remove(dProgramGroupFieldNames, "`id`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), "=?,") + "=?"
+
+	cacheDProgramGroupIdPrefix = "cache:dProgramGroup:id:"
 )
 
 type (
@@ -32,8 +36,12 @@ type (
 	}
 
 	defaultDProgramGroupModel struct {
-		conn  sqlx.SqlConn
-		table string
+		sqlc.CachedConn
+		conn      sqlx.SqlConn
+		table     string
+		cached    bool
+		cacheConf cache.CacheConf
+		cacheOpts []cache.Option
 	}
 
 	DProgramGroup struct {
@@ -53,19 +61,61 @@ func newDProgramGroupModel(conn sqlx.SqlConn) *defaultDProgramGroupModel {
 	}
 }
 
+func newCachedDProgramGroupModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) *defaultDProgramGroupModel {
+	return &defaultDProgramGroupModel{
+		CachedConn: sqlc.NewConn(conn, c, opts...),
+		conn:       conn,
+		table:      "`d_program_group`",
+		cached:     true,
+		cacheConf:  c,
+		cacheOpts:  append([]cache.Option(nil), opts...),
+	}
+}
+
+func (m *defaultDProgramGroupModel) withSession(session sqlx.Session) *defaultDProgramGroupModel {
+	conn := sqlx.NewSqlConnFromSession(session)
+	if m.cached {
+		return newCachedDProgramGroupModel(conn, m.cacheConf, m.cacheOpts...)
+	}
+
+	return newDProgramGroupModel(conn)
+}
+
 func (m *defaultDProgramGroupModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	if !m.cached {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		_, err := m.conn.ExecCtx(ctx, query, id)
+		return err
+	}
+
+	dProgramGroupIdKey := fmt.Sprintf("%s%v", cacheDProgramGroupIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, dProgramGroupIdKey)
 	return err
 }
 
 func (m *defaultDProgramGroupModel) FindOne(ctx context.Context, id int64) (*DProgramGroup, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramGroupRows, m.table)
 	var resp DProgramGroup
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	var err error
+
+	if m.cached {
+		dProgramGroupIdKey := fmt.Sprintf("%s%v", cacheDProgramGroupIdPrefix, id)
+		err = m.QueryRowCtx(ctx, &resp, dProgramGroupIdKey, func(ctx context.Context, conn sqlx.SqlConn, v any) error {
+			query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramGroupRows, m.table)
+			return conn.QueryRowCtx(ctx, v, query, id)
+		})
+	} else {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramGroupRows, m.table)
+		err = m.conn.QueryRowCtx(ctx, &resp, query, id)
+	}
+
 	switch err {
 	case nil:
 		return &resp, nil
+	case sqlc.ErrNotFound:
+		return nil, ErrNotFound
 	case sqlx.ErrNotFound:
 		return nil, ErrNotFound
 	default:
@@ -74,14 +124,30 @@ func (m *defaultDProgramGroupModel) FindOne(ctx context.Context, id int64) (*DPr
 }
 
 func (m *defaultDProgramGroupModel) Insert(ctx context.Context, data *DProgramGroup) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?)", m.table, dProgramGroupRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramJson, data.RecentShowTime, data.EditTime, data.Status)
-	return ret, err
+	if !m.cached {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?)", m.table, dProgramGroupRowsExpectAutoSet)
+		return m.conn.ExecCtx(ctx, query, data.Id, data.ProgramJson, data.RecentShowTime, data.EditTime, data.Status)
+	}
+
+	dProgramGroupIdKey := fmt.Sprintf("%s%v", cacheDProgramGroupIdPrefix, data.Id)
+	return m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?)", m.table, dProgramGroupRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.Id, data.ProgramJson, data.RecentShowTime, data.EditTime, data.Status)
+	}, dProgramGroupIdKey)
 }
 
 func (m *defaultDProgramGroupModel) Update(ctx context.Context, data *DProgramGroup) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramGroupRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.ProgramJson, data.RecentShowTime, data.EditTime, data.Status, data.Id)
+	if !m.cached {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramGroupRowsWithPlaceHolder)
+		_, err := m.conn.ExecCtx(ctx, query, data.ProgramJson, data.RecentShowTime, data.EditTime, data.Status, data.Id)
+		return err
+	}
+
+	dProgramGroupIdKey := fmt.Sprintf("%s%v", cacheDProgramGroupIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramGroupRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.ProgramJson, data.RecentShowTime, data.EditTime, data.Status, data.Id)
+	}, dProgramGroupIdKey)
 	return err
 }
 

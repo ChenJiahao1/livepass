@@ -1,12 +1,16 @@
 package svc
 
 import (
+	"time"
+
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/config"
 	"damai-go/services/program-rpc/internal/model"
+	"damai-go/services/program-rpc/internal/programcache"
 	"damai-go/services/program-rpc/internal/seatcache"
 
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -26,8 +30,15 @@ type ServiceContext struct {
 	DSeatModel            model.DSeatModel
 	DSeatFreezeModel      model.DSeatFreezeModel
 	DTicketCategoryModel  model.DTicketCategoryModel
+	CategorySnapshotCache *programcache.CategorySnapshotCache
+	ProgramDetailCache    *programcache.ProgramDetailCache
 	SeatFreezeLocker      SeatFreezeLocker
 }
+
+const (
+	programModelCacheTTL         = 5 * time.Minute
+	programModelCacheNotFoundTTL = 30 * time.Second
+)
 
 func NewServiceContext(c config.Config) *ServiceContext {
 	c.MySQL = c.MySQL.Normalize()
@@ -43,17 +54,56 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		rds = xredis.MustNew(c.StoreRedis)
 	}
 
+	dProgramModel := model.NewDProgramModel(conn)
+	dProgramGroupModel := model.NewDProgramGroupModel(conn)
+	dProgramShowTimeModel := model.NewDProgramShowTimeModel(conn)
+	if rds != nil && len(c.Cache) > 0 {
+		cacheOpts := []cache.Option{
+			cache.WithExpiry(programModelCacheTTL),
+			cache.WithNotFoundExpiry(programModelCacheNotFoundTTL),
+		}
+		dProgramModel = model.NewCachedDProgramModel(conn, c.Cache, cacheOpts...)
+		dProgramGroupModel = model.NewCachedDProgramGroupModel(conn, c.Cache, cacheOpts...)
+		dProgramShowTimeModel = model.NewCachedDProgramShowTimeModel(conn, c.Cache, cacheOpts...)
+	}
+	programCategoryModel := model.NewDProgramCategoryModel(conn)
+	ticketCategoryModel := model.NewDTicketCategoryModel(conn)
+
+	localCacheConf := c.LocalCache.Normalize()
+	categorySnapshotCache, err := programcache.NewCategorySnapshotCache(programCategoryModel, localCacheConf.CategorySnapshotTTL)
+	if err != nil {
+		panic(err)
+	}
+	detailLoader := programcache.NewDetailLoader(
+		dProgramModel,
+		dProgramShowTimeModel,
+		dProgramGroupModel,
+		categorySnapshotCache,
+		ticketCategoryModel,
+	)
+	programDetailCache, err := programcache.NewProgramDetailCache(
+		detailLoader,
+		localCacheConf.DetailTTL,
+		localCacheConf.DetailNotFoundTTL,
+		localCacheConf.DetailCacheLimit,
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	return &ServiceContext{
 		Config:                c,
 		SqlConn:               conn,
 		Redis:                 rds,
 		SeatStockStore:        seatcache.NewSeatStockStore(rds, model.NewDSeatModel(conn), seatcache.Config{}),
-		DProgramModel:         model.NewDProgramModel(conn),
-		DProgramCategoryModel: model.NewDProgramCategoryModel(conn),
-		DProgramGroupModel:    model.NewDProgramGroupModel(conn),
-		DProgramShowTimeModel: model.NewDProgramShowTimeModel(conn),
+		DProgramModel:         dProgramModel,
+		DProgramCategoryModel: programCategoryModel,
+		DProgramGroupModel:    dProgramGroupModel,
+		DProgramShowTimeModel: dProgramShowTimeModel,
 		DSeatModel:            model.NewDSeatModel(conn),
 		DSeatFreezeModel:      model.NewDSeatFreezeModel(conn),
-		DTicketCategoryModel:  model.NewDTicketCategoryModel(conn),
+		DTicketCategoryModel:  ticketCategoryModel,
+		CategorySnapshotCache: categorySnapshotCache,
+		ProgramDetailCache:    programDetailCache,
 	}
 }

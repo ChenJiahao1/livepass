@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
+	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
 )
@@ -21,6 +23,8 @@ var (
 	dProgramShowTimeRows                = strings.Join(dProgramShowTimeFieldNames, ",")
 	dProgramShowTimeRowsExpectAutoSet   = strings.Join(stringx.Remove(dProgramShowTimeFieldNames, "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), ",")
 	dProgramShowTimeRowsWithPlaceHolder = strings.Join(stringx.Remove(dProgramShowTimeFieldNames, "`id`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), "=?,") + "=?"
+
+	cacheDProgramShowTimeIdPrefix = "cache:dProgramShowTime:id:"
 )
 
 type (
@@ -32,8 +36,12 @@ type (
 	}
 
 	defaultDProgramShowTimeModel struct {
-		conn  sqlx.SqlConn
-		table string
+		sqlc.CachedConn
+		conn      sqlx.SqlConn
+		table     string
+		cached    bool
+		cacheConf cache.CacheConf
+		cacheOpts []cache.Option
 	}
 
 	DProgramShowTime struct {
@@ -55,19 +63,61 @@ func newDProgramShowTimeModel(conn sqlx.SqlConn) *defaultDProgramShowTimeModel {
 	}
 }
 
+func newCachedDProgramShowTimeModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) *defaultDProgramShowTimeModel {
+	return &defaultDProgramShowTimeModel{
+		CachedConn: sqlc.NewConn(conn, c, opts...),
+		conn:       conn,
+		table:      "`d_program_show_time`",
+		cached:     true,
+		cacheConf:  c,
+		cacheOpts:  append([]cache.Option(nil), opts...),
+	}
+}
+
+func (m *defaultDProgramShowTimeModel) withSession(session sqlx.Session) *defaultDProgramShowTimeModel {
+	conn := sqlx.NewSqlConnFromSession(session)
+	if m.cached {
+		return newCachedDProgramShowTimeModel(conn, m.cacheConf, m.cacheOpts...)
+	}
+
+	return newDProgramShowTimeModel(conn)
+}
+
 func (m *defaultDProgramShowTimeModel) Delete(ctx context.Context, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+	if !m.cached {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		_, err := m.conn.ExecCtx(ctx, query, id)
+		return err
+	}
+
+	dProgramShowTimeIdKey := fmt.Sprintf("%s%v", cacheDProgramShowTimeIdPrefix, id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		return conn.ExecCtx(ctx, query, id)
+	}, dProgramShowTimeIdKey)
 	return err
 }
 
 func (m *defaultDProgramShowTimeModel) FindOne(ctx context.Context, id int64) (*DProgramShowTime, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramShowTimeRows, m.table)
 	var resp DProgramShowTime
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	var err error
+
+	if m.cached {
+		dProgramShowTimeIdKey := fmt.Sprintf("%s%v", cacheDProgramShowTimeIdPrefix, id)
+		err = m.QueryRowCtx(ctx, &resp, dProgramShowTimeIdKey, func(ctx context.Context, conn sqlx.SqlConn, v any) error {
+			query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramShowTimeRows, m.table)
+			return conn.QueryRowCtx(ctx, v, query, id)
+		})
+	} else {
+		query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", dProgramShowTimeRows, m.table)
+		err = m.conn.QueryRowCtx(ctx, &resp, query, id)
+	}
+
 	switch err {
 	case nil:
 		return &resp, nil
+	case sqlc.ErrNotFound:
+		return nil, ErrNotFound
 	case sqlx.ErrNotFound:
 		return nil, ErrNotFound
 	default:
@@ -76,14 +126,30 @@ func (m *defaultDProgramShowTimeModel) FindOne(ctx context.Context, id int64) (*
 }
 
 func (m *defaultDProgramShowTimeModel) Insert(ctx context.Context, data *DProgramShowTime) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status)
-	return ret, err
+	if !m.cached {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
+		return m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status)
+	}
+
+	dProgramShowTimeIdKey := fmt.Sprintf("%s%v", cacheDProgramShowTimeIdPrefix, data.Id)
+	return m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status)
+	}, dProgramShowTimeIdKey)
 }
 
 func (m *defaultDProgramShowTimeModel) Update(ctx context.Context, data *DProgramShowTime) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramShowTimeRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status, data.Id)
+	if !m.cached {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramShowTimeRowsWithPlaceHolder)
+		_, err := m.conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status, data.Id)
+		return err
+	}
+
+	dProgramShowTimeIdKey := fmt.Sprintf("%s%v", cacheDProgramShowTimeIdPrefix, data.Id)
+	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramShowTimeRowsWithPlaceHolder)
+		return conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status, data.Id)
+	}, dProgramShowTimeIdKey)
 	return err
 }
 

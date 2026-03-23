@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/zeromicro/go-zero/core/stores/cache"
+	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -32,8 +34,17 @@ func NewDProgramShowTimeModel(conn sqlx.SqlConn) DProgramShowTimeModel {
 	}
 }
 
+// NewCachedDProgramShowTimeModel returns a cached model for the database table.
+func NewCachedDProgramShowTimeModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) DProgramShowTimeModel {
+	return &customDProgramShowTimeModel{
+		defaultDProgramShowTimeModel: newCachedDProgramShowTimeModel(conn, c, opts...),
+	}
+}
+
 func (m *customDProgramShowTimeModel) withSession(session sqlx.Session) DProgramShowTimeModel {
-	return NewDProgramShowTimeModel(sqlx.NewSqlConnFromSession(session))
+	return &customDProgramShowTimeModel{
+		defaultDProgramShowTimeModel: m.defaultDProgramShowTimeModel.withSession(session),
+	}
 }
 
 func (m *customDProgramShowTimeModel) FindByProgramIds(ctx context.Context, programIds []int64) ([]*DProgramShowTime, error) {
@@ -61,16 +72,33 @@ func (m *customDProgramShowTimeModel) FindByProgramIds(ctx context.Context, prog
 }
 
 func (m *customDProgramShowTimeModel) FindFirstByProgramId(ctx context.Context, programId int64) (*DProgramShowTime, error) {
-	query := fmt.Sprintf(
-		"select %s from %s where `status` = 1 and `program_id` = ? order by `show_time` asc limit 1",
-		dProgramShowTimeRows,
-		m.table,
-	)
 	var resp DProgramShowTime
-	err := m.conn.QueryRowCtx(ctx, &resp, query, programId)
+	var err error
+
+	if m.cached {
+		cacheKey := fmt.Sprintf("cache:dProgramShowTime:first:programId:%d", programId)
+		err = m.QueryRowCtx(ctx, &resp, cacheKey, func(ctx context.Context, conn sqlx.SqlConn, v any) error {
+			query := fmt.Sprintf(
+				"select %s from %s where `status` = 1 and `program_id` = ? order by `show_time` asc limit 1",
+				dProgramShowTimeRows,
+				m.table,
+			)
+			return conn.QueryRowCtx(ctx, v, query, programId)
+		})
+	} else {
+		query := fmt.Sprintf(
+			"select %s from %s where `status` = 1 and `program_id` = ? order by `show_time` asc limit 1",
+			dProgramShowTimeRows,
+			m.table,
+		)
+		err = m.conn.QueryRowCtx(ctx, &resp, query, programId)
+	}
+
 	switch err {
 	case nil:
 		return &resp, nil
+	case sqlc.ErrNotFound:
+		return nil, ErrNotFound
 	case sql.ErrNoRows, sqlx.ErrNotFound:
 		return nil, ErrNotFound
 	default:
