@@ -1,6 +1,8 @@
 package integration_test
 
 import (
+	"context"
+	"database/sql"
 	"testing"
 	"time"
 	_ "unsafe"
@@ -21,6 +23,8 @@ import (
 func mapOrderError(err error) error
 
 func TestOrderServiceContextRedis(t *testing.T) {
+	requireOrderMySQL(t)
+
 	baseConfig := config.Config{
 		RpcServerConf: zrpc.RpcServerConf{
 			Etcd: discov.EtcdConf{
@@ -28,7 +32,11 @@ func TestOrderServiceContextRedis(t *testing.T) {
 			},
 		},
 		MySQL: xmysql.Config{
-			DataSource: testOrderMySQLDataSource,
+			DataSource:      testOrderMySQLDataSource,
+			MaxOpenConns:    23,
+			MaxIdleConns:    7,
+			ConnMaxLifetime: 2 * time.Minute,
+			ConnMaxIdleTime: 30 * time.Second,
 		},
 		Order: config.OrderConfig{
 			CloseAfter: 15 * time.Minute,
@@ -45,6 +53,13 @@ func TestOrderServiceContextRedis(t *testing.T) {
 		if svcCtx.Redis != nil {
 			t.Fatalf("expected redis client to be nil when host is empty")
 		}
+		rawDB, err := svcCtx.SqlConn.RawDB()
+		if err != nil {
+			t.Fatalf("raw db: %v", err)
+		}
+		if rawDB.Stats().MaxOpenConnections != 23 {
+			t.Fatalf("expected max open connections 23, got %d", rawDB.Stats().MaxOpenConnections)
+		}
 	})
 
 	t.Run("redis enabled when host configured", func(t *testing.T) {
@@ -58,6 +73,23 @@ func TestOrderServiceContextRedis(t *testing.T) {
 			t.Fatalf("expected redis client to be wired when host is configured")
 		}
 	})
+}
+
+func requireOrderMySQL(t *testing.T) {
+	t.Helper()
+
+	db, err := sql.Open("mysql", testOrderMySQLDataSource)
+	if err != nil {
+		t.Skipf("skip integration test, sql.Open mysql failed: %v", err)
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		t.Skipf("skip integration test, mysql unavailable: %v", err)
+	}
 }
 
 func TestOrderLedgerNotReadyMappedToFailedPrecondition(t *testing.T) {

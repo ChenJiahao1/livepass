@@ -16,8 +16,14 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
+	c.MySQL = c.MySQL.Normalize()
 	c.MySQL.DataSource = xmysql.WithLocalTime(c.MySQL.DataSource)
 	conn := sqlx.NewMysql(c.MySQL.DataSource)
+	rawDB, err := conn.RawDB()
+	if err != nil {
+		panic(err)
+	}
+	xmysql.ApplyPool(rawDB, c.MySQL)
 
 	return &ServiceContext{
 		Config:           c,

@@ -1,5 +1,6 @@
 Name: order.rpc
 ListenOn: 0.0.0.0:8082
+Timeout: 5500
 Prometheus:
   Host: 0.0.0.0
   Port: 9103
@@ -9,20 +10,27 @@ Etcd:
   Key: order.rpc
 MySQL:
   DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  MaxOpenConns: 128
+  MaxIdleConns: 32
+  ConnMaxLifetime: 5m
+  ConnMaxIdleTime: 2m
 StoreRedis:
   Host: 127.0.0.1:6379
   Type: node
 ProgramRpc:
+  Timeout: 4000
   Etcd:
     Hosts:
       - 127.0.0.1:2379
     Key: program.rpc
 PayRpc:
+  Timeout: 4000
   Etcd:
     Hosts:
       - 127.0.0.1:2379
     Key: pay.rpc
 UserRpc:
+  Timeout: 4000
   Etcd:
     Hosts:
       - 127.0.0.1:2379

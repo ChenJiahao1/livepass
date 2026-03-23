@@ -1,10 +1,12 @@
 Name: order-api
 Host: 0.0.0.0
 Port: 8890
+Timeout: 5000
 Prometheus:
   Host: 0.0.0.0
   Port: 9102
 OrderRpc:
+  Timeout: 5000
   Etcd:
     Hosts:
       - 127.0.0.1:2379

@@ -1,11 +1,16 @@
 Name: program.rpc
 ListenOn: 0.0.0.0:8083
+Timeout: 4500
 Etcd:
   Hosts:
     - 127.0.0.1:2379
   Key: program.rpc
 MySQL:
   DataSource: root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true
+  MaxOpenConns: 64
+  MaxIdleConns: 16
+  ConnMaxLifetime: 3m
+  ConnMaxIdleTime: 1m
 StoreRedis:
   Host: 127.0.0.1:6379
   Type: node

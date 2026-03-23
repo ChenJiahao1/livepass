@@ -76,6 +76,14 @@ func TestLoadGatewayRuntimeConfigIncludesPrometheus(t *testing.T) {
 	if c.Prometheus.Host == "" || c.Prometheus.Port == 0 {
 		t.Fatalf("expected prometheus config to load, got host=%q port=%d", c.Prometheus.Host, c.Prometheus.Port)
 	}
+
+	orderAPIUpstream := findGatewayUpstream(t, c.Upstreams, "order-api")
+	if orderAPIUpstream.Http == nil {
+		t.Fatalf("expected order-api http upstream to be configured")
+	}
+	if orderAPIUpstream.Http.Timeout != 6000 {
+		t.Fatalf("expected order-api timeout 6000, got %d", orderAPIUpstream.Http.Timeout)
+	}
 }
 
 func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {

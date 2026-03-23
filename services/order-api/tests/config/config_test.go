@@ -21,6 +21,12 @@ func TestLoadOrderAPIRuntimeConfigIncludesPrometheus(t *testing.T) {
 	if c.Prometheus.Host == "" || c.Prometheus.Port == 0 {
 		t.Fatalf("expected prometheus config to load, got host=%q port=%d", c.Prometheus.Host, c.Prometheus.Port)
 	}
+	if c.Timeout != 5000 {
+		t.Fatalf("expected order-api runtime timeout 5000, got %d", c.Timeout)
+	}
+	if c.OrderRpc.Timeout != 5000 {
+		t.Fatalf("expected order rpc client timeout 5000, got %d", c.OrderRpc.Timeout)
+	}
 }
 
 func TestLoadOrderAPIPerfConfigIncludesPrometheus(t *testing.T) {
@@ -34,5 +40,11 @@ func TestLoadOrderAPIPerfConfigIncludesPrometheus(t *testing.T) {
 
 	if c.Prometheus.Host == "" || c.Prometheus.Port == 0 {
 		t.Fatalf("expected prometheus config to load, got host=%q port=%d", c.Prometheus.Host, c.Prometheus.Port)
+	}
+	if c.Timeout != 9000 {
+		t.Fatalf("expected order-api perf timeout 9000, got %d", c.Timeout)
+	}
+	if c.OrderRpc.Timeout != 5000 {
+		t.Fatalf("expected order rpc client timeout 5000, got %d", c.OrderRpc.Timeout)
 	}
 }
