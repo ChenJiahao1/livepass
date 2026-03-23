@@ -70,7 +70,6 @@ func (l *UpdateProgramLogic) UpdateProgram(in *pb.UpdateProgramReq) (*pb.BoolRes
 
 	if err := l.svcCtx.ProgramCacheInvalidator.InvalidateProgram(l.ctx, values.id, groupIDs...); err != nil {
 		l.Errorf("invalidate program caches after update failed, programID=%d groupIDs=%v err=%v", values.id, groupIDs, err)
-		return nil, err
 	}
 
 	return &pb.BoolResp{Success: true}, nil

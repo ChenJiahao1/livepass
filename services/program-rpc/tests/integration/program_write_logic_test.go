@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	logicpkg "damai-go/services/program-rpc/internal/logic"
+	"damai-go/services/program-rpc/internal/programcache"
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 )
@@ -72,6 +73,61 @@ func TestCreateProgramPersistsProgramRecord(t *testing.T) {
 	}
 	if !program.IssueTime.Valid || program.IssueTime.Time.Format("2006-01-02 15:04:05") != "2026-10-01 10:00:00" {
 		t.Fatalf("expected issue time to be persisted, got %+v", program.IssueTime)
+	}
+}
+
+func TestCreateProgramReturnsSuccessWhenCacheInvalidationFails(t *testing.T) {
+	const programGroupID int64 = 20001
+
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+	replaceProgramCacheInvalidatorWithFailingRedis(t, svcCtx)
+
+	ctx := context.Background()
+	l := logicpkg.NewCreateProgramLogic(ctx, svcCtx)
+	resp, err := l.CreateProgram(&pb.CreateProgramReq{
+		ProgramGroupId:                  programGroupID,
+		AreaId:                          2,
+		ProgramCategoryId:               11,
+		ParentProgramCategoryId:         1,
+		Title:                           "缓存失效失败后仍成功创建",
+		Actor:                           "测试艺人",
+		Place:                           "上海测试剧场",
+		ItemPicture:                     "https://example.com/program-create-cache-fail.jpg",
+		Detail:                          "<p>create detail</p>",
+		PerOrderLimitPurchaseCount:      4,
+		PerAccountLimitPurchaseCount:    6,
+		PermitRefund:                    1,
+		RefundTicketRule:                "演出开始前 48 小时可退",
+		RefundExplain:                   "请按规则退票",
+		PermitChooseSeat:                0,
+		ElectronicDeliveryTicket:        1,
+		ElectronicDeliveryTicketExplain: "电子票入场",
+		ElectronicInvoice:               1,
+		ElectronicInvoiceExplain:        "邮件发送电子发票",
+		HighHeat:                        1,
+		ProgramStatus:                   1,
+		IssueTime:                       "2026-10-01 10:00:00",
+	})
+	if err != nil {
+		t.Fatalf("CreateProgram returned error: %v", err)
+	}
+	if resp.GetId() <= 0 {
+		t.Fatalf("expected CreateProgram to return generated id, got %+v", resp)
+	}
+
+	program, err := svcCtx.DProgramModel.FindOne(ctx, resp.GetId())
+	if err != nil {
+		t.Fatalf("DProgramModel.FindOne returned error: %v", err)
+	}
+	if program.ProgramGroupId != programGroupID {
+		t.Fatalf("expected program_group_id=%d, got %+v", programGroupID, program)
+	}
+	if program.Title != "缓存失效失败后仍成功创建" {
+		t.Fatalf("expected title to be persisted, got %+v", program)
 	}
 }
 
@@ -195,6 +251,86 @@ func TestUpdateProgramRefreshesDetailCacheAndInvalidatesGroupKeys(t *testing.T) 
 	}
 }
 
+func TestUpdateProgramReturnsSuccessWhenCacheInvalidationFails(t *testing.T) {
+	const (
+		programID      int64 = 10001
+		programGroupID int64 = 20001
+	)
+
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+	replaceProgramCacheInvalidatorWithFailingRedis(t, svcCtx)
+
+	ctx := context.Background()
+	l := logicpkg.NewUpdateProgramLogic(ctx, svcCtx)
+	resp, err := l.UpdateProgram(&pb.UpdateProgramReq{
+		Id:                              programID,
+		ProgramGroupId:                  programGroupID,
+		Prime:                           1,
+		AreaId:                          2,
+		ProgramCategoryId:               11,
+		ParentProgramCategoryId:         1,
+		Title:                           "缓存失效失败后仍成功更新",
+		Actor:                           "更新艺人",
+		Place:                           "上海大剧院",
+		ItemPicture:                     "https://example.com/program-updated.jpg",
+		PreSell:                         0,
+		PreSellInstruction:              "",
+		ImportantNotice:                 "更新后的注意事项",
+		Detail:                          "<p>updated detail</p>",
+		PerOrderLimitPurchaseCount:      8,
+		PerAccountLimitPurchaseCount:    10,
+		RefundTicketRule:                "演出开始前 72 小时可退",
+		DeliveryInstruction:             "现场取票",
+		EntryRule:                       "凭证件入场",
+		ChildPurchase:                   "儿童需持票",
+		InvoiceSpecification:            "演出后统一开票",
+		RealTicketPurchaseRule:          "一个订单一个证件",
+		AbnormalOrderDescription:        "异常订单将人工复核",
+		KindReminder:                    "请提前到场",
+		PerformanceDuration:             "约150分钟",
+		EntryTime:                       "提前45分钟入场",
+		MinPerformanceCount:             18,
+		MainActor:                       "更新主演",
+		MinPerformanceDuration:          "约150分钟",
+		ProhibitedItem:                  "禁止携带专业摄像设备",
+		DepositSpecification:            "可寄存大件行李",
+		TotalCount:                      1200,
+		PermitRefund:                    2,
+		RefundExplain:                   "满足条件可全额退",
+		RefundRuleJson:                  `{"version":2}`,
+		RelNameTicketEntrance:           1,
+		RelNameTicketEntranceExplain:    "需实名入场",
+		PermitChooseSeat:                0,
+		ChooseSeatExplain:               "系统自动连座",
+		ElectronicDeliveryTicket:        1,
+		ElectronicDeliveryTicketExplain: "电子票扫码入场",
+		ElectronicInvoice:               0,
+		ElectronicInvoiceExplain:        "",
+		HighHeat:                        0,
+		ProgramStatus:                   1,
+		IssueTime:                       "2026-09-01 09:00:00",
+		Status:                          1,
+	})
+	if err != nil {
+		t.Fatalf("UpdateProgram returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected UpdateProgram to return success, got %+v", resp)
+	}
+
+	program, err := svcCtx.DProgramModel.FindOne(ctx, programID)
+	if err != nil {
+		t.Fatalf("DProgramModel.FindOne returned error: %v", err)
+	}
+	if program.Title != "缓存失效失败后仍成功更新" {
+		t.Fatalf("expected title to be updated, got %+v", program)
+	}
+}
+
 func seedProgramGroupFixture(t *testing.T, svcCtx *svc.ServiceContext, groupID int64, programJSON string, recentShowTime string) {
 	t.Helper()
 
@@ -212,4 +348,16 @@ func seedProgramGroupFixture(t *testing.T, svcCtx *svc.ServiceContext, groupID i
 		"2026-01-01 00:00:00",
 		1,
 	)
+}
+
+func replaceProgramCacheInvalidatorWithFailingRedis(t *testing.T, svcCtx *svc.ServiceContext) {
+	t.Helper()
+
+	redis := svcCtx.Redis
+	if redis == nil {
+		t.Fatal("expected redis client to be configured")
+	}
+	redis.Type = "invalid"
+
+	svcCtx.ProgramCacheInvalidator = programcache.NewProgramCacheInvalidator(redis, svcCtx.ProgramDetailCache)
 }

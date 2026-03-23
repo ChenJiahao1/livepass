@@ -63,7 +63,6 @@ func (l *CreateProgramLogic) CreateProgram(in *pb.CreateProgramReq) (*pb.CreateP
 
 	if err := l.svcCtx.ProgramCacheInvalidator.InvalidateProgram(l.ctx, programID, values.programGroupId); err != nil {
 		l.Errorf("invalidate program caches after create failed, programID=%d groupID=%d err=%v", programID, values.programGroupId, err)
-		return nil, err
 	}
 
 	return &pb.CreateProgramResp{Id: programID}, nil
