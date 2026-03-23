@@ -19,20 +19,21 @@ type SeatFreezeLocker interface {
 }
 
 type ServiceContext struct {
-	Config                config.Config
-	SqlConn               sqlx.SqlConn
-	Redis                 *xredis.Client
-	SeatStockStore        *seatcache.SeatStockStore
-	DProgramModel         model.DProgramModel
-	DProgramCategoryModel model.DProgramCategoryModel
-	DProgramGroupModel    model.DProgramGroupModel
-	DProgramShowTimeModel model.DProgramShowTimeModel
-	DSeatModel            model.DSeatModel
-	DSeatFreezeModel      model.DSeatFreezeModel
-	DTicketCategoryModel  model.DTicketCategoryModel
-	CategorySnapshotCache *programcache.CategorySnapshotCache
-	ProgramDetailCache    *programcache.ProgramDetailCache
-	SeatFreezeLocker      SeatFreezeLocker
+	Config                  config.Config
+	SqlConn                 sqlx.SqlConn
+	Redis                   *xredis.Client
+	SeatStockStore          *seatcache.SeatStockStore
+	DProgramModel           model.DProgramModel
+	DProgramCategoryModel   model.DProgramCategoryModel
+	DProgramGroupModel      model.DProgramGroupModel
+	DProgramShowTimeModel   model.DProgramShowTimeModel
+	DSeatModel              model.DSeatModel
+	DSeatFreezeModel        model.DSeatFreezeModel
+	DTicketCategoryModel    model.DTicketCategoryModel
+	CategorySnapshotCache   *programcache.CategorySnapshotCache
+	ProgramDetailCache      *programcache.ProgramDetailCache
+	ProgramCacheInvalidator *programcache.ProgramCacheInvalidator
+	SeatFreezeLocker        SeatFreezeLocker
 }
 
 const (
@@ -90,20 +91,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		panic(err)
 	}
+	programCacheInvalidator := programcache.NewProgramCacheInvalidator(rds, programDetailCache)
 
 	return &ServiceContext{
-		Config:                c,
-		SqlConn:               conn,
-		Redis:                 rds,
-		SeatStockStore:        seatcache.NewSeatStockStore(rds, model.NewDSeatModel(conn), seatcache.Config{}),
-		DProgramModel:         dProgramModel,
-		DProgramCategoryModel: programCategoryModel,
-		DProgramGroupModel:    dProgramGroupModel,
-		DProgramShowTimeModel: dProgramShowTimeModel,
-		DSeatModel:            model.NewDSeatModel(conn),
-		DSeatFreezeModel:      model.NewDSeatFreezeModel(conn),
-		DTicketCategoryModel:  ticketCategoryModel,
-		CategorySnapshotCache: categorySnapshotCache,
-		ProgramDetailCache:    programDetailCache,
+		Config:                  c,
+		SqlConn:                 conn,
+		Redis:                   rds,
+		SeatStockStore:          seatcache.NewSeatStockStore(rds, model.NewDSeatModel(conn), seatcache.Config{}),
+		DProgramModel:           dProgramModel,
+		DProgramCategoryModel:   programCategoryModel,
+		DProgramGroupModel:      dProgramGroupModel,
+		DProgramShowTimeModel:   dProgramShowTimeModel,
+		DSeatModel:              model.NewDSeatModel(conn),
+		DSeatFreezeModel:        model.NewDSeatFreezeModel(conn),
+		DTicketCategoryModel:    ticketCategoryModel,
+		CategorySnapshotCache:   categorySnapshotCache,
+		ProgramDetailCache:      programDetailCache,
+		ProgramCacheInvalidator: programCacheInvalidator,
 	}
 }

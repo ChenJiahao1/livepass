@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	logicpkg "damai-go/services/program-rpc/internal/logic"
+	"damai-go/services/program-rpc/internal/model"
+	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 
 	"google.golang.org/grpc/codes"
@@ -56,6 +58,11 @@ func TestGetProgramDetailKeepsNotFoundSemanticsAcrossRepeatedAccess(t *testing.T
 
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
+	if err := svcCtx.ProgramCacheInvalidator.InvalidateProgram(context.Background(), programID, programGroupID); err != nil {
+		t.Fatalf("clear stale program caches error: %v", err)
+	}
+	assertProgramRelatedCacheKeysMissing(t, svcCtx, programID, programGroupID)
+	assertProgramMissingFromDB(t, svcCtx, programID)
 
 	l := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
 
@@ -81,5 +88,95 @@ func TestGetProgramDetailKeepsNotFoundSemanticsAcrossRepeatedAccess(t *testing.T
 
 	if _, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID}); status.Code(err) != codes.NotFound {
 		t.Fatalf("expected second GetProgramDetail to keep not found semantics, got %v", err)
+	}
+}
+
+func TestGetProgramDetailReturnsBackfilledProgramImmediatelyAfterWrite(t *testing.T) {
+	const (
+		programID      int64 = 91001
+		programGroupID int64 = 92001
+	)
+
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	if err := svcCtx.ProgramCacheInvalidator.InvalidateProgram(context.Background(), programID, programGroupID); err != nil {
+		t.Fatalf("clear stale program caches error: %v", err)
+	}
+	assertProgramRelatedCacheKeysMissing(t, svcCtx, programID, programGroupID)
+	assertProgramMissingFromDB(t, svcCtx, programID)
+
+	l := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
+
+	if _, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID}); status.Code(err) != codes.NotFound {
+		t.Fatalf("expected first GetProgramDetail to return not found, got %v", err)
+	}
+
+	seedProgramFixtures(t, svcCtx, programFixture{
+		ProgramID:               programID,
+		ProgramGroupID:          programGroupID,
+		ParentProgramCategoryID: 1,
+		ProgramCategoryID:       11,
+		AreaID:                  1,
+		Title:                   "新增后立即可见演出",
+		ShowTime:                "2026-12-12 19:30:00",
+		ShowDayTime:             "2026-12-12 00:00:00",
+		ShowWeekTime:            "周六",
+		GroupAreaName:           "上海",
+		TicketCategories: []ticketCategoryFixture{
+			{ID: 93001, Introduce: "普通票", Price: 288, TotalNumber: 60, RemainNumber: 60},
+		},
+	})
+	if err := svcCtx.ProgramCacheInvalidator.InvalidateProgram(context.Background(), programID, programGroupID); err != nil {
+		t.Fatalf("invalidate program caches error: %v", err)
+	}
+	assertProgramRelatedCacheKeysMissing(t, svcCtx, programID, programGroupID)
+
+	resp, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	if err != nil {
+		t.Fatalf("expected backfilled program to be visible immediately, got %v", err)
+	}
+	if resp.Id != programID || resp.Title != "新增后立即可见演出" {
+		t.Fatalf("unexpected backfilled program detail: %+v", resp)
+	}
+	if len(resp.TicketCategoryVoList) != 1 {
+		t.Fatalf("expected backfilled ticket categories to be visible immediately, got %+v", resp.TicketCategoryVoList)
+	}
+}
+
+func assertProgramRelatedCacheKeysMissing(t *testing.T, svcCtx *svc.ServiceContext, programID, programGroupID int64) {
+	t.Helper()
+
+	if svcCtx.Redis == nil {
+		return
+	}
+
+	for _, key := range []string{
+		model.ProgramCacheKey(programID),
+		model.ProgramFirstShowTimeCacheKey(programID),
+		model.ProgramGroupCacheKey(programGroupID),
+	} {
+		exists, err := svcCtx.Redis.ExistsCtx(context.Background(), key)
+		if err != nil {
+			t.Fatalf("check redis key %s error: %v", key, err)
+		}
+		if exists {
+			t.Fatalf("expected redis key %s to be deleted", key)
+		}
+	}
+}
+
+func assertProgramMissingFromDB(t *testing.T, svcCtx *svc.ServiceContext, programID int64) {
+	t.Helper()
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	var count int
+	row := db.QueryRow("SELECT COUNT(1) FROM d_program WHERE id = ?", programID)
+	if err := row.Scan(&count); err != nil {
+		t.Fatalf("query d_program count error: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected program %d to be absent from db before backfill, got count=%d", programID, count)
 	}
 }
