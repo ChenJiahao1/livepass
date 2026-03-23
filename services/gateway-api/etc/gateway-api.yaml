@@ -1,6 +1,7 @@
 Name: gateway-api
 Host: 0.0.0.0
 Port: 8081
+Timeout: 7000
 Telemetry:
   Name: gateway-api
   Batcher: otlphttp

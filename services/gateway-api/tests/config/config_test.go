@@ -81,6 +81,9 @@ func TestLoadGatewayRuntimeConfigIncludesPrometheus(t *testing.T) {
 	if orderAPIUpstream.Http == nil {
 		t.Fatalf("expected order-api http upstream to be configured")
 	}
+	if c.Timeout <= orderAPIUpstream.Http.Timeout {
+		t.Fatalf("expected gateway timeout > order-api timeout, got gateway=%d order-api=%d", c.Timeout, orderAPIUpstream.Http.Timeout)
+	}
 	if orderAPIUpstream.Http.Timeout != 6000 {
 		t.Fatalf("expected order-api timeout 6000, got %d", orderAPIUpstream.Http.Timeout)
 	}
@@ -102,6 +105,9 @@ func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
 	orderAPIUpstream := findGatewayUpstream(t, c.Upstreams, "order-api")
 	if orderAPIUpstream.Http == nil {
 		t.Fatalf("expected order-api http upstream to be configured")
+	}
+	if c.Timeout <= orderAPIUpstream.Http.Timeout {
+		t.Fatalf("expected gateway timeout > order-api timeout, got gateway=%d order-api=%d", c.Timeout, orderAPIUpstream.Http.Timeout)
 	}
 	if orderAPIUpstream.Http.Timeout != 10000 {
 		t.Fatalf("expected order-api timeout 10000, got %d", orderAPIUpstream.Http.Timeout)
