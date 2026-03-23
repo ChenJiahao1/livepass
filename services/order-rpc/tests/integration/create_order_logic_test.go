@@ -676,6 +676,42 @@ func TestCreateOrderRollsBackPurchaseLimitWhenProgramFreezeFails(t *testing.T) {
 	}
 }
 
+func TestCreateOrderDoesNotCreatePurchaseLimitLedgerWhenAccountLimitDisabledAndKafkaSendFails(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
+	producer.sendErr = errors.New("kafka send failed")
+
+	clearPurchaseLimitLedger(t, svcCtx, 3001, 10001)
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 0, 299)
+	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-no-account-limit-kafka-failed",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+
+	_, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701},
+	})
+	if err == nil {
+		t.Fatalf("expected kafka send error")
+	}
+
+	requirePurchaseLimitLedgerAbsentFor(t, svcCtx, 3001, 10001, 500*time.Millisecond)
+}
+
 func TestCreateOrderDoesNotFailBeforeAsyncPersistence(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)

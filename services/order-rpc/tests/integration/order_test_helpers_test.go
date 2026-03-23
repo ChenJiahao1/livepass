@@ -303,6 +303,24 @@ func waitPurchaseLimitLedgerReady(t *testing.T, svcCtx *svc.ServiceContext, user
 	return nil
 }
 
+func requirePurchaseLimitLedgerAbsentFor(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64, duration time.Duration) {
+	t.Helper()
+
+	deadline := time.Now().Add(duration)
+	for time.Now().Before(deadline) {
+		snapshot := requirePurchaseLimitSnapshot(t, svcCtx, userID, programID)
+		if snapshot.Ready || snapshot.Loading {
+			t.Fatalf(
+				"expected purchase limit ledger to stay absent, userID=%d programID=%d snapshot=%+v",
+				userID,
+				programID,
+				snapshot,
+			)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 func primePurchaseLimitLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
 	t.Helper()
 
@@ -727,6 +745,14 @@ func buildTestUserAndTicketUsers(userID int64, ticketUsers ...*userrpc.TicketUse
 		UserVo:           &userrpc.UserInfo{Id: userID, Mobile: "13800000000"},
 		TicketUserVoList: ticketUsers,
 	}
+}
+
+func (f *fakeOrderProgramRPC) CreateProgram(ctx context.Context, in *programrpc.CreateProgramReq, opts ...grpc.CallOption) (*programrpc.CreateProgramResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) UpdateProgram(ctx context.Context, in *programrpc.UpdateProgramReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	return nil, nil
 }
 
 func (f *fakeOrderProgramRPC) ListProgramCategories(ctx context.Context, in *programrpc.Empty, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {

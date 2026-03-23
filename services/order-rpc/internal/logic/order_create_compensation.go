@@ -50,6 +50,21 @@ func releaseOrderCreatePurchaseLimit(ctx context.Context, svcCtx *svc.ServiceCon
 		return
 	}
 
+	snapshot, err := svcCtx.PurchaseLimitStore.Snapshot(ctx, userID, programID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf(
+			"snapshot purchase limit compensation failed, userID=%d programID=%d orderNumber=%d err=%v",
+			userID,
+			programID,
+			orderNumber,
+			err,
+		)
+		return
+	}
+	if !snapshot.Ready || snapshot.Reservations[orderNumber] <= 0 {
+		return
+	}
+
 	if err := svcCtx.PurchaseLimitStore.Release(ctx, userID, programID, orderNumber); err != nil {
 		logx.WithContext(ctx).Errorf(
 			"release purchase limit compensation failed, userID=%d programID=%d orderNumber=%d err=%v",

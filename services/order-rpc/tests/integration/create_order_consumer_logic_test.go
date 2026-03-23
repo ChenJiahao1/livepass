@@ -124,6 +124,44 @@ func TestCreateOrderConsumerSkipsExpiredMessageAndReleasesFreeze(t *testing.T) {
 	}
 }
 
+func TestCreateOrderConsumerDoesNotCreatePurchaseLimitLedgerWhenAccountLimitDisabledAndMessageExpired(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	svcCtx.Config.Kafka.MaxMessageDelay = 5 * time.Second
+
+	clearPurchaseLimitLedger(t, svcCtx, 3001, 10001)
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 0, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+	event := mustBuildOrderCreateEventForTest(t, programRPC.getProgramPreorderResp, userRPC.getUserAndTicketUserListResp, &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-consumer-expired-no-account-limit",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}, time.Now().Add(-time.Minute))
+
+	body, err := event.Marshal()
+	if err != nil {
+		t.Fatalf("event.Marshal returned error: %v", err)
+	}
+
+	err = logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(body)
+	if err != nil {
+		t.Fatalf("Consume returned error: %v", err)
+	}
+	if programRPC.releaseSeatFreezeCalls != 1 {
+		t.Fatalf("expected expired message to release freeze once")
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
+		t.Fatalf("expected expired message to skip order persistence")
+	}
+
+	requirePurchaseLimitLedgerAbsentFor(t, svcCtx, 3001, 10001, 500*time.Millisecond)
+}
+
 func mustBuildOrderCreateEventForTest(
 	t *testing.T,
 	preorder *programrpc.ProgramPreorderInfo,
