@@ -23,6 +23,16 @@ func NewProgramRpcServer(svcCtx *svc.ServiceContext) *ProgramRpcServer {
 	}
 }
 
+func (s *ProgramRpcServer) CreateProgram(ctx context.Context, in *pb.CreateProgramReq) (*pb.CreateProgramResp, error) {
+	l := logic.NewCreateProgramLogic(ctx, s.svcCtx)
+	return l.CreateProgram(in)
+}
+
+func (s *ProgramRpcServer) UpdateProgram(ctx context.Context, in *pb.UpdateProgramReq) (*pb.BoolResp, error) {
+	l := logic.NewUpdateProgramLogic(ctx, s.svcCtx)
+	return l.UpdateProgram(in)
+}
+
 func (s *ProgramRpcServer) ListProgramCategories(ctx context.Context, in *pb.Empty) (*pb.ProgramCategoryListResp, error) {
 	l := logic.NewListProgramCategoriesLogic(ctx, s.svcCtx)
 	return l.ListProgramCategories(in)

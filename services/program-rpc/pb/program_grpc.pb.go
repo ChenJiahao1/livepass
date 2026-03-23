@@ -19,6 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	ProgramRpc_CreateProgram_FullMethodName                 = "/program.ProgramRpc/CreateProgram"
+	ProgramRpc_UpdateProgram_FullMethodName                 = "/program.ProgramRpc/UpdateProgram"
 	ProgramRpc_ListProgramCategories_FullMethodName         = "/program.ProgramRpc/ListProgramCategories"
 	ProgramRpc_ListHomePrograms_FullMethodName              = "/program.ProgramRpc/ListHomePrograms"
 	ProgramRpc_PagePrograms_FullMethodName                  = "/program.ProgramRpc/PagePrograms"
@@ -36,6 +38,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ProgramRpcClient interface {
+	CreateProgram(ctx context.Context, in *CreateProgramReq, opts ...grpc.CallOption) (*CreateProgramResp, error)
+	UpdateProgram(ctx context.Context, in *UpdateProgramReq, opts ...grpc.CallOption) (*BoolResp, error)
 	ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
 	ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 	PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
@@ -55,6 +59,26 @@ type programRpcClient struct {
 
 func NewProgramRpcClient(cc grpc.ClientConnInterface) ProgramRpcClient {
 	return &programRpcClient{cc}
+}
+
+func (c *programRpcClient) CreateProgram(ctx context.Context, in *CreateProgramReq, opts ...grpc.CallOption) (*CreateProgramResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateProgramResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_CreateProgram_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) UpdateProgram(ctx context.Context, in *UpdateProgramReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_UpdateProgram_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *programRpcClient) ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error) {
@@ -171,6 +195,8 @@ func (c *programRpcClient) ReleaseSoldSeats(ctx context.Context, in *ReleaseSold
 // All implementations must embed UnimplementedProgramRpcServer
 // for forward compatibility.
 type ProgramRpcServer interface {
+	CreateProgram(context.Context, *CreateProgramReq) (*CreateProgramResp, error)
+	UpdateProgram(context.Context, *UpdateProgramReq) (*BoolResp, error)
 	ListProgramCategories(context.Context, *Empty) (*ProgramCategoryListResp, error)
 	ListHomePrograms(context.Context, *ListHomeProgramsReq) (*ProgramHomeListResp, error)
 	PagePrograms(context.Context, *PageProgramsReq) (*ProgramPageResp, error)
@@ -192,6 +218,12 @@ type ProgramRpcServer interface {
 // pointer dereference when methods are called.
 type UnimplementedProgramRpcServer struct{}
 
+func (UnimplementedProgramRpcServer) CreateProgram(context.Context, *CreateProgramReq) (*CreateProgramResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateProgram not implemented")
+}
+func (UnimplementedProgramRpcServer) UpdateProgram(context.Context, *UpdateProgramReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateProgram not implemented")
+}
 func (UnimplementedProgramRpcServer) ListProgramCategories(context.Context, *Empty) (*ProgramCategoryListResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListProgramCategories not implemented")
 }
@@ -244,6 +276,42 @@ func RegisterProgramRpcServer(s grpc.ServiceRegistrar, srv ProgramRpcServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&ProgramRpc_ServiceDesc, srv)
+}
+
+func _ProgramRpc_CreateProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateProgramReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).CreateProgram(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_CreateProgram_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).CreateProgram(ctx, req.(*CreateProgramReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_UpdateProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProgramReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).UpdateProgram(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_UpdateProgram_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).UpdateProgram(ctx, req.(*UpdateProgramReq))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ProgramRpc_ListProgramCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -451,6 +519,14 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "program.ProgramRpc",
 	HandlerType: (*ProgramRpcServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateProgram",
+			Handler:    _ProgramRpc_CreateProgram_Handler,
+		},
+		{
+			MethodName: "UpdateProgram",
+			Handler:    _ProgramRpc_UpdateProgram_Handler,
+		},
 		{
 			MethodName: "ListProgramCategories",
 			Handler:    _ProgramRpc_ListProgramCategories_Handler,

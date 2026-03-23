@@ -6,6 +6,10 @@ option go_package = "./pb";
 
 message Empty {}
 
+message BoolResp {
+  bool success = 1;
+}
+
 message ListHomeProgramsReq {
   int64 areaId = 1;
   repeated int64 parentProgramCategoryIds = 2;
@@ -25,6 +29,109 @@ message PageProgramsReq {
 
 message GetProgramDetailReq {
   int64 id = 1;
+}
+
+message CreateProgramReq {
+  int64 programGroupId = 1;
+  int64 prime = 2;
+  int64 areaId = 3;
+  int64 programCategoryId = 4;
+  int64 parentProgramCategoryId = 5;
+  string title = 6;
+  string actor = 7;
+  string place = 8;
+  string itemPicture = 9;
+  int64 preSell = 10;
+  string preSellInstruction = 11;
+  string importantNotice = 12;
+  string detail = 13;
+  int64 perOrderLimitPurchaseCount = 14;
+  int64 perAccountLimitPurchaseCount = 15;
+  string refundTicketRule = 16;
+  string deliveryInstruction = 17;
+  string entryRule = 18;
+  string childPurchase = 19;
+  string invoiceSpecification = 20;
+  string realTicketPurchaseRule = 21;
+  string abnormalOrderDescription = 22;
+  string kindReminder = 23;
+  string performanceDuration = 24;
+  string entryTime = 25;
+  int64 minPerformanceCount = 26;
+  string mainActor = 27;
+  string minPerformanceDuration = 28;
+  string prohibitedItem = 29;
+  string depositSpecification = 30;
+  int64 totalCount = 31;
+  int64 permitRefund = 32;
+  string refundExplain = 33;
+  string refundRuleJson = 34;
+  int64 relNameTicketEntrance = 35;
+  string relNameTicketEntranceExplain = 36;
+  int64 permitChooseSeat = 37;
+  string chooseSeatExplain = 38;
+  int64 electronicDeliveryTicket = 39;
+  string electronicDeliveryTicketExplain = 40;
+  int64 electronicInvoice = 41;
+  string electronicInvoiceExplain = 42;
+  int64 highHeat = 43;
+  int64 programStatus = 44;
+  string issueTime = 45;
+  int64 status = 46;
+}
+
+message CreateProgramResp {
+  int64 id = 1;
+}
+
+message UpdateProgramReq {
+  int64 id = 1;
+  int64 programGroupId = 2;
+  int64 prime = 3;
+  int64 areaId = 4;
+  int64 programCategoryId = 5;
+  int64 parentProgramCategoryId = 6;
+  string title = 7;
+  string actor = 8;
+  string place = 9;
+  string itemPicture = 10;
+  int64 preSell = 11;
+  string preSellInstruction = 12;
+  string importantNotice = 13;
+  string detail = 14;
+  int64 perOrderLimitPurchaseCount = 15;
+  int64 perAccountLimitPurchaseCount = 16;
+  string refundTicketRule = 17;
+  string deliveryInstruction = 18;
+  string entryRule = 19;
+  string childPurchase = 20;
+  string invoiceSpecification = 21;
+  string realTicketPurchaseRule = 22;
+  string abnormalOrderDescription = 23;
+  string kindReminder = 24;
+  string performanceDuration = 25;
+  string entryTime = 26;
+  int64 minPerformanceCount = 27;
+  string mainActor = 28;
+  string minPerformanceDuration = 29;
+  string prohibitedItem = 30;
+  string depositSpecification = 31;
+  int64 totalCount = 32;
+  int64 permitRefund = 33;
+  string refundExplain = 34;
+  string refundRuleJson = 35;
+  int64 relNameTicketEntrance = 36;
+  string relNameTicketEntranceExplain = 37;
+  int64 permitChooseSeat = 38;
+  string chooseSeatExplain = 39;
+  int64 electronicDeliveryTicket = 40;
+  string electronicDeliveryTicketExplain = 41;
+  int64 electronicInvoice = 42;
+  string electronicInvoiceExplain = 43;
+  int64 highHeat = 44;
+  int64 programStatus = 45;
+  string issueTime = 46;
+  int64 status = 47;
 }
 
 message ListTicketCategoriesByProgramReq {
@@ -253,6 +360,8 @@ message ProgramDetailInfo {
 }
 
 service ProgramRpc {
+  rpc CreateProgram(CreateProgramReq) returns (CreateProgramResp);
+  rpc UpdateProgram(UpdateProgramReq) returns (BoolResp);
   rpc ListProgramCategories(Empty) returns (ProgramCategoryListResp);
   rpc ListHomePrograms(ListHomeProgramsReq) returns (ProgramHomeListResp);
   rpc PagePrograms(PageProgramsReq) returns (ProgramPageResp);

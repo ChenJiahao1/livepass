@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -17,6 +18,8 @@ type (
 	DProgramModel interface {
 		dProgramModel
 		withSession(session sqlx.Session) DProgramModel
+		InsertWithSession(ctx context.Context, session sqlx.Session, data *DProgram) (sql.Result, error)
+		FindOneForUpdate(ctx context.Context, session sqlx.Session, id int64) (*DProgram, error)
 		FindHomeList(ctx context.Context, q *ProgramHomeListQuery) ([]*DProgram, error)
 		CountPageList(ctx context.Context, q *ProgramPageListQuery) (int64, error)
 		FindPageList(ctx context.Context, q *ProgramPageListQuery) ([]*DProgram, error)
@@ -60,8 +63,86 @@ func NewCachedDProgramModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.
 }
 
 func (m *customDProgramModel) withSession(session sqlx.Session) DProgramModel {
-	return &customDProgramModel{
-		defaultDProgramModel: m.defaultDProgramModel.withSession(session),
+	return NewDProgramModel(sqlx.NewSqlConnFromSession(session))
+}
+
+func (m *customDProgramModel) InsertWithSession(ctx context.Context, session sqlx.Session, data *DProgram) (sql.Result, error) {
+	query := fmt.Sprintf(
+		"insert into %s (`id`, `program_group_id`, `prime`, `area_id`, `program_category_id`, `parent_program_category_id`, `title`, `actor`, `place`, `item_picture`, `pre_sell`, `pre_sell_instruction`, `important_notice`, `detail`, `per_order_limit_purchase_count`, `per_account_limit_purchase_count`, `refund_ticket_rule`, `delivery_instruction`, `entry_rule`, `child_purchase`, `invoice_specification`, `real_ticket_purchase_rule`, `abnormal_order_description`, `kind_reminder`, `performance_duration`, `entry_time`, `min_performance_count`, `main_actor`, `min_performance_duration`, `prohibited_item`, `deposit_specification`, `total_count`, `permit_refund`, `refund_explain`, `refund_rule_json`, `rel_name_ticket_entrance`, `rel_name_ticket_entrance_explain`, `permit_choose_seat`, `choose_seat_explain`, `electronic_delivery_ticket`, `electronic_delivery_ticket_explain`, `electronic_invoice`, `electronic_invoice_explain`, `high_heat`, `program_status`, `issue_time`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		m.table,
+	)
+
+	return m.withSession(session).(*customDProgramModel).conn.ExecCtx(
+		ctx,
+		query,
+		data.Id,
+		data.ProgramGroupId,
+		data.Prime,
+		data.AreaId,
+		data.ProgramCategoryId,
+		data.ParentProgramCategoryId,
+		data.Title,
+		data.Actor,
+		data.Place,
+		data.ItemPicture,
+		data.PreSell,
+		data.PreSellInstruction,
+		data.ImportantNotice,
+		data.Detail,
+		data.PerOrderLimitPurchaseCount,
+		data.PerAccountLimitPurchaseCount,
+		data.RefundTicketRule,
+		data.DeliveryInstruction,
+		data.EntryRule,
+		data.ChildPurchase,
+		data.InvoiceSpecification,
+		data.RealTicketPurchaseRule,
+		data.AbnormalOrderDescription,
+		data.KindReminder,
+		data.PerformanceDuration,
+		data.EntryTime,
+		data.MinPerformanceCount,
+		data.MainActor,
+		data.MinPerformanceDuration,
+		data.ProhibitedItem,
+		data.DepositSpecification,
+		data.TotalCount,
+		data.PermitRefund,
+		data.RefundExplain,
+		data.RefundRuleJson,
+		data.RelNameTicketEntrance,
+		data.RelNameTicketEntranceExplain,
+		data.PermitChooseSeat,
+		data.ChooseSeatExplain,
+		data.ElectronicDeliveryTicket,
+		data.ElectronicDeliveryTicketExplain,
+		data.ElectronicInvoice,
+		data.ElectronicInvoiceExplain,
+		data.HighHeat,
+		data.ProgramStatus,
+		data.IssueTime,
+		data.CreateTime,
+		data.EditTime,
+		data.Status,
+	)
+}
+
+func (m *customDProgramModel) FindOneForUpdate(ctx context.Context, session sqlx.Session, id int64) (*DProgram, error) {
+	query := fmt.Sprintf(
+		"select %s from %s where `status` = 1 and `id` = ? limit 1 for update",
+		dProgramRows,
+		m.table,
+	)
+
+	var resp DProgram
+	err := m.withSession(session).(*customDProgramModel).conn.QueryRowCtx(ctx, &resp, query, id)
+	switch err {
+	case nil:
+		return &resp, nil
+	case sql.ErrNoRows, sqlx.ErrNotFound:
+		return nil, ErrNotFound
+	default:
+		return nil, err
 	}
 }
 

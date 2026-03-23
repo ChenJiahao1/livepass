@@ -16,8 +16,11 @@ import (
 type (
 	AutoAssignAndFreezeSeatsReq       = pb.AutoAssignAndFreezeSeatsReq
 	AutoAssignAndFreezeSeatsResp      = pb.AutoAssignAndFreezeSeatsResp
+	BoolResp                          = pb.BoolResp
 	ConfirmSeatFreezeReq              = pb.ConfirmSeatFreezeReq
 	ConfirmSeatFreezeResp             = pb.ConfirmSeatFreezeResp
+	CreateProgramReq                  = pb.CreateProgramReq
+	CreateProgramResp                 = pb.CreateProgramResp
 	Empty                             = pb.Empty
 	EvaluateRefundRuleReq             = pb.EvaluateRefundRuleReq
 	EvaluateRefundRuleResp            = pb.EvaluateRefundRuleResp
@@ -44,8 +47,11 @@ type (
 	TicketCategoryDetailInfo          = pb.TicketCategoryDetailInfo
 	TicketCategoryDetailListResp      = pb.TicketCategoryDetailListResp
 	TicketCategoryInfo                = pb.TicketCategoryInfo
+	UpdateProgramReq                  = pb.UpdateProgramReq
 
 	ProgramRpc interface {
+		CreateProgram(ctx context.Context, in *CreateProgramReq, opts ...grpc.CallOption) (*CreateProgramResp, error)
+		UpdateProgram(ctx context.Context, in *UpdateProgramReq, opts ...grpc.CallOption) (*BoolResp, error)
 		ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
 		ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 		PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
@@ -68,6 +74,16 @@ func NewProgramRpc(cli zrpc.Client) ProgramRpc {
 	return &defaultProgramRpc{
 		cli: cli,
 	}
+}
+
+func (m *defaultProgramRpc) CreateProgram(ctx context.Context, in *CreateProgramReq, opts ...grpc.CallOption) (*CreateProgramResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.CreateProgram(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) UpdateProgram(ctx context.Context, in *UpdateProgramReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.UpdateProgram(ctx, in, opts...)
 }
 
 func (m *defaultProgramRpc) ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error) {

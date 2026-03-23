@@ -34,6 +34,16 @@ class ProgramRpcStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.CreateProgram = channel.unary_unary(
+                '/program.ProgramRpc/CreateProgram',
+                request_serializer=program__pb2.CreateProgramReq.SerializeToString,
+                response_deserializer=program__pb2.CreateProgramResp.FromString,
+                _registered_method=True)
+        self.UpdateProgram = channel.unary_unary(
+                '/program.ProgramRpc/UpdateProgram',
+                request_serializer=program__pb2.UpdateProgramReq.SerializeToString,
+                response_deserializer=program__pb2.BoolResp.FromString,
+                _registered_method=True)
         self.ListProgramCategories = channel.unary_unary(
                 '/program.ProgramRpc/ListProgramCategories',
                 request_serializer=program__pb2.Empty.SerializeToString,
@@ -93,6 +103,18 @@ class ProgramRpcStub(object):
 
 class ProgramRpcServicer(object):
     """Missing associated documentation comment in .proto file."""
+
+    def CreateProgram(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateProgram(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def ListProgramCategories(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -163,6 +185,16 @@ class ProgramRpcServicer(object):
 
 def add_ProgramRpcServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'CreateProgram': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateProgram,
+                    request_deserializer=program__pb2.CreateProgramReq.FromString,
+                    response_serializer=program__pb2.CreateProgramResp.SerializeToString,
+            ),
+            'UpdateProgram': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateProgram,
+                    request_deserializer=program__pb2.UpdateProgramReq.FromString,
+                    response_serializer=program__pb2.BoolResp.SerializeToString,
+            ),
             'ListProgramCategories': grpc.unary_unary_rpc_method_handler(
                     servicer.ListProgramCategories,
                     request_deserializer=program__pb2.Empty.FromString,
@@ -228,6 +260,60 @@ def add_ProgramRpcServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ProgramRpc(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def CreateProgram(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/program.ProgramRpc/CreateProgram',
+            program__pb2.CreateProgramReq.SerializeToString,
+            program__pb2.CreateProgramResp.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateProgram(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/program.ProgramRpc/UpdateProgram',
+            program__pb2.UpdateProgramReq.SerializeToString,
+            program__pb2.BoolResp.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def ListProgramCategories(request,
