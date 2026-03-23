@@ -9,10 +9,24 @@ class RefundAgent(ToolCallingAgent):
     toolset = "refund"
     prompt_template = "refund/system.md"
 
+    def build_prompt_context(self, state: ConversationState) -> dict[str, object]:
+        context = super().build_prompt_context(state)
+        context["selected_order_id"] = state.get("selected_order_id")
+        return context
+
+    def initial_trace(self, state: ConversationState) -> list[str]:
+        order_id = state.get("selected_order_id")
+        return [f"order:{order_id}"] if order_id else []
+
     async def handle(self, state: ConversationState) -> dict[str, object]:
-        order_id = self.extract_order_id(state)
+        order_id = state.get("selected_order_id") or self.extract_order_id(state)
         if not order_id:
-            return self.result(state, reply="请先提供需要处理的订单号。")
+            return self.result(
+                state,
+                reply="请先提供需要处理的订单号。",
+                selected_order_id=None,
+                result_summary="缺少订单号",
+            )
 
         tools = await self.get_tools()
         current_user_id = state.get("current_user_id")
@@ -30,7 +44,9 @@ class RefundAgent(ToolCallingAgent):
                 return self.result(
                     state,
                     reply=f"订单 {order_id} 已提交退款，退款金额 {refund_amount}。",
-                    specialist_result=result,
+                    trace=[*self.initial_trace(state), "tool:refund_order"],
+                    selected_order_id=order_id,
+                    result_summary="退款申请已提交",
                 )
 
         preview_tool = self.find_tool(tools, "preview_refund_order")
@@ -48,9 +64,17 @@ class RefundAgent(ToolCallingAgent):
                 return self.result(
                     state,
                     reply=f"订单 {order_id} 当前可退款，预计退款 {refund_amount}，退款比例 {refund_percent}%。",
-                    specialist_result=preview,
+                    trace=[*self.initial_trace(state), "tool:preview_refund_order"],
+                    selected_order_id=order_id,
+                    result_summary="退款资格已确认",
                 )
             reject_reason = preview.get("reject_reason") or preview.get("rejectReason") or "当前订单不可退。"
-            return self.result(state, reply=reject_reason, specialist_result=preview)
+            return self.result(
+                state,
+                reply=reject_reason,
+                trace=[*self.initial_trace(state), "tool:preview_refund_order"],
+                selected_order_id=order_id,
+                result_summary="退款被拒绝",
+            )
 
-        return await self.run_tool_agent(state)
+        return await super().handle(state)

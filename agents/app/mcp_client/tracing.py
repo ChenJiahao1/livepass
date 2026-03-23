@@ -2,12 +2,31 @@
 
 from __future__ import annotations
 
+from contextvars import ContextVar, Token
 from typing import Any, Awaitable, Callable
 
 
-async def trace_tool_calls(request, handler: Callable[[Any], Awaitable[Any]]) -> Any:
-    trace = _resolve_trace_container(request.runtime)
+_trace_buffer: ContextVar[list[str] | None] = ContextVar("mcp_trace_buffer", default=None)
+
+
+def set_trace_buffer(buffer: list[str]) -> Token[list[str] | None]:
+    return _trace_buffer.set(buffer)
+
+
+def reset_trace_buffer(token: Token[list[str] | None]) -> None:
+    _trace_buffer.reset(token)
+
+
+def append_tool_trace(name: str) -> None:
+    trace = _trace_buffer.get()
     if trace is not None:
+        trace.append(f"tool:{name}")
+
+
+async def trace_tool_calls(request, handler: Callable[[Any], Awaitable[Any]]) -> Any:
+    append_tool_trace(request.name)
+    trace = _resolve_trace_container(request.runtime)
+    if trace is not None and trace is not _trace_buffer.get():
         trace.append(f"tool:{request.name}")
     return await handler(request)
 

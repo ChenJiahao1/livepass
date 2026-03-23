@@ -14,8 +14,21 @@ class CoordinatorAgent:
         self.prompt_renderer = prompt_renderer or PromptRenderer()
 
     def handle(self, state: ConversationState) -> dict[str, object]:
-        system_prompt = self.prompt_renderer.render("coordinator/system.md")
+        system_prompt = self.prompt_renderer.render(
+            "coordinator/system.md",
+            selected_order_id=state.get("selected_order_id"),
+            last_intent=state.get("last_intent", "unknown"),
+            current_user_id=state.get("current_user_id"),
+        )
         decision = self.llm.with_structured_output(CoordinatorDecision).invoke(
             [SystemMessage(content=system_prompt), *convert_to_messages(state.get("messages", []))]
         )
-        return decision.model_dump()
+        return {
+            "agent": "coordinator",
+            "action": decision.action,
+            "reply": decision.reply,
+            "trace": [f"coordinator:{decision.action}"],
+            "selected_order_id": decision.selected_order_id,
+            "business_ready": decision.business_ready,
+            "reason": decision.reason,
+        }

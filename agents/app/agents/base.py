@@ -6,12 +6,16 @@ import re
 from typing import Any
 
 from langchain.agents import create_agent
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages.utils import convert_to_messages
 
+from app.config import get_settings
+from app.mcp_client.tracing import reset_trace_buffer, set_trace_buffer
 from app.prompts import PromptRenderer
 from app.state import ConversationState
 
 ORDER_ID_PATTERN = re.compile(r"(ORD-\d{4,}|\d{4,})")
+_UNSET = object()
 
 
 class ToolCallingAgent:
@@ -29,44 +33,93 @@ class ToolCallingAgent:
             return []
         return await self.registry.get_tools(self.toolset)
 
+    async def handle(self, state: ConversationState) -> dict[str, Any]:
+        return await self.run_tool_agent(state)
+
     async def run_tool_agent(self, state: ConversationState) -> dict[str, Any]:
+        trace = list(self.initial_trace(state))
         tools = await self.get_tools()
-        system_prompt = self.prompt_renderer.render(self.prompt_template)
+        system_prompt = self.prompt_renderer.render(
+            self.prompt_template,
+            **self.build_prompt_context(state),
+        )
         agent = create_agent(
             model=self.llm,
             tools=tools,
             system_prompt=system_prompt,
             name=self.agent_name,
         )
-        result = await agent.ainvoke({"messages": state.get("messages", [])})
+        token = set_trace_buffer(trace)
+        try:
+            result = await agent.ainvoke(
+                {"messages": convert_to_messages(state.get("messages", []))},
+                config={"recursion_limit": max(4, get_settings().max_tool_steps * 2 + 2)},
+            )
+        except Exception:
+            return self.result(
+                state,
+                reply="当前处理失败，已转人工继续处理。",
+                trace=trace,
+                need_handoff=True,
+                completed=True,
+                result_summary="当前处理失败，已转人工继续处理。",
+            )
+        finally:
+            reset_trace_buffer(token)
+
+        reply = self.extract_reply(result.get("messages", [])) or self.empty_reply()
         return self.result(
             state,
-            reply=self.extract_reply(result),
-            messages=self.extract_new_messages(state, result),
+            reply=reply,
+            trace=trace,
+            need_handoff=self.default_need_handoff(state),
+            completed=True,
+            result_summary=reply,
         )
+
+    def build_prompt_context(self, state: ConversationState) -> dict[str, Any]:
+        return {}
+
+    def initial_trace(self, state: ConversationState) -> list[str]:
+        return []
+
+    def default_need_handoff(self, state: ConversationState) -> bool:
+        return False
+
+    def empty_reply(self) -> str:
+        return "当前未获取到足够信息，请稍后重试。"
 
     def result(
         self,
         state: ConversationState,
         *,
         reply: str,
+        trace: list[str] | None = None,
         need_handoff: bool = False,
-        status: str = "completed",
-        specialist_result: dict[str, Any] | None = None,
-        messages: list[Any] | None = None,
+        completed: bool = True,
+        result_summary: str | None = None,
+        selected_order_id: str | None | object = _UNSET,
+        selected_program_id: str | None | object = _UNSET,
+        status: str | None = None,
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {
+            "agent": self.agent_name,
             "reply": reply,
-            "final_reply": reply,
-            "current_agent": self.agent_name,
-            "status": status,
+            "trace": list(trace or self.initial_trace(state)),
             "need_handoff": need_handoff,
-            "selected_order_id": state.get("selected_order_id"),
-            "selected_program_id": state.get("selected_program_id"),
-            "messages": messages or [AIMessage(content=reply)],
+            "completed": completed,
+            "result_summary": result_summary or reply,
         }
-        if specialist_result is not None:
-            payload["specialist_result"] = specialist_result
+        if selected_order_id is _UNSET:
+            payload["selected_order_id"] = state.get("selected_order_id")
+        else:
+            payload["selected_order_id"] = selected_order_id
+        if selected_program_id is _UNSET:
+            payload["selected_program_id"] = state.get("selected_program_id")
+        else:
+            payload["selected_program_id"] = selected_program_id
+        if status is not None:
+            payload["status"] = status
         return payload
 
     def find_tool(self, tools: list, *names: str):
@@ -97,19 +150,24 @@ class ToolCallingAgent:
             return None
         return match.group(1)
 
-    def extract_reply(self, result: dict[str, Any]) -> str:
-        messages = result.get("messages", [])
+    def extract_reply(self, messages: list[BaseMessage]) -> str:
         for message in reversed(messages):
             if isinstance(message, AIMessage):
-                return str(message.content)
+                text = self._message_text(message)
+                if text:
+                    return text
         return ""
 
-    def extract_new_messages(self, state: ConversationState, result: dict[str, Any]) -> list[Any]:
-        messages = list(result.get("messages", []))
-        existing_messages = state.get("messages", [])
-        if len(messages) > len(existing_messages):
-            return messages[len(existing_messages) :]
-        reply = self.extract_reply(result)
-        if reply:
-            return [AIMessage(content=reply)]
-        return []
+    def _message_text(self, message: AIMessage) -> str:
+        content = message.content
+        if isinstance(content, str):
+            return content.strip()
+        if isinstance(content, list):
+            parts = []
+            for block in content:
+                if isinstance(block, str):
+                    parts.append(block)
+                elif isinstance(block, dict) and isinstance(block.get("text"), str):
+                    parts.append(block["text"])
+            return "\n".join(part.strip() for part in parts if part.strip()).strip()
+        return ""
