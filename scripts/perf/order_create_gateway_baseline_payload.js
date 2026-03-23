@@ -59,6 +59,40 @@ export function parseTicketUserIdLiterals(rawValue) {
     });
 }
 
+export function parseUserPool(rawValue) {
+  const parsed = JSON.parse(rawValue);
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error('missing user pool');
+  }
+
+  return parsed.map((entry, index) => {
+    if (!entry || typeof entry !== 'object') {
+      throw new Error(`invalid user pool entry at index ${index}`);
+    }
+
+    const jwt = String(entry.jwt || '').trim();
+    const ticketUserId = String(entry.ticketUserId || '').trim();
+    if (!jwt) {
+      throw new Error(`missing user pool jwt at index ${index}`);
+    }
+    assertDigits(ticketUserId, `user pool ticket user id at index ${index}`);
+
+    return {
+      jwt,
+      ticketUserId,
+    };
+  });
+}
+
+export function selectUserPoolEntry(userPool, iterationIndex) {
+  if (!Array.isArray(userPool) || userPool.length === 0) {
+    throw new Error('missing user pool');
+  }
+
+  const normalizedIndex = Math.abs(Number(iterationIndex) || 0) % userPool.length;
+  return userPool[normalizedIndex];
+}
+
 export function buildOrderCreatePayload({
   programId,
   ticketCategoryId,
@@ -78,6 +112,31 @@ export function buildOrderCreatePayload({
     .join(',');
 
   return `{"programId":${JSON.stringify(programId)},"ticketCategoryId":${JSON.stringify(ticketCategoryId)},"ticketUserIds":[${ticketUserIdsJson}],"distributionMode":${JSON.stringify(distributionMode)},"takeTicketMode":${JSON.stringify(takeTicketMode)}}`;
+}
+
+export function buildConstantArrivalRateOptions({
+  targetQps,
+  duration,
+  preAllocatedVUs,
+  maxVUs,
+}) {
+  return {
+    thresholds: {
+      http_req_failed: ['rate<0.01'],
+      http_req_duration: ['p(99)<10000'],
+    },
+    scenarios: {
+      steady_state: {
+        executor: 'constant-arrival-rate',
+        exec: 'createOrder',
+        rate: targetQps,
+        timeUnit: '1s',
+        duration,
+        preAllocatedVUs,
+        maxVUs,
+      },
+    },
+  };
 }
 
 export function resolveSteadyStartTime({
