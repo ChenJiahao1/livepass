@@ -17,10 +17,10 @@ func TestKafkaConsumerStartAndClose(t *testing.T) {
 	}
 
 	stop := logicpkg.StartOrderCreateConsumer(context.Background(), svcCtx)
-	waitForConsumerWorkers(t, factory, 4)
+	waitForConsumerWorkers(t, factory, 1)
 
-	if factory.createCalls != 4 {
-		t.Fatalf("expected 4 consumers, got %d", factory.createCalls)
+	if factory.createCalls != 1 {
+		t.Fatalf("expected 1 consumer, got %d", factory.createCalls)
 	}
 	for idx, consumer := range factory.consumers {
 		if consumer.startCalls != 1 {
@@ -32,8 +32,8 @@ func TestKafkaConsumerStartAndClose(t *testing.T) {
 	}
 
 	stop()
-	if factory.closeCalls != 4 {
-		t.Fatalf("expected 4 closes, got %d", factory.closeCalls)
+	if factory.closeCalls != 1 {
+		t.Fatalf("expected 1 close, got %d", factory.closeCalls)
 	}
 }
 
@@ -45,15 +45,12 @@ func TestKafkaConsumerRestartsAfterRecoverableStartError(t *testing.T) {
 	}
 	factory.seedConsumers = []*fakeOrderCreateConsumer{
 		{startErrs: []error{errors.New("temporary kafka error"), nil}, started: make(chan struct{}, 1)},
-		{started: make(chan struct{}, 1)},
-		{started: make(chan struct{}, 1)},
-		{started: make(chan struct{}, 1)},
 	}
 
 	stop := logicpkg.StartOrderCreateConsumer(context.Background(), svcCtx)
 	defer stop()
 
-	waitForConsumerWorkers(t, factory, 4)
+	waitForConsumerWorkers(t, factory, 1)
 
 	deadline := time.Now().Add(1500 * time.Millisecond)
 	for time.Now().Before(deadline) {

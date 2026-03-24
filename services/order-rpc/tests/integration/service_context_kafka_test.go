@@ -97,8 +97,8 @@ Kafka:
     - 127.0.0.1:9094
   TopicOrderCreate: order.create.command.test
   ConsumerGroup: damai-go-order-create
-  TopicPartitions: 4
-  ConsumerWorkers: 4
+  TopicPartitions: 5
+  ConsumerWorkers: 1
   MaxMessageDelay: 60s
 `)
 	if err := os.WriteFile(configFile, content, 0o644); err != nil {
@@ -110,11 +110,11 @@ Kafka:
 		t.Fatalf("load %s: %v", configFile, err)
 	}
 
-	if c.Kafka.TopicPartitions != 4 {
-		t.Fatalf("expected topic partitions 4, got %d", c.Kafka.TopicPartitions)
+	if c.Kafka.TopicPartitions != 5 {
+		t.Fatalf("expected topic partitions 5, got %d", c.Kafka.TopicPartitions)
 	}
-	if c.Kafka.ConsumerWorkers != 4 {
-		t.Fatalf("expected consumer workers 4, got %d", c.Kafka.ConsumerWorkers)
+	if c.Kafka.ConsumerWorkers != 1 {
+		t.Fatalf("expected consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
 	}
 	if c.Kafka.MaxMessageDelay != 60*time.Second {
 		t.Fatalf("expected max message delay 60s, got %s", c.Kafka.MaxMessageDelay)
@@ -193,8 +193,8 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 			Brokers:          []string{"127.0.0.1:9094"},
 			TopicOrderCreate: topic,
 			ConsumerGroup:    "damai-go-order-create",
-			TopicPartitions:  4,
-			ConsumerWorkers:  4,
+			TopicPartitions:  5,
+			ConsumerWorkers:  1,
 			MaxMessageDelay:  5 * time.Second,
 			ProducerTimeout:  3 * time.Second,
 			RetryBackoff:     time.Second,

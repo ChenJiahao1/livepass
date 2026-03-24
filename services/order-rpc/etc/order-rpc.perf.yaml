@@ -10,7 +10,7 @@ Etcd:
   Key: order.rpc
 MySQL:
   DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
-  MaxOpenConns: 128
+  MaxOpenConns: 64
   MaxIdleConns: 32
   ConnMaxLifetime: 5m
   ConnMaxIdleTime: 2m
@@ -46,8 +46,8 @@ Kafka:
     - 127.0.0.1:9094
   TopicOrderCreate: order.create.command.v1
   ConsumerGroup: damai-go-order-create
-  TopicPartitions: 4
-  ConsumerWorkers: 4
+  TopicPartitions: 5
+  ConsumerWorkers: 1
   MaxMessageDelay: 60s
   ProducerTimeout: 3s
   RetryBackoff: 1s

@@ -66,8 +66,8 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	if c.PayRpc.Timeout != 4000 {
 		t.Fatalf("expected pay rpc timeout 4000, got %d", c.PayRpc.Timeout)
 	}
-	if c.MySQL.MaxOpenConns != 128 {
-		t.Fatalf("expected mysql max open conns 128, got %d", c.MySQL.MaxOpenConns)
+	if c.MySQL.MaxOpenConns != 64 {
+		t.Fatalf("expected mysql max open conns 64, got %d", c.MySQL.MaxOpenConns)
 	}
 	if c.MySQL.MaxIdleConns != 32 {
 		t.Fatalf("expected mysql max idle conns 32, got %d", c.MySQL.MaxIdleConns)
@@ -77,5 +77,11 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	}
 	if c.MySQL.ConnMaxIdleTime != 2*time.Minute {
 		t.Fatalf("expected mysql conn max idle time 2m, got %s", c.MySQL.ConnMaxIdleTime)
+	}
+	if c.Kafka.TopicPartitions != 5 {
+		t.Fatalf("expected kafka topic partitions 5, got %d", c.Kafka.TopicPartitions)
+	}
+	if c.Kafka.ConsumerWorkers != 1 {
+		t.Fatalf("expected kafka consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
 	}
 }

@@ -3,7 +3,7 @@ set -euo pipefail
 
 KAFKA_BOOTSTRAP="${KAFKA_BOOTSTRAP:-127.0.0.1:9094}"
 TOPIC="${TOPIC:-order.create.command.v1}"
-PARTITIONS="${PARTITIONS:-4}"
+PARTITIONS="${PARTITIONS:-5}"
 REPLICATION_FACTOR="${REPLICATION_FACTOR:-1}"
 DOCKER_COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-deploy/docker-compose/docker-compose.infrastructure.yml}"
 KAFKA_SERVICE="${KAFKA_SERVICE:-kafka}"

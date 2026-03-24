@@ -194,8 +194,8 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 			LockAcquireTimeout: 200 * time.Millisecond,
 		},
 		Kafka: config.KafkaConfig{
-			TopicPartitions: 4,
-			ConsumerWorkers: 4,
+			TopicPartitions: 5,
+			ConsumerWorkers: 1,
 			RetryBackoff:    10 * time.Millisecond,
 		},
 	}
