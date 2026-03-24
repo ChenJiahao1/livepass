@@ -7,6 +7,7 @@ import (
 
 	"damai-go/pkg/xerr"
 	"damai-go/services/program-rpc/internal/model"
+	"damai-go/services/program-rpc/internal/seatcache"
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 
@@ -36,39 +37,66 @@ func (l *ConfirmSeatFreezeLogic) ConfirmSeatFreeze(in *pb.ConfirmSeatFreezeReq) 
 	}
 
 	now := time.Now()
-	err := l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
-		seatFreezeModel := model.NewDSeatFreezeModel(sqlx.NewSqlConnFromSession(session))
-		seatModel := model.NewDSeatModel(sqlx.NewSqlConnFromSession(session))
+	seatStore := ensureSeatStockStore(l.svcCtx)
+	if seatStore == nil {
+		return nil, mapConfirmSeatFreezeError(xerr.ErrProgramSeatLedgerNotReady)
+	}
 
-		freeze, err := seatFreezeModel.FindOneByFreezeTokenForUpdate(ctx, session, in.GetFreezeToken())
+	unlock := ensureSeatFreezeLocker(l.svcCtx).Lock(seatFreezeTokenLockKey(in.GetFreezeToken()))
+	defer unlock()
+
+	freeze, err := seatStore.GetFreezeMetadataByToken(l.ctx, in.GetFreezeToken())
+	if err != nil {
+		return nil, mapConfirmSeatFreezeError(err)
+	}
+	if freeze == nil {
+		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeNotFound)
+	}
+	if freeze.FreezeStatus != seatcache.SeatFreezeStatusFrozen || !freeze.ExpireTime().After(now) {
+		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
+	}
+
+	frozenSeats, err := seatStore.FrozenSeats(l.ctx, freeze.ProgramID, freeze.TicketCategoryID, freeze.FreezeToken)
+	if err != nil {
+		return nil, mapConfirmSeatFreezeError(err)
+	}
+	if len(frozenSeats) == 0 || int64(len(frozenSeats)) != freeze.SeatCount {
+		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
+	}
+
+	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
+		seatModel := model.NewDSeatModel(sqlx.NewSqlConnFromSession(session))
+		seatIDs := make([]int64, 0, len(frozenSeats))
+		for _, seat := range frozenSeats {
+			seatIDs = append(seatIDs, seat.SeatID)
+		}
+
+		seats, err := seatModel.FindByProgramAndIDsForUpdate(ctx, session, freeze.ProgramID, seatIDs)
 		if err != nil {
-			if errors.Is(err, model.ErrNotFound) {
-				return xerr.ErrSeatFreezeNotFound
-			}
 			return err
 		}
-		if freeze.FreezeStatus != seatFreezeStatusFrozen || !freeze.ExpireTime.After(now) {
+		if len(seats) != len(seatIDs) {
 			return xerr.ErrSeatFreezeStatusInvalid
 		}
-
-		seatStore := ensureSeatStockStore(l.svcCtx)
-		if seatStore == nil {
-			return xerr.ErrProgramSeatLedgerNotReady
+		for _, seat := range seats {
+			if seat.SeatStatus != 1 && seat.SeatStatus != 3 {
+				return xerr.ErrSeatFreezeStatusInvalid
+			}
 		}
-		if err := seatStore.ConfirmFrozenSeats(ctx, freeze.ProgramId, freeze.TicketCategoryId, freeze.FreezeToken); err != nil {
-			return err
-		}
-
-		if err := seatModel.ConfirmByFreezeToken(ctx, session, freeze.FreezeToken); err != nil {
-			return err
-		}
-		if err := seatFreezeModel.MarkConfirmedByFreezeToken(ctx, session, freeze.FreezeToken, now); err != nil {
+		if err := seatModel.BatchConfirmByIDs(ctx, session, freeze.ProgramID, seatIDs, freeze.FreezeToken, freeze.ExpireTime()); err != nil {
 			return err
 		}
 
 		return nil
 	})
 	if err != nil {
+		return nil, mapConfirmSeatFreezeError(err)
+	}
+
+	if err := seatStore.ConfirmFrozenSeats(l.ctx, freeze.ProgramID, freeze.TicketCategoryID, freeze.FreezeToken); err != nil {
+		return nil, mapConfirmSeatFreezeError(err)
+	}
+	if _, err := seatStore.MarkFreezeConfirmed(l.ctx, freeze.FreezeToken, now); err != nil {
 		return nil, mapConfirmSeatFreezeError(err)
 	}
 

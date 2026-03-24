@@ -25,6 +25,7 @@ import (
 var testProgramMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true")
 
 const testProgramSeatLedgerPrefix = "damai-go:test:program:seat-ledger"
+const testProgramDateTimeLayout = "2006-01-02 15:04:05"
 
 type ticketCategoryFixture struct {
 	ID           int64
@@ -314,6 +315,44 @@ func seedSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixture sea
 	)
 }
 
+func seedRedisSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixture seatFreezeFixture) {
+	t.Helper()
+
+	if svcCtx.SeatStockStore == nil {
+		t.Fatalf("expected seat stock store to be configured")
+	}
+
+	fixture = withSeatFreezeFixtureDefaults(fixture)
+	expireTime, err := time.ParseInLocation(testProgramDateTimeLayout, fixture.ExpireTime, time.Local)
+	if err != nil {
+		t.Fatalf("parse seat freeze expire time error: %v", err)
+	}
+
+	if _, err := svcCtx.SeatStockStore.FreezeAutoAssignedSeats(
+		context.Background(),
+		fixture.ProgramID,
+		fixture.TicketCategoryID,
+		fixture.FreezeToken,
+		int64(fixture.SeatCount),
+	); err != nil {
+		t.Fatalf("freeze seats in redis error: %v", err)
+	}
+
+	meta := &seatcache.SeatFreezeMetadata{
+		FreezeToken:      fixture.FreezeToken,
+		RequestNo:        fixture.RequestNo,
+		ProgramID:        fixture.ProgramID,
+		TicketCategoryID: fixture.TicketCategoryID,
+		SeatCount:        int64(fixture.SeatCount),
+		FreezeStatus:     int64(fixture.FreezeStatus),
+		ExpireAt:         expireTime.Unix(),
+		UpdatedAt:        expireTime.Unix(),
+	}
+	if err := svcCtx.SeatStockStore.SaveFreezeMetadata(context.Background(), meta); err != nil {
+		t.Fatalf("save redis seat freeze metadata error: %v", err)
+	}
+}
+
 func seedSeatInventoryProgram(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) {
 	t.Helper()
 
@@ -347,6 +386,58 @@ func clearSeatInventoryByProgram(t *testing.T, svcCtx *svc.ServiceContext, progr
 
 	mustExecProgramSQL(t, db, "DELETE FROM d_seat_freeze WHERE program_id = ?", programID)
 	mustExecProgramSQL(t, db, "DELETE FROM d_seat WHERE program_id = ?", programID)
+}
+
+func requireSeatFreezeMetadataByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) *seatcache.SeatFreezeMetadata {
+	t.Helper()
+
+	meta, ok := findSeatFreezeMetadataByRequestNo(t, svcCtx, requestNo)
+	if !ok {
+		t.Fatalf("seat freeze metadata not found by requestNo=%s", requestNo)
+	}
+
+	return meta
+}
+
+func requireSeatFreezeMetadataByToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) *seatcache.SeatFreezeMetadata {
+	t.Helper()
+
+	meta, ok := findSeatFreezeMetadataByToken(t, svcCtx, freezeToken)
+	if !ok {
+		t.Fatalf("seat freeze metadata not found by freezeToken=%s", freezeToken)
+	}
+
+	return meta
+}
+
+func findSeatFreezeMetadataByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) (*seatcache.SeatFreezeMetadata, bool) {
+	t.Helper()
+
+	if svcCtx.SeatStockStore == nil {
+		t.Fatalf("expected seat stock store to be configured")
+	}
+
+	meta, err := svcCtx.SeatStockStore.GetFreezeMetadataByRequestNo(context.Background(), requestNo)
+	if err != nil {
+		t.Fatalf("get seat freeze metadata by request no error: %v", err)
+	}
+
+	return meta, meta != nil
+}
+
+func findSeatFreezeMetadataByToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) (*seatcache.SeatFreezeMetadata, bool) {
+	t.Helper()
+
+	if svcCtx.SeatStockStore == nil {
+		t.Fatalf("expected seat stock store to be configured")
+	}
+
+	meta, err := svcCtx.SeatStockStore.GetFreezeMetadataByToken(context.Background(), freezeToken)
+	if err != nil {
+		t.Fatalf("get seat freeze metadata by token error: %v", err)
+	}
+
+	return meta, meta != nil
 }
 
 func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {

@@ -20,6 +20,7 @@ type (
 		FindByFreezeToken(ctx context.Context, freezeToken string) ([]*DSeat, error)
 		FindByProgramAndIDsForUpdate(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) ([]*DSeat, error)
 		BatchFreezeByIDs(ctx context.Context, session sqlx.Session, seatIDs []int64, freezeToken string, expireTime time.Time) error
+		BatchConfirmByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		ReleaseByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
 		ReleaseSoldByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) error
 		ConfirmByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
@@ -160,6 +161,23 @@ func (m *customDSeatModel) BatchFreezeByIDs(ctx context.Context, session sqlx.Se
 
 	now := time.Now()
 	args = append([]interface{}{freezeToken, expireTime, now}, args...)
+	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, args...)
+	return err
+}
+
+func (m *customDSeatModel) BatchConfirmByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64, freezeToken string, expireTime time.Time) error {
+	if len(seatIDs) == 0 {
+		return nil
+	}
+
+	inClause, args := buildInt64InClause(seatIDs)
+	query := fmt.Sprintf(
+		"update %s set `seat_status` = 3, `freeze_token` = ?, `freeze_expire_time` = ?, `edit_time` = ? where `status` = 1 and `program_id` = ? and `seat_status` = 1 and `id` in (%s)",
+		m.table,
+		inClause,
+	)
+
+	args = append([]interface{}{freezeToken, expireTime, time.Now(), programId}, args...)
 	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, args...)
 	return err
 }

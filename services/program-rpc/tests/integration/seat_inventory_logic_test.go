@@ -62,17 +62,19 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			t.Fatalf("expected consecutive seats [71001 71002], got %+v", resp.Seats)
 		}
 
-		seats := querySeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken)
-		if len(seats) != 2 {
-			t.Fatalf("expected 2 frozen seat rows, got %d", len(seats))
+		if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 0 {
+			t.Fatalf("expected freeze stage not to persist seat rows in db")
 		}
-		if seats[0].SeatStatus != testSeatStatusFrozen || seats[1].SeatStatus != testSeatStatusFrozen {
-			t.Fatalf("expected seats to be frozen, got %+v", seats)
+		if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 3 {
+			t.Fatalf("expected all seats to remain available in db before payment confirm")
 		}
 
 		freeze := querySeatFreezeByRequestNo(t, svcCtx, "req-seat-success")
 		if freeze.FreezeStatus != testFreezeStatusFrozen {
 			t.Fatalf("expected freeze status frozen, got %+v", freeze)
+		}
+		if freeze.FreezeToken != resp.FreezeToken {
+			t.Fatalf("expected redis freeze token %q, got %+v", resp.FreezeToken, freeze)
 		}
 	})
 
@@ -169,11 +171,12 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 		const expiredToken = "expired-freeze-token"
 		seedSeatInventoryProgram(t, svcCtx, programID, ticketCategoryID)
 		seedSeatFixtures(t, svcCtx,
-			seatFixture{ID: 73001, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusFrozen, FreezeToken: expiredToken, FreezeExpireTime: "2026-03-01 10:00:00"},
-			seatFixture{ID: 73002, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusFrozen, FreezeToken: expiredToken, FreezeExpireTime: "2026-03-01 10:00:00"},
+			seatFixture{ID: 73001, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+			seatFixture{ID: 73002, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusAvailable},
 			seatFixture{ID: 73003, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 2, ColCode: 1, SeatStatus: testSeatStatusAvailable},
 		)
-		seedSeatFreezeFixture(t, svcCtx, seatFreezeFixture{
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
+		seedRedisSeatFreezeFixture(t, svcCtx, seatFreezeFixture{
 			ID:               83001,
 			FreezeToken:      expiredToken,
 			RequestNo:        "req-expired-old",
@@ -183,7 +186,6 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			FreezeStatus:     testFreezeStatusFrozen,
 			ExpireTime:       "2026-03-01 10:00:00",
 		})
-		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
@@ -200,13 +202,13 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			t.Fatalf("expected 2 seats, got %d", len(resp.Seats))
 		}
 		if querySeatFreezeByToken(t, svcCtx, expiredToken).FreezeStatus != testFreezeStatusExpired {
-			t.Fatalf("expected expired freeze row to be marked expired")
+			t.Fatalf("expected expired redis freeze metadata to be marked expired")
 		}
 		if countSeatRowsByFreezeToken(t, svcCtx, expiredToken) != 0 {
-			t.Fatalf("expected expired freeze token to be released from seats")
+			t.Fatalf("expected expired freeze token not to exist in db seats")
 		}
-		if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 2 {
-			t.Fatalf("expected new freeze token to own 2 seats")
+		if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 0 {
+			t.Fatalf("expected new freeze token not to persist db seats before confirm")
 		}
 	})
 
@@ -307,10 +309,10 @@ func TestReleaseSeatFreeze(t *testing.T) {
 			t.Fatalf("expected all seats released for freeze token %q", freezeResp.FreezeToken)
 		}
 		if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 3 {
-			t.Fatalf("expected all seats available after release")
+			t.Fatalf("expected db seats to stay available after release")
 		}
 		if querySeatFreezeByToken(t, svcCtx, freezeResp.FreezeToken).FreezeStatus != testFreezeStatusReleased {
-			t.Fatalf("expected freeze record to be marked released")
+			t.Fatalf("expected redis freeze metadata to be marked released")
 		}
 	})
 
@@ -555,52 +557,33 @@ func querySeatRowsByFreezeToken(t *testing.T, svcCtx *svc.ServiceContext, freeze
 func querySeatFreezeByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) seatFreezeRow {
 	t.Helper()
 
-	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
-	defer db.Close()
-
-	var row seatFreezeRow
-	if err := db.QueryRow(
-		`SELECT freeze_token, request_no, freeze_status FROM d_seat_freeze WHERE status = 1 AND request_no = ?`,
-		requestNo,
-	).Scan(&row.FreezeToken, &row.RequestNo, &row.FreezeStatus); err != nil {
-		t.Fatalf("query seat freeze by request no error: %v", err)
+	meta := requireSeatFreezeMetadataByRequestNo(t, svcCtx, requestNo)
+	return seatFreezeRow{
+		FreezeToken:  meta.FreezeToken,
+		RequestNo:    meta.RequestNo,
+		FreezeStatus: int(meta.FreezeStatus),
 	}
-
-	return row
 }
 
 func querySeatFreezeByToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) seatFreezeRow {
 	t.Helper()
 
-	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
-	defer db.Close()
-
-	var row seatFreezeRow
-	if err := db.QueryRow(
-		`SELECT freeze_token, request_no, freeze_status FROM d_seat_freeze WHERE status = 1 AND freeze_token = ?`,
-		freezeToken,
-	).Scan(&row.FreezeToken, &row.RequestNo, &row.FreezeStatus); err != nil {
-		t.Fatalf("query seat freeze by token error: %v", err)
+	meta := requireSeatFreezeMetadataByToken(t, svcCtx, freezeToken)
+	return seatFreezeRow{
+		FreezeToken:  meta.FreezeToken,
+		RequestNo:    meta.RequestNo,
+		FreezeStatus: int(meta.FreezeStatus),
 	}
-
-	return row
 }
 
 func countSeatFreezesByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) int {
 	t.Helper()
 
-	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
-	defer db.Close()
-
-	var count int
-	if err := db.QueryRow(
-		`SELECT COUNT(1) FROM d_seat_freeze WHERE status = 1 AND request_no = ?`,
-		requestNo,
-	).Scan(&count); err != nil {
-		t.Fatalf("count seat freezes by request no error: %v", err)
+	if _, ok := findSeatFreezeMetadataByRequestNo(t, svcCtx, requestNo); ok {
+		return 1
 	}
 
-	return count
+	return 0
 }
 
 func countSeatRowsByFreezeToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) int {

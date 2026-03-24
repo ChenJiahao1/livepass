@@ -74,3 +74,7 @@ func ensureSeatFreezeLocker(svcCtx *svc.ServiceContext) svc.SeatFreezeLocker {
 func seatFreezeLockKey(programID, ticketCategoryID int64) string {
 	return fmt.Sprintf("seat_freeze:%d:%d", programID, ticketCategoryID)
 }
+
+func seatFreezeTokenLockKey(freezeToken string) string {
+	return fmt.Sprintf("seat_freeze_token:%s", freezeToken)
+}

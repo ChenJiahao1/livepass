@@ -53,10 +53,13 @@ func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
 	}
 
 	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 3 {
-		t.Fatalf("expected all seats available after release")
+		t.Fatalf("expected db seats to remain available after release")
 	}
 	if countSeatRowsByFreezeToken(t, svcCtx, autoResp.FreezeToken) != 0 {
 		t.Fatalf("expected all seats released for freeze token %q", autoResp.FreezeToken)
+	}
+	if querySeatFreezeByToken(t, svcCtx, autoResp.FreezeToken).FreezeStatus != testFreezeStatusReleased {
+		t.Fatalf("expected redis freeze metadata to be marked released")
 	}
 
 	releasedSnapshot := requireProgramSeatLedgerSnapshot(t, svcCtx, programID, ticketCategoryID)

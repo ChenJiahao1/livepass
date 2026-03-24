@@ -2,17 +2,15 @@ package logic
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"time"
 
 	"damai-go/pkg/xerr"
-	"damai-go/services/program-rpc/internal/model"
+	"damai-go/services/program-rpc/internal/seatcache"
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -37,73 +35,44 @@ func (l *ReleaseSeatFreezeLogic) ReleaseSeatFreeze(in *pb.ReleaseSeatFreezeReq) 
 	}
 
 	now := time.Now()
-	var resp *pb.ReleaseSeatFreezeResp
+	seatStore := ensureSeatStockStore(l.svcCtx)
+	if seatStore == nil {
+		return nil, mapReleaseSeatFreezeError(xerr.ErrProgramSeatLedgerNotReady)
+	}
 
-	err := l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
-		sessionConn := sqlx.NewSqlConnFromSession(session)
-		seatModel := model.NewDSeatModel(sessionConn)
-		seatFreezeModel := model.NewDSeatFreezeModel(sessionConn)
+	unlock := ensureSeatFreezeLocker(l.svcCtx).Lock(seatFreezeTokenLockKey(in.GetFreezeToken()))
+	defer unlock()
 
-		freeze, err := seatFreezeModel.FindOneByFreezeToken(ctx, in.GetFreezeToken())
-		if err != nil {
-			if errors.Is(err, model.ErrNotFound) {
-				return xerr.ErrSeatFreezeNotFound
-			}
-			return err
-		}
-
-		if freeze.FreezeStatus == seatFreezeStatusReleased || freeze.FreezeStatus == seatFreezeStatusExpired {
-			resp = &pb.ReleaseSeatFreezeResp{Success: true}
-			return nil
-		}
-
-		seatStore := ensureSeatStockStore(l.svcCtx)
-		if seatStore == nil {
-			return xerr.ErrProgramSeatLedgerNotReady
-		}
-		if err := seatStore.ReleaseFrozenSeats(ctx, freeze.ProgramId, freeze.TicketCategoryId, freeze.FreezeToken); err != nil {
-			return err
-		}
-
-		if !freeze.ExpireTime.After(now) {
-			if err := seatModel.ReleaseByFreezeToken(ctx, session, freeze.FreezeToken); err != nil {
-				return err
-			}
-			if err := seatFreezeModel.MarkExpiredByFreezeTokens(ctx, session, []string{freeze.FreezeToken}, now); err != nil {
-				return err
-			}
-			resp = &pb.ReleaseSeatFreezeResp{Success: true}
-			return nil
-		}
-
-		if err := seatModel.ReleaseByFreezeToken(ctx, session, freeze.FreezeToken); err != nil {
-			return err
-		}
-
-		freeze.FreezeStatus = seatFreezeStatusReleased
-		freeze.ReleaseReason = nullableString(in.GetReleaseReason())
-		freeze.ReleaseTime = sql.NullTime{Time: now, Valid: true}
-		freeze.EditTime = now
-		if err := seatFreezeModel.Update(ctx, freeze); err != nil {
-			return err
-		}
-
-		resp = &pb.ReleaseSeatFreezeResp{Success: true}
-		return nil
-	})
+	freeze, err := seatStore.GetFreezeMetadataByToken(l.ctx, in.GetFreezeToken())
 	if err != nil {
 		return nil, mapReleaseSeatFreezeError(err)
 	}
-
-	return resp, nil
-}
-
-func nullableString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{}
+	if freeze == nil {
+		return nil, mapReleaseSeatFreezeError(xerr.ErrSeatFreezeNotFound)
 	}
 
-	return sql.NullString{String: s, Valid: true}
+	if freeze.FreezeStatus == seatcache.SeatFreezeStatusReleased ||
+		freeze.FreezeStatus == seatcache.SeatFreezeStatusExpired ||
+		freeze.FreezeStatus == seatcache.SeatFreezeStatusConfirmed {
+		return &pb.ReleaseSeatFreezeResp{Success: true}, nil
+	}
+
+	if err := seatStore.ReleaseFrozenSeats(l.ctx, freeze.ProgramID, freeze.TicketCategoryID, freeze.FreezeToken); err != nil {
+		return nil, mapReleaseSeatFreezeError(err)
+	}
+
+	if !freeze.ExpireTime().After(now) {
+		if _, err := seatStore.MarkFreezeExpired(l.ctx, freeze.FreezeToken, now); err != nil {
+			return nil, mapReleaseSeatFreezeError(err)
+		}
+		return &pb.ReleaseSeatFreezeResp{Success: true}, nil
+	}
+
+	if _, err := seatStore.MarkFreezeReleased(l.ctx, freeze.FreezeToken, in.GetReleaseReason(), now); err != nil {
+		return nil, mapReleaseSeatFreezeError(err)
+	}
+
+	return &pb.ReleaseSeatFreezeResp{Success: true}, nil
 }
 
 func mapReleaseSeatFreezeError(err error) error {
