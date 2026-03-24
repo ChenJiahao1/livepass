@@ -207,6 +207,38 @@ func resetProgramDomainState(t *testing.T) {
 	} {
 		execProgramSQLFile(t, db, relativePath)
 	}
+
+	clearProgramRedisState(t)
+}
+
+func clearProgramRedisState(t *testing.T) {
+	t.Helper()
+
+	redis, err := xredis.New(xredis.Config{
+		Host: "127.0.0.1:6379",
+		Type: "node",
+	})
+	if err != nil {
+		t.Fatalf("new program test redis client error: %v", err)
+	}
+
+	for _, pattern := range []string{
+		"cache:dProgram:id:*",
+		"cache:dProgramGroup:id:*",
+		"cache:dProgramShowTime:first:programId:*",
+		testProgramSeatLedgerPrefix + ":*",
+	} {
+		keys, err := redis.KeysCtx(context.Background(), pattern)
+		if err != nil {
+			t.Fatalf("list program redis keys by pattern %q error: %v", pattern, err)
+		}
+		if len(keys) == 0 {
+			continue
+		}
+		if _, err := redis.DelCtx(context.Background(), keys...); err != nil {
+			t.Fatalf("delete program redis keys by pattern %q error: %v", pattern, err)
+		}
+	}
 }
 
 func seedProgramFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...programFixture) {

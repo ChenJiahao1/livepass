@@ -9,6 +9,14 @@ import (
 )
 
 type fakeProgramRPC struct {
+	createProgramResp    *programrpc.CreateProgramResp
+	createProgramErr     error
+	lastCreateProgramReq *programrpc.CreateProgramReq
+
+	updateProgramResp    *programrpc.BoolResp
+	updateProgramErr     error
+	lastUpdateProgramReq *programrpc.UpdateProgramReq
+
 	listProgramCategoriesResp    *programrpc.ProgramCategoryListResp
 	listProgramCategoriesErr     error
 	lastListProgramCategoriesReq *programrpc.Empty
@@ -40,6 +48,16 @@ type fakeProgramRPC struct {
 	releaseSeatFreezeResp    *programrpc.ReleaseSeatFreezeResp
 	releaseSeatFreezeErr     error
 	lastReleaseSeatFreezeReq *programrpc.ReleaseSeatFreezeReq
+}
+
+func (f *fakeProgramRPC) CreateProgram(ctx context.Context, in *programrpc.CreateProgramReq, opts ...grpc.CallOption) (*programrpc.CreateProgramResp, error) {
+	f.lastCreateProgramReq = in
+	return f.createProgramResp, f.createProgramErr
+}
+
+func (f *fakeProgramRPC) UpdateProgram(ctx context.Context, in *programrpc.UpdateProgramReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	f.lastUpdateProgramReq = in
+	return f.updateProgramResp, f.updateProgramErr
 }
 
 func (f *fakeProgramRPC) ListProgramCategories(ctx context.Context, in *programrpc.Empty, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {

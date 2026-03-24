@@ -146,6 +146,7 @@ func TestConfirmSeatFreeze(t *testing.T) {
 			FreezeStatus:     testFreezeStatusFrozen,
 			ExpireTime:       "2026-12-31 20:00:00",
 		})
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 		l := logicpkg.NewConfirmSeatFreezeLogic(context.Background(), svcCtx)
 		resp, err := l.ConfirmSeatFreeze(&pb.ConfirmSeatFreezeReq{FreezeToken: freezeToken})

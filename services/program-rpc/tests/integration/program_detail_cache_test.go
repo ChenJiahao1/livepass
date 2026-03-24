@@ -143,6 +143,60 @@ func TestGetProgramDetailReturnsBackfilledProgramImmediatelyAfterWrite(t *testin
 	}
 }
 
+func TestResetProgramDomainStateClearsRedisProgramCachesAcrossServiceContexts(t *testing.T) {
+	const (
+		programID     int64  = 10001
+		programGroup  int64  = 20001
+		baselineTitle string = "Phase1 示例演出"
+		staleTitle    string = "reset 前遗留的 Redis 标题"
+	)
+
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+		if svcCtx.Redis == nil {
+			return
+		}
+
+		if _, err := svcCtx.Redis.DelCtx(
+			context.Background(),
+			model.ProgramCacheKey(programID),
+			model.ProgramFirstShowTimeCacheKey(programID),
+			model.ProgramGroupCacheKey(programGroup),
+		); err != nil {
+			t.Fatalf("cleanup program redis cache error: %v", err)
+		}
+	})
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	mustExecProgramSQL(t, db, "UPDATE d_program SET title = ? WHERE id = ?", staleTitle, programID)
+	if err := db.Close(); err != nil {
+		t.Fatalf("close db error: %v", err)
+	}
+
+	staleLogic := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
+	staleResp, err := staleLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	if err != nil {
+		t.Fatalf("prime stale program detail cache returned error: %v", err)
+	}
+	if staleResp.Title != staleTitle {
+		t.Fatalf("expected stale title to be cached before reset, got %+v", staleResp)
+	}
+
+	resetProgramDomainState(t)
+
+	freshSvcCtx := newProgramTestServiceContext(t)
+	freshLogic := logicpkg.NewGetProgramDetailLogic(context.Background(), freshSvcCtx)
+	freshResp, err := freshLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	if err != nil {
+		t.Fatalf("GetProgramDetail after reset returned error: %v", err)
+	}
+	if freshResp.Title != baselineTitle {
+		t.Fatalf("expected reset to clear stale redis caches and restore baseline title %q, got %+v", baselineTitle, freshResp)
+	}
+}
+
 func assertProgramRelatedCacheKeysMissing(t *testing.T, svcCtx *svc.ServiceContext, programID, programGroupID int64) {
 	t.Helper()
 
