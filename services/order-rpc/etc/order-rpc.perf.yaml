@@ -10,8 +10,8 @@ Etcd:
   Key: order.rpc
 MySQL:
   DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
-  MaxOpenConns: 64
-  MaxIdleConns: 32
+  MaxOpenConns: 24
+  MaxIdleConns: 8
   ConnMaxLifetime: 5m
   ConnMaxIdleTime: 2m
 StoreRedis:

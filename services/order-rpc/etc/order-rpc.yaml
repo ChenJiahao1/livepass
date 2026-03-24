@@ -10,8 +10,8 @@ Etcd:
   Key: order.rpc
 MySQL:
   DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
-  MaxOpenConns: 64
-  MaxIdleConns: 16
+  MaxOpenConns: 24
+  MaxIdleConns: 8
   ConnMaxLifetime: 3m
   ConnMaxIdleTime: 1m
 StoreRedis:
@@ -46,7 +46,7 @@ Kafka:
     - 127.0.0.1:9094
   TopicOrderCreate: order.create.command.v1
   ConsumerGroup: damai-go-order-create
-  TopicPartitions: 1
+  TopicPartitions: 5
   ConsumerWorkers: 1
   # 对齐 Java 开源版语义：超过该延迟的创建消息按废单处理，consumer 释放锁座且不补单。
   # 这不是“消息绝不丢失”的配置项，而是“超时废单回滚”阈值。

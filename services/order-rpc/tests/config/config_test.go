@@ -31,17 +31,23 @@ func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T
 	if c.PayRpc.Timeout != 4000 {
 		t.Fatalf("expected pay rpc timeout 4000, got %d", c.PayRpc.Timeout)
 	}
-	if c.MySQL.MaxOpenConns != 64 {
-		t.Fatalf("expected mysql max open conns 64, got %d", c.MySQL.MaxOpenConns)
+	if c.MySQL.MaxOpenConns != 24 {
+		t.Fatalf("expected mysql max open conns 24, got %d", c.MySQL.MaxOpenConns)
 	}
-	if c.MySQL.MaxIdleConns != 16 {
-		t.Fatalf("expected mysql max idle conns 16, got %d", c.MySQL.MaxIdleConns)
+	if c.MySQL.MaxIdleConns != 8 {
+		t.Fatalf("expected mysql max idle conns 8, got %d", c.MySQL.MaxIdleConns)
 	}
 	if c.MySQL.ConnMaxLifetime != 3*time.Minute {
 		t.Fatalf("expected mysql conn max lifetime 3m, got %s", c.MySQL.ConnMaxLifetime)
 	}
 	if c.MySQL.ConnMaxIdleTime != time.Minute {
 		t.Fatalf("expected mysql conn max idle time 1m, got %s", c.MySQL.ConnMaxIdleTime)
+	}
+	if c.Kafka.TopicPartitions != 5 {
+		t.Fatalf("expected kafka topic partitions 5, got %d", c.Kafka.TopicPartitions)
+	}
+	if c.Kafka.ConsumerWorkers != 1 {
+		t.Fatalf("expected kafka consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
 	}
 }
 
@@ -66,11 +72,11 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	if c.PayRpc.Timeout != 4000 {
 		t.Fatalf("expected pay rpc timeout 4000, got %d", c.PayRpc.Timeout)
 	}
-	if c.MySQL.MaxOpenConns != 64 {
-		t.Fatalf("expected mysql max open conns 64, got %d", c.MySQL.MaxOpenConns)
+	if c.MySQL.MaxOpenConns != 24 {
+		t.Fatalf("expected mysql max open conns 24, got %d", c.MySQL.MaxOpenConns)
 	}
-	if c.MySQL.MaxIdleConns != 32 {
-		t.Fatalf("expected mysql max idle conns 32, got %d", c.MySQL.MaxIdleConns)
+	if c.MySQL.MaxIdleConns != 8 {
+		t.Fatalf("expected mysql max idle conns 8, got %d", c.MySQL.MaxIdleConns)
 	}
 	if c.MySQL.ConnMaxLifetime != 5*time.Minute {
 		t.Fatalf("expected mysql conn max lifetime 5m, got %s", c.MySQL.ConnMaxLifetime)

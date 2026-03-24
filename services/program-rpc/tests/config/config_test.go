@@ -23,6 +23,12 @@ func TestLoadProgramRPCConfigUsesDedicatedListenPort(t *testing.T) {
 	if c.ListenOn != "0.0.0.0:8083" {
 		t.Fatalf("expected dedicated program-rpc listen address 0.0.0.0:8083, got %q", c.ListenOn)
 	}
+	if c.MySQL.MaxOpenConns != 14 {
+		t.Fatalf("expected mysql max open conns 14, got %d", c.MySQL.MaxOpenConns)
+	}
+	if c.MySQL.MaxIdleConns != 4 {
+		t.Fatalf("expected mysql max idle conns 4, got %d", c.MySQL.MaxIdleConns)
+	}
 
 	cacheField := reflect.ValueOf(c).FieldByName("Cache")
 	if !cacheField.IsValid() {

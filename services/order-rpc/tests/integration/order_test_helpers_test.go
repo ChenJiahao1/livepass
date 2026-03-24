@@ -87,6 +87,7 @@ type fakeOrderProgramRPC struct {
 	getProgramPreorderErr             error
 	lastGetProgramPreorderReq         *programrpc.GetProgramDetailReq
 
+	autoAssignAndFreezeSeatsFunc    func(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq) (*programrpc.AutoAssignAndFreezeSeatsResp, error)
 	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
 	autoAssignAndFreezeSeatsErr     error
 	lastAutoAssignAndFreezeSeatsReq *programrpc.AutoAssignAndFreezeSeatsReq
@@ -785,6 +786,9 @@ func (f *fakeOrderProgramRPC) ListTicketCategoriesByProgram(ctx context.Context,
 
 func (f *fakeOrderProgramRPC) AutoAssignAndFreezeSeats(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
 	f.lastAutoAssignAndFreezeSeatsReq = in
+	if f.autoAssignAndFreezeSeatsFunc != nil {
+		return f.autoAssignAndFreezeSeatsFunc(ctx, in)
+	}
 	return f.autoAssignAndFreezeSeatsResp, f.autoAssignAndFreezeSeatsErr
 }
 

@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"time"
 
 	"damai-go/services/order-rpc/internal/svc"
 	programrpc "damai-go/services/program-rpc/programrpc"
@@ -12,6 +13,7 @@ import (
 const (
 	orderCreateSendFailedReleaseReason = "order_create_failed"
 	orderCreateExpiredReleaseReason    = "order_create_expired"
+	orderCreateCompensationTimeout     = 2 * time.Second
 )
 
 func compensateOrderCreateSendFailureLegacy(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken string) {
@@ -23,8 +25,12 @@ func compensateOrderCreateExpired(ctx context.Context, svcCtx *svc.ServiceContex
 	releaseOrderCreateFreeze(ctx, svcCtx, freezeToken, orderCreateExpiredReleaseReason)
 }
 
-func compensateOrderCreateSeatFreezeFailure(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64) {
-	releaseOrderCreatePurchaseLimit(ctx, svcCtx, userID, programID, orderNumber)
+func compensateOrderCreateSeatFreezeFailure(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64, freezeReq *programrpc.AutoAssignAndFreezeSeatsReq) {
+	compensationCtx, cancel := newOrderCreateCompensationContext()
+	defer cancel()
+
+	releaseOrderCreatePurchaseLimit(compensationCtx, svcCtx, userID, programID, orderNumber)
+	recoverAndReleaseOrderCreateFreeze(compensationCtx, svcCtx, freezeReq)
 }
 
 func compensateOrderCreateSendFailure(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64, freezeToken string) {
@@ -43,6 +49,33 @@ func releaseOrderCreateFreeze(ctx context.Context, svcCtx *svc.ServiceContext, f
 	}); err != nil {
 		logx.WithContext(ctx).Errorf("release seat freeze compensation failed, freezeToken=%s err=%v", freezeToken, err)
 	}
+}
+
+func recoverAndReleaseOrderCreateFreeze(ctx context.Context, svcCtx *svc.ServiceContext, freezeReq *programrpc.AutoAssignAndFreezeSeatsReq) {
+	if svcCtx == nil || svcCtx.ProgramRpc == nil || freezeReq == nil {
+		return
+	}
+	if freezeReq.GetProgramId() <= 0 || freezeReq.GetTicketCategoryId() <= 0 || freezeReq.GetCount() <= 0 || freezeReq.GetRequestNo() == "" {
+		return
+	}
+
+	freezeResp, err := svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(ctx, freezeReq)
+	if err != nil {
+		logx.WithContext(ctx).Errorf(
+			"recover seat freeze compensation failed, requestNo=%s programId=%d ticketCategoryId=%d err=%v",
+			freezeReq.GetRequestNo(),
+			freezeReq.GetProgramId(),
+			freezeReq.GetTicketCategoryId(),
+			err,
+		)
+		return
+	}
+
+	releaseOrderCreateFreeze(ctx, svcCtx, freezeResp.GetFreezeToken(), orderCreateSendFailedReleaseReason)
+}
+
+func newOrderCreateCompensationContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), orderCreateCompensationTimeout)
 }
 
 func releaseOrderCreatePurchaseLimit(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64) {

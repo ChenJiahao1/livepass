@@ -87,15 +87,16 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	if closeAfter <= 0 {
 		closeAfter = 15 * time.Minute
 	}
-	freezeResp, err := l.svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(l.ctx, &programrpc.AutoAssignAndFreezeSeatsReq{
+	freezeReq := &programrpc.AutoAssignAndFreezeSeatsReq{
 		ProgramId:        in.GetProgramId(),
 		TicketCategoryId: in.GetTicketCategoryId(),
 		Count:            int64(len(in.GetTicketUserIds())),
 		RequestNo:        buildFreezeRequestNo(),
 		FreezeSeconds:    int64(closeAfter / time.Second),
-	})
+	}
+	freezeResp, err := l.svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(l.ctx, freezeReq)
 	if err != nil {
-		compensateOrderCreateSeatFreezeFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber)
+		compensateOrderCreateSeatFreezeFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeReq)
 		return nil, err
 	}
 

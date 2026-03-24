@@ -21,6 +21,12 @@ func TestLoadUserRPCConfig(t *testing.T) {
 	if c.MySQL.DataSource == "" {
 		t.Fatal("expected mysql datasource to be loaded")
 	}
+	if c.MySQL.MaxOpenConns != 10 {
+		t.Fatalf("expected mysql max open conns 10, got %d", c.MySQL.MaxOpenConns)
+	}
+	if c.MySQL.MaxIdleConns != 4 {
+		t.Fatalf("expected mysql max idle conns 4, got %d", c.MySQL.MaxIdleConns)
+	}
 
 	if c.UserAuth.ChannelMap["0001"] == "" {
 		t.Fatal("expected user auth channel map to be loaded")

@@ -676,6 +676,60 @@ func TestCreateOrderRollsBackPurchaseLimitWhenProgramFreezeFails(t *testing.T) {
 	}
 }
 
+func TestCreateOrderReleasesRecoveredSeatFreezeWhenProgramFreezeTimesOutAfterFreezeSucceeds(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+	seedPurchaseLimitLedger(t, svcCtx, 3001, 10001, 0, nil)
+
+	var freezeReqs []*programrpc.AutoAssignAndFreezeSeatsReq
+	programRPC.autoAssignAndFreezeSeatsFunc = func(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
+		freezeReqs = append(freezeReqs, in)
+		if len(freezeReqs) == 1 {
+			return nil, status.Error(codes.DeadlineExceeded, "context deadline exceeded")
+		}
+		return &programrpc.AutoAssignAndFreezeSeatsResp{
+			FreezeToken: "freeze-recovered-after-timeout",
+			ExpireTime:  "2026-12-31 19:45:00",
+			Seats: []*programrpc.SeatInfo{
+				{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+			},
+		}, nil
+	}
+
+	_, err := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:           3001,
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		TicketUserIds:    []int64{701},
+	})
+	if status.Code(err) != codes.DeadlineExceeded {
+		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+	if len(freezeReqs) != 2 {
+		t.Fatalf("expected two freeze attempts for recovery, got %d", len(freezeReqs))
+	}
+	if freezeReqs[0].RequestNo == "" || freezeReqs[1].RequestNo != freezeReqs[0].RequestNo {
+		t.Fatalf("expected recovery to reuse request no, got first=%+v second=%+v", freezeReqs[0], freezeReqs[1])
+	}
+	if programRPC.releaseSeatFreezeCalls != 1 {
+		t.Fatalf("expected recovered freeze to be released once, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+	if programRPC.lastReleaseSeatFreezeReq == nil || programRPC.lastReleaseSeatFreezeReq.FreezeToken != "freeze-recovered-after-timeout" {
+		t.Fatalf("unexpected release seat freeze request: %+v", programRPC.lastReleaseSeatFreezeReq)
+	}
+
+	snapshot := requirePurchaseLimitSnapshot(t, svcCtx, 3001, 10001)
+	if snapshot.ActiveCount != 0 || len(snapshot.Reservations) != 0 {
+		t.Fatalf("expected purchase limit ledger rollback after timeout recovery, got %+v", snapshot)
+	}
+}
+
 func TestCreateOrderDoesNotCreatePurchaseLimitLedgerWhenAccountLimitDisabledAndKafkaSendFails(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
