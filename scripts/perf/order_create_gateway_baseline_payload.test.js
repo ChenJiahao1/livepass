@@ -6,6 +6,7 @@ import {
   buildOrderCreatePayload,
   parseTicketUserIdLiterals,
   parseUserPool,
+  pickTicketUserIds,
   resolveSteadyStartTime,
   selectUserPoolEntry,
 } from './order_create_gateway_baseline_payload.js';
@@ -65,8 +66,36 @@ test('parseUserPool keeps jwt and exact ticket user id digits', () => {
       ]),
     ),
     [
-      { jwt: 'token-a', ticketUserId: '116273384188280835' },
-      { jwt: 'token-b', ticketUserId: '116273384188280836' },
+      {
+        jwt: 'token-a',
+        ticketUserId: '116273384188280835',
+        ticketUserIds: ['116273384188280835'],
+      },
+      {
+        jwt: 'token-b',
+        ticketUserId: '116273384188280836',
+        ticketUserIds: ['116273384188280836'],
+      },
+    ],
+  );
+});
+
+test('parseUserPool keeps multiple ticket user ids for one user', () => {
+  assert.deepEqual(
+    parseUserPool(
+      JSON.stringify([
+        {
+          jwt: 'token-a',
+          ticketUserIds: ['116273384188280835', '116273384188280836', '116273384188280837'],
+        },
+      ]),
+    ),
+    [
+      {
+        jwt: 'token-a',
+        ticketUserId: '116273384188280835',
+        ticketUserIds: ['116273384188280835', '116273384188280836', '116273384188280837'],
+      },
     ],
   );
 });
@@ -81,6 +110,18 @@ test('selectUserPoolEntry rotates by absolute iteration index', () => {
   assert.deepEqual(selectUserPoolEntry(userPool, 0), userPool[0]);
   assert.deepEqual(selectUserPoolEntry(userPool, 1), userPool[1]);
   assert.deepEqual(selectUserPoolEntry(userPool, 4), userPool[1]);
+});
+
+test('pickTicketUserIds picks between one and three ids from a pool entry', () => {
+  const userEntry = {
+    jwt: 'token-a',
+    ticketUserId: '1001',
+    ticketUserIds: ['1001', '1002', '1003'],
+  };
+
+  assert.deepEqual(pickTicketUserIds(userEntry, () => 0.0), ['1001']);
+  assert.deepEqual(pickTicketUserIds(userEntry, () => 0.4), ['1001', '1002']);
+  assert.deepEqual(pickTicketUserIds(userEntry, () => 0.9), ['1001', '1002', '1003']);
 });
 
 test('buildConstantArrivalRateOptions emits a constant-arrival-rate scenario', () => {

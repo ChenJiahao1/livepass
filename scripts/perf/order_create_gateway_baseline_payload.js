@@ -71,15 +71,28 @@ export function parseUserPool(rawValue) {
     }
 
     const jwt = String(entry.jwt || '').trim();
-    const ticketUserId = String(entry.ticketUserId || '').trim();
     if (!jwt) {
       throw new Error(`missing user pool jwt at index ${index}`);
     }
-    assertDigits(ticketUserId, `user pool ticket user id at index ${index}`);
+
+    const rawTicketUserIds = Array.isArray(entry.ticketUserIds)
+      ? entry.ticketUserIds
+      : [entry.ticketUserId];
+    const ticketUserIds = rawTicketUserIds
+      .map((value) => String(value || '').trim())
+      .filter(Boolean);
+    if (ticketUserIds.length === 0) {
+      throw new Error(`missing user pool ticket user ids at index ${index}`);
+    }
+
+    ticketUserIds.forEach((ticketUserId) => {
+      assertDigits(ticketUserId, `user pool ticket user id at index ${index}`);
+    });
 
     return {
       jwt,
-      ticketUserId,
+      ticketUserId: ticketUserIds[0],
+      ticketUserIds,
     };
   });
 }
@@ -91,6 +104,25 @@ export function selectUserPoolEntry(userPool, iterationIndex) {
 
   const normalizedIndex = Math.abs(Number(iterationIndex) || 0) % userPool.length;
   return userPool[normalizedIndex];
+}
+
+export function pickTicketUserIds(userEntry, randomFn = Math.random) {
+  const hasTicketUserIds =
+    userEntry &&
+    Array.isArray(userEntry.ticketUserIds) &&
+    userEntry.ticketUserIds.length > 0;
+  const ticketUserIds = hasTicketUserIds
+    ? userEntry.ticketUserIds
+    : [String((userEntry && userEntry.ticketUserId) || '').trim()].filter(Boolean);
+  if (ticketUserIds.length === 0) {
+    throw new Error('missing ticket user ids in user pool entry');
+  }
+
+  const maxSelectable = Math.min(3, ticketUserIds.length);
+  const rawRandom = Number(randomFn());
+  const normalizedRandom = Number.isFinite(rawRandom) ? Math.min(Math.max(rawRandom, 0), 0.999999999999) : 0;
+  const selectedCount = Math.min(maxSelectable, Math.floor(normalizedRandom * maxSelectable) + 1);
+  return ticketUserIds.slice(0, selectedCount);
 }
 
 export function buildOrderCreatePayload({
