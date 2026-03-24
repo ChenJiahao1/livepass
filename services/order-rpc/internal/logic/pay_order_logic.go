@@ -36,8 +36,16 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 		return nil, err
 	}
 
+	unlock, err := lockOrderStatusGuard(l.ctx, l.svcCtx, in.GetOrderNumber())
+	if err != nil {
+		return nil, mapOrderError(err)
+	}
+	if unlock != nil {
+		defer unlock()
+	}
+
 	var resp *pb.PayOrderResp
-	err := l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
+	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
 		order, err := l.svcCtx.DOrderModel.FindOneByOrderNumberForUpdate(ctx, session, in.GetOrderNumber())
 		if err != nil {
 			if errors.Is(err, model.ErrNotFound) {

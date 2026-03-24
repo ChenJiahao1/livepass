@@ -10,6 +10,7 @@ import (
 	"damai-go/pkg/xerr"
 	"damai-go/pkg/xid"
 	"damai-go/services/order-rpc/internal/model"
+	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 	payrpc "damai-go/services/pay-rpc/payrpc"
@@ -221,7 +222,7 @@ func mapOrderError(err error) error {
 		return status.Error(codes.InvalidArgument, err.Error())
 	case errors.Is(err, xerr.ErrOrderNotFound), errors.Is(err, xerr.ErrPayBillNotFound):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, xerr.ErrOrderSubmitTooFrequent):
+	case errors.Is(err, xerr.ErrOrderSubmitTooFrequent), errors.Is(err, xerr.ErrOrderOperateTooFrequent):
 		return status.Error(codes.ResourceExhausted, err.Error())
 	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderLimitLedgerNotReady), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid), errors.Is(err, xerr.ErrOrderRefundNotAllowed), errors.Is(err, xerr.ErrOrderRefundWindowClosed):
 		return status.Error(codes.FailedPrecondition, err.Error())
@@ -237,8 +238,16 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		return false, xerr.ErrInvalidParam
 	}
 
+	unlock, err := lockOrderStatusGuard(ctx, svcCtx, orderNumber)
+	if err != nil {
+		return false, err
+	}
+	if unlock != nil {
+		defer unlock()
+	}
+
 	var changed bool
-	err := svcCtx.SqlConn.TransactCtx(ctx, func(txCtx context.Context, session sqlx.Session) error {
+	err = svcCtx.SqlConn.TransactCtx(ctx, func(txCtx context.Context, session sqlx.Session) error {
 		order, err := svcCtx.DOrderModel.FindOneByOrderNumberForUpdate(txCtx, session, orderNumber)
 		if err != nil {
 			if errors.Is(err, model.ErrNotFound) {
@@ -278,6 +287,22 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 	}
 
 	return changed, nil
+}
+
+func lockOrderStatusGuard(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) (repeatguard.UnlockFunc, error) {
+	if svcCtx == nil || svcCtx.RepeatGuard == nil {
+		return nil, nil
+	}
+
+	unlock, err := svcCtx.RepeatGuard.Lock(ctx, repeatguard.OrderStatusKey(orderNumber))
+	if err != nil {
+		if errors.Is(err, repeatguard.ErrLocked) {
+			return nil, xerr.ErrOrderOperateTooFrequent
+		}
+		return nil, err
+	}
+
+	return unlock, nil
 }
 
 func buildFreezeRequestNo() string {

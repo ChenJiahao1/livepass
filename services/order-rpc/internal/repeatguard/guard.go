@@ -17,3 +17,7 @@ type Guard interface {
 func OrderCreateKey(userID, programID int64) string {
 	return fmt.Sprintf("create_order:%d:%d", userID, programID)
 }
+
+func OrderStatusKey(orderNumber int64) string {
+	return fmt.Sprintf("order_status:%d", orderNumber)
+}

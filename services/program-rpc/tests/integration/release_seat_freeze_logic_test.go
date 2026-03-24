@@ -6,6 +6,9 @@ import (
 
 	logicpkg "damai-go/services/program-rpc/internal/logic"
 	"damai-go/services/program-rpc/pb"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
@@ -68,5 +71,52 @@ func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
 	}
 	if len(releasedSnapshot.FrozenSeats[autoResp.FreezeToken]) != 0 {
 		t.Fatalf("expected seat ledger frozen seats to be cleared, got %+v", releasedSnapshot.FrozenSeats[autoResp.FreezeToken])
+	}
+}
+
+func TestReleaseSeatFreezeRejectsConfirmedFreeze(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	const programID int64 = 52102
+	const ticketCategoryID int64 = 62102
+	seedSeatInventoryProgram(t, svcCtx, programID, ticketCategoryID)
+	seedSeatFixtures(t, svcCtx,
+		seatFixture{ID: 76201, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1},
+		seatFixture{ID: 76202, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2},
+	)
+	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
+
+	autoResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
+		ProgramId:        programID,
+		TicketCategoryId: ticketCategoryID,
+		Count:            2,
+		RequestNo:        "req-seat-release-confirmed",
+		FreezeSeconds:    900,
+	})
+	if err != nil {
+		t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
+	}
+	if _, err := logicpkg.NewConfirmSeatFreezeLogic(context.Background(), svcCtx).ConfirmSeatFreeze(&pb.ConfirmSeatFreezeReq{
+		FreezeToken: autoResp.FreezeToken,
+	}); err != nil {
+		t.Fatalf("ConfirmSeatFreeze returned error: %v", err)
+	}
+
+	_, err = logicpkg.NewReleaseSeatFreezeLogic(context.Background(), svcCtx).ReleaseSeatFreeze(&pb.ReleaseSeatFreezeReq{
+		FreezeToken:   autoResp.FreezeToken,
+		ReleaseReason: "cancel after confirm",
+	})
+	if err == nil {
+		t.Fatalf("expected failed precondition error")
+	}
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition, got %s", status.Code(err))
+	}
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusSold) != 2 {
+		t.Fatalf("expected sold seats to remain unchanged after rejected release")
+	}
+	if querySeatFreezeByToken(t, svcCtx, autoResp.FreezeToken).FreezeStatus != testFreezeStatusConfirmed {
+		t.Fatalf("expected freeze metadata to remain confirmed")
 	}
 }

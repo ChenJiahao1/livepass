@@ -35,6 +35,7 @@ var (
 	ErrOrderPurchaseLimitExceeded = errors.New("order purchase limit exceeded")
 	ErrOrderLimitLedgerNotReady   = errors.New("order limit ledger not ready")
 	ErrOrderSubmitTooFrequent     = errors.New("提交频繁，请稍后重试")
+	ErrOrderOperateTooFrequent    = errors.New("订单处理中，请稍后重试")
 
 	ErrPayBillNotFound = errors.New("pay bill not found")
 )

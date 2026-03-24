@@ -52,6 +52,9 @@ func (l *ConfirmSeatFreezeLogic) ConfirmSeatFreeze(in *pb.ConfirmSeatFreezeReq) 
 	if freeze == nil {
 		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeNotFound)
 	}
+	if freeze.FreezeStatus == seatcache.SeatFreezeStatusConfirmed {
+		return &pb.ConfirmSeatFreezeResp{Success: true}, nil
+	}
 	if freeze.FreezeStatus != seatcache.SeatFreezeStatusFrozen || !freeze.ExpireTime().After(now) {
 		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
 	}

@@ -15,6 +15,8 @@ import (
 func TestPayOrder(t *testing.T) {
 	t.Run("pay success updates order and ticket snapshots to paid", func(t *testing.T) {
 		svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
+		repeatGuard := &fakeOrderRepeatGuard{}
+		svcCtx.RepeatGuard = repeatGuard
 		resetOrderDomainState(t)
 		seedOrderFixtures(t, svcCtx, orderFixture{
 			ID:              89001,
@@ -60,6 +62,12 @@ func TestPayOrder(t *testing.T) {
 		}
 		if programRPC.lastConfirmSeatFreezeReq == nil || programRPC.lastConfirmSeatFreezeReq.FreezeToken != "freeze-pay-success" {
 			t.Fatalf("unexpected confirm request: %+v", programRPC.lastConfirmSeatFreezeReq)
+		}
+		if repeatGuard.lockCalls != 1 || repeatGuard.lastKey != "order_status:92001" {
+			t.Fatalf("expected order status guard lock, got calls=%d key=%q", repeatGuard.lockCalls, repeatGuard.lastKey)
+		}
+		if repeatGuard.unlockCalls != 1 {
+			t.Fatalf("expected order status guard unlock once, got %d", repeatGuard.unlockCalls)
 		}
 
 		getResp, err := logicpkg.NewGetOrderLogic(context.Background(), svcCtx).GetOrder(&pb.GetOrderReq{

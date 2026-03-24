@@ -13,6 +13,8 @@ import (
 
 func TestCancelOrderCancelsOwnerUnpaidOrder(t *testing.T) {
 	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
+	repeatGuard := &fakeOrderRepeatGuard{}
+	svcCtx.RepeatGuard = repeatGuard
 	resetOrderDomainState(t)
 	seedOrderFixtures(t, svcCtx, orderFixture{
 		ID:          8001,
@@ -51,6 +53,12 @@ func TestCancelOrderCancelsOwnerUnpaidOrder(t *testing.T) {
 	}
 	if programRPC.releaseSeatFreezeCalls != 1 {
 		t.Fatalf("expected one freeze release call, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+	if repeatGuard.lockCalls != 1 || repeatGuard.lastKey != "order_status:91001" {
+		t.Fatalf("expected order status guard lock, got calls=%d key=%q", repeatGuard.lockCalls, repeatGuard.lastKey)
+	}
+	if repeatGuard.unlockCalls != 1 {
+		t.Fatalf("expected order status guard unlock once, got %d", repeatGuard.unlockCalls)
 	}
 }
 

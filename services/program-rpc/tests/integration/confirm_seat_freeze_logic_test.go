@@ -232,4 +232,47 @@ func TestConfirmSeatFreeze(t *testing.T) {
 			t.Fatalf("expected failed precondition, got %s", status.Code(err))
 		}
 	})
+
+	t.Run("confirmed freeze is idempotent", func(t *testing.T) {
+		svcCtx := newProgramTestServiceContext(t)
+		resetProgramDomainState(t)
+
+		const programID int64 = 53004
+		const ticketCategoryID int64 = 63004
+		seedSeatInventoryProgram(t, svcCtx, programID, ticketCategoryID)
+		seedSeatFixtures(t, svcCtx,
+			seatFixture{ID: 77301, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+			seatFixture{ID: 77302, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusAvailable},
+		)
+		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
+		freezeResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
+			ProgramId:        programID,
+			TicketCategoryId: ticketCategoryID,
+			Count:            2,
+			RequestNo:        "req-confirm-idempotent",
+			FreezeSeconds:    900,
+		})
+		if err != nil {
+			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
+		}
+
+		logic := logicpkg.NewConfirmSeatFreezeLogic(context.Background(), svcCtx)
+		if _, err := logic.ConfirmSeatFreeze(&pb.ConfirmSeatFreezeReq{FreezeToken: freezeResp.FreezeToken}); err != nil {
+			t.Fatalf("first ConfirmSeatFreeze returned error: %v", err)
+		}
+
+		resp, err := logic.ConfirmSeatFreeze(&pb.ConfirmSeatFreezeReq{FreezeToken: freezeResp.FreezeToken})
+		if err != nil {
+			t.Fatalf("expected idempotent confirm success, got error: %v", err)
+		}
+		if !resp.Success {
+			t.Fatalf("expected success response on repeated confirm")
+		}
+		if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusSold) != 2 {
+			t.Fatalf("expected sold seats to remain unchanged after repeated confirm")
+		}
+		if querySeatFreezeByToken(t, svcCtx, freezeResp.FreezeToken).FreezeStatus != testFreezeStatusConfirmed {
+			t.Fatalf("expected freeze metadata to remain confirmed")
+		}
+	})
 }

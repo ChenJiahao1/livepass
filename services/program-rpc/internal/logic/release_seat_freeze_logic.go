@@ -50,10 +50,12 @@ func (l *ReleaseSeatFreezeLogic) ReleaseSeatFreeze(in *pb.ReleaseSeatFreezeReq) 
 	if freeze == nil {
 		return nil, mapReleaseSeatFreezeError(xerr.ErrSeatFreezeNotFound)
 	}
+	if freeze.FreezeStatus == seatcache.SeatFreezeStatusConfirmed {
+		return nil, mapReleaseSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
+	}
 
 	if freeze.FreezeStatus == seatcache.SeatFreezeStatusReleased ||
-		freeze.FreezeStatus == seatcache.SeatFreezeStatusExpired ||
-		freeze.FreezeStatus == seatcache.SeatFreezeStatusConfirmed {
+		freeze.FreezeStatus == seatcache.SeatFreezeStatusExpired {
 		return &pb.ReleaseSeatFreezeResp{Success: true}, nil
 	}
 
@@ -83,7 +85,7 @@ func mapReleaseSeatFreezeError(err error) error {
 		return err
 	case errors.Is(err, xerr.ErrSeatFreezeNotFound):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, xerr.ErrProgramSeatLedgerNotReady):
+	case errors.Is(err, xerr.ErrSeatFreezeStatusInvalid), errors.Is(err, xerr.ErrProgramSeatLedgerNotReady):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return err
