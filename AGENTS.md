@@ -43,6 +43,15 @@
 - 仓库内历史上已经存在的非下划线风格文件，仅视为待收敛遗留，不作为后续生成或新增文件的命名依据
 - `zero-skills` 通过全局 skills 提供，本仓库内不重复 vendoring skills
 
+## 抢票压测入口
+
+- 抢票链路压测前置检查入口：`scripts/perf/order_pressure_preflight.sh`
+- 抢票链路压测 runbook：`docs/architecture/order-pressure-preflight.md`
+- 典型场景先执行：
+  - `USER_POOL_FILE=.tmp/perf/order_user_pool.2000users.unique_20260324.json TARGET_RPC_INSTANCES=5 PROGRAM_ID=10001 TICKET_CATEGORY_ID=40001 REQUIRED_SEAT_COUNT=1000 bash scripts/perf/order_pressure_preflight.sh check`
+- `prepare` 模式可用于补齐 Kafka topic 分区，并在需要时执行 ledger warmup
+- 当前压测前置校验以 `d_order` 和 Redis seat ledger 为准
+
 ## 业务命名
 
 - 用户服务：`user`

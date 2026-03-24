@@ -27,7 +27,6 @@ PROGRAM_SQL_FILES=(
   "sql/program/d_program.sql"
   "sql/program/d_program_show_time.sql"
   "sql/program/d_seat.sql"
-  "sql/program/d_seat_freeze.sql"
   "sql/program/d_ticket_category.sql"
   "sql/program/dev_seed.sql"
 )
