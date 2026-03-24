@@ -202,7 +202,6 @@ func resetProgramDomainState(t *testing.T) {
 		"sql/program/d_program.sql",
 		"sql/program/d_program_show_time.sql",
 		"sql/program/d_seat.sql",
-		"sql/program/d_seat_freeze.sql",
 		"sql/program/d_ticket_category.sql",
 		"sql/program/dev_seed.sql",
 	} {
@@ -285,36 +284,6 @@ func seedSeatFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...seat
 	}
 }
 
-func seedSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixture seatFreezeFixture) {
-	t.Helper()
-
-	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
-	defer db.Close()
-
-	fixture = withSeatFreezeFixtureDefaults(fixture)
-	mustExecProgramSQL(
-		t,
-		db,
-		`INSERT INTO d_seat_freeze (
-			id, freeze_token, request_no, program_id, ticket_category_id, seat_count, freeze_status,
-			expire_time, release_reason, release_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		fixture.ID,
-		fixture.FreezeToken,
-		fixture.RequestNo,
-		fixture.ProgramID,
-		fixture.TicketCategoryID,
-		fixture.SeatCount,
-		fixture.FreezeStatus,
-		fixture.ExpireTime,
-		nullIfEmpty(fixture.ReleaseReason),
-		nullIfEmpty(fixture.ReleaseTime),
-		"2026-01-01 00:00:00",
-		"2026-01-01 00:00:00",
-		1,
-	)
-}
-
 func seedRedisSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixture seatFreezeFixture) {
 	t.Helper()
 
@@ -384,7 +353,6 @@ func clearSeatInventoryByProgram(t *testing.T, svcCtx *svc.ServiceContext, progr
 	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
 	defer db.Close()
 
-	mustExecProgramSQL(t, db, "DELETE FROM d_seat_freeze WHERE program_id = ?", programID)
 	mustExecProgramSQL(t, db, "DELETE FROM d_seat WHERE program_id = ?", programID)
 }
 

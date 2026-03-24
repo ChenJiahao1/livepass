@@ -28,7 +28,6 @@ type ServiceContext struct {
 	DProgramGroupModel      model.DProgramGroupModel
 	DProgramShowTimeModel   model.DProgramShowTimeModel
 	DSeatModel              model.DSeatModel
-	DSeatFreezeModel        model.DSeatFreezeModel
 	DTicketCategoryModel    model.DTicketCategoryModel
 	CategorySnapshotCache   *programcache.CategorySnapshotCache
 	ProgramDetailCache      *programcache.ProgramDetailCache
@@ -103,7 +102,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		DProgramGroupModel:      dProgramGroupModel,
 		DProgramShowTimeModel:   dProgramShowTimeModel,
 		DSeatModel:              model.NewDSeatModel(conn),
-		DSeatFreezeModel:        model.NewDSeatFreezeModel(conn),
 		DTicketCategoryModel:    ticketCategoryModel,
 		CategorySnapshotCache:   categorySnapshotCache,
 		ProgramDetailCache:      programDetailCache,
