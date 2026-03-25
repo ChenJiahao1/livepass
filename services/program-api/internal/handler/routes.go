@@ -16,8 +16,28 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodPost,
+				Path:    "/program/add",
+				Handler: AddProgramHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/program/category/save/batch",
+				Handler: BatchCreateProgramCategoriesHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/program/category/select/all",
 				Handler: ListProgramCategoriesHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/program/category/selectByParentProgramCategoryId",
+				Handler: ListProgramCategoriesByParentHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/program/category/selectByType",
+				Handler: ListProgramCategoriesByTypeHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -31,6 +51,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
+				Path:    "/program/invalid",
+				Handler: InvalidProgramHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/program/page",
 				Handler: PageProgramsHandler(serverCtx),
 			},
@@ -41,8 +66,48 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
+				Path:    "/program/reset/execute",
+				Handler: ResetProgramHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/program/seat/freeze",
 				Handler: FreezeSeatsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/program/show/time/add",
+				Handler: CreateProgramShowTimeHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/program/update",
+				Handler: UpdateProgramHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/seat/add",
+				Handler: CreateSeatHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/seat/batch/add",
+				Handler: BatchCreateSeatsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/seat/relate/info",
+				Handler: GetSeatRelateInfoHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/ticket/category/add",
+				Handler: CreateTicketCategoryHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/ticket/category/detail",
+				Handler: GetTicketCategoryDetailHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,

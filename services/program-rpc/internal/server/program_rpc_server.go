@@ -33,9 +33,34 @@ func (s *ProgramRpcServer) UpdateProgram(ctx context.Context, in *pb.UpdateProgr
 	return l.UpdateProgram(in)
 }
 
+func (s *ProgramRpcServer) InvalidProgram(ctx context.Context, in *pb.ProgramInvalidReq) (*pb.BoolResp, error) {
+	l := logic.NewInvalidProgramLogic(ctx, s.svcCtx)
+	return l.InvalidProgram(in)
+}
+
+func (s *ProgramRpcServer) ResetProgram(ctx context.Context, in *pb.ProgramResetReq) (*pb.BoolResp, error) {
+	l := logic.NewResetProgramLogic(ctx, s.svcCtx)
+	return l.ResetProgram(in)
+}
+
 func (s *ProgramRpcServer) ListProgramCategories(ctx context.Context, in *pb.Empty) (*pb.ProgramCategoryListResp, error) {
 	l := logic.NewListProgramCategoriesLogic(ctx, s.svcCtx)
 	return l.ListProgramCategories(in)
+}
+
+func (s *ProgramRpcServer) ListProgramCategoriesByType(ctx context.Context, in *pb.ProgramCategoryTypeReq) (*pb.ProgramCategoryListResp, error) {
+	l := logic.NewListProgramCategoriesByTypeLogic(ctx, s.svcCtx)
+	return l.ListProgramCategoriesByType(in)
+}
+
+func (s *ProgramRpcServer) ListProgramCategoriesByParent(ctx context.Context, in *pb.ParentProgramCategoryReq) (*pb.ProgramCategoryListResp, error) {
+	l := logic.NewListProgramCategoriesByParentLogic(ctx, s.svcCtx)
+	return l.ListProgramCategoriesByParent(in)
+}
+
+func (s *ProgramRpcServer) BatchCreateProgramCategories(ctx context.Context, in *pb.ProgramCategoryBatchSaveReq) (*pb.BoolResp, error) {
+	l := logic.NewBatchCreateProgramCategoriesLogic(ctx, s.svcCtx)
+	return l.BatchCreateProgramCategories(in)
 }
 
 func (s *ProgramRpcServer) ListHomePrograms(ctx context.Context, in *pb.ListHomeProgramsReq) (*pb.ProgramHomeListResp, error) {
@@ -58,9 +83,39 @@ func (s *ProgramRpcServer) GetProgramPreorder(ctx context.Context, in *pb.GetPro
 	return l.GetProgramPreorder(in)
 }
 
+func (s *ProgramRpcServer) CreateProgramShowTime(ctx context.Context, in *pb.ProgramShowTimeAddReq) (*pb.IdResp, error) {
+	l := logic.NewCreateProgramShowTimeLogic(ctx, s.svcCtx)
+	return l.CreateProgramShowTime(in)
+}
+
+func (s *ProgramRpcServer) CreateTicketCategory(ctx context.Context, in *pb.TicketCategoryAddReq) (*pb.IdResp, error) {
+	l := logic.NewCreateTicketCategoryLogic(ctx, s.svcCtx)
+	return l.CreateTicketCategory(in)
+}
+
+func (s *ProgramRpcServer) GetTicketCategoryDetail(ctx context.Context, in *pb.TicketCategoryReq) (*pb.TicketCategoryDetailInfo, error) {
+	l := logic.NewGetTicketCategoryDetailLogic(ctx, s.svcCtx)
+	return l.GetTicketCategoryDetail(in)
+}
+
 func (s *ProgramRpcServer) ListTicketCategoriesByProgram(ctx context.Context, in *pb.ListTicketCategoriesByProgramReq) (*pb.TicketCategoryDetailListResp, error) {
 	l := logic.NewListTicketCategoriesByProgramLogic(ctx, s.svcCtx)
 	return l.ListTicketCategoriesByProgram(in)
+}
+
+func (s *ProgramRpcServer) CreateSeat(ctx context.Context, in *pb.SeatAddReq) (*pb.IdResp, error) {
+	l := logic.NewCreateSeatLogic(ctx, s.svcCtx)
+	return l.CreateSeat(in)
+}
+
+func (s *ProgramRpcServer) BatchCreateSeats(ctx context.Context, in *pb.SeatBatchAddReq) (*pb.BoolResp, error) {
+	l := logic.NewBatchCreateSeatsLogic(ctx, s.svcCtx)
+	return l.BatchCreateSeats(in)
+}
+
+func (s *ProgramRpcServer) GetSeatRelateInfo(ctx context.Context, in *pb.SeatListReq) (*pb.SeatRelateInfo, error) {
+	l := logic.NewGetSeatRelateInfoLogic(ctx, s.svcCtx)
+	return l.GetSeatRelateInfo(in)
 }
 
 func (s *ProgramRpcServer) AutoAssignAndFreezeSeats(ctx context.Context, in *pb.AutoAssignAndFreezeSeatsReq) (*pb.AutoAssignAndFreezeSeatsResp, error) {

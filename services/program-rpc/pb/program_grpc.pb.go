@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.19.4
-// source: services/program-rpc/program.proto
+// source: program.proto
 
 package pb
 
@@ -21,12 +21,23 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ProgramRpc_CreateProgram_FullMethodName                 = "/program.ProgramRpc/CreateProgram"
 	ProgramRpc_UpdateProgram_FullMethodName                 = "/program.ProgramRpc/UpdateProgram"
+	ProgramRpc_InvalidProgram_FullMethodName                = "/program.ProgramRpc/InvalidProgram"
+	ProgramRpc_ResetProgram_FullMethodName                  = "/program.ProgramRpc/ResetProgram"
 	ProgramRpc_ListProgramCategories_FullMethodName         = "/program.ProgramRpc/ListProgramCategories"
+	ProgramRpc_ListProgramCategoriesByType_FullMethodName   = "/program.ProgramRpc/ListProgramCategoriesByType"
+	ProgramRpc_ListProgramCategoriesByParent_FullMethodName = "/program.ProgramRpc/ListProgramCategoriesByParent"
+	ProgramRpc_BatchCreateProgramCategories_FullMethodName  = "/program.ProgramRpc/BatchCreateProgramCategories"
 	ProgramRpc_ListHomePrograms_FullMethodName              = "/program.ProgramRpc/ListHomePrograms"
 	ProgramRpc_PagePrograms_FullMethodName                  = "/program.ProgramRpc/PagePrograms"
 	ProgramRpc_GetProgramDetail_FullMethodName              = "/program.ProgramRpc/GetProgramDetail"
 	ProgramRpc_GetProgramPreorder_FullMethodName            = "/program.ProgramRpc/GetProgramPreorder"
+	ProgramRpc_CreateProgramShowTime_FullMethodName         = "/program.ProgramRpc/CreateProgramShowTime"
+	ProgramRpc_CreateTicketCategory_FullMethodName          = "/program.ProgramRpc/CreateTicketCategory"
+	ProgramRpc_GetTicketCategoryDetail_FullMethodName       = "/program.ProgramRpc/GetTicketCategoryDetail"
 	ProgramRpc_ListTicketCategoriesByProgram_FullMethodName = "/program.ProgramRpc/ListTicketCategoriesByProgram"
+	ProgramRpc_CreateSeat_FullMethodName                    = "/program.ProgramRpc/CreateSeat"
+	ProgramRpc_BatchCreateSeats_FullMethodName              = "/program.ProgramRpc/BatchCreateSeats"
+	ProgramRpc_GetSeatRelateInfo_FullMethodName             = "/program.ProgramRpc/GetSeatRelateInfo"
 	ProgramRpc_AutoAssignAndFreezeSeats_FullMethodName      = "/program.ProgramRpc/AutoAssignAndFreezeSeats"
 	ProgramRpc_ReleaseSeatFreeze_FullMethodName             = "/program.ProgramRpc/ReleaseSeatFreeze"
 	ProgramRpc_ConfirmSeatFreeze_FullMethodName             = "/program.ProgramRpc/ConfirmSeatFreeze"
@@ -40,12 +51,23 @@ const (
 type ProgramRpcClient interface {
 	CreateProgram(ctx context.Context, in *CreateProgramReq, opts ...grpc.CallOption) (*CreateProgramResp, error)
 	UpdateProgram(ctx context.Context, in *UpdateProgramReq, opts ...grpc.CallOption) (*BoolResp, error)
+	InvalidProgram(ctx context.Context, in *ProgramInvalidReq, opts ...grpc.CallOption) (*BoolResp, error)
+	ResetProgram(ctx context.Context, in *ProgramResetReq, opts ...grpc.CallOption) (*BoolResp, error)
 	ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
+	ListProgramCategoriesByType(ctx context.Context, in *ProgramCategoryTypeReq, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
+	ListProgramCategoriesByParent(ctx context.Context, in *ParentProgramCategoryReq, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
+	BatchCreateProgramCategories(ctx context.Context, in *ProgramCategoryBatchSaveReq, opts ...grpc.CallOption) (*BoolResp, error)
 	ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 	PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 	GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
 	GetProgramPreorder(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
+	CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
+	CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error)
+	GetTicketCategoryDetail(ctx context.Context, in *TicketCategoryReq, opts ...grpc.CallOption) (*TicketCategoryDetailInfo, error)
 	ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
+	CreateSeat(ctx context.Context, in *SeatAddReq, opts ...grpc.CallOption) (*IdResp, error)
+	BatchCreateSeats(ctx context.Context, in *SeatBatchAddReq, opts ...grpc.CallOption) (*BoolResp, error)
+	GetSeatRelateInfo(ctx context.Context, in *SeatListReq, opts ...grpc.CallOption) (*SeatRelateInfo, error)
 	AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
 	ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
 	ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error)
@@ -81,10 +103,60 @@ func (c *programRpcClient) UpdateProgram(ctx context.Context, in *UpdateProgramR
 	return out, nil
 }
 
+func (c *programRpcClient) InvalidProgram(ctx context.Context, in *ProgramInvalidReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_InvalidProgram_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) ResetProgram(ctx context.Context, in *ProgramResetReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_ResetProgram_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *programRpcClient) ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ProgramCategoryListResp)
 	err := c.cc.Invoke(ctx, ProgramRpc_ListProgramCategories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) ListProgramCategoriesByType(ctx context.Context, in *ProgramCategoryTypeReq, opts ...grpc.CallOption) (*ProgramCategoryListResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProgramCategoryListResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_ListProgramCategoriesByType_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) ListProgramCategoriesByParent(ctx context.Context, in *ParentProgramCategoryReq, opts ...grpc.CallOption) (*ProgramCategoryListResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProgramCategoryListResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_ListProgramCategoriesByParent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) BatchCreateProgramCategories(ctx context.Context, in *ProgramCategoryBatchSaveReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_BatchCreateProgramCategories_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -131,10 +203,70 @@ func (c *programRpcClient) GetProgramPreorder(ctx context.Context, in *GetProgra
 	return out, nil
 }
 
+func (c *programRpcClient) CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_CreateProgramShowTime_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_CreateTicketCategory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) GetTicketCategoryDetail(ctx context.Context, in *TicketCategoryReq, opts ...grpc.CallOption) (*TicketCategoryDetailInfo, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TicketCategoryDetailInfo)
+	err := c.cc.Invoke(ctx, ProgramRpc_GetTicketCategoryDetail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *programRpcClient) ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TicketCategoryDetailListResp)
 	err := c.cc.Invoke(ctx, ProgramRpc_ListTicketCategoriesByProgram_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) CreateSeat(ctx context.Context, in *SeatAddReq, opts ...grpc.CallOption) (*IdResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_CreateSeat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) BatchCreateSeats(ctx context.Context, in *SeatBatchAddReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_BatchCreateSeats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) GetSeatRelateInfo(ctx context.Context, in *SeatListReq, opts ...grpc.CallOption) (*SeatRelateInfo, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SeatRelateInfo)
+	err := c.cc.Invoke(ctx, ProgramRpc_GetSeatRelateInfo_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -197,12 +329,23 @@ func (c *programRpcClient) ReleaseSoldSeats(ctx context.Context, in *ReleaseSold
 type ProgramRpcServer interface {
 	CreateProgram(context.Context, *CreateProgramReq) (*CreateProgramResp, error)
 	UpdateProgram(context.Context, *UpdateProgramReq) (*BoolResp, error)
+	InvalidProgram(context.Context, *ProgramInvalidReq) (*BoolResp, error)
+	ResetProgram(context.Context, *ProgramResetReq) (*BoolResp, error)
 	ListProgramCategories(context.Context, *Empty) (*ProgramCategoryListResp, error)
+	ListProgramCategoriesByType(context.Context, *ProgramCategoryTypeReq) (*ProgramCategoryListResp, error)
+	ListProgramCategoriesByParent(context.Context, *ParentProgramCategoryReq) (*ProgramCategoryListResp, error)
+	BatchCreateProgramCategories(context.Context, *ProgramCategoryBatchSaveReq) (*BoolResp, error)
 	ListHomePrograms(context.Context, *ListHomeProgramsReq) (*ProgramHomeListResp, error)
 	PagePrograms(context.Context, *PageProgramsReq) (*ProgramPageResp, error)
 	GetProgramDetail(context.Context, *GetProgramDetailReq) (*ProgramDetailInfo, error)
 	GetProgramPreorder(context.Context, *GetProgramDetailReq) (*ProgramPreorderInfo, error)
+	CreateProgramShowTime(context.Context, *ProgramShowTimeAddReq) (*IdResp, error)
+	CreateTicketCategory(context.Context, *TicketCategoryAddReq) (*IdResp, error)
+	GetTicketCategoryDetail(context.Context, *TicketCategoryReq) (*TicketCategoryDetailInfo, error)
 	ListTicketCategoriesByProgram(context.Context, *ListTicketCategoriesByProgramReq) (*TicketCategoryDetailListResp, error)
+	CreateSeat(context.Context, *SeatAddReq) (*IdResp, error)
+	BatchCreateSeats(context.Context, *SeatBatchAddReq) (*BoolResp, error)
+	GetSeatRelateInfo(context.Context, *SeatListReq) (*SeatRelateInfo, error)
 	AutoAssignAndFreezeSeats(context.Context, *AutoAssignAndFreezeSeatsReq) (*AutoAssignAndFreezeSeatsResp, error)
 	ReleaseSeatFreeze(context.Context, *ReleaseSeatFreezeReq) (*ReleaseSeatFreezeResp, error)
 	ConfirmSeatFreeze(context.Context, *ConfirmSeatFreezeReq) (*ConfirmSeatFreezeResp, error)
@@ -224,8 +367,23 @@ func (UnimplementedProgramRpcServer) CreateProgram(context.Context, *CreateProgr
 func (UnimplementedProgramRpcServer) UpdateProgram(context.Context, *UpdateProgramReq) (*BoolResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateProgram not implemented")
 }
+func (UnimplementedProgramRpcServer) InvalidProgram(context.Context, *ProgramInvalidReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method InvalidProgram not implemented")
+}
+func (UnimplementedProgramRpcServer) ResetProgram(context.Context, *ProgramResetReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetProgram not implemented")
+}
 func (UnimplementedProgramRpcServer) ListProgramCategories(context.Context, *Empty) (*ProgramCategoryListResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListProgramCategories not implemented")
+}
+func (UnimplementedProgramRpcServer) ListProgramCategoriesByType(context.Context, *ProgramCategoryTypeReq) (*ProgramCategoryListResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListProgramCategoriesByType not implemented")
+}
+func (UnimplementedProgramRpcServer) ListProgramCategoriesByParent(context.Context, *ParentProgramCategoryReq) (*ProgramCategoryListResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListProgramCategoriesByParent not implemented")
+}
+func (UnimplementedProgramRpcServer) BatchCreateProgramCategories(context.Context, *ProgramCategoryBatchSaveReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchCreateProgramCategories not implemented")
 }
 func (UnimplementedProgramRpcServer) ListHomePrograms(context.Context, *ListHomeProgramsReq) (*ProgramHomeListResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListHomePrograms not implemented")
@@ -239,8 +397,26 @@ func (UnimplementedProgramRpcServer) GetProgramDetail(context.Context, *GetProgr
 func (UnimplementedProgramRpcServer) GetProgramPreorder(context.Context, *GetProgramDetailReq) (*ProgramPreorderInfo, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProgramPreorder not implemented")
 }
+func (UnimplementedProgramRpcServer) CreateProgramShowTime(context.Context, *ProgramShowTimeAddReq) (*IdResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateProgramShowTime not implemented")
+}
+func (UnimplementedProgramRpcServer) CreateTicketCategory(context.Context, *TicketCategoryAddReq) (*IdResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateTicketCategory not implemented")
+}
+func (UnimplementedProgramRpcServer) GetTicketCategoryDetail(context.Context, *TicketCategoryReq) (*TicketCategoryDetailInfo, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTicketCategoryDetail not implemented")
+}
 func (UnimplementedProgramRpcServer) ListTicketCategoriesByProgram(context.Context, *ListTicketCategoriesByProgramReq) (*TicketCategoryDetailListResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTicketCategoriesByProgram not implemented")
+}
+func (UnimplementedProgramRpcServer) CreateSeat(context.Context, *SeatAddReq) (*IdResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateSeat not implemented")
+}
+func (UnimplementedProgramRpcServer) BatchCreateSeats(context.Context, *SeatBatchAddReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchCreateSeats not implemented")
+}
+func (UnimplementedProgramRpcServer) GetSeatRelateInfo(context.Context, *SeatListReq) (*SeatRelateInfo, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSeatRelateInfo not implemented")
 }
 func (UnimplementedProgramRpcServer) AutoAssignAndFreezeSeats(context.Context, *AutoAssignAndFreezeSeatsReq) (*AutoAssignAndFreezeSeatsResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method AutoAssignAndFreezeSeats not implemented")
@@ -314,6 +490,42 @@ func _ProgramRpc_UpdateProgram_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProgramRpc_InvalidProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProgramInvalidReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).InvalidProgram(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_InvalidProgram_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).InvalidProgram(ctx, req.(*ProgramInvalidReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_ResetProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProgramResetReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).ResetProgram(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_ResetProgram_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).ResetProgram(ctx, req.(*ProgramResetReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ProgramRpc_ListProgramCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Empty)
 	if err := dec(in); err != nil {
@@ -328,6 +540,60 @@ func _ProgramRpc_ListProgramCategories_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProgramRpcServer).ListProgramCategories(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_ListProgramCategoriesByType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProgramCategoryTypeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).ListProgramCategoriesByType(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_ListProgramCategoriesByType_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).ListProgramCategoriesByType(ctx, req.(*ProgramCategoryTypeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_ListProgramCategoriesByParent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ParentProgramCategoryReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).ListProgramCategoriesByParent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_ListProgramCategoriesByParent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).ListProgramCategoriesByParent(ctx, req.(*ParentProgramCategoryReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_BatchCreateProgramCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProgramCategoryBatchSaveReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).BatchCreateProgramCategories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_BatchCreateProgramCategories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).BatchCreateProgramCategories(ctx, req.(*ProgramCategoryBatchSaveReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -404,6 +670,60 @@ func _ProgramRpc_GetProgramPreorder_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProgramRpc_CreateProgramShowTime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProgramShowTimeAddReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).CreateProgramShowTime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_CreateProgramShowTime_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).CreateProgramShowTime(ctx, req.(*ProgramShowTimeAddReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_CreateTicketCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TicketCategoryAddReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).CreateTicketCategory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_CreateTicketCategory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).CreateTicketCategory(ctx, req.(*TicketCategoryAddReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_GetTicketCategoryDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TicketCategoryReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).GetTicketCategoryDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_GetTicketCategoryDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).GetTicketCategoryDetail(ctx, req.(*TicketCategoryReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ProgramRpc_ListTicketCategoriesByProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListTicketCategoriesByProgramReq)
 	if err := dec(in); err != nil {
@@ -418,6 +738,60 @@ func _ProgramRpc_ListTicketCategoriesByProgram_Handler(srv interface{}, ctx cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProgramRpcServer).ListTicketCategoriesByProgram(ctx, req.(*ListTicketCategoriesByProgramReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_CreateSeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SeatAddReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).CreateSeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_CreateSeat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).CreateSeat(ctx, req.(*SeatAddReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_BatchCreateSeats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SeatBatchAddReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).BatchCreateSeats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_BatchCreateSeats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).BatchCreateSeats(ctx, req.(*SeatBatchAddReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_GetSeatRelateInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SeatListReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).GetSeatRelateInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_GetSeatRelateInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).GetSeatRelateInfo(ctx, req.(*SeatListReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -528,8 +902,28 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ProgramRpc_UpdateProgram_Handler,
 		},
 		{
+			MethodName: "InvalidProgram",
+			Handler:    _ProgramRpc_InvalidProgram_Handler,
+		},
+		{
+			MethodName: "ResetProgram",
+			Handler:    _ProgramRpc_ResetProgram_Handler,
+		},
+		{
 			MethodName: "ListProgramCategories",
 			Handler:    _ProgramRpc_ListProgramCategories_Handler,
+		},
+		{
+			MethodName: "ListProgramCategoriesByType",
+			Handler:    _ProgramRpc_ListProgramCategoriesByType_Handler,
+		},
+		{
+			MethodName: "ListProgramCategoriesByParent",
+			Handler:    _ProgramRpc_ListProgramCategoriesByParent_Handler,
+		},
+		{
+			MethodName: "BatchCreateProgramCategories",
+			Handler:    _ProgramRpc_BatchCreateProgramCategories_Handler,
 		},
 		{
 			MethodName: "ListHomePrograms",
@@ -548,8 +942,32 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ProgramRpc_GetProgramPreorder_Handler,
 		},
 		{
+			MethodName: "CreateProgramShowTime",
+			Handler:    _ProgramRpc_CreateProgramShowTime_Handler,
+		},
+		{
+			MethodName: "CreateTicketCategory",
+			Handler:    _ProgramRpc_CreateTicketCategory_Handler,
+		},
+		{
+			MethodName: "GetTicketCategoryDetail",
+			Handler:    _ProgramRpc_GetTicketCategoryDetail_Handler,
+		},
+		{
 			MethodName: "ListTicketCategoriesByProgram",
 			Handler:    _ProgramRpc_ListTicketCategoriesByProgram_Handler,
+		},
+		{
+			MethodName: "CreateSeat",
+			Handler:    _ProgramRpc_CreateSeat_Handler,
+		},
+		{
+			MethodName: "BatchCreateSeats",
+			Handler:    _ProgramRpc_BatchCreateSeats_Handler,
+		},
+		{
+			MethodName: "GetSeatRelateInfo",
+			Handler:    _ProgramRpc_GetSeatRelateInfo_Handler,
 		},
 		{
 			MethodName: "AutoAssignAndFreezeSeats",
@@ -573,5 +991,5 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/program-rpc/program.proto",
+	Metadata: "program.proto",
 }

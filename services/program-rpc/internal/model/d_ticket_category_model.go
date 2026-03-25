@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -15,6 +16,7 @@ type (
 	DTicketCategoryModel interface {
 		dTicketCategoryModel
 		withSession(session sqlx.Session) DTicketCategoryModel
+		InsertWithCreateTime(ctx context.Context, data *DTicketCategory) (sql.Result, error)
 		FindByProgramIds(ctx context.Context, programIds []int64) ([]*DTicketCategory, error)
 		FindByProgramId(ctx context.Context, programId int64) ([]*DTicketCategory, error)
 		FindPriceAggregateByProgramIds(ctx context.Context, programIds []int64) ([]*TicketCategoryPriceAggregate, error)
@@ -40,6 +42,27 @@ func NewDTicketCategoryModel(conn sqlx.SqlConn) DTicketCategoryModel {
 
 func (m *customDTicketCategoryModel) withSession(session sqlx.Session) DTicketCategoryModel {
 	return NewDTicketCategoryModel(sqlx.NewSqlConnFromSession(session))
+}
+
+func (m *customDTicketCategoryModel) InsertWithCreateTime(ctx context.Context, data *DTicketCategory) (sql.Result, error) {
+	query := fmt.Sprintf(
+		"insert into %s (`id`, `program_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		m.table,
+	)
+
+	return m.conn.ExecCtx(
+		ctx,
+		query,
+		data.Id,
+		data.ProgramId,
+		data.Introduce,
+		data.Price,
+		data.TotalNumber,
+		data.RemainNumber,
+		data.CreateTime,
+		data.EditTime,
+		data.Status,
+	)
 }
 
 func (m *customDTicketCategoryModel) FindByProgramIds(ctx context.Context, programIds []int64) ([]*DTicketCategory, error) {

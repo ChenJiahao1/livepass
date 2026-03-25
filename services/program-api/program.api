@@ -2,9 +2,29 @@ syntax = "v1"
 
 type (
 	EmptyReq  {}
+	BoolResp {
+		Success bool `json:"success"`
+	}
+	IdResp {
+		ID int64 `json:"id"`
+	}
 	ListHomeProgramsReq {
 		AreaId                   int64   `json:"areaId,optional"`
 		ParentProgramCategoryIds []int64 `json:"parentProgramCategoryIds,optional"`
+	}
+	ProgramCategoryTypeReq {
+		Type int64 `json:"type"`
+	}
+	ParentProgramCategoryReq {
+		ParentProgramCategoryID int64 `json:"parentProgramCategoryId"`
+	}
+	ProgramCategoryBatchItem {
+		ParentID int64  `json:"parentId"`
+		Name     string `json:"name"`
+		Type     int64  `json:"type"`
+	}
+	ProgramCategoryBatchSaveReq {
+		List []ProgramCategoryBatchItem `json:"list"`
 	}
 	PageProgramsReq {
 		PageNumber              int64  `json:"pageNumber,optional"`
@@ -20,11 +40,130 @@ type (
 	GetProgramDetailReq {
 		ID int64 `json:"id"`
 	}
+	ProgramInvalidReq {
+		ID int64 `json:"id"`
+	}
+	ProgramResetReq {
+		ProgramID int64 `json:"programId"`
+	}
 	GetProgramPreorderReq {
 		ID int64 `json:"id"`
 	}
+	ProgramAddReq {
+		ProgramGroupID                  int64  `json:"programGroupId"`
+		Prime                           int64  `json:"prime,optional"`
+		AreaID                          int64  `json:"areaId"`
+		ProgramCategoryID               int64  `json:"programCategoryId"`
+		ParentProgramCategoryID         int64  `json:"parentProgramCategoryId"`
+		Title                           string `json:"title"`
+		Actor                           string `json:"actor,optional"`
+		Place                           string `json:"place,optional"`
+		ItemPicture                     string `json:"itemPicture,optional"`
+		PreSell                         int64  `json:"preSell,optional"`
+		PreSellInstruction              string `json:"preSellInstruction,optional"`
+		ImportantNotice                 string `json:"importantNotice,optional"`
+		Detail                          string `json:"detail"`
+		PerOrderLimitPurchaseCount      int64  `json:"perOrderLimitPurchaseCount,optional"`
+		PerAccountLimitPurchaseCount    int64  `json:"perAccountLimitPurchaseCount,optional"`
+		RefundTicketRule                string `json:"refundTicketRule,optional"`
+		DeliveryInstruction             string `json:"deliveryInstruction,optional"`
+		EntryRule                       string `json:"entryRule,optional"`
+		ChildPurchase                   string `json:"childPurchase,optional"`
+		InvoiceSpecification            string `json:"invoiceSpecification,optional"`
+		RealTicketPurchaseRule          string `json:"realTicketPurchaseRule,optional"`
+		AbnormalOrderDescription        string `json:"abnormalOrderDescription,optional"`
+		KindReminder                    string `json:"kindReminder,optional"`
+		PerformanceDuration             string `json:"performanceDuration,optional"`
+		EntryTime                       string `json:"entryTime,optional"`
+		MinPerformanceCount             int64  `json:"minPerformanceCount,optional"`
+		MainActor                       string `json:"mainActor,optional"`
+		MinPerformanceDuration          string `json:"minPerformanceDuration,optional"`
+		ProhibitedItem                  string `json:"prohibitedItem,optional"`
+		DepositSpecification            string `json:"depositSpecification,optional"`
+		TotalCount                      int64  `json:"totalCount,optional"`
+		PermitRefund                    int64  `json:"permitRefund,optional"`
+		RefundExplain                   string `json:"refundExplain,optional"`
+		RefundRuleJSON                  string `json:"refundRuleJson,optional"`
+		RelNameTicketEntrance           int64  `json:"relNameTicketEntrance,optional"`
+		RelNameTicketEntranceExplain    string `json:"relNameTicketEntranceExplain,optional"`
+		PermitChooseSeat                int64  `json:"permitChooseSeat,optional"`
+		ChooseSeatExplain               string `json:"chooseSeatExplain,optional"`
+		ElectronicDeliveryTicket        int64  `json:"electronicDeliveryTicket,optional"`
+		ElectronicDeliveryTicketExplain string `json:"electronicDeliveryTicketExplain,optional"`
+		ElectronicInvoice               int64  `json:"electronicInvoice,optional"`
+		ElectronicInvoiceExplain        string `json:"electronicInvoiceExplain,optional"`
+		HighHeat                        int64  `json:"highHeat,optional"`
+		ProgramStatus                   int64  `json:"programStatus,optional"`
+		IssueTime                       string `json:"issueTime,optional"`
+		Status                          int64  `json:"status,optional"`
+	}
+	ProgramUpdateReq {
+		ID                              int64  `json:"id"`
+		ProgramGroupID                  int64  `json:"programGroupId"`
+		Prime                           int64  `json:"prime,optional"`
+		AreaID                          int64  `json:"areaId"`
+		ProgramCategoryID               int64  `json:"programCategoryId"`
+		ParentProgramCategoryID         int64  `json:"parentProgramCategoryId"`
+		Title                           string `json:"title"`
+		Actor                           string `json:"actor,optional"`
+		Place                           string `json:"place,optional"`
+		ItemPicture                     string `json:"itemPicture,optional"`
+		PreSell                         int64  `json:"preSell,optional"`
+		PreSellInstruction              string `json:"preSellInstruction,optional"`
+		ImportantNotice                 string `json:"importantNotice,optional"`
+		Detail                          string `json:"detail"`
+		PerOrderLimitPurchaseCount      int64  `json:"perOrderLimitPurchaseCount,optional"`
+		PerAccountLimitPurchaseCount    int64  `json:"perAccountLimitPurchaseCount,optional"`
+		RefundTicketRule                string `json:"refundTicketRule,optional"`
+		DeliveryInstruction             string `json:"deliveryInstruction,optional"`
+		EntryRule                       string `json:"entryRule,optional"`
+		ChildPurchase                   string `json:"childPurchase,optional"`
+		InvoiceSpecification            string `json:"invoiceSpecification,optional"`
+		RealTicketPurchaseRule          string `json:"realTicketPurchaseRule,optional"`
+		AbnormalOrderDescription        string `json:"abnormalOrderDescription,optional"`
+		KindReminder                    string `json:"kindReminder,optional"`
+		PerformanceDuration             string `json:"performanceDuration,optional"`
+		EntryTime                       string `json:"entryTime,optional"`
+		MinPerformanceCount             int64  `json:"minPerformanceCount,optional"`
+		MainActor                       string `json:"mainActor,optional"`
+		MinPerformanceDuration          string `json:"minPerformanceDuration,optional"`
+		ProhibitedItem                  string `json:"prohibitedItem,optional"`
+		DepositSpecification            string `json:"depositSpecification,optional"`
+		TotalCount                      int64  `json:"totalCount,optional"`
+		PermitRefund                    int64  `json:"permitRefund,optional"`
+		RefundExplain                   string `json:"refundExplain,optional"`
+		RefundRuleJSON                  string `json:"refundRuleJson,optional"`
+		RelNameTicketEntrance           int64  `json:"relNameTicketEntrance,optional"`
+		RelNameTicketEntranceExplain    string `json:"relNameTicketEntranceExplain,optional"`
+		PermitChooseSeat                int64  `json:"permitChooseSeat,optional"`
+		ChooseSeatExplain               string `json:"chooseSeatExplain,optional"`
+		ElectronicDeliveryTicket        int64  `json:"electronicDeliveryTicket,optional"`
+		ElectronicDeliveryTicketExplain string `json:"electronicDeliveryTicketExplain,optional"`
+		ElectronicInvoice               int64  `json:"electronicInvoice,optional"`
+		ElectronicInvoiceExplain        string `json:"electronicInvoiceExplain,optional"`
+		HighHeat                        int64  `json:"highHeat,optional"`
+		ProgramStatus                   int64  `json:"programStatus,optional"`
+		IssueTime                       string `json:"issueTime,optional"`
+		Status                          int64  `json:"status,optional"`
+	}
+	ProgramShowTimeAddReq {
+		ProgramID    int64  `json:"programId"`
+		ShowTime     string `json:"showTime"`
+		ShowDayTime  string `json:"showDayTime"`
+		ShowWeekTime string `json:"showWeekTime"`
+	}
 	ListTicketCategoriesByProgramReq {
 		ProgramID int64 `json:"programId"`
+	}
+	TicketCategoryAddReq {
+		ProgramID    int64  `json:"programId"`
+		Introduce    string `json:"introduce"`
+		Price        int64  `json:"price"`
+		TotalNumber  int64  `json:"totalNumber"`
+		RemainNumber int64  `json:"remainNumber"`
+	}
+	TicketCategoryReq {
+		ID int64 `json:"id"`
 	}
 	FreezeSeatsReq {
 		ProgramID        int64  `json:"programId"`
@@ -32,6 +171,27 @@ type (
 		Count            int64  `json:"count"`
 		RequestNo        string `json:"requestNo"`
 		FreezeSeconds    int64  `json:"freezeSeconds,optional"`
+	}
+	SeatAddReq {
+		ProgramID        int64 `json:"programId"`
+		TicketCategoryID int64 `json:"ticketCategoryId"`
+		RowCode          int64 `json:"rowCode"`
+		ColCode          int64 `json:"colCode"`
+		SeatType         int64 `json:"seatType"`
+		Price            int64 `json:"price"`
+		SeatStatus       int64 `json:"seatStatus,optional"`
+	}
+	SeatBatchRelateInfoAddReq {
+		TicketCategoryID int64 `json:"ticketCategoryId"`
+		Price            int64 `json:"price"`
+		Count            int64 `json:"count"`
+	}
+	SeatBatchAddReq {
+		ProgramID                     int64                       `json:"programId"`
+		SeatBatchRelateInfoAddDtoList []SeatBatchRelateInfoAddReq `json:"seatBatchRelateInfoAddDtoList"`
+	}
+	SeatListReq {
+		ProgramID int64 `json:"programId"`
 	}
 	ProgramCategoryInfo {
 		ID       int64  `json:"id"`
@@ -84,6 +244,18 @@ type (
 		RowCode          int64 `json:"rowCode"`
 		ColCode          int64 `json:"colCode"`
 		Price            int64 `json:"price"`
+	}
+	PriceSeatGroup {
+		Price string     `json:"price"`
+		Seats []SeatInfo `json:"seats,optional"`
+	}
+	SeatRelateInfoResp {
+		ProgramID          int64            `json:"programId"`
+		Place              string           `json:"place,optional"`
+		ShowTime           string           `json:"showTime,optional"`
+		ShowWeekTime       string           `json:"showWeekTime,optional"`
+		PriceList          []string         `json:"priceList,optional"`
+		PriceSeatGroupList []PriceSeatGroup `json:"priceSeatGroupList,optional"`
 	}
 	TicketCategoryDetailInfo {
 		ProgramID    int64  `json:"programId"`
@@ -196,11 +368,32 @@ service program-api {
 	@handler ListProgramCategories
 	post /program/category/select/all (EmptyReq) returns (ProgramCategoryListResp)
 
+	@handler ListProgramCategoriesByType
+	post /program/category/selectByType (ProgramCategoryTypeReq) returns (ProgramCategoryListResp)
+
+	@handler ListProgramCategoriesByParent
+	post /program/category/selectByParentProgramCategoryId (ParentProgramCategoryReq) returns (ProgramCategoryListResp)
+
+	@handler BatchCreateProgramCategories
+	post /program/category/save/batch (ProgramCategoryBatchSaveReq) returns (BoolResp)
+
 	@handler ListHomePrograms
 	post /program/home/list (ListHomeProgramsReq) returns (ProgramHomeListResp)
 
 	@handler PagePrograms
 	post /program/page (PageProgramsReq) returns (ProgramPageResp)
+
+	@handler AddProgram
+	post /program/add (ProgramAddReq) returns (IdResp)
+
+	@handler UpdateProgram
+	post /program/update (ProgramUpdateReq) returns (BoolResp)
+
+	@handler InvalidProgram
+	post /program/invalid (ProgramInvalidReq) returns (BoolResp)
+
+	@handler ResetProgram
+	post /program/reset/execute (ProgramResetReq) returns (BoolResp)
 
 	@handler GetProgramDetail
 	post /program/detail (GetProgramDetailReq) returns (ProgramDetailInfo)
@@ -208,8 +401,26 @@ service program-api {
 	@handler GetProgramPreorder
 	post /program/preorder/detail (GetProgramPreorderReq) returns (ProgramPreorderInfo)
 
+	@handler CreateProgramShowTime
+	post /program/show/time/add (ProgramShowTimeAddReq) returns (IdResp)
+
+	@handler CreateTicketCategory
+	post /ticket/category/add (TicketCategoryAddReq) returns (IdResp)
+
+	@handler GetTicketCategoryDetail
+	post /ticket/category/detail (TicketCategoryReq) returns (TicketCategoryDetailInfo)
+
 	@handler ListTicketCategoriesByProgram
 	post /ticket/category/select/list/by/program (ListTicketCategoriesByProgramReq) returns (TicketCategoryDetailListResp)
+
+	@handler CreateSeat
+	post /seat/add (SeatAddReq) returns (IdResp)
+
+	@handler BatchCreateSeats
+	post /seat/batch/add (SeatBatchAddReq) returns (BoolResp)
+
+	@handler GetSeatRelateInfo
+	post /seat/relate/info (SeatListReq) returns (SeatRelateInfoResp)
 
 	@handler FreezeSeats
 	post /program/seat/freeze (FreezeSeatsReq) returns (FreezeSeatsResp)

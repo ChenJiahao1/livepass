@@ -3,6 +3,10 @@
 
 package types
 
+type BoolResp struct {
+	Success bool `json:"success"`
+}
+
 type EmptyReq struct {
 }
 
@@ -28,6 +32,10 @@ type GetProgramPreorderReq struct {
 	ID int64 `json:"id"`
 }
 
+type IdResp struct {
+	ID int64 `json:"id"`
+}
+
 type ListHomeProgramsReq struct {
 	AreaId                   int64   `json:"areaId,optional"`
 	ParentProgramCategoryIds []int64 `json:"parentProgramCategoryIds,optional"`
@@ -49,6 +57,74 @@ type PageProgramsReq struct {
 	Type                    int64  `json:"type,optional"`
 }
 
+type ParentProgramCategoryReq struct {
+	ParentProgramCategoryID int64 `json:"parentProgramCategoryId"`
+}
+
+type PriceSeatGroup struct {
+	Price string     `json:"price"`
+	Seats []SeatInfo `json:"seats,optional"`
+}
+
+type ProgramAddReq struct {
+	ProgramGroupID                  int64  `json:"programGroupId"`
+	Prime                           int64  `json:"prime,optional"`
+	AreaID                          int64  `json:"areaId"`
+	ProgramCategoryID               int64  `json:"programCategoryId"`
+	ParentProgramCategoryID         int64  `json:"parentProgramCategoryId"`
+	Title                           string `json:"title"`
+	Actor                           string `json:"actor,optional"`
+	Place                           string `json:"place,optional"`
+	ItemPicture                     string `json:"itemPicture,optional"`
+	PreSell                         int64  `json:"preSell,optional"`
+	PreSellInstruction              string `json:"preSellInstruction,optional"`
+	ImportantNotice                 string `json:"importantNotice,optional"`
+	Detail                          string `json:"detail"`
+	PerOrderLimitPurchaseCount      int64  `json:"perOrderLimitPurchaseCount,optional"`
+	PerAccountLimitPurchaseCount    int64  `json:"perAccountLimitPurchaseCount,optional"`
+	RefundTicketRule                string `json:"refundTicketRule,optional"`
+	DeliveryInstruction             string `json:"deliveryInstruction,optional"`
+	EntryRule                       string `json:"entryRule,optional"`
+	ChildPurchase                   string `json:"childPurchase,optional"`
+	InvoiceSpecification            string `json:"invoiceSpecification,optional"`
+	RealTicketPurchaseRule          string `json:"realTicketPurchaseRule,optional"`
+	AbnormalOrderDescription        string `json:"abnormalOrderDescription,optional"`
+	KindReminder                    string `json:"kindReminder,optional"`
+	PerformanceDuration             string `json:"performanceDuration,optional"`
+	EntryTime                       string `json:"entryTime,optional"`
+	MinPerformanceCount             int64  `json:"minPerformanceCount,optional"`
+	MainActor                       string `json:"mainActor,optional"`
+	MinPerformanceDuration          string `json:"minPerformanceDuration,optional"`
+	ProhibitedItem                  string `json:"prohibitedItem,optional"`
+	DepositSpecification            string `json:"depositSpecification,optional"`
+	TotalCount                      int64  `json:"totalCount,optional"`
+	PermitRefund                    int64  `json:"permitRefund,optional"`
+	RefundExplain                   string `json:"refundExplain,optional"`
+	RefundRuleJSON                  string `json:"refundRuleJson,optional"`
+	RelNameTicketEntrance           int64  `json:"relNameTicketEntrance,optional"`
+	RelNameTicketEntranceExplain    string `json:"relNameTicketEntranceExplain,optional"`
+	PermitChooseSeat                int64  `json:"permitChooseSeat,optional"`
+	ChooseSeatExplain               string `json:"chooseSeatExplain,optional"`
+	ElectronicDeliveryTicket        int64  `json:"electronicDeliveryTicket,optional"`
+	ElectronicDeliveryTicketExplain string `json:"electronicDeliveryTicketExplain,optional"`
+	ElectronicInvoice               int64  `json:"electronicInvoice,optional"`
+	ElectronicInvoiceExplain        string `json:"electronicInvoiceExplain,optional"`
+	HighHeat                        int64  `json:"highHeat,optional"`
+	ProgramStatus                   int64  `json:"programStatus,optional"`
+	IssueTime                       string `json:"issueTime,optional"`
+	Status                          int64  `json:"status,optional"`
+}
+
+type ProgramCategoryBatchItem struct {
+	ParentID int64  `json:"parentId"`
+	Name     string `json:"name"`
+	Type     int64  `json:"type"`
+}
+
+type ProgramCategoryBatchSaveReq struct {
+	List []ProgramCategoryBatchItem `json:"list"`
+}
+
 type ProgramCategoryInfo struct {
 	ID       int64  `json:"id"`
 	ParentID int64  `json:"parentId"`
@@ -58,6 +134,10 @@ type ProgramCategoryInfo struct {
 
 type ProgramCategoryListResp struct {
 	List []ProgramCategoryInfo `json:"list,optional"`
+}
+
+type ProgramCategoryTypeReq struct {
+	Type int64 `json:"type"`
 }
 
 type ProgramDetailInfo struct {
@@ -132,6 +212,10 @@ type ProgramHomeSection struct {
 	ProgramListVoList []ProgramListInfo `json:"programListVoList,optional"`
 }
 
+type ProgramInvalidReq struct {
+	ID int64 `json:"id"`
+}
+
 type ProgramListInfo struct {
 	ID                        int64  `json:"id"`
 	Title                     string `json:"title,optional"`
@@ -184,10 +268,92 @@ type ProgramPreorderTicketCategoryInfo struct {
 	RemainNumber int64  `json:"remainNumber"`
 }
 
+type ProgramResetReq struct {
+	ProgramID int64 `json:"programId"`
+}
+
+type ProgramShowTimeAddReq struct {
+	ProgramID    int64  `json:"programId"`
+	ShowTime     string `json:"showTime"`
+	ShowDayTime  string `json:"showDayTime"`
+	ShowWeekTime string `json:"showWeekTime"`
+}
+
 type ProgramSimpleInfo struct {
 	ProgramID  int64  `json:"programId"`
 	AreaID     int64  `json:"areaId"`
 	AreaIDName string `json:"areaIdName,optional"`
+}
+
+type ProgramUpdateReq struct {
+	ID                              int64  `json:"id"`
+	ProgramGroupID                  int64  `json:"programGroupId"`
+	Prime                           int64  `json:"prime,optional"`
+	AreaID                          int64  `json:"areaId"`
+	ProgramCategoryID               int64  `json:"programCategoryId"`
+	ParentProgramCategoryID         int64  `json:"parentProgramCategoryId"`
+	Title                           string `json:"title"`
+	Actor                           string `json:"actor,optional"`
+	Place                           string `json:"place,optional"`
+	ItemPicture                     string `json:"itemPicture,optional"`
+	PreSell                         int64  `json:"preSell,optional"`
+	PreSellInstruction              string `json:"preSellInstruction,optional"`
+	ImportantNotice                 string `json:"importantNotice,optional"`
+	Detail                          string `json:"detail"`
+	PerOrderLimitPurchaseCount      int64  `json:"perOrderLimitPurchaseCount,optional"`
+	PerAccountLimitPurchaseCount    int64  `json:"perAccountLimitPurchaseCount,optional"`
+	RefundTicketRule                string `json:"refundTicketRule,optional"`
+	DeliveryInstruction             string `json:"deliveryInstruction,optional"`
+	EntryRule                       string `json:"entryRule,optional"`
+	ChildPurchase                   string `json:"childPurchase,optional"`
+	InvoiceSpecification            string `json:"invoiceSpecification,optional"`
+	RealTicketPurchaseRule          string `json:"realTicketPurchaseRule,optional"`
+	AbnormalOrderDescription        string `json:"abnormalOrderDescription,optional"`
+	KindReminder                    string `json:"kindReminder,optional"`
+	PerformanceDuration             string `json:"performanceDuration,optional"`
+	EntryTime                       string `json:"entryTime,optional"`
+	MinPerformanceCount             int64  `json:"minPerformanceCount,optional"`
+	MainActor                       string `json:"mainActor,optional"`
+	MinPerformanceDuration          string `json:"minPerformanceDuration,optional"`
+	ProhibitedItem                  string `json:"prohibitedItem,optional"`
+	DepositSpecification            string `json:"depositSpecification,optional"`
+	TotalCount                      int64  `json:"totalCount,optional"`
+	PermitRefund                    int64  `json:"permitRefund,optional"`
+	RefundExplain                   string `json:"refundExplain,optional"`
+	RefundRuleJSON                  string `json:"refundRuleJson,optional"`
+	RelNameTicketEntrance           int64  `json:"relNameTicketEntrance,optional"`
+	RelNameTicketEntranceExplain    string `json:"relNameTicketEntranceExplain,optional"`
+	PermitChooseSeat                int64  `json:"permitChooseSeat,optional"`
+	ChooseSeatExplain               string `json:"chooseSeatExplain,optional"`
+	ElectronicDeliveryTicket        int64  `json:"electronicDeliveryTicket,optional"`
+	ElectronicDeliveryTicketExplain string `json:"electronicDeliveryTicketExplain,optional"`
+	ElectronicInvoice               int64  `json:"electronicInvoice,optional"`
+	ElectronicInvoiceExplain        string `json:"electronicInvoiceExplain,optional"`
+	HighHeat                        int64  `json:"highHeat,optional"`
+	ProgramStatus                   int64  `json:"programStatus,optional"`
+	IssueTime                       string `json:"issueTime,optional"`
+	Status                          int64  `json:"status,optional"`
+}
+
+type SeatAddReq struct {
+	ProgramID        int64 `json:"programId"`
+	TicketCategoryID int64 `json:"ticketCategoryId"`
+	RowCode          int64 `json:"rowCode"`
+	ColCode          int64 `json:"colCode"`
+	SeatType         int64 `json:"seatType"`
+	Price            int64 `json:"price"`
+	SeatStatus       int64 `json:"seatStatus,optional"`
+}
+
+type SeatBatchAddReq struct {
+	ProgramID                     int64                       `json:"programId"`
+	SeatBatchRelateInfoAddDtoList []SeatBatchRelateInfoAddReq `json:"seatBatchRelateInfoAddDtoList"`
+}
+
+type SeatBatchRelateInfoAddReq struct {
+	TicketCategoryID int64 `json:"ticketCategoryId"`
+	Price            int64 `json:"price"`
+	Count            int64 `json:"count"`
 }
 
 type SeatInfo struct {
@@ -196,6 +362,27 @@ type SeatInfo struct {
 	RowCode          int64 `json:"rowCode"`
 	ColCode          int64 `json:"colCode"`
 	Price            int64 `json:"price"`
+}
+
+type SeatListReq struct {
+	ProgramID int64 `json:"programId"`
+}
+
+type SeatRelateInfoResp struct {
+	ProgramID          int64            `json:"programId"`
+	Place              string           `json:"place,optional"`
+	ShowTime           string           `json:"showTime,optional"`
+	ShowWeekTime       string           `json:"showWeekTime,optional"`
+	PriceList          []string         `json:"priceList,optional"`
+	PriceSeatGroupList []PriceSeatGroup `json:"priceSeatGroupList,optional"`
+}
+
+type TicketCategoryAddReq struct {
+	ProgramID    int64  `json:"programId"`
+	Introduce    string `json:"introduce"`
+	Price        int64  `json:"price"`
+	TotalNumber  int64  `json:"totalNumber"`
+	RemainNumber int64  `json:"remainNumber"`
 }
 
 type TicketCategoryDetailInfo struct {
@@ -214,4 +401,8 @@ type TicketCategoryInfo struct {
 	ID        int64  `json:"id"`
 	Introduce string `json:"introduce,optional"`
 	Price     int64  `json:"price"`
+}
+
+type TicketCategoryReq struct {
+	ID int64 `json:"id"`
 }

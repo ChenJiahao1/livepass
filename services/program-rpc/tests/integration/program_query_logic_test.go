@@ -44,6 +44,54 @@ func TestListProgramCategoriesReturnsSeededCategories(t *testing.T) {
 	}
 }
 
+func TestListProgramCategoriesByTypeReturnsMatchedRows(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	l := logicpkg.NewListProgramCategoriesByTypeLogic(context.Background(), svcCtx)
+	resp, err := l.ListProgramCategoriesByType(&pb.ProgramCategoryTypeReq{Type: 2})
+	if err != nil {
+		t.Fatalf("ListProgramCategoriesByType returned error: %v", err)
+	}
+	if len(resp.List) != 2 {
+		t.Fatalf("expected 2 categories, got %d", len(resp.List))
+	}
+	if resp.List[0].Type != 2 || resp.List[1].Type != 2 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+}
+
+func TestListProgramCategoriesByParentReturnsMatchedRows(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	l := logicpkg.NewListProgramCategoriesByParentLogic(context.Background(), svcCtx)
+	resp, err := l.ListProgramCategoriesByParent(&pb.ParentProgramCategoryReq{ParentProgramCategoryId: 1})
+	if err != nil {
+		t.Fatalf("ListProgramCategoriesByParent returned error: %v", err)
+	}
+	if len(resp.List) != 1 || resp.List[0].Id != 11 || resp.List[0].ParentId != 1 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+}
+
+func TestGetSeatRelateInfoGroupsSeatsByPrice(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	l := logicpkg.NewGetSeatRelateInfoLogic(context.Background(), svcCtx)
+	resp, err := l.GetSeatRelateInfo(&pb.SeatListReq{ProgramId: 10001})
+	if err != nil {
+		t.Fatalf("GetSeatRelateInfo returned error: %v", err)
+	}
+	if resp.ProgramId != 10001 || resp.Place != "北京示例剧场" {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if len(resp.PriceList) == 0 || len(resp.PriceSeatGroupList) == 0 {
+		t.Fatalf("expected grouped seats, got %+v", resp)
+	}
+}
+
 func TestListHomeProgramsGroupsByRequestedParentCategoryOrder(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)

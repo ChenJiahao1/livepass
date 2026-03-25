@@ -14,6 +14,7 @@ type (
 	DSeatModel interface {
 		dSeatModel
 		withSession(session sqlx.Session) DSeatModel
+		FindByProgramID(ctx context.Context, programID int64) ([]*DSeat, error)
 		FindAvailableByProgramAndTicketCategoryForUpdate(ctx context.Context, session sqlx.Session, programId, ticketCategoryId int64) ([]*DSeat, error)
 		FindByProgramAndTicketCategoryAndSeatStatus(ctx context.Context, programId, ticketCategoryId, seatStatus int64) ([]*DSeat, error)
 		FindAvailableCountByProgramId(ctx context.Context, programId int64) ([]*SeatRemainAggregate, error)
@@ -44,6 +45,25 @@ func NewDSeatModel(conn sqlx.SqlConn) DSeatModel {
 
 func (m *customDSeatModel) withSession(session sqlx.Session) DSeatModel {
 	return NewDSeatModel(sqlx.NewSqlConnFromSession(session))
+}
+
+func (m *customDSeatModel) FindByProgramID(ctx context.Context, programID int64) ([]*DSeat, error) {
+	query := fmt.Sprintf(
+		"select %s from %s where `status` = 1 and `program_id` = ? order by `price` asc, `row_code` asc, `col_code` asc, `id` asc",
+		dSeatRows,
+		m.table,
+	)
+
+	var resp []*DSeat
+	err := m.conn.QueryRowsCtx(ctx, &resp, query, programID)
+	switch err {
+	case nil:
+		return resp, nil
+	case sqlx.ErrNotFound:
+		return []*DSeat{}, nil
+	default:
+		return nil, err
+	}
 }
 
 func (m *customDSeatModel) FindAvailableByProgramAndTicketCategoryForUpdate(ctx context.Context, session sqlx.Session, programId, ticketCategoryId int64) ([]*DSeat, error) {

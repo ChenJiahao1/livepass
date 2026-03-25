@@ -9,9 +9,16 @@ import (
 )
 
 type fakeProgramRPC struct {
+	idResp    *programrpc.IdResp
+	idErr     error
+	boolResp  *programrpc.BoolResp
+	boolErr   error
+
 	createProgramResp    *programrpc.CreateProgramResp
 	createProgramErr     error
 	lastCreateProgramReq *programrpc.CreateProgramReq
+
+	lastInvalidProgramReq *programrpc.ProgramInvalidReq
 
 	updateProgramResp    *programrpc.BoolResp
 	updateProgramErr     error
@@ -20,6 +27,16 @@ type fakeProgramRPC struct {
 	listProgramCategoriesResp    *programrpc.ProgramCategoryListResp
 	listProgramCategoriesErr     error
 	lastListProgramCategoriesReq *programrpc.Empty
+
+	listProgramCategoriesByTypeResp    *programrpc.ProgramCategoryListResp
+	listProgramCategoriesByTypeErr     error
+	lastListProgramCategoriesByTypeReq *programrpc.ProgramCategoryTypeReq
+
+	listProgramCategoriesByParentResp    *programrpc.ProgramCategoryListResp
+	listProgramCategoriesByParentErr     error
+	lastListProgramCategoriesByParentReq *programrpc.ParentProgramCategoryReq
+
+	lastBatchCreateProgramCategoriesReq *programrpc.ProgramCategoryBatchSaveReq
 
 	listHomeProgramsResp    *programrpc.ProgramHomeListResp
 	listHomeProgramsErr     error
@@ -41,6 +58,34 @@ type fakeProgramRPC struct {
 	listTicketCategoriesByProgramErr     error
 	lastListTicketCategoriesByProgramReq *programrpc.ListTicketCategoriesByProgramReq
 
+	createProgramShowTimeResp    *programrpc.IdResp
+	createProgramShowTimeErr     error
+	lastCreateProgramShowTimeReq *programrpc.ProgramShowTimeAddReq
+
+	createTicketCategoryResp    *programrpc.IdResp
+	createTicketCategoryErr     error
+	lastCreateTicketCategoryReq *programrpc.TicketCategoryAddReq
+
+	getTicketCategoryDetailResp    *programrpc.TicketCategoryDetailInfo
+	getTicketCategoryDetailErr     error
+	lastGetTicketCategoryDetailReq *programrpc.TicketCategoryReq
+
+	createSeatResp    *programrpc.IdResp
+	createSeatErr     error
+	lastCreateSeatReq *programrpc.SeatAddReq
+
+	batchCreateSeatsResp    *programrpc.BoolResp
+	batchCreateSeatsErr     error
+	lastBatchCreateSeatsReq *programrpc.SeatBatchAddReq
+
+	getSeatRelateInfoResp    *programrpc.SeatRelateInfo
+	getSeatRelateInfoErr     error
+	lastGetSeatRelateInfoReq *programrpc.SeatListReq
+
+	resetProgramResp    *programrpc.BoolResp
+	resetProgramErr     error
+	lastResetProgramReq *programrpc.ProgramResetReq
+
 	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
 	autoAssignAndFreezeSeatsErr     error
 	lastAutoAssignAndFreezeSeatsReq *programrpc.AutoAssignAndFreezeSeatsReq
@@ -55,6 +100,11 @@ func (f *fakeProgramRPC) CreateProgram(ctx context.Context, in *programrpc.Creat
 	return f.createProgramResp, f.createProgramErr
 }
 
+func (f *fakeProgramRPC) InvalidProgram(ctx context.Context, in *programrpc.ProgramInvalidReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	f.lastInvalidProgramReq = in
+	return f.boolResp, f.boolErr
+}
+
 func (f *fakeProgramRPC) UpdateProgram(ctx context.Context, in *programrpc.UpdateProgramReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
 	f.lastUpdateProgramReq = in
 	return f.updateProgramResp, f.updateProgramErr
@@ -63,6 +113,21 @@ func (f *fakeProgramRPC) UpdateProgram(ctx context.Context, in *programrpc.Updat
 func (f *fakeProgramRPC) ListProgramCategories(ctx context.Context, in *programrpc.Empty, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {
 	f.lastListProgramCategoriesReq = in
 	return f.listProgramCategoriesResp, f.listProgramCategoriesErr
+}
+
+func (f *fakeProgramRPC) ListProgramCategoriesByType(ctx context.Context, in *programrpc.ProgramCategoryTypeReq, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {
+	f.lastListProgramCategoriesByTypeReq = in
+	return f.listProgramCategoriesByTypeResp, f.listProgramCategoriesByTypeErr
+}
+
+func (f *fakeProgramRPC) ListProgramCategoriesByParent(ctx context.Context, in *programrpc.ParentProgramCategoryReq, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {
+	f.lastListProgramCategoriesByParentReq = in
+	return f.listProgramCategoriesByParentResp, f.listProgramCategoriesByParentErr
+}
+
+func (f *fakeProgramRPC) BatchCreateProgramCategories(ctx context.Context, in *programrpc.ProgramCategoryBatchSaveReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	f.lastBatchCreateProgramCategoriesReq = in
+	return f.boolResp, f.boolErr
 }
 
 func (f *fakeProgramRPC) ListHomePrograms(ctx context.Context, in *programrpc.ListHomeProgramsReq, opts ...grpc.CallOption) (*programrpc.ProgramHomeListResp, error) {
@@ -88,6 +153,41 @@ func (f *fakeProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.
 func (f *fakeProgramRPC) ListTicketCategoriesByProgram(ctx context.Context, in *programrpc.ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*programrpc.TicketCategoryDetailListResp, error) {
 	f.lastListTicketCategoriesByProgramReq = in
 	return f.listTicketCategoriesByProgramResp, f.listTicketCategoriesByProgramErr
+}
+
+func (f *fakeProgramRPC) CreateProgramShowTime(ctx context.Context, in *programrpc.ProgramShowTimeAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {
+	f.lastCreateProgramShowTimeReq = in
+	return f.createProgramShowTimeResp, f.createProgramShowTimeErr
+}
+
+func (f *fakeProgramRPC) CreateTicketCategory(ctx context.Context, in *programrpc.TicketCategoryAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {
+	f.lastCreateTicketCategoryReq = in
+	return f.createTicketCategoryResp, f.createTicketCategoryErr
+}
+
+func (f *fakeProgramRPC) GetTicketCategoryDetail(ctx context.Context, in *programrpc.TicketCategoryReq, opts ...grpc.CallOption) (*programrpc.TicketCategoryDetailInfo, error) {
+	f.lastGetTicketCategoryDetailReq = in
+	return f.getTicketCategoryDetailResp, f.getTicketCategoryDetailErr
+}
+
+func (f *fakeProgramRPC) CreateSeat(ctx context.Context, in *programrpc.SeatAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {
+	f.lastCreateSeatReq = in
+	return f.createSeatResp, f.createSeatErr
+}
+
+func (f *fakeProgramRPC) BatchCreateSeats(ctx context.Context, in *programrpc.SeatBatchAddReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	f.lastBatchCreateSeatsReq = in
+	return f.batchCreateSeatsResp, f.batchCreateSeatsErr
+}
+
+func (f *fakeProgramRPC) GetSeatRelateInfo(ctx context.Context, in *programrpc.SeatListReq, opts ...grpc.CallOption) (*programrpc.SeatRelateInfo, error) {
+	f.lastGetSeatRelateInfoReq = in
+	return f.getSeatRelateInfoResp, f.getSeatRelateInfoErr
+}
+
+func (f *fakeProgramRPC) ResetProgram(ctx context.Context, in *programrpc.ProgramResetReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	f.lastResetProgramReq = in
+	return f.resetProgramResp, f.resetProgramErr
 }
 
 func (f *fakeProgramRPC) AutoAssignAndFreezeSeats(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {

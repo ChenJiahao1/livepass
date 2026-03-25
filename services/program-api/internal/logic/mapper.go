@@ -5,6 +5,26 @@ import (
 	"damai-go/services/program-rpc/programrpc"
 )
 
+func mapBoolResp(resp *programrpc.BoolResp) *types.BoolResp {
+	if resp == nil {
+		return &types.BoolResp{}
+	}
+
+	return &types.BoolResp{
+		Success: resp.Success,
+	}
+}
+
+func mapIdResp(resp *programrpc.IdResp) *types.IdResp {
+	if resp == nil {
+		return &types.IdResp{}
+	}
+
+	return &types.IdResp{
+		ID: resp.Id,
+	}
+}
+
 func mapProgramCategoryListResp(resp *programrpc.ProgramCategoryListResp) *types.ProgramCategoryListResp {
 	if resp == nil {
 		return &types.ProgramCategoryListResp{}
@@ -261,6 +281,78 @@ func mapProgramPreorderTicketCategoryInfoList(list []*programrpc.ProgramPreorder
 	return resp
 }
 
+func mapTicketCategoryDetailInfo(resp *programrpc.TicketCategoryDetailInfo) *types.TicketCategoryDetailInfo {
+	if resp == nil {
+		return &types.TicketCategoryDetailInfo{}
+	}
+
+	return &types.TicketCategoryDetailInfo{
+		ProgramID:    resp.ProgramId,
+		Introduce:    resp.Introduce,
+		Price:        resp.Price,
+		TotalNumber:  resp.TotalNumber,
+		RemainNumber: resp.RemainNumber,
+	}
+}
+
+func mapSeatRelateInfo(resp *programrpc.SeatRelateInfo) *types.SeatRelateInfoResp {
+	if resp == nil {
+		return &types.SeatRelateInfoResp{}
+	}
+
+	return &types.SeatRelateInfoResp{
+		ProgramID:          resp.ProgramId,
+		Place:              resp.Place,
+		ShowTime:           resp.ShowTime,
+		ShowWeekTime:       resp.ShowWeekTime,
+		PriceList:          resp.PriceList,
+		PriceSeatGroupList: mapPriceSeatGroupList(resp.PriceSeatGroupList),
+	}
+}
+
+func mapPriceSeatGroupList(list []*programrpc.PriceSeatGroup) []types.PriceSeatGroup {
+	if len(list) == 0 {
+		return nil
+	}
+
+	resp := make([]types.PriceSeatGroup, 0, len(list))
+	for _, item := range list {
+		if item == nil {
+			resp = append(resp, types.PriceSeatGroup{})
+			continue
+		}
+		resp = append(resp, types.PriceSeatGroup{
+			Price: item.Price,
+			Seats: mapSeatInfoList(item.Seats),
+		})
+	}
+
+	return resp
+}
+
+func mapSeatInfoList(list []*programrpc.SeatInfo) []types.SeatInfo {
+	if len(list) == 0 {
+		return nil
+	}
+
+	resp := make([]types.SeatInfo, 0, len(list))
+	for _, item := range list {
+		if item == nil {
+			resp = append(resp, types.SeatInfo{})
+			continue
+		}
+		resp = append(resp, types.SeatInfo{
+			SeatID:           item.SeatId,
+			TicketCategoryID: item.TicketCategoryId,
+			RowCode:          item.RowCode,
+			ColCode:          item.ColCode,
+			Price:            item.Price,
+		})
+	}
+
+	return resp
+}
+
 func mapTicketCategoryInfoList(list []*programrpc.TicketCategoryInfo) []types.TicketCategoryInfo {
 	if len(list) == 0 {
 		return nil
@@ -325,27 +417,4 @@ func mapFreezeSeatsResp(resp *programrpc.AutoAssignAndFreezeSeatsResp) *types.Fr
 		ExpireTime:  resp.ExpireTime,
 		Seats:       mapSeatInfoList(resp.Seats),
 	}
-}
-
-func mapSeatInfoList(list []*programrpc.SeatInfo) []types.SeatInfo {
-	if len(list) == 0 {
-		return nil
-	}
-
-	resp := make([]types.SeatInfo, 0, len(list))
-	for _, item := range list {
-		if item == nil {
-			resp = append(resp, types.SeatInfo{})
-			continue
-		}
-		resp = append(resp, types.SeatInfo{
-			SeatID:           item.SeatId,
-			TicketCategoryID: item.TicketCategoryId,
-			RowCode:          item.RowCode,
-			ColCode:          item.ColCode,
-			Price:            item.Price,
-		})
-	}
-
-	return resp
 }

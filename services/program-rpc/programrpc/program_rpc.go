@@ -25,39 +25,66 @@ type (
 	EvaluateRefundRuleReq             = pb.EvaluateRefundRuleReq
 	EvaluateRefundRuleResp            = pb.EvaluateRefundRuleResp
 	GetProgramDetailReq               = pb.GetProgramDetailReq
+	IdResp                            = pb.IdResp
 	ListHomeProgramsReq               = pb.ListHomeProgramsReq
 	ListTicketCategoriesByProgramReq  = pb.ListTicketCategoriesByProgramReq
 	PageProgramsReq                   = pb.PageProgramsReq
+	ParentProgramCategoryReq          = pb.ParentProgramCategoryReq
+	PriceSeatGroup                    = pb.PriceSeatGroup
+	ProgramCategoryBatchItem          = pb.ProgramCategoryBatchItem
+	ProgramCategoryBatchSaveReq       = pb.ProgramCategoryBatchSaveReq
 	ProgramCategoryInfo               = pb.ProgramCategoryInfo
 	ProgramCategoryListResp           = pb.ProgramCategoryListResp
+	ProgramCategoryTypeReq            = pb.ProgramCategoryTypeReq
 	ProgramDetailInfo                 = pb.ProgramDetailInfo
 	ProgramGroupInfo                  = pb.ProgramGroupInfo
 	ProgramHomeListResp               = pb.ProgramHomeListResp
 	ProgramHomeSection                = pb.ProgramHomeSection
+	ProgramInvalidReq                 = pb.ProgramInvalidReq
 	ProgramListInfo                   = pb.ProgramListInfo
 	ProgramPageResp                   = pb.ProgramPageResp
 	ProgramPreorderInfo               = pb.ProgramPreorderInfo
 	ProgramPreorderTicketCategoryInfo = pb.ProgramPreorderTicketCategoryInfo
+	ProgramResetReq                   = pb.ProgramResetReq
+	ProgramShowTimeAddReq             = pb.ProgramShowTimeAddReq
 	ProgramSimpleInfo                 = pb.ProgramSimpleInfo
 	ReleaseSeatFreezeReq              = pb.ReleaseSeatFreezeReq
 	ReleaseSeatFreezeResp             = pb.ReleaseSeatFreezeResp
 	ReleaseSoldSeatsReq               = pb.ReleaseSoldSeatsReq
 	ReleaseSoldSeatsResp              = pb.ReleaseSoldSeatsResp
+	SeatAddReq                        = pb.SeatAddReq
+	SeatBatchAddReq                   = pb.SeatBatchAddReq
+	SeatBatchRelateInfoAddReq         = pb.SeatBatchRelateInfoAddReq
 	SeatInfo                          = pb.SeatInfo
+	SeatListReq                       = pb.SeatListReq
+	SeatRelateInfo                    = pb.SeatRelateInfo
+	TicketCategoryAddReq              = pb.TicketCategoryAddReq
 	TicketCategoryDetailInfo          = pb.TicketCategoryDetailInfo
 	TicketCategoryDetailListResp      = pb.TicketCategoryDetailListResp
 	TicketCategoryInfo                = pb.TicketCategoryInfo
+	TicketCategoryReq                 = pb.TicketCategoryReq
 	UpdateProgramReq                  = pb.UpdateProgramReq
 
 	ProgramRpc interface {
 		CreateProgram(ctx context.Context, in *CreateProgramReq, opts ...grpc.CallOption) (*CreateProgramResp, error)
 		UpdateProgram(ctx context.Context, in *UpdateProgramReq, opts ...grpc.CallOption) (*BoolResp, error)
+		InvalidProgram(ctx context.Context, in *ProgramInvalidReq, opts ...grpc.CallOption) (*BoolResp, error)
+		ResetProgram(ctx context.Context, in *ProgramResetReq, opts ...grpc.CallOption) (*BoolResp, error)
 		ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
+		ListProgramCategoriesByType(ctx context.Context, in *ProgramCategoryTypeReq, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
+		ListProgramCategoriesByParent(ctx context.Context, in *ParentProgramCategoryReq, opts ...grpc.CallOption) (*ProgramCategoryListResp, error)
+		BatchCreateProgramCategories(ctx context.Context, in *ProgramCategoryBatchSaveReq, opts ...grpc.CallOption) (*BoolResp, error)
 		ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 		PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 		GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
 		GetProgramPreorder(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
+		CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
+		CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error)
+		GetTicketCategoryDetail(ctx context.Context, in *TicketCategoryReq, opts ...grpc.CallOption) (*TicketCategoryDetailInfo, error)
 		ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
+		CreateSeat(ctx context.Context, in *SeatAddReq, opts ...grpc.CallOption) (*IdResp, error)
+		BatchCreateSeats(ctx context.Context, in *SeatBatchAddReq, opts ...grpc.CallOption) (*BoolResp, error)
+		GetSeatRelateInfo(ctx context.Context, in *SeatListReq, opts ...grpc.CallOption) (*SeatRelateInfo, error)
 		AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error)
 		ReleaseSeatFreeze(ctx context.Context, in *ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*ReleaseSeatFreezeResp, error)
 		ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error)
@@ -86,9 +113,34 @@ func (m *defaultProgramRpc) UpdateProgram(ctx context.Context, in *UpdateProgram
 	return client.UpdateProgram(ctx, in, opts...)
 }
 
+func (m *defaultProgramRpc) InvalidProgram(ctx context.Context, in *ProgramInvalidReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.InvalidProgram(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) ResetProgram(ctx context.Context, in *ProgramResetReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.ResetProgram(ctx, in, opts...)
+}
+
 func (m *defaultProgramRpc) ListProgramCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProgramCategoryListResp, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.ListProgramCategories(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) ListProgramCategoriesByType(ctx context.Context, in *ProgramCategoryTypeReq, opts ...grpc.CallOption) (*ProgramCategoryListResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.ListProgramCategoriesByType(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) ListProgramCategoriesByParent(ctx context.Context, in *ParentProgramCategoryReq, opts ...grpc.CallOption) (*ProgramCategoryListResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.ListProgramCategoriesByParent(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) BatchCreateProgramCategories(ctx context.Context, in *ProgramCategoryBatchSaveReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.BatchCreateProgramCategories(ctx, in, opts...)
 }
 
 func (m *defaultProgramRpc) ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error) {
@@ -111,9 +163,39 @@ func (m *defaultProgramRpc) GetProgramPreorder(ctx context.Context, in *GetProgr
 	return client.GetProgramPreorder(ctx, in, opts...)
 }
 
+func (m *defaultProgramRpc) CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.CreateProgramShowTime(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.CreateTicketCategory(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) GetTicketCategoryDetail(ctx context.Context, in *TicketCategoryReq, opts ...grpc.CallOption) (*TicketCategoryDetailInfo, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.GetTicketCategoryDetail(ctx, in, opts...)
+}
+
 func (m *defaultProgramRpc) ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.ListTicketCategoriesByProgram(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) CreateSeat(ctx context.Context, in *SeatAddReq, opts ...grpc.CallOption) (*IdResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.CreateSeat(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) BatchCreateSeats(ctx context.Context, in *SeatBatchAddReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.BatchCreateSeats(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) GetSeatRelateInfo(ctx context.Context, in *SeatListReq, opts ...grpc.CallOption) (*SeatRelateInfo, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.GetSeatRelateInfo(ctx, in, opts...)
 }
 
 func (m *defaultProgramRpc) AutoAssignAndFreezeSeats(ctx context.Context, in *AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*AutoAssignAndFreezeSeatsResp, error) {

@@ -231,6 +231,327 @@ func TestGetProgramPreorderPropagatesRPCErrors(t *testing.T) {
 	}
 }
 
+func TestAddProgramMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		createProgramResp: &programrpc.CreateProgramResp{Id: 30001},
+	}
+	logic := logicpkg.NewAddProgramLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.AddProgram(&types.ProgramAddReq{
+		ProgramGroupID:               20001,
+		AreaID:                       2,
+		ProgramCategoryID:            11,
+		ParentProgramCategoryID:      1,
+		Title:                        "新增节目",
+		Detail:                       "<p>detail</p>",
+		PerOrderLimitPurchaseCount:   4,
+		PerAccountLimitPurchaseCount: 6,
+		PermitRefund:                 1,
+		PermitChooseSeat:             0,
+		ElectronicDeliveryTicket:     1,
+		ElectronicInvoice:            1,
+		ProgramStatus:                1,
+		IssueTime:                    "2026-12-31 19:30:00",
+	})
+	if err != nil {
+		t.Fatalf("AddProgram returned error: %v", err)
+	}
+	if resp.ID != 30001 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastCreateProgramReq == nil || fake.lastCreateProgramReq.ProgramGroupId != 20001 || fake.lastCreateProgramReq.Title != "新增节目" {
+		t.Fatalf("unexpected request: %+v", fake.lastCreateProgramReq)
+	}
+}
+
+func TestUpdateProgramMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		updateProgramResp: &programrpc.BoolResp{Success: true},
+	}
+	logic := logicpkg.NewUpdateProgramLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.UpdateProgram(&types.ProgramUpdateReq{
+		ID:                           10001,
+		ProgramGroupID:               20002,
+		AreaID:                       2,
+		ProgramCategoryID:            11,
+		ParentProgramCategoryID:      1,
+		Title:                        "更新节目",
+		Detail:                       "<p>detail</p>",
+		PerOrderLimitPurchaseCount:   4,
+		PerAccountLimitPurchaseCount: 6,
+		PermitRefund:                 1,
+		PermitChooseSeat:             0,
+		ElectronicDeliveryTicket:     1,
+		ElectronicInvoice:            1,
+		ProgramStatus:                1,
+		Status:                       1,
+	})
+	if err != nil {
+		t.Fatalf("UpdateProgram returned error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastUpdateProgramReq == nil || fake.lastUpdateProgramReq.Id != 10001 || fake.lastUpdateProgramReq.ProgramGroupId != 20002 {
+		t.Fatalf("unexpected request: %+v", fake.lastUpdateProgramReq)
+	}
+}
+
+func TestInvalidProgramMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		boolResp: &programrpc.BoolResp{Success: true},
+	}
+	logic := logicpkg.NewInvalidProgramLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.InvalidProgram(&types.ProgramInvalidReq{ID: 10001})
+	if err != nil {
+		t.Fatalf("InvalidProgram returned error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastInvalidProgramReq == nil || fake.lastInvalidProgramReq.Id != 10001 {
+		t.Fatalf("unexpected request: %+v", fake.lastInvalidProgramReq)
+	}
+}
+
+func TestListProgramCategoriesByTypeMapsResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		listProgramCategoriesByTypeResp: &programrpc.ProgramCategoryListResp{
+			List: []*programrpc.ProgramCategoryInfo{
+				{Id: 1, ParentId: 0, Name: "演唱会", Type: 1},
+			},
+		},
+	}
+	logic := logicpkg.NewListProgramCategoriesByTypeLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.ListProgramCategoriesByType(&types.ProgramCategoryTypeReq{Type: 1})
+	if err != nil {
+		t.Fatalf("ListProgramCategoriesByType returned error: %v", err)
+	}
+	if len(resp.List) != 1 || resp.List[0].Name != "演唱会" {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastListProgramCategoriesByTypeReq == nil || fake.lastListProgramCategoriesByTypeReq.Type != 1 {
+		t.Fatalf("unexpected request: %+v", fake.lastListProgramCategoriesByTypeReq)
+	}
+}
+
+func TestListProgramCategoriesByParentMapsResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		listProgramCategoriesByParentResp: &programrpc.ProgramCategoryListResp{
+			List: []*programrpc.ProgramCategoryInfo{
+				{Id: 11, ParentId: 1, Name: "livehouse", Type: 2},
+			},
+		},
+	}
+	logic := logicpkg.NewListProgramCategoriesByParentLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.ListProgramCategoriesByParent(&types.ParentProgramCategoryReq{ParentProgramCategoryID: 1})
+	if err != nil {
+		t.Fatalf("ListProgramCategoriesByParent returned error: %v", err)
+	}
+	if len(resp.List) != 1 || resp.List[0].ParentID != 1 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastListProgramCategoriesByParentReq == nil || fake.lastListProgramCategoriesByParentReq.ParentProgramCategoryId != 1 {
+		t.Fatalf("unexpected request: %+v", fake.lastListProgramCategoriesByParentReq)
+	}
+}
+
+func TestBatchCreateProgramCategoriesMapsRequest(t *testing.T) {
+	fake := &fakeProgramRPC{
+		boolResp: &programrpc.BoolResp{Success: true},
+	}
+	logic := logicpkg.NewBatchCreateProgramCategoriesLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.BatchCreateProgramCategories(&types.ProgramCategoryBatchSaveReq{
+		List: []types.ProgramCategoryBatchItem{
+			{ParentID: 1, Name: "脱口秀", Type: 2},
+			{ParentID: 1, Name: "livehouse", Type: 2},
+		},
+	})
+	if err != nil {
+		t.Fatalf("BatchCreateProgramCategories returned error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastBatchCreateProgramCategoriesReq == nil || len(fake.lastBatchCreateProgramCategoriesReq.List) != 2 {
+		t.Fatalf("unexpected request: %+v", fake.lastBatchCreateProgramCategoriesReq)
+	}
+}
+
+func TestCreateProgramShowTimeMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		createProgramShowTimeResp: &programrpc.IdResp{Id: 50001},
+	}
+	logic := logicpkg.NewCreateProgramShowTimeLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.CreateProgramShowTime(&types.ProgramShowTimeAddReq{
+		ProgramID:   10001,
+		ShowTime:    "2026-12-31 19:30:00",
+		ShowDayTime: "2026-12-31 00:00:00",
+		ShowWeekTime:"周三",
+	})
+	if err != nil {
+		t.Fatalf("CreateProgramShowTime returned error: %v", err)
+	}
+	if resp.ID != 50001 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastCreateProgramShowTimeReq == nil || fake.lastCreateProgramShowTimeReq.ProgramId != 10001 {
+		t.Fatalf("unexpected request: %+v", fake.lastCreateProgramShowTimeReq)
+	}
+}
+
+func TestCreateTicketCategoryMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		createTicketCategoryResp: &programrpc.IdResp{Id: 40003},
+	}
+	logic := logicpkg.NewCreateTicketCategoryLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.CreateTicketCategory(&types.TicketCategoryAddReq{
+		ProgramID:    10001,
+		Introduce:    "普通票",
+		Price:        299,
+		TotalNumber:  100,
+		RemainNumber: 100,
+	})
+	if err != nil {
+		t.Fatalf("CreateTicketCategory returned error: %v", err)
+	}
+	if resp.ID != 40003 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastCreateTicketCategoryReq == nil || fake.lastCreateTicketCategoryReq.ProgramId != 10001 {
+		t.Fatalf("unexpected request: %+v", fake.lastCreateTicketCategoryReq)
+	}
+}
+
+func TestGetTicketCategoryDetailMapsResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		getTicketCategoryDetailResp: &programrpc.TicketCategoryDetailInfo{
+			ProgramId:    10001,
+			Introduce:    "VIP票",
+			Price:        599,
+			TotalNumber:  80,
+			RemainNumber: 12,
+		},
+	}
+	logic := logicpkg.NewGetTicketCategoryDetailLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.GetTicketCategoryDetail(&types.TicketCategoryReq{ID: 40002})
+	if err != nil {
+		t.Fatalf("GetTicketCategoryDetail returned error: %v", err)
+	}
+	if resp.Price != 599 || resp.RemainNumber != 12 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastGetTicketCategoryDetailReq == nil || fake.lastGetTicketCategoryDetailReq.Id != 40002 {
+		t.Fatalf("unexpected request: %+v", fake.lastGetTicketCategoryDetailReq)
+	}
+}
+
+func TestCreateSeatMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		createSeatResp: &programrpc.IdResp{Id: 70003},
+	}
+	logic := logicpkg.NewCreateSeatLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.CreateSeat(&types.SeatAddReq{
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		RowCode:          3,
+		ColCode:          7,
+		SeatType:         1,
+		Price:            299,
+	})
+	if err != nil {
+		t.Fatalf("CreateSeat returned error: %v", err)
+	}
+	if resp.ID != 70003 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastCreateSeatReq == nil || fake.lastCreateSeatReq.RowCode != 3 || fake.lastCreateSeatReq.ColCode != 7 {
+		t.Fatalf("unexpected request: %+v", fake.lastCreateSeatReq)
+	}
+}
+
+func TestBatchCreateSeatsMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		batchCreateSeatsResp: &programrpc.BoolResp{Success: true},
+	}
+	logic := logicpkg.NewBatchCreateSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.BatchCreateSeats(&types.SeatBatchAddReq{
+		ProgramID: 10001,
+		SeatBatchRelateInfoAddDtoList: []types.SeatBatchRelateInfoAddReq{
+			{TicketCategoryID: 40001, Price: 299, Count: 20},
+		},
+	})
+	if err != nil {
+		t.Fatalf("BatchCreateSeats returned error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastBatchCreateSeatsReq == nil || len(fake.lastBatchCreateSeatsReq.SeatBatchRelateInfoAddDtoList) != 1 {
+		t.Fatalf("unexpected request: %+v", fake.lastBatchCreateSeatsReq)
+	}
+}
+
+func TestGetSeatRelateInfoMapsResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		getSeatRelateInfoResp: &programrpc.SeatRelateInfo{
+			ProgramId:     10001,
+			Place:         "北京示例剧场",
+			ShowTime:      "2026-12-31 19:30:00",
+			ShowWeekTime:  "周三",
+			PriceList:     []string{"299", "599"},
+			PriceSeatGroupList: []*programrpc.PriceSeatGroup{
+				{
+					Price: "299",
+					Seats: []*programrpc.SeatInfo{
+						{SeatId: 70001, TicketCategoryId: 40001, RowCode: 3, ColCode: 5, Price: 299},
+					},
+				},
+			},
+		},
+	}
+	logic := logicpkg.NewGetSeatRelateInfoLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.GetSeatRelateInfo(&types.SeatListReq{ProgramID: 10001})
+	if err != nil {
+		t.Fatalf("GetSeatRelateInfo returned error: %v", err)
+	}
+	if resp.ProgramID != 10001 || len(resp.PriceSeatGroupList) != 1 || resp.PriceSeatGroupList[0].Price != "299" {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastGetSeatRelateInfoReq == nil || fake.lastGetSeatRelateInfoReq.ProgramId != 10001 {
+		t.Fatalf("unexpected request: %+v", fake.lastGetSeatRelateInfoReq)
+	}
+}
+
+func TestResetProgramMapsRequestAndResponse(t *testing.T) {
+	fake := &fakeProgramRPC{
+		resetProgramResp: &programrpc.BoolResp{Success: true},
+	}
+	logic := logicpkg.NewResetProgramLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+
+	resp, err := logic.ResetProgram(&types.ProgramResetReq{ProgramID: 10001})
+	if err != nil {
+		t.Fatalf("ResetProgram returned error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fake.lastResetProgramReq == nil || fake.lastResetProgramReq.ProgramId != 10001 {
+		t.Fatalf("unexpected request: %+v", fake.lastResetProgramReq)
+	}
+}
+
 func TestFreezeSeatsMapsRequestAndResponse(t *testing.T) {
 	fake := &fakeProgramRPC{
 		autoAssignAndFreezeSeatsResp: &programrpc.AutoAssignAndFreezeSeatsResp{

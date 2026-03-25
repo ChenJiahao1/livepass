@@ -356,6 +356,22 @@ func clearSeatInventoryByProgram(t *testing.T, svcCtx *svc.ServiceContext, progr
 	mustExecProgramSQL(t, db, "DELETE FROM d_seat WHERE program_id = ?", programID)
 }
 
+func updateTicketCategoryRemainNumber(t *testing.T, svcCtx *svc.ServiceContext, ticketCategoryID int64, remainNumber int64) {
+	t.Helper()
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	mustExecProgramSQL(
+		t,
+		db,
+		"UPDATE d_ticket_category SET remain_number = ?, edit_time = ? WHERE id = ?",
+		remainNumber,
+		time.Now().Format(testProgramDateTimeLayout),
+		ticketCategoryID,
+	)
+}
+
 func requireSeatFreezeMetadataByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) *seatcache.SeatFreezeMetadata {
 	t.Helper()
 

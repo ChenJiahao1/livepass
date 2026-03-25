@@ -10,6 +10,10 @@ message BoolResp {
   bool success = 1;
 }
 
+message IdResp {
+  int64 id = 1;
+}
+
 message ListHomeProgramsReq {
   int64 areaId = 1;
   repeated int64 parentProgramCategoryIds = 2;
@@ -29,6 +33,32 @@ message PageProgramsReq {
 
 message GetProgramDetailReq {
   int64 id = 1;
+}
+
+message ProgramInvalidReq {
+  int64 id = 1;
+}
+
+message ProgramResetReq {
+  int64 programId = 1;
+}
+
+message ProgramCategoryTypeReq {
+  int64 type = 1;
+}
+
+message ParentProgramCategoryReq {
+  int64 parentProgramCategoryId = 1;
+}
+
+message ProgramCategoryBatchItem {
+  int64 parentId = 1;
+  string name = 2;
+  int64 type = 3;
+}
+
+message ProgramCategoryBatchSaveReq {
+  repeated ProgramCategoryBatchItem list = 1;
 }
 
 message CreateProgramReq {
@@ -134,8 +164,27 @@ message UpdateProgramReq {
   int64 status = 47;
 }
 
+message ProgramShowTimeAddReq {
+  int64 programId = 1;
+  string showTime = 2;
+  string showDayTime = 3;
+  string showWeekTime = 4;
+}
+
 message ListTicketCategoriesByProgramReq {
   int64 programId = 1;
+}
+
+message TicketCategoryAddReq {
+  int64 programId = 1;
+  string introduce = 2;
+  int64 price = 3;
+  int64 totalNumber = 4;
+  int64 remainNumber = 5;
+}
+
+message TicketCategoryReq {
+  int64 id = 1;
 }
 
 message ProgramCategoryInfo {
@@ -175,6 +224,45 @@ message SeatInfo {
   int64 rowCode = 3;
   int64 colCode = 4;
   int64 price = 5;
+}
+
+message SeatAddReq {
+  int64 programId = 1;
+  int64 ticketCategoryId = 2;
+  int64 rowCode = 3;
+  int64 colCode = 4;
+  int64 seatType = 5;
+  int64 price = 6;
+  int64 seatStatus = 7;
+}
+
+message SeatBatchRelateInfoAddReq {
+  int64 ticketCategoryId = 1;
+  int64 price = 2;
+  int64 count = 3;
+}
+
+message SeatBatchAddReq {
+  int64 programId = 1;
+  repeated SeatBatchRelateInfoAddReq seatBatchRelateInfoAddDtoList = 2;
+}
+
+message SeatListReq {
+  int64 programId = 1;
+}
+
+message PriceSeatGroup {
+  string price = 1;
+  repeated SeatInfo seats = 2;
+}
+
+message SeatRelateInfo {
+  int64 programId = 1;
+  string place = 2;
+  string showTime = 3;
+  string showWeekTime = 4;
+  repeated string priceList = 5;
+  repeated PriceSeatGroup priceSeatGroupList = 6;
 }
 
 message TicketCategoryDetailInfo {
@@ -362,12 +450,23 @@ message ProgramDetailInfo {
 service ProgramRpc {
   rpc CreateProgram(CreateProgramReq) returns (CreateProgramResp);
   rpc UpdateProgram(UpdateProgramReq) returns (BoolResp);
+  rpc InvalidProgram(ProgramInvalidReq) returns (BoolResp);
+  rpc ResetProgram(ProgramResetReq) returns (BoolResp);
   rpc ListProgramCategories(Empty) returns (ProgramCategoryListResp);
+  rpc ListProgramCategoriesByType(ProgramCategoryTypeReq) returns (ProgramCategoryListResp);
+  rpc ListProgramCategoriesByParent(ParentProgramCategoryReq) returns (ProgramCategoryListResp);
+  rpc BatchCreateProgramCategories(ProgramCategoryBatchSaveReq) returns (BoolResp);
   rpc ListHomePrograms(ListHomeProgramsReq) returns (ProgramHomeListResp);
   rpc PagePrograms(PageProgramsReq) returns (ProgramPageResp);
   rpc GetProgramDetail(GetProgramDetailReq) returns (ProgramDetailInfo);
   rpc GetProgramPreorder(GetProgramDetailReq) returns (ProgramPreorderInfo);
+  rpc CreateProgramShowTime(ProgramShowTimeAddReq) returns (IdResp);
+  rpc CreateTicketCategory(TicketCategoryAddReq) returns (IdResp);
+  rpc GetTicketCategoryDetail(TicketCategoryReq) returns (TicketCategoryDetailInfo);
   rpc ListTicketCategoriesByProgram(ListTicketCategoriesByProgramReq) returns (TicketCategoryDetailListResp);
+  rpc CreateSeat(SeatAddReq) returns (IdResp);
+  rpc BatchCreateSeats(SeatBatchAddReq) returns (BoolResp);
+  rpc GetSeatRelateInfo(SeatListReq) returns (SeatRelateInfo);
   rpc AutoAssignAndFreezeSeats(AutoAssignAndFreezeSeatsReq) returns (AutoAssignAndFreezeSeatsResp);
   rpc ReleaseSeatFreeze(ReleaseSeatFreezeReq) returns (ReleaseSeatFreezeResp);
   rpc ConfirmSeatFreeze(ConfirmSeatFreezeReq) returns (ConfirmSeatFreezeResp);

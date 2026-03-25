@@ -8,6 +8,9 @@ import (
 	"damai-go/services/program-rpc/internal/programcache"
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestCreateProgramPersistsProgramRecord(t *testing.T) {
@@ -128,6 +131,190 @@ func TestCreateProgramReturnsSuccessWhenCacheInvalidationFails(t *testing.T) {
 	}
 	if program.Title != "缓存失效失败后仍成功创建" {
 		t.Fatalf("expected title to be persisted, got %+v", program)
+	}
+}
+
+func TestInvalidProgramMarksProgramOffShelfAndInvalidatesCache(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	ctx := context.Background()
+	detailLogic := logicpkg.NewGetProgramDetailLogic(ctx, svcCtx)
+	if _, err := detailLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: 10001}); err != nil {
+		t.Fatalf("prime detail cache error: %v", err)
+	}
+
+	l := logicpkg.NewInvalidProgramLogic(ctx, svcCtx)
+	resp, err := l.InvalidProgram(&pb.ProgramInvalidReq{Id: 10001})
+	if err != nil {
+		t.Fatalf("InvalidProgram returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success, got %+v", resp)
+	}
+	assertProgramRelatedCacheKeysMissing(t, svcCtx, 10001, 20001)
+
+	program, err := svcCtx.DProgramModel.FindOne(ctx, 10001)
+	if err != nil {
+		t.Fatalf("find program error: %v", err)
+	}
+	if program.ProgramStatus != 0 {
+		t.Fatalf("expected program off shelf, got %+v", program)
+	}
+}
+
+func TestResetProgramRestoresSeatStatusAndRemainNumber(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	ctx := context.Background()
+	clearSeatInventoryByProgram(t, svcCtx, 10001)
+	seedSeatFixtures(t, svcCtx,
+		seatFixture{ID: 91001, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusFrozen, FreezeToken: "freeze-1", FreezeExpireTime: "2026-12-31 18:00:00"},
+		seatFixture{ID: 91002, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusSold},
+	)
+	updateTicketCategoryRemainNumber(t, svcCtx, 40001, 2)
+
+	l := logicpkg.NewResetProgramLogic(ctx, svcCtx)
+	resp, err := l.ResetProgram(&pb.ProgramResetReq{ProgramId: 10001})
+	if err != nil {
+		t.Fatalf("ResetProgram returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success, got %+v", resp)
+	}
+}
+
+func TestBatchCreateProgramCategoriesRejectsDuplicateEntries(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	l := logicpkg.NewBatchCreateProgramCategoriesLogic(context.Background(), svcCtx)
+	_, err := l.BatchCreateProgramCategories(&pb.ProgramCategoryBatchSaveReq{
+		List: []*pb.ProgramCategoryBatchItem{
+			{ParentId: 1, Name: "livehouse", Type: 2},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected duplicate category error")
+	}
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument code, got %s", status.Code(err))
+	}
+}
+
+func TestCreateProgramShowTimePersistsRecordAndRefreshesGroupRecentShowTime(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	l := logicpkg.NewCreateProgramShowTimeLogic(context.Background(), svcCtx)
+	resp, err := l.CreateProgramShowTime(&pb.ProgramShowTimeAddReq{
+		ProgramId:    10001,
+		ShowTime:     "2026-10-01 19:30:00",
+		ShowDayTime:  "2026-10-01 00:00:00",
+		ShowWeekTime: "周四",
+	})
+	if err != nil {
+		t.Fatalf("CreateProgramShowTime returned error: %v", err)
+	}
+	if resp.GetId() <= 0 {
+		t.Fatalf("expected generated id, got %+v", resp)
+	}
+}
+
+func TestCreateTicketCategoryPersistsRecordAndInvalidatesProgramDetailCache(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	ctx := context.Background()
+	detailLogic := logicpkg.NewGetProgramDetailLogic(ctx, svcCtx)
+	if _, err := detailLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: 10001}); err != nil {
+		t.Fatalf("prime detail cache error: %v", err)
+	}
+
+	l := logicpkg.NewCreateTicketCategoryLogic(ctx, svcCtx)
+	resp, err := l.CreateTicketCategory(&pb.TicketCategoryAddReq{
+		ProgramId:    10001,
+		Introduce:    "至尊票",
+		Price:        999,
+		TotalNumber:  20,
+		RemainNumber: 20,
+	})
+	if err != nil {
+		t.Fatalf("CreateTicketCategory returned error: %v", err)
+	}
+	if resp.GetId() <= 0 {
+		t.Fatalf("expected generated id, got %+v", resp)
+	}
+}
+
+func TestGetTicketCategoryDetailReturnsRecord(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	l := logicpkg.NewGetTicketCategoryDetailLogic(context.Background(), svcCtx)
+	resp, err := l.GetTicketCategoryDetail(&pb.TicketCategoryReq{Id: 40001})
+	if err != nil {
+		t.Fatalf("GetTicketCategoryDetail returned error: %v", err)
+	}
+	if resp.ProgramId != 10001 || resp.Price != 299 || resp.RemainNumber != 100 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+}
+
+func TestCreateSeatRejectsDuplicateSeatCoordinate(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	l := logicpkg.NewCreateSeatLogic(context.Background(), svcCtx)
+	_, err := l.CreateSeat(&pb.SeatAddReq{
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		RowCode:          1,
+		ColCode:          1,
+		SeatType:         1,
+		Price:            299,
+	})
+	if err == nil {
+		t.Fatalf("expected duplicate seat error")
+	}
+	if status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("expected already exists code, got %s", status.Code(err))
+	}
+}
+
+func TestBatchCreateSeatsGeneratesExpectedSeatRows(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	clearSeatInventoryByProgram(t, svcCtx, 10001)
+	l := logicpkg.NewBatchCreateSeatsLogic(context.Background(), svcCtx)
+	resp, err := l.BatchCreateSeats(&pb.SeatBatchAddReq{
+		ProgramId: 10001,
+		SeatBatchRelateInfoAddDtoList: []*pb.SeatBatchRelateInfoAddReq{
+			{TicketCategoryId: 40001, Price: 299, Count: 20},
+		},
+	})
+	if err != nil {
+		t.Fatalf("BatchCreateSeats returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success, got %+v", resp)
 	}
 }
 
