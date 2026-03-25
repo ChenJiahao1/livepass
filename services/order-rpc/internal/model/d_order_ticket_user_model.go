@@ -36,8 +36,16 @@ func NewDOrderTicketUserModel(conn sqlx.SqlConn) DOrderTicketUserModel {
 	}
 }
 
+func NewDOrderTicketUserModelWithTable(conn sqlx.SqlConn, table string) DOrderTicketUserModel {
+	m := newDOrderTicketUserModel(conn)
+	m.table = normalizeTableName(table)
+	return &customDOrderTicketUserModel{
+		defaultDOrderTicketUserModel: m,
+	}
+}
+
 func (m *customDOrderTicketUserModel) withSession(session sqlx.Session) DOrderTicketUserModel {
-	return NewDOrderTicketUserModel(sqlx.NewSqlConnFromSession(session))
+	return NewDOrderTicketUserModelWithTable(sqlx.NewSqlConnFromSession(session), rawTableName(m.table))
 }
 
 func (m *customDOrderTicketUserModel) FindByOrderNumber(ctx context.Context, orderNumber int64) ([]*DOrderTicketUser, error) {

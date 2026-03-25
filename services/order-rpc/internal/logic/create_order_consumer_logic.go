@@ -9,10 +9,11 @@ import (
 	orderevent "damai-go/services/order-rpc/internal/event"
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/svc"
+	"damai-go/services/order-rpc/repository"
+	"damai-go/services/order-rpc/sharding"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type CreateOrderConsumerLogic struct {
@@ -48,25 +49,35 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		return nil
 	}
 
-	if existing, err := l.svcCtx.DOrderModel.FindOneByOrderNumber(l.ctx, orderEvent.OrderNumber); err == nil && existing != nil {
+	if existing, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, orderEvent.OrderNumber); err == nil && existing != nil {
 		return nil
 	} else if err != nil && !errors.Is(err, model.ErrNotFound) {
 		return err
 	}
 
-	order, orderTickets, err := mapEventToOrderModels(orderEvent, time.Now())
+	writeModels, err := mapEventToOrderWriteModels(orderEvent, time.Now())
 	if err != nil {
 		return err
 	}
 
-	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
-		if _, err := l.svcCtx.DOrderModel.InsertWithSession(ctx, session, order); err != nil {
+	err = l.svcCtx.OrderRepository.TransactByOrderNumber(l.ctx, orderEvent.OrderNumber, func(ctx context.Context, tx repository.OrderTx) error {
+		if err := tx.InsertOrder(ctx, writeModels.order); err != nil {
 			if isDuplicateOrderNumberErr(err) {
 				return nil
 			}
 			return err
 		}
-		if err := l.svcCtx.DOrderTicketUserModel.InsertBatch(ctx, session, orderTickets); err != nil {
+		if err := tx.InsertOrderTickets(ctx, writeModels.orderTickets); err != nil {
+			return err
+		}
+		if err := tx.InsertUserOrderIndex(ctx, writeModels.userOrderIndex); err != nil {
+			return err
+		}
+		legacyRoute, err := buildLegacyOrderRouteRecord(orderEvent, tx.Route(), writeModels.order.CreateTime)
+		if err != nil {
+			return err
+		}
+		if err := tx.InsertLegacyRoute(ctx, legacyRoute); err != nil {
 			return err
 		}
 		return nil
@@ -101,4 +112,24 @@ func validateOrderCreateEvent(orderEvent *orderevent.OrderCreateEvent) error {
 func isDuplicateOrderNumberErr(err error) bool {
 	var mysqlErr *mysqlDriver.MySQLError
 	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
+}
+
+func buildLegacyOrderRouteRecord(orderEvent *orderevent.OrderCreateEvent, route sharding.Route, now time.Time) (*model.DOrderRouteLegacy, error) {
+	parts, err := sharding.ParseOrderNumber(orderEvent.OrderNumber)
+	if err != nil {
+		return nil, err
+	}
+	if !parts.Legacy {
+		return nil, nil
+	}
+
+	return &model.DOrderRouteLegacy{
+		OrderNumber:  orderEvent.OrderNumber,
+		UserId:       orderEvent.UserID,
+		LogicSlot:    int64(sharding.LogicSlotByUserID(orderEvent.UserID)),
+		RouteVersion: route.Version,
+		Status:       1,
+		CreateTime:   now,
+		EditTime:     now,
+	}, nil
 }

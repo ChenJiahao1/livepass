@@ -35,7 +35,7 @@ func (l *GetOrderServiceViewLogic) GetOrderServiceView(in *pb.GetOrderServiceVie
 		return nil, mapOrderError(err)
 	}
 
-	details, err := l.svcCtx.DOrderTicketUserModel.FindByOrderNumber(l.ctx, in.GetOrderNumber())
+	details, err := l.svcCtx.OrderRepository.FindOrderTicketsByNumber(l.ctx, in.GetOrderNumber())
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			details = nil

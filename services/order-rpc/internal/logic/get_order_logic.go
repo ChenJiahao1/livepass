@@ -31,7 +31,7 @@ func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.OrderDetailInfo, error
 		return nil, err
 	}
 
-	order, err := l.svcCtx.DOrderModel.FindOneByOrderNumber(l.ctx, in.GetOrderNumber())
+	order, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, in.GetOrderNumber())
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, mapOrderError(xerr.ErrOrderNotFound)
@@ -42,7 +42,7 @@ func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.OrderDetailInfo, error
 		return nil, mapOrderError(xerr.ErrOrderNotFound)
 	}
 
-	details, err := l.svcCtx.DOrderTicketUserModel.FindByOrderNumber(l.ctx, in.GetOrderNumber())
+	details, err := l.svcCtx.OrderRepository.FindOrderTicketsByNumber(l.ctx, in.GetOrderNumber())
 	if err != nil {
 		return nil, err
 	}

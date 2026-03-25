@@ -10,29 +10,44 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 )
 
+type orderWriteModels struct {
+	order          *model.DOrder
+	orderTickets   []*model.DOrderTicketUser
+	userOrderIndex *model.DUserOrderIndex
+}
+
 func MapEventToOrderModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*model.DOrder, []*model.DOrderTicketUser, error) {
 	return mapEventToOrderModels(orderEvent, now)
 }
 
 func mapEventToOrderModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*model.DOrder, []*model.DOrderTicketUser, error) {
+	writeModels, err := mapEventToOrderWriteModels(orderEvent, now)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return writeModels.order, writeModels.orderTickets, nil
+}
+
+func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*orderWriteModels, error) {
 	if orderEvent == nil {
-		return nil, nil, xerr.ErrInternal
+		return nil, xerr.ErrInternal
 	}
 	if len(orderEvent.TicketUserSnapshot) == 0 || len(orderEvent.TicketUserSnapshot) != len(orderEvent.SeatSnapshot) {
-		return nil, nil, xerr.ErrInternal
+		return nil, xerr.ErrInternal
 	}
 
 	showTime, err := parseOrderTime(orderEvent.ProgramSnapshot.ShowTime)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	orderExpireTime, err := parseOrderTime(orderEvent.FreezeExpireTime)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	createOrderTime, err := parseOrderTime(orderEvent.OccurredAt)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	order := &model.DOrder{
@@ -85,5 +100,21 @@ func mapEventToOrderModels(orderEvent *orderevent.OrderCreateEvent, now time.Tim
 		})
 	}
 
-	return order, orderTickets, nil
+	return &orderWriteModels{
+		order:        order,
+		orderTickets: orderTickets,
+		userOrderIndex: &model.DUserOrderIndex{
+			Id:              xid.New(),
+			OrderNumber:     orderEvent.OrderNumber,
+			UserId:          orderEvent.UserID,
+			ProgramId:       orderEvent.ProgramID,
+			OrderStatus:     orderStatusUnpaid,
+			TicketCount:     int64(len(orderEvent.TicketUserSnapshot)),
+			OrderPrice:      order.OrderPrice,
+			CreateOrderTime: createOrderTime,
+			CreateTime:      now,
+			EditTime:        now,
+			Status:          1,
+		},
+	}, nil
 }

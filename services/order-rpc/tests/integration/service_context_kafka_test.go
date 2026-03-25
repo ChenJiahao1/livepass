@@ -10,6 +10,7 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/services/order-rpc/internal/config"
 	"damai-go/services/order-rpc/internal/svc"
+	"damai-go/services/order-rpc/sharding"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/zeromicro/go-zero/core/conf"
@@ -63,6 +64,35 @@ func TestNewOrderServiceContextEnsuresKafkaTopicExists(t *testing.T) {
 	t.Fatalf("expected kafka topic %q to exist after service context init", topic)
 }
 
+func TestNewOrderServiceContextBuildsShardingResources(t *testing.T) {
+	cfg := buildKafkaServiceContextConfig("order.create.command.v1")
+	svcCtx := svc.NewServiceContext(cfg)
+	if svcCtx.LegacySqlConn == nil {
+		t.Fatalf("expected legacy sql conn to be wired")
+	}
+	if len(svcCtx.ShardSqlConns) != 2 {
+		t.Fatalf("expected 2 shard sql conns, got %d", len(svcCtx.ShardSqlConns))
+	}
+	if svcCtx.OrderRouteMap == nil {
+		t.Fatalf("expected route map to be wired")
+	}
+	if svcCtx.OrderRouter == nil {
+		t.Fatalf("expected order router to be wired")
+	}
+
+	route, err := svcCtx.OrderRouter.RouteByUserID(20260324001)
+	if err != nil {
+		t.Fatalf("RouteByUserID() error = %v", err)
+	}
+	expectedSlot := sharding.LogicSlotByUserID(20260324001)
+	if route.LogicSlot != expectedSlot {
+		t.Fatalf("route logic slot = %d, want %d", route.LogicSlot, expectedSlot)
+	}
+	if route.DBKey != "order-db-0" {
+		t.Fatalf("route db key = %s, want order-db-0", route.DBKey)
+	}
+}
+
 func TestLoadOrderKafkaConfig(t *testing.T) {
 	t.Parallel()
 
@@ -100,6 +130,22 @@ Kafka:
   TopicPartitions: 5
   ConsumerWorkers: 1
   MaxMessageDelay: 60s
+Sharding:
+  Mode: legacy_only
+  LegacyMySQL:
+    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  Shards:
+    order-db-0:
+      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  RouteMap:
+    Version: v1
+    Entries:
+      - Version: v1
+        LogicSlot: 734
+        DBKey: order-db-0
+        TableSuffix: "00"
+        Status: stable
+        WriteMode: legacy_primary
 `)
 	if err := os.WriteFile(configFile, content, 0o644); err != nil {
 		t.Fatalf("write %s: %v", configFile, err)
@@ -118,6 +164,15 @@ Kafka:
 	}
 	if c.Kafka.MaxMessageDelay != 60*time.Second {
 		t.Fatalf("expected max message delay 60s, got %s", c.Kafka.MaxMessageDelay)
+	}
+	if c.Sharding.Mode != "legacy_only" {
+		t.Fatalf("expected sharding mode legacy_only, got %s", c.Sharding.Mode)
+	}
+	if c.Sharding.RouteMap.Version != "v1" {
+		t.Fatalf("expected route map version v1, got %s", c.Sharding.RouteMap.Version)
+	}
+	if len(c.Sharding.RouteMap.Entries) != 1 {
+		t.Fatalf("expected 1 route map entry, got %d", len(c.Sharding.RouteMap.Entries))
 	}
 }
 
@@ -153,6 +208,21 @@ UserRpc:
 Kafka:
   Brokers:
     - 127.0.0.1:9094
+Sharding:
+  LegacyMySQL:
+    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  Shards:
+    order-db-0:
+      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  RouteMap:
+    Version: v1
+    Entries:
+      - Version: v1
+        LogicSlot: 734
+        DBKey: order-db-0
+        TableSuffix: "00"
+        Status: stable
+        WriteMode: legacy_primary
 `)
 	if err := os.WriteFile(configFile, content, 0o644); err != nil {
 		t.Fatalf("write %s: %v", configFile, err)
@@ -169,9 +239,13 @@ Kafka:
 	if c.Kafka.ConsumerWorkers != 1 {
 		t.Fatalf("expected default consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
 	}
+	if c.Sharding.Mode != "legacy_only" {
+		t.Fatalf("expected default sharding mode legacy_only, got %s", c.Sharding.Mode)
+	}
 }
 
 func buildKafkaServiceContextConfig(topic string) config.Config {
+	logicSlot := sharding.LogicSlotByUserID(20260324001)
 	cfg := config.Config{
 		RpcServerConf: zrpc.RpcServerConf{
 			Etcd: discov.EtcdConf{
@@ -198,6 +272,33 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 			MaxMessageDelay:  5 * time.Second,
 			ProducerTimeout:  3 * time.Second,
 			RetryBackoff:     time.Second,
+		},
+		Sharding: config.ShardingConfig{
+			Mode: "legacy_only",
+			LegacyMySQL: xmysql.Config{
+				DataSource: testOrderMySQLDataSource,
+			},
+			Shards: map[string]xmysql.Config{
+				"order-db-0": {
+					DataSource: testOrderMySQLDataSource,
+				},
+				"order-db-1": {
+					DataSource: testOrderMySQLDataSource,
+				},
+			},
+			RouteMap: config.RouteMapConfig{
+				Version: "v1",
+				Entries: []config.RouteEntryConfig{
+					{
+						Version:     "v1",
+						LogicSlot:   logicSlot,
+						DBKey:       "order-db-0",
+						TableSuffix: "00",
+						Status:      sharding.RouteStatusStable,
+						WriteMode:   sharding.WriteModeLegacyPrimary,
+					},
+				},
+			},
 		},
 	}
 

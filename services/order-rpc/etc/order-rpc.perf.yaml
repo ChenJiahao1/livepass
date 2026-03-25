@@ -14,6 +14,42 @@ MySQL:
   MaxIdleConns: 8
   ConnMaxLifetime: 5m
   ConnMaxIdleTime: 2m
+Sharding:
+  Mode: legacy_only
+  LegacyMySQL:
+    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+    MaxOpenConns: 24
+    MaxIdleConns: 8
+    ConnMaxLifetime: 5m
+    ConnMaxIdleTime: 2m
+  Shards:
+    order-db-0:
+      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+      MaxOpenConns: 24
+      MaxIdleConns: 8
+      ConnMaxLifetime: 5m
+      ConnMaxIdleTime: 2m
+    order-db-1:
+      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+      MaxOpenConns: 24
+      MaxIdleConns: 8
+      ConnMaxLifetime: 5m
+      ConnMaxIdleTime: 2m
+  RouteMap:
+    Version: v1
+    Entries:
+      - Version: v1
+        LogicSlot: 0
+        DBKey: order-db-0
+        TableSuffix: "00"
+        Status: stable
+        WriteMode: legacy_primary
+      - Version: v1
+        LogicSlot: 1
+        DBKey: order-db-1
+        TableSuffix: "01"
+        Status: stable
+        WriteMode: legacy_primary
 StoreRedis:
   Host: 127.0.0.1:6379
   Type: node

@@ -3,9 +3,11 @@ package integration_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/sharding"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 
 	"google.golang.org/grpc/codes"
@@ -13,6 +15,78 @@ import (
 )
 
 func TestPayOrder(t *testing.T) {
+	t.Run("pay success updates shard order and ticket snapshots in shard only mode", func(t *testing.T) {
+		svcCtx, _, _, payRPC := newOrderTestServiceContext(t)
+		repeatGuard := &fakeOrderRepeatGuard{}
+		svcCtx.RepeatGuard = repeatGuard
+		resetOrderDomainState(t)
+		setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
+
+		userID := int64(3001)
+		orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC), 1, 1)
+		route := orderRouteForUser(t, svcCtx, userID)
+		seedShardOrderFixtures(t, svcCtx, route, orderFixture{
+			ID:              89001,
+			OrderNumber:     orderNumber,
+			ProgramID:       10001,
+			UserID:          userID,
+			OrderStatus:     testOrderStatusUnpaid,
+			FreezeToken:     "freeze-pay-shard",
+			OrderExpireTime: "2026-12-31 20:00:00",
+			CreateOrderTime: "2026-12-31 19:00:00",
+		})
+		seedShardOrderTicketUserFixtures(t, svcCtx, route,
+			orderTicketUserFixture{ID: 89101, OrderNumber: orderNumber, UserID: userID, TicketUserID: 701, OrderStatus: testOrderStatusUnpaid},
+		)
+		seedUserOrderIndexFixtures(t, svcCtx, route,
+			userOrderIndexFixture{ID: 89201, OrderNumber: orderNumber, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusUnpaid, CreateOrderTime: "2026-12-31 19:00:00"},
+		)
+		payRPC.mockPayResp = &payrpc.MockPayResp{
+			PayBillNo: 93001,
+			PayStatus: 2,
+			PayTime:   "2026-12-31 19:05:00",
+		}
+
+		l := logicpkg.NewPayOrderLogic(context.Background(), svcCtx)
+		resp, err := l.PayOrder(&pb.PayOrderReq{
+			UserId:      userID,
+			OrderNumber: orderNumber,
+			Subject:     "演出票支付",
+			Channel:     "mock",
+		})
+		if err != nil {
+			t.Fatalf("PayOrder returned error: %v", err)
+		}
+		if resp.OrderStatus != testOrderStatusPaid {
+			t.Fatalf("unexpected response: %+v", resp)
+		}
+		if countRows(t, testOrderMySQLDataSource, "d_order") != 0 {
+			t.Fatalf("expected legacy table to stay untouched in shard only mode")
+		}
+		if findOrderStatusFromTable(t, testOrderMySQLDataSource, "d_order_"+route.TableSuffix, orderNumber) != testOrderStatusPaid {
+			t.Fatalf("expected shard order status paid")
+		}
+		if findOrderTicketStatusFromTable(t, testOrderMySQLDataSource, "d_order_ticket_user_"+route.TableSuffix, orderNumber) != testOrderStatusPaid {
+			t.Fatalf("expected shard order ticket status paid")
+		}
+		if findUserOrderIndexStatusFromTable(t, testOrderMySQLDataSource, "d_user_order_index_"+route.TableSuffix, orderNumber) != testOrderStatusPaid {
+			t.Fatalf("expected shard user order index status paid")
+		}
+
+		listResp, err := logicpkg.NewListOrdersLogic(context.Background(), svcCtx).ListOrders(&pb.ListOrdersReq{
+			UserId:      userID,
+			PageNumber:  1,
+			PageSize:    10,
+			OrderStatus: testOrderStatusPaid,
+		})
+		if err != nil {
+			t.Fatalf("ListOrders returned error: %v", err)
+		}
+		if listResp.TotalSize != 1 || len(listResp.List) != 1 || listResp.List[0].OrderNumber != orderNumber {
+			t.Fatalf("expected paid shard list to return current order, got %+v", listResp)
+		}
+	})
+
 	t.Run("pay success updates order and ticket snapshots to paid", func(t *testing.T) {
 		svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
 		repeatGuard := &fakeOrderRepeatGuard{}

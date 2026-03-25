@@ -3,9 +3,11 @@ package integration_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/sharding"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -59,6 +61,69 @@ func TestCancelOrderCancelsOwnerUnpaidOrder(t *testing.T) {
 	}
 	if repeatGuard.unlockCalls != 1 {
 		t.Fatalf("expected order status guard unlock once, got %d", repeatGuard.unlockCalls)
+	}
+}
+
+func TestCancelOrderUpdatesShardUserOrderIndexStatus(t *testing.T) {
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
+	repeatGuard := &fakeOrderRepeatGuard{}
+	svcCtx.RepeatGuard = repeatGuard
+	resetOrderDomainState(t)
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
+
+	userID := int64(3001)
+	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC), 1, 2)
+	route := orderRouteForUser(t, svcCtx, userID)
+	seedShardOrderFixtures(t, svcCtx, route, orderFixture{
+		ID:          8002,
+		OrderNumber: orderNumber,
+		ProgramID:   10001,
+		UserID:      userID,
+		OrderStatus: testOrderStatusUnpaid,
+		FreezeToken: "freeze-cancel-shard",
+	})
+	seedShardOrderTicketUserFixtures(t, svcCtx, route, orderTicketUserFixture{
+		ID:           8802,
+		OrderNumber:  orderNumber,
+		UserID:       userID,
+		TicketUserID: 702,
+		SeatID:       502,
+		SeatRow:      1,
+		SeatCol:      2,
+	})
+	seedUserOrderIndexFixtures(t, svcCtx, route,
+		userOrderIndexFixture{ID: 8102, OrderNumber: orderNumber, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusUnpaid},
+	)
+
+	l := logicpkg.NewCancelOrderLogic(context.Background(), svcCtx)
+	resp, err := l.CancelOrder(&pb.CancelOrderReq{
+		UserId:      userID,
+		OrderNumber: orderNumber,
+	})
+	if err != nil {
+		t.Fatalf("CancelOrder returned error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatalf("expected success response")
+	}
+	if findUserOrderIndexStatusFromTable(t, svcCtx.Config.MySQL.DataSource, "d_user_order_index_"+route.TableSuffix, orderNumber) != testOrderStatusCancelled {
+		t.Fatalf("expected shard user order index status cancelled")
+	}
+
+	listResp, err := logicpkg.NewListOrdersLogic(context.Background(), svcCtx).ListOrders(&pb.ListOrdersReq{
+		UserId:      userID,
+		PageNumber:  1,
+		PageSize:    10,
+		OrderStatus: testOrderStatusCancelled,
+	})
+	if err != nil {
+		t.Fatalf("ListOrders returned error: %v", err)
+	}
+	if listResp.TotalSize != 1 || len(listResp.List) != 1 || listResp.List[0].OrderNumber != orderNumber {
+		t.Fatalf("expected cancelled shard list to return current order, got %+v", listResp)
+	}
+	if programRPC.releaseSeatFreezeCalls != 1 {
+		t.Fatalf("expected one freeze release call, got %d", programRPC.releaseSeatFreezeCalls)
 	}
 }
 

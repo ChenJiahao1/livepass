@@ -33,7 +33,7 @@ func (l *RefundOrderLogic) RefundOrder(in *pb.RefundOrderReq) (*pb.RefundOrderRe
 		return nil, err
 	}
 
-	order, err := l.svcCtx.DOrderModel.FindOneByOrderNumber(l.ctx, in.GetOrderNumber())
+	order, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, in.GetOrderNumber())
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, mapOrderError(xerr.ErrOrderNotFound)
@@ -44,7 +44,7 @@ func (l *RefundOrderLogic) RefundOrder(in *pb.RefundOrderReq) (*pb.RefundOrderRe
 		return nil, mapOrderError(xerr.ErrOrderNotFound)
 	}
 
-	orderTickets, err := l.svcCtx.DOrderTicketUserModel.FindByOrderNumber(l.ctx, in.GetOrderNumber())
+	orderTickets, err := l.svcCtx.OrderRepository.FindOrderTicketsByNumber(l.ctx, in.GetOrderNumber())
 	if err != nil {
 		return nil, mapOrderError(err)
 	}

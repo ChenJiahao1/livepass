@@ -8,6 +8,8 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
+	"damai-go/services/order-rpc/repository"
+	"damai-go/services/order-rpc/sharding"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
@@ -21,10 +23,18 @@ import (
 type ServiceContext struct {
 	Config                     config.Config
 	SqlConn                    sqlx.SqlConn
+	LegacySqlConn              sqlx.SqlConn
+	ShardSqlConns              map[string]sqlx.SqlConn
 	Redis                      *xredis.Client
 	PurchaseLimitStore         *limitcache.PurchaseLimitStore
 	DOrderModel                model.DOrderModel
 	DOrderTicketUserModel      model.DOrderTicketUserModel
+	DUserOrderIndexModel       model.DUserOrderIndexModel
+	DOrderRouteLegacyModel     model.DOrderRouteLegacyModel
+	OrderRouteMap              *sharding.RouteMap
+	OrderRouter                sharding.Router
+	OrderRepository            repository.OrderRepository
+	ShardingMode               string
 	RepeatGuard                repeatguard.Guard
 	ProgramRpc                 programrpc.ProgramRpc
 	PayRpc                     payrpc.PayRpc
@@ -35,13 +45,35 @@ type ServiceContext struct {
 
 func NewServiceContext(c config.Config) *ServiceContext {
 	c.MySQL = c.MySQL.Normalize()
-	c.MySQL.DataSource = xmysql.WithLocalTime(c.MySQL.DataSource)
-	conn := sqlx.NewMysql(c.MySQL.DataSource)
-	rawDB, err := conn.RawDB()
-	if err != nil {
-		panic(err)
+	c.Sharding = c.Sharding.Normalize(c.MySQL)
+	c.MySQL = c.Sharding.LegacyMySQL
+
+	legacyConn := mustNewMysqlConn(c.MySQL)
+	shardConns := make(map[string]sqlx.SqlConn, len(c.Sharding.Shards))
+	for key, shardCfg := range c.Sharding.Shards {
+		shardConns[key] = mustNewMysqlConn(shardCfg)
 	}
-	xmysql.ApplyPool(rawDB, c.MySQL)
+
+	routeMap := mustNewOrderRouteMap(c.Sharding.RouteMap)
+	var orderRouter sharding.Router
+	if routeMap != nil {
+		orderRouter = sharding.NewStaticRouter(routeMap)
+	}
+	legacyOrderModel := model.NewDOrderModel(legacyConn)
+	legacyOrderTicketUserModel := model.NewDOrderTicketUserModel(legacyConn)
+	legacyUserOrderIndexModel := model.NewDUserOrderIndexModel(legacyConn)
+	legacyRouteDirectoryModel := model.NewDOrderRouteLegacyModel(legacyConn)
+	orderRepository := repository.NewOrderRepository(repository.Dependencies{
+		Mode:                       c.Sharding.Mode,
+		LegacyConn:                 legacyConn,
+		LegacyOrderModel:           legacyOrderModel,
+		LegacyOrderTicketUserModel: legacyOrderTicketUserModel,
+		LegacyUserOrderIndexModel:  legacyUserOrderIndexModel,
+		LegacyRouteDirectoryModel:  legacyRouteDirectoryModel,
+		ShardConns:                 shardConns,
+		RouteMap:                   routeMap,
+		Router:                     orderRouter,
+	})
 	var rds *xredis.Client
 	if c.StoreRedis.Host != "" {
 		rds = xredis.MustNew(c.StoreRedis)
@@ -78,11 +110,19 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	return &ServiceContext{
 		Config:                     c,
-		SqlConn:                    conn,
+		SqlConn:                    legacyConn,
+		LegacySqlConn:              legacyConn,
+		ShardSqlConns:              shardConns,
 		Redis:                      rds,
-		PurchaseLimitStore:         limitcache.NewPurchaseLimitStore(rds, model.NewDOrderModel(conn), limitcache.Config{}),
-		DOrderModel:                model.NewDOrderModel(conn),
-		DOrderTicketUserModel:      model.NewDOrderTicketUserModel(conn),
+		PurchaseLimitStore:         limitcache.NewPurchaseLimitStore(rds, orderRepository, limitcache.Config{}),
+		DOrderModel:                legacyOrderModel,
+		DOrderTicketUserModel:      legacyOrderTicketUserModel,
+		DUserOrderIndexModel:       legacyUserOrderIndexModel,
+		DOrderRouteLegacyModel:     legacyRouteDirectoryModel,
+		OrderRouteMap:              routeMap,
+		OrderRouter:                orderRouter,
+		OrderRepository:            orderRepository,
+		ShardingMode:               c.Sharding.Mode,
 		RepeatGuard:                repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
 		ProgramRpc:                 newProgramRPC(c.ProgramRpc),
 		PayRpc:                     newPayRPC(c.PayRpc),
@@ -90,6 +130,45 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		OrderCreateProducer:        orderCreateProducer,
 		OrderCreateConsumerFactory: orderCreateConsumerFactory,
 	}
+}
+
+func mustNewMysqlConn(cfg xmysql.Config) sqlx.SqlConn {
+	cfg = cfg.Normalize()
+	cfg.DataSource = xmysql.WithLocalTime(cfg.DataSource)
+
+	conn := sqlx.NewMysql(cfg.DataSource)
+	rawDB, err := conn.RawDB()
+	if err != nil {
+		panic(err)
+	}
+	xmysql.ApplyPool(rawDB, cfg)
+
+	return conn
+}
+
+func mustNewOrderRouteMap(cfg config.RouteMapConfig) *sharding.RouteMap {
+	if cfg.Version == "" || len(cfg.Entries) == 0 {
+		return nil
+	}
+
+	entries := make([]sharding.RouteEntry, 0, len(cfg.Entries))
+	for _, entry := range cfg.Entries {
+		entries = append(entries, sharding.RouteEntry{
+			Version:     entry.Version,
+			LogicSlot:   entry.LogicSlot,
+			DBKey:       entry.DBKey,
+			TableSuffix: entry.TableSuffix,
+			Status:      entry.Status,
+			WriteMode:   entry.WriteMode,
+		})
+	}
+
+	routeMap, err := sharding.NewRouteMap(cfg.Version, entries)
+	if err != nil {
+		panic(err)
+	}
+
+	return routeMap
 }
 
 func hasRPCClientConf(conf zrpc.RpcClientConf) bool {

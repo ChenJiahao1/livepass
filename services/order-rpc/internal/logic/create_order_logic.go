@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"damai-go/pkg/xerr"
-	"damai-go/pkg/xid"
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
@@ -70,7 +69,8 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, mapOrderError(xerr.ErrOrderPurchaseLimitExceeded)
 	}
 
-	orderNumber := xid.New()
+	now := time.Now()
+	orderNumber := generateOrderNumberForUser(in.GetUserId(), now)
 	if preorder.GetPerAccountLimitPurchaseCount() > 0 {
 		if err := l.svcCtx.PurchaseLimitStore.Reserve(
 			l.ctx,
@@ -100,7 +100,6 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, err
 	}
 
-	now := time.Now()
 	orderEvent, err := buildOrderCreateEvent(orderNumber, in, preorder, userResp, freezeResp, now, closeAfter)
 	if err != nil {
 		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())

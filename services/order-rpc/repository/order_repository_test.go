@@ -1,0 +1,647 @@
+package repository
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+	"time"
+
+	"damai-go/pkg/xmysql"
+	"damai-go/services/order-rpc/internal/model"
+	"damai-go/services/order-rpc/sharding"
+
+	"github.com/bwmarrin/snowflake"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+var testRepositoryMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true")
+
+func TestLegacyOrderRepositoryTransactAndQuery(t *testing.T) {
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeLegacyOnly, buildFullRouteEntries("00", "01"))
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := int64(3001)
+	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC), 1, 1)
+
+	err := repo.TransactByUserID(context.Background(), userID, func(ctx context.Context, tx OrderTx) error {
+		if err := tx.InsertOrder(ctx, buildRepositoryOrder(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("TransactByUserID() error = %v", err)
+	}
+
+	order, err := repo.FindOrderByNumber(context.Background(), orderNumber)
+	if err != nil {
+		t.Fatalf("FindOrderByNumber() error = %v", err)
+	}
+	if order.OrderNumber != orderNumber {
+		t.Fatalf("order number = %d, want %d", order.OrderNumber, orderNumber)
+	}
+
+	tickets, err := repo.FindOrderTicketsByNumber(context.Background(), orderNumber)
+	if err != nil {
+		t.Fatalf("FindOrderTicketsByNumber() error = %v", err)
+	}
+	if len(tickets) != 2 {
+		t.Fatalf("ticket count = %d, want 2", len(tickets))
+	}
+
+	orders, total, err := repo.FindOrderPageByUser(context.Background(), userID, 1, 1, 10)
+	if err != nil {
+		t.Fatalf("FindOrderPageByUser() error = %v", err)
+	}
+	if total != 1 || len(orders) != 1 {
+		t.Fatalf("page result total=%d len=%d, want 1/1", total, len(orders))
+	}
+}
+
+func TestDualWriteOrderRepositoryWritesLegacyAndShardTables(t *testing.T) {
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteReadNew, buildFullRouteEntries("00", "01"))
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := int64(3002)
+	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 5, 0, 0, time.UTC), 1, 2)
+
+	err := repo.TransactByUserID(context.Background(), userID, func(ctx context.Context, tx OrderTx) error {
+		if err := tx.InsertOrder(ctx, buildRepositoryOrder(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("TransactByUserID() error = %v", err)
+	}
+
+	route, err := repo.RouteByUserID(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("RouteByUserID() error = %v", err)
+	}
+
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_order") != 1 {
+		t.Fatalf("expected legacy d_order to contain 1 row")
+	}
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_order_"+route.TableSuffix) != 1 {
+		t.Fatalf("expected shard d_order_%s to contain 1 row", route.TableSuffix)
+	}
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_user_order_index_"+route.TableSuffix) != 1 {
+		t.Fatalf("expected shard d_user_order_index_%s to contain 1 row", route.TableSuffix)
+	}
+
+	orders, total, err := repo.FindOrderPageByUser(context.Background(), userID, 1, 1, 10)
+	if err != nil {
+		t.Fatalf("FindOrderPageByUser() error = %v", err)
+	}
+	if total != 1 || len(orders) != 1 {
+		t.Fatalf("page result total=%d len=%d, want 1/1", total, len(orders))
+	}
+}
+
+func TestDualWriteOrderRepositoryReturnsShadowWriteErrorAfterPrimaryCommit(t *testing.T) {
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteShadow, buildFullRouteEntries("99", "99"))
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := int64(3003)
+	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 10, 0, 0, time.UTC), 1, 3)
+
+	err := repo.TransactByUserID(context.Background(), userID, func(ctx context.Context, tx OrderTx) error {
+		if err := tx.InsertOrder(ctx, buildRepositoryOrder(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	var shadowErr *ShadowWriteError
+	if !errors.As(err, &shadowErr) {
+		t.Fatalf("expected ShadowWriteError, got %v", err)
+	}
+	if shadowErr.Route.TableSuffix != "99" {
+		t.Fatalf("shadow route suffix = %s, want 99", shadowErr.Route.TableSuffix)
+	}
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_order") != 1 {
+		t.Fatalf("expected primary legacy write to commit before shadow failure")
+	}
+}
+
+func TestShardedOrderRepositoryFindExpiredUnpaidBySlotReadsOnlyTargetShard(t *testing.T) {
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeShardOnly, buildFullRouteEntries("00", "01"))
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+
+	slot0UserID := mustFindUserIDByLogicSlot(t, 10)
+	slot1UserID := mustFindUserIDByLogicSlot(t, 11)
+	slot0OrderNumber := sharding.BuildOrderNumber(slot0UserID, time.Date(2026, time.March, 24, 11, 0, 0, 0, time.UTC), 1, 10)
+	slot1OrderNumber := sharding.BuildOrderNumber(slot1UserID, time.Date(2026, time.March, 24, 11, 1, 0, 0, time.UTC), 1, 11)
+
+	seedRepositoryOrderFixturesIntoTable(
+		t,
+		"d_order_00",
+		buildRepositoryOrderWithExpiry(slot0OrderNumber, slot0UserID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)),
+	)
+	seedRepositoryOrderFixturesIntoTable(
+		t,
+		"d_order_01",
+		buildRepositoryOrderWithExpiry(slot1OrderNumber, slot1UserID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)),
+	)
+
+	orders, err := repo.FindExpiredUnpaidBySlot(context.Background(), 10, time.Date(2026, time.March, 24, 12, 0, 0, 0, time.UTC), 10)
+	if err != nil {
+		t.Fatalf("FindExpiredUnpaidBySlot() error = %v", err)
+	}
+	if len(orders) != 1 {
+		t.Fatalf("expired order count = %d, want 1", len(orders))
+	}
+	if orders[0].OrderNumber != slot0OrderNumber {
+		t.Fatalf("expired order number = %d, want %d", orders[0].OrderNumber, slot0OrderNumber)
+	}
+}
+
+func TestDualWriteOrderRepositoryReadsShardWhenRouteStatusPrimaryNew(t *testing.T) {
+	entries := buildFullRouteEntries("00", "01")
+	entries[10].Status = sharding.RouteStatusPrimaryNew
+	entries[10].WriteMode = sharding.WriteModeDualWrite
+
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteReadOld, entries)
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := mustFindUserIDByLogicSlot(t, 10)
+	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 11, 30, 0, 0, time.UTC), 1, 20)
+
+	legacyOrder := buildRepositoryOrder(orderNumber, userID)
+	legacyOrder.OrderPrice = 299
+	shardOrder := buildRepositoryOrder(orderNumber, userID)
+	shardOrder.OrderPrice = 399
+
+	seedRepositoryOrderFixturesIntoTable(t, "d_order", legacyOrder)
+	seedRepositoryOrderFixturesIntoTable(t, "d_order_00", shardOrder)
+
+	order, err := repo.FindOrderByNumber(context.Background(), orderNumber)
+	if err != nil {
+		t.Fatalf("FindOrderByNumber() error = %v", err)
+	}
+	if order.OrderPrice != 399 {
+		t.Fatalf("order price = %v, want shard value 399", order.OrderPrice)
+	}
+}
+
+func TestDualWriteOrderRepositoryReadsLegacyWhenRouteStatusRollback(t *testing.T) {
+	entries := buildFullRouteEntries("00", "01")
+	entries[10].Status = sharding.RouteStatusRollback
+	entries[10].WriteMode = sharding.WriteModeLegacyPrimary
+
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteReadNew, entries)
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := mustFindUserIDByLogicSlot(t, 10)
+	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 11, 35, 0, 0, time.UTC), 1, 21)
+
+	legacyOrder := buildRepositoryOrder(orderNumber, userID)
+	legacyOrder.OrderPrice = 299
+	shardOrder := buildRepositoryOrder(orderNumber, userID)
+	shardOrder.OrderPrice = 399
+
+	seedRepositoryOrderFixturesIntoTable(t, "d_order", legacyOrder)
+	seedRepositoryOrderFixturesIntoTable(t, "d_order_00", shardOrder)
+
+	order, err := repo.FindOrderByNumber(context.Background(), orderNumber)
+	if err != nil {
+		t.Fatalf("FindOrderByNumber() error = %v", err)
+	}
+	if order.OrderPrice != 299 {
+		t.Fatalf("order price = %v, want legacy value 299", order.OrderPrice)
+	}
+}
+
+func TestDualWriteOrderRepositoryFindLegacyOrderFallsBackWhenRouteDirectoryMissing(t *testing.T) {
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteShadow, buildFullRouteEntries("00", "01"))
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := int64(3004)
+	node, err := snowflake.NewNode(7)
+	if err != nil {
+		t.Fatalf("snowflake.NewNode() error = %v", err)
+	}
+	orderNumber := node.Generate().Int64()
+
+	seedRepositoryOrderFixturesIntoTable(t, "d_order", buildRepositoryOrder(orderNumber, userID))
+
+	order, err := repo.FindOrderByNumber(context.Background(), orderNumber)
+	if err != nil {
+		t.Fatalf("FindOrderByNumber() error = %v", err)
+	}
+	if order.OrderNumber != orderNumber {
+		t.Fatalf("order number = %d, want %d", order.OrderNumber, orderNumber)
+	}
+}
+
+func TestDualWriteOrderRepositoryTransactLegacyOrderFallsBackWhenRouteDirectoryMissing(t *testing.T) {
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteShadow, buildFullRouteEntries("00", "01"))
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := int64(3005)
+	node, err := snowflake.NewNode(8)
+	if err != nil {
+		t.Fatalf("snowflake.NewNode() error = %v", err)
+	}
+	orderNumber := node.Generate().Int64()
+	payTime := time.Date(2026, time.March, 24, 12, 0, 0, 0, time.UTC)
+
+	seedRepositoryOrderFixturesIntoTable(t, "d_order", buildRepositoryOrder(orderNumber, userID))
+	db := openRepositoryTestDB(t, testRepositoryMySQLDataSource)
+	defer db.Close()
+	for _, ticket := range buildRepositoryTickets(orderNumber, userID) {
+		if _, err := db.Exec(
+			`INSERT INTO d_order_ticket_user (
+				id, order_number, user_id, ticket_user_id, ticket_user_name, ticket_user_id_number,
+				ticket_category_id, ticket_category_name, ticket_price, seat_id, seat_row, seat_col,
+				seat_price, order_status, create_order_time, create_time, edit_time, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			ticket.Id,
+			ticket.OrderNumber,
+			ticket.UserId,
+			ticket.TicketUserId,
+			ticket.TicketUserName,
+			ticket.TicketUserIdNumber,
+			ticket.TicketCategoryId,
+			ticket.TicketCategoryName,
+			ticket.TicketPrice,
+			ticket.SeatId,
+			ticket.SeatRow,
+			ticket.SeatCol,
+			ticket.SeatPrice,
+			ticket.OrderStatus,
+			ticket.CreateOrderTime,
+			ticket.CreateTime,
+			ticket.EditTime,
+			ticket.Status,
+		); err != nil {
+			t.Fatalf("insert legacy ticket fixture error: %v", err)
+		}
+	}
+
+	err = repo.TransactByOrderNumber(context.Background(), orderNumber, func(ctx context.Context, tx OrderTx) error {
+		if tx.Route().DBKey != "legacy" {
+			t.Fatalf("tx route db key = %s, want legacy", tx.Route().DBKey)
+		}
+		return tx.UpdatePayStatus(ctx, orderNumber, payTime)
+	})
+	if err != nil {
+		t.Fatalf("TransactByOrderNumber() error = %v", err)
+	}
+
+	if findOrderStatusFromTable(t, testRepositoryMySQLDataSource, "d_order", orderNumber) != 3 {
+		t.Fatalf("expected legacy order status updated to paid")
+	}
+	if findOrderTicketStatusFromTable(t, testRepositoryMySQLDataSource, "d_order_ticket_user", orderNumber) != 3 {
+		t.Fatalf("expected legacy ticket status updated to paid")
+	}
+
+	route, err := repo.RouteByUserID(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("RouteByUserID() error = %v", err)
+	}
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_order_"+route.TableSuffix) != 0 {
+		t.Fatalf("expected shard table to stay untouched when route directory missing")
+	}
+}
+
+func newTestOrderRepositoryDeps(t *testing.T, mode string, entries []sharding.RouteEntry) Dependencies {
+	t.Helper()
+
+	legacyConn := sqlx.NewMysql(testRepositoryMySQLDataSource)
+	shardConn0 := sqlx.NewMysql(testRepositoryMySQLDataSource)
+	shardConn1 := sqlx.NewMysql(testRepositoryMySQLDataSource)
+
+	routeMap, err := sharding.NewRouteMap("v1", entries)
+	if err != nil {
+		t.Fatalf("NewRouteMap() error = %v", err)
+	}
+
+	return Dependencies{
+		Mode:                       mode,
+		LegacyConn:                 legacyConn,
+		LegacyOrderModel:           model.NewDOrderModel(legacyConn),
+		LegacyOrderTicketUserModel: model.NewDOrderTicketUserModel(legacyConn),
+		LegacyUserOrderIndexModel:  model.NewDUserOrderIndexModel(legacyConn),
+		LegacyRouteDirectoryModel:  model.NewDOrderRouteLegacyModel(legacyConn),
+		ShardConns:                 map[string]sqlx.SqlConn{"order-db-0": shardConn0, "order-db-1": shardConn1},
+		RouteMap:                   routeMap,
+		Router:                     sharding.NewStaticRouter(routeMap),
+	}
+}
+
+func buildFullRouteEntries(suffix0, suffix1 string) []sharding.RouteEntry {
+	entries := make([]sharding.RouteEntry, 0, 1024)
+	for slot := 0; slot < 1024; slot++ {
+		entry := sharding.RouteEntry{
+			Version:     "v1",
+			LogicSlot:   slot,
+			Status:      sharding.RouteStatusStable,
+			WriteMode:   sharding.WriteModeLegacyPrimary,
+			DBKey:       "order-db-0",
+			TableSuffix: suffix0,
+		}
+		if slot%2 == 1 {
+			entry.DBKey = "order-db-1"
+			entry.TableSuffix = suffix1
+		}
+		entries = append(entries, entry)
+	}
+
+	return entries
+}
+
+func buildRepositoryOrder(orderNumber, userID int64) *model.DOrder {
+	now := time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)
+	return &model.DOrder{
+		Id:                      orderNumber + 1000,
+		OrderNumber:             orderNumber,
+		ProgramId:               10001,
+		ProgramTitle:            "订单分片测试演出",
+		ProgramItemPicture:      "https://example.com/program.jpg",
+		ProgramPlace:            "测试场馆",
+		ProgramShowTime:         now.Add(24 * time.Hour),
+		ProgramPermitChooseSeat: 0,
+		UserId:                  userID,
+		DistributionMode:        "express",
+		TakeTicketMode:          "paper",
+		TicketCount:             2,
+		OrderPrice:              598,
+		OrderStatus:             1,
+		FreezeToken:             "freeze-token",
+		OrderExpireTime:         now.Add(15 * time.Minute),
+		CreateOrderTime:         now,
+		CreateTime:              now,
+		EditTime:                now,
+		Status:                  1,
+	}
+}
+
+func buildRepositoryOrderWithExpiry(orderNumber, userID int64, expireAt time.Time) *model.DOrder {
+	order := buildRepositoryOrder(orderNumber, userID)
+	order.OrderExpireTime = expireAt
+	order.CreateOrderTime = expireAt.Add(-15 * time.Minute)
+	order.CreateTime = order.CreateOrderTime
+	order.EditTime = order.CreateOrderTime
+	return order
+}
+
+func buildRepositoryTickets(orderNumber, userID int64) []*model.DOrderTicketUser {
+	now := time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)
+	return []*model.DOrderTicketUser{
+		{
+			Id:                 orderNumber + 2001,
+			OrderNumber:        orderNumber,
+			UserId:             userID,
+			TicketUserId:       701,
+			TicketUserName:     "张三",
+			TicketUserIdNumber: "110101199001011234",
+			TicketCategoryId:   40001,
+			TicketCategoryName: "普通票",
+			TicketPrice:        299,
+			SeatId:             5001,
+			SeatRow:            1,
+			SeatCol:            1,
+			SeatPrice:          299,
+			OrderStatus:        1,
+			CreateOrderTime:    now,
+			CreateTime:         now,
+			EditTime:           now,
+			Status:             1,
+		},
+		{
+			Id:                 orderNumber + 2002,
+			OrderNumber:        orderNumber,
+			UserId:             userID,
+			TicketUserId:       702,
+			TicketUserName:     "李四",
+			TicketUserIdNumber: "110101199001011235",
+			TicketCategoryId:   40001,
+			TicketCategoryName: "普通票",
+			TicketPrice:        299,
+			SeatId:             5002,
+			SeatRow:            1,
+			SeatCol:            2,
+			SeatPrice:          299,
+			OrderStatus:        1,
+			CreateOrderTime:    now,
+			CreateTime:         now,
+			EditTime:           now,
+			Status:             1,
+		},
+	}
+}
+
+func buildRepositoryOrderIndex(orderNumber, userID int64) *model.DUserOrderIndex {
+	now := time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)
+	return &model.DUserOrderIndex{
+		Id:              orderNumber + 3001,
+		OrderNumber:     orderNumber,
+		UserId:          userID,
+		ProgramId:       10001,
+		OrderStatus:     1,
+		TicketCount:     2,
+		OrderPrice:      598,
+		CreateOrderTime: now,
+		CreateTime:      now,
+		EditTime:        now,
+		Status:          1,
+	}
+}
+
+func resetOrderRepositoryState(t *testing.T) {
+	t.Helper()
+
+	db := openRepositoryTestDB(t, testRepositoryMySQLDataSource)
+	defer db.Close()
+
+	for _, relativePath := range []string{
+		"sql/order/d_order.sql",
+		"sql/order/d_order_ticket_user.sql",
+		"sql/order/d_user_order_index.sql",
+		"sql/order/d_order_route_legacy.sql",
+		"sql/order/sharding/d_order_shards.sql",
+		"sql/order/sharding/d_order_ticket_user_shards.sql",
+		"sql/order/sharding/d_user_order_index_shards.sql",
+	} {
+		execRepositorySQLFile(t, db, relativePath)
+	}
+}
+
+func openRepositoryTestDB(t *testing.T, dataSource string) *sql.DB {
+	t.Helper()
+
+	db, err := sql.Open("mysql", xmysql.WithLocalTime(dataSource))
+	if err != nil {
+		t.Fatalf("sql.Open() error = %v", err)
+	}
+	if err := db.Ping(); err != nil {
+		_ = db.Close()
+		t.Fatalf("db.Ping() error = %v", err)
+	}
+
+	return db
+}
+
+func seedRepositoryOrderFixturesIntoTable(t *testing.T, table string, fixtures ...*model.DOrder) {
+	t.Helper()
+
+	db := openRepositoryTestDB(t, testRepositoryMySQLDataSource)
+	defer db.Close()
+
+	for _, fixture := range fixtures {
+		if fixture == nil {
+			continue
+		}
+		if _, err := db.Exec(
+			`INSERT INTO `+table+` (
+				id, order_number, program_id, program_title, program_item_picture, program_place, program_show_time,
+				program_permit_choose_seat, user_id, distribution_mode, take_ticket_mode, ticket_count, order_price,
+				order_status, freeze_token, order_expire_time, create_order_time, cancel_order_time, pay_order_time, create_time, edit_time, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			fixture.Id,
+			fixture.OrderNumber,
+			fixture.ProgramId,
+			fixture.ProgramTitle,
+			fixture.ProgramItemPicture,
+			fixture.ProgramPlace,
+			fixture.ProgramShowTime,
+			fixture.ProgramPermitChooseSeat,
+			fixture.UserId,
+			fixture.DistributionMode,
+			fixture.TakeTicketMode,
+			fixture.TicketCount,
+			fixture.OrderPrice,
+			fixture.OrderStatus,
+			fixture.FreezeToken,
+			fixture.OrderExpireTime,
+			fixture.CreateOrderTime,
+			fixture.CancelOrderTime,
+			fixture.PayOrderTime,
+			fixture.CreateTime,
+			fixture.EditTime,
+			fixture.Status,
+		); err != nil {
+			t.Fatalf("insert fixture into %s error: %v", table, err)
+		}
+	}
+}
+
+func mustFindUserIDByLogicSlot(t *testing.T, targetSlot int) int64 {
+	t.Helper()
+
+	for userID := int64(1); userID < 1_000_000; userID++ {
+		if sharding.LogicSlotByUserID(userID) == targetSlot {
+			return userID
+		}
+	}
+
+	t.Fatalf("failed to find user id for logic slot %d", targetSlot)
+	return 0
+}
+
+func execRepositorySQLFile(t *testing.T, db *sql.DB, relativePath string) {
+	t.Helper()
+
+	content, err := os.ReadFile(filepath.Join(repositoryProjectRoot(t), relativePath))
+	if err != nil {
+		t.Fatalf("ReadFile(%s) error = %v", relativePath, err)
+	}
+
+	for _, stmt := range strings.Split(string(content), ";") {
+		stmt = strings.TrimSpace(stmt)
+		if stmt == "" {
+			continue
+		}
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("Exec(%s) error = %v\nstatement: %s", relativePath, err, stmt)
+		}
+	}
+}
+
+func countTableRows(t *testing.T, dataSource, table string) int64 {
+	t.Helper()
+
+	db := openRepositoryTestDB(t, dataSource)
+	defer db.Close()
+
+	var count int64
+	if err := db.QueryRow("SELECT COUNT(1) FROM " + table).Scan(&count); err != nil {
+		t.Fatalf("QueryRow(%s) error = %v", table, err)
+	}
+
+	return count
+}
+
+func findOrderStatusFromTable(t *testing.T, dataSource, table string, orderNumber int64) int64 {
+	t.Helper()
+
+	db := openRepositoryTestDB(t, dataSource)
+	defer db.Close()
+
+	var status int64
+	if err := db.QueryRow("SELECT order_status FROM "+table+" WHERE order_number = ?", orderNumber).Scan(&status); err != nil {
+		t.Fatalf("QueryRow(%s order_status) error = %v", table, err)
+	}
+
+	return status
+}
+
+func findOrderTicketStatusFromTable(t *testing.T, dataSource, table string, orderNumber int64) int64 {
+	t.Helper()
+
+	db := openRepositoryTestDB(t, dataSource)
+	defer db.Close()
+
+	var status int64
+	if err := db.QueryRow("SELECT order_status FROM "+table+" WHERE order_number = ? ORDER BY id ASC LIMIT 1", orderNumber).Scan(&status); err != nil {
+		t.Fatalf("QueryRow(%s order_ticket_status) error = %v", table, err)
+	}
+
+	return status
+}
+
+func repositoryProjectRoot(t *testing.T) string {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("runtime.Caller() failed")
+	}
+
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", ".."))
+}

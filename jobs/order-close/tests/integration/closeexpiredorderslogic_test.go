@@ -15,9 +15,9 @@ import (
 )
 
 type fakeJobOrderRPC struct {
-	closeExpiredOrdersResp    *orderrpc.CloseExpiredOrdersResp
-	closeExpiredOrdersErr     error
-	lastCloseExpiredOrdersReq *orderrpc.CloseExpiredOrdersReq
+	closeExpiredOrdersResp *orderrpc.CloseExpiredOrdersResp
+	closeExpiredOrdersErr  error
+	closeExpiredOrdersReqs []*orderrpc.CloseExpiredOrdersReq
 }
 
 func (f *fakeJobOrderRPC) CreateOrder(ctx context.Context, in *orderrpc.CreateOrderReq, opts ...grpc.CallOption) (*orderrpc.CreateOrderResp, error) {
@@ -57,7 +57,7 @@ func (f *fakeJobOrderRPC) RefundOrder(ctx context.Context, in *orderrpc.RefundOr
 }
 
 func (f *fakeJobOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {
-	f.lastCloseExpiredOrdersReq = in
+	f.closeExpiredOrdersReqs = append(f.closeExpiredOrdersReqs, in)
 	return f.closeExpiredOrdersResp, f.closeExpiredOrdersErr
 }
 
@@ -80,8 +80,11 @@ func TestRunOnceForwardsBatchLimit(t *testing.T) {
 	if err := l.RunOnce(); err != nil {
 		t.Fatalf("RunOnce returned error: %v", err)
 	}
-	if fakeRPC.lastCloseExpiredOrdersReq == nil || fakeRPC.lastCloseExpiredOrdersReq.Limit != 100 {
-		t.Fatalf("unexpected close expired request: %+v", fakeRPC.lastCloseExpiredOrdersReq)
+	if len(fakeRPC.closeExpiredOrdersReqs) != 1 {
+		t.Fatalf("close expired requests = %d, want 1", len(fakeRPC.closeExpiredOrdersReqs))
+	}
+	if fakeRPC.closeExpiredOrdersReqs[0] == nil || fakeRPC.closeExpiredOrdersReqs[0].Limit != 100 {
+		t.Fatalf("unexpected close expired request: %+v", fakeRPC.closeExpiredOrdersReqs[0])
 	}
 }
 
@@ -99,5 +102,51 @@ func TestRunOncePropagatesRPCFailure(t *testing.T) {
 
 	if err := l.RunOnce(); err == nil {
 		t.Fatalf("expected rpc error")
+	}
+}
+
+func TestRunOnceForwardsSlotWindowAndAdvancesCheckpoint(t *testing.T) {
+	fakeRPC := &fakeJobOrderRPC{
+		closeExpiredOrdersResp: &orderrpc.CloseExpiredOrdersResp{ClosedCount: 2},
+	}
+	l := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
+		Config: config.Config{
+			Interval:          time.Minute,
+			BatchSize:         100,
+			ScanSlotStart:     10,
+			ScanSlotEnd:       13,
+			ScanSlotBatchSize: 2,
+			CheckpointSlot:    10,
+		},
+		OrderRpc: fakeRPC,
+	})
+
+	if err := l.RunOnce(); err != nil {
+		t.Fatalf("first RunOnce returned error: %v", err)
+	}
+	if err := l.RunOnce(); err != nil {
+		t.Fatalf("second RunOnce returned error: %v", err)
+	}
+	if err := l.RunOnce(); err != nil {
+		t.Fatalf("third RunOnce returned error: %v", err)
+	}
+
+	if len(fakeRPC.closeExpiredOrdersReqs) != 3 {
+		t.Fatalf("close expired requests = %d, want 3", len(fakeRPC.closeExpiredOrdersReqs))
+	}
+
+	req0 := fakeRPC.closeExpiredOrdersReqs[0]
+	if req0.GetLogicSlotStart() != 10 || req0.GetLogicSlotCount() != 2 {
+		t.Fatalf("first request = %+v, want start=10 count=2", req0)
+	}
+
+	req1 := fakeRPC.closeExpiredOrdersReqs[1]
+	if req1.GetLogicSlotStart() != 12 || req1.GetLogicSlotCount() != 2 {
+		t.Fatalf("second request = %+v, want start=12 count=2", req1)
+	}
+
+	req2 := fakeRPC.closeExpiredOrdersReqs[2]
+	if req2.GetLogicSlotStart() != 10 || req2.GetLogicSlotCount() != 2 {
+		t.Fatalf("third request = %+v, want start=10 count=2", req2)
 	}
 }

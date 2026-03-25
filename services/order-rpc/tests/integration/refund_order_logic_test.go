@@ -3,9 +3,11 @@ package integration_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/sharding"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 
@@ -14,6 +16,82 @@ import (
 )
 
 func TestRefundOrder(t *testing.T) {
+	t.Run("paid shard order refunds and updates shard user order index", func(t *testing.T) {
+		svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
+		resetOrderDomainState(t)
+		setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
+
+		userID := int64(3001)
+		orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 30, 0, 0, time.UTC), 1, 3)
+		route := orderRouteForUser(t, svcCtx, userID)
+		seedShardOrderFixtures(t, svcCtx, route, orderFixture{
+			ID:              99000,
+			OrderNumber:     orderNumber,
+			ProgramID:       10001,
+			UserID:          userID,
+			OrderStatus:     testOrderStatusPaid,
+			FreezeToken:     "freeze-refund-shard",
+			OrderExpireTime: "2026-12-31 20:00:00",
+			CreateOrderTime: "2026-12-31 19:00:00",
+			PayOrderTime:    "2026-12-31 19:05:00",
+		})
+		seedShardOrderTicketUserFixtures(t, svcCtx, route,
+			orderTicketUserFixture{ID: 99100, OrderNumber: orderNumber, UserID: userID, TicketUserID: 701, SeatID: 50101, OrderStatus: testOrderStatusPaid},
+		)
+		seedUserOrderIndexFixtures(t, svcCtx, route,
+			userOrderIndexFixture{ID: 99200, OrderNumber: orderNumber, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusPaid, CreateOrderTime: "2026-12-31 19:00:00"},
+		)
+		payRPC.getPayBillResp = &payrpc.GetPayBillResp{
+			PayBillNo:   94000,
+			OrderNumber: orderNumber,
+			UserId:      userID,
+			Amount:      299,
+			PayStatus:   2,
+			PayTime:     "2026-12-31 19:05:00",
+		}
+		payRPC.refundResp = &payrpc.RefundResp{
+			RefundBillNo: 95000,
+			OrderNumber:  orderNumber,
+			RefundAmount: 239,
+			PayStatus:    3,
+			RefundTime:   "2026-12-31 19:10:00",
+		}
+		programRPC.evaluateRefundRuleResp = &programrpc.EvaluateRefundRuleResp{
+			AllowRefund:   true,
+			RefundPercent: 80,
+			RefundAmount:  239,
+		}
+
+		l := logicpkg.NewRefundOrderLogic(context.Background(), svcCtx)
+		resp, err := l.RefundOrder(&pb.RefundOrderReq{
+			UserId:      userID,
+			OrderNumber: orderNumber,
+			Reason:      "行程变更",
+		})
+		if err != nil {
+			t.Fatalf("RefundOrder returned error: %v", err)
+		}
+		if resp.OrderStatus != testOrderStatusRefunded {
+			t.Fatalf("unexpected refund response: %+v", resp)
+		}
+		if findUserOrderIndexStatusFromTable(t, testOrderMySQLDataSource, "d_user_order_index_"+route.TableSuffix, orderNumber) != testOrderStatusRefunded {
+			t.Fatalf("expected shard user order index status refunded")
+		}
+
+		listResp, err := logicpkg.NewListOrdersLogic(context.Background(), svcCtx).ListOrders(&pb.ListOrdersReq{
+			UserId:      userID,
+			PageNumber:  1,
+			PageSize:    10,
+			OrderStatus: testOrderStatusRefunded,
+		})
+		if err != nil {
+			t.Fatalf("ListOrders returned error: %v", err)
+		}
+		if listResp.TotalSize != 1 || len(listResp.List) != 1 || listResp.List[0].OrderNumber != orderNumber {
+			t.Fatalf("expected refunded shard list to return current order, got %+v", listResp)
+		}
+	})
+
 	t.Run("paid order refunds and updates local snapshots", func(t *testing.T) {
 		svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
 		resetOrderDomainState(t)

@@ -49,6 +49,21 @@ func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T
 	if c.Kafka.ConsumerWorkers != 1 {
 		t.Fatalf("expected kafka consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
 	}
+	if c.Sharding.Mode != "legacy_only" {
+		t.Fatalf("expected sharding mode legacy_only, got %s", c.Sharding.Mode)
+	}
+	if c.Sharding.RouteMap.Version != "v1" {
+		t.Fatalf("expected sharding route map version v1, got %s", c.Sharding.RouteMap.Version)
+	}
+	if len(c.Sharding.Shards) != 2 {
+		t.Fatalf("expected 2 sharding mysql configs, got %d", len(c.Sharding.Shards))
+	}
+	if _, ok := c.Sharding.Shards["order-db-0"]; !ok {
+		t.Fatalf("expected shard config order-db-0 to exist")
+	}
+	if len(c.Sharding.RouteMap.Entries) != 2 {
+		t.Fatalf("expected 2 route map entries, got %d", len(c.Sharding.RouteMap.Entries))
+	}
 }
 
 func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
@@ -89,5 +104,14 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	}
 	if c.Kafka.ConsumerWorkers != 1 {
 		t.Fatalf("expected kafka consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
+	}
+	if c.Sharding.Mode != "legacy_only" {
+		t.Fatalf("expected perf sharding mode legacy_only, got %s", c.Sharding.Mode)
+	}
+	if len(c.Sharding.Shards) != 2 {
+		t.Fatalf("expected 2 perf sharding mysql configs, got %d", len(c.Sharding.Shards))
+	}
+	if c.Sharding.RouteMap.Version != "v1" {
+		t.Fatalf("expected perf sharding route map version v1, got %s", c.Sharding.RouteMap.Version)
 	}
 }

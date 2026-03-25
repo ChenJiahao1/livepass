@@ -3,9 +3,12 @@ package integration_test
 import (
 	"context"
 	"testing"
+	"time"
 
+	"damai-go/pkg/xid"
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/sharding"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -107,4 +110,94 @@ func TestCountActiveTicketsByUserProgramIncludesPaidOnly(t *testing.T) {
 	if resp.ActiveTicketCount != 5 {
 		t.Fatalf("expected activeTicketCount=5, got %d", resp.ActiveTicketCount)
 	}
+}
+
+func TestGetOrderReadsFromShardByGeneOrderNumber(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
+
+	userID := int64(3001)
+	orderNumber := sharding.BuildOrderNumber(userID, testOrderNow(), 1, 1)
+	route := orderRouteForUser(t, svcCtx, userID)
+	seedShardOrderFixtures(t, svcCtx, route, orderFixture{ID: 8001, OrderNumber: orderNumber, ProgramID: 10001, UserID: userID, TicketCount: 1})
+	seedShardOrderTicketUserFixtures(t, svcCtx, route, orderTicketUserFixture{ID: 8801, OrderNumber: orderNumber, UserID: userID, TicketUserID: 701, SeatID: 501, SeatRow: 1, SeatCol: 1})
+
+	l := logicpkg.NewGetOrderLogic(context.Background(), svcCtx)
+	resp, err := l.GetOrder(&pb.GetOrderReq{
+		UserId:      userID,
+		OrderNumber: orderNumber,
+	})
+	if err != nil {
+		t.Fatalf("GetOrder returned error: %v", err)
+	}
+	if resp.OrderNumber != orderNumber || len(resp.OrderTicketInfoVoList) != 1 {
+		t.Fatalf("unexpected order detail response: %+v", resp)
+	}
+}
+
+func TestGetOrderReadsLegacyOrderThroughRouteDirectoryInShardOnlyMode(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
+
+	userID := int64(3001)
+	orderNumber := xid.New()
+	route := orderRouteForUser(t, svcCtx, userID)
+	seedShardOrderFixtures(t, svcCtx, route, orderFixture{ID: 8001, OrderNumber: orderNumber, ProgramID: 10001, UserID: userID, TicketCount: 1})
+	seedShardOrderTicketUserFixtures(t, svcCtx, route, orderTicketUserFixture{ID: 8801, OrderNumber: orderNumber, UserID: userID, TicketUserID: 701, SeatID: 501, SeatRow: 1, SeatCol: 1})
+	seedLegacyOrderRouteFixtures(t, svcCtx, legacyOrderRouteFixture{
+		OrderNumber:  orderNumber,
+		UserID:       userID,
+		LogicSlot:    int64(route.LogicSlot),
+		RouteVersion: route.Version,
+	})
+
+	l := logicpkg.NewGetOrderLogic(context.Background(), svcCtx)
+	resp, err := l.GetOrder(&pb.GetOrderReq{
+		UserId:      userID,
+		OrderNumber: orderNumber,
+	})
+	if err != nil {
+		t.Fatalf("GetOrder returned error: %v", err)
+	}
+	if resp.OrderNumber != orderNumber || len(resp.OrderTicketInfoVoList) != 1 {
+		t.Fatalf("unexpected legacy order detail response: %+v", resp)
+	}
+}
+
+func TestListOrdersReadsFromShardUserOrderIndex(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
+
+	userID := int64(3001)
+	orderNumber1 := sharding.BuildOrderNumber(userID, testOrderNow(), 1, 1)
+	orderNumber2 := sharding.BuildOrderNumber(userID, testOrderNow().Add(time.Second), 1, 2)
+	route := orderRouteForUser(t, svcCtx, userID)
+	seedShardOrderFixtures(t, svcCtx, route,
+		orderFixture{ID: 8001, OrderNumber: orderNumber1, ProgramID: 10001, UserID: userID, OrderStatus: testOrderStatusUnpaid, CreateOrderTime: "2026-03-24 10:00:00"},
+		orderFixture{ID: 8002, OrderNumber: orderNumber2, ProgramID: 10001, UserID: userID, OrderStatus: testOrderStatusCancelled, CancelOrderTime: "2026-03-24 10:01:00", CreateOrderTime: "2026-03-24 10:01:00"},
+	)
+	seedUserOrderIndexFixtures(t, svcCtx, route,
+		userOrderIndexFixture{ID: 8101, OrderNumber: orderNumber1, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusUnpaid, CreateOrderTime: "2026-03-24 10:00:00"},
+		userOrderIndexFixture{ID: 8102, OrderNumber: orderNumber2, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusCancelled, CreateOrderTime: "2026-03-24 10:01:00"},
+	)
+
+	l := logicpkg.NewListOrdersLogic(context.Background(), svcCtx)
+	resp, err := l.ListOrders(&pb.ListOrdersReq{
+		UserId:     userID,
+		PageNumber: 1,
+		PageSize:   10,
+	})
+	if err != nil {
+		t.Fatalf("ListOrders returned error: %v", err)
+	}
+	if resp.TotalSize != 2 || len(resp.List) != 2 {
+		t.Fatalf("unexpected list response: %+v", resp)
+	}
+}
+
+func testOrderNow() time.Time {
+	return time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)
 }

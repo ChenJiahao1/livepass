@@ -38,7 +38,7 @@ func (l *ListOrdersLogic) ListOrders(in *pb.ListOrdersReq) (*pb.ListOrdersResp, 
 		pageSize = 10
 	}
 
-	orders, total, err := l.svcCtx.DOrderModel.FindPageByUserAndStatus(l.ctx, in.GetUserId(), in.GetOrderStatus(), pageNumber, pageSize)
+	orders, total, err := l.svcCtx.OrderRepository.FindOrderPageByUser(l.ctx, in.GetUserId(), in.GetOrderStatus(), pageNumber, pageSize)
 	if err != nil {
 		return nil, err
 	}

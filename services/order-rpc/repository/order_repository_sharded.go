@@ -1,0 +1,310 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"damai-go/services/order-rpc/internal/model"
+	"damai-go/services/order-rpc/sharding"
+
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+type routeResolver struct {
+	router           sharding.Router
+	routeMap         *sharding.RouteMap
+	legacyRouteModel model.DOrderRouteLegacyModel
+}
+
+func (r routeResolver) RouteByUserID(userID int64) (sharding.Route, error) {
+	if r.router == nil {
+		return sharding.Route{}, sharding.ErrRouteNotFound
+	}
+	return r.router.RouteByUserID(userID)
+}
+
+func (r routeResolver) RouteByOrderNumber(ctx context.Context, orderNumber int64) (sharding.Route, error) {
+	if r.router != nil {
+		route, err := r.router.RouteByOrderNumber(orderNumber)
+		if err == nil {
+			return route, nil
+		}
+		if !errors.Is(err, sharding.ErrLegacyOrderRequiresDirectoryLookup) {
+			return sharding.Route{}, err
+		}
+	}
+	if r.legacyRouteModel == nil || r.routeMap == nil {
+		return sharding.Route{}, sharding.ErrLegacyOrderRequiresDirectoryLookup
+	}
+
+	legacyRoute, err := r.legacyRouteModel.FindOne(ctx, orderNumber)
+	if err != nil {
+		return sharding.Route{}, err
+	}
+
+	version := legacyRoute.RouteVersion
+	if version == "" {
+		version = r.routeMap.CurrentVersion()
+	}
+	return r.routeMap.RouteByVersionAndSlot(version, int(legacyRoute.LogicSlot))
+}
+
+type shardedOrderRepository struct {
+	deps     Dependencies
+	resolver routeResolver
+}
+
+func newShardedOrderRepository(deps Dependencies) *shardedOrderRepository {
+	return &shardedOrderRepository{
+		deps: deps,
+		resolver: routeResolver{
+			router:           deps.Router,
+			routeMap:         deps.RouteMap,
+			legacyRouteModel: deps.LegacyRouteDirectoryModel,
+		},
+	}
+}
+
+func (r *shardedOrderRepository) TransactByOrderNumber(ctx context.Context, orderNumber int64, fn func(context.Context, OrderTx) error) error {
+	route, err := r.RouteByOrderNumber(ctx, orderNumber)
+	if err != nil {
+		return err
+	}
+	return r.transactByRoute(ctx, route, fn)
+}
+
+func (r *shardedOrderRepository) TransactByUserID(ctx context.Context, userID int64, fn func(context.Context, OrderTx) error) error {
+	route, err := r.RouteByUserID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return r.transactByRoute(ctx, route, fn)
+}
+
+func (r *shardedOrderRepository) FindOrderByNumber(ctx context.Context, orderNumber int64) (*model.DOrder, error) {
+	route, err := r.RouteByOrderNumber(ctx, orderNumber)
+	if err != nil {
+		return nil, err
+	}
+	target, err := r.storeForRoute(route)
+	if err != nil {
+		return nil, err
+	}
+	return target.orderModel.FindOneByOrderNumber(ctx, orderNumber)
+}
+
+func (r *shardedOrderRepository) FindOrderTicketsByNumber(ctx context.Context, orderNumber int64) ([]*model.DOrderTicketUser, error) {
+	route, err := r.RouteByOrderNumber(ctx, orderNumber)
+	if err != nil {
+		return nil, err
+	}
+	target, err := r.storeForRoute(route)
+	if err != nil {
+		return nil, err
+	}
+	return target.ticketModel.FindByOrderNumber(ctx, orderNumber)
+}
+
+func (r *shardedOrderRepository) FindOrderPageByUser(ctx context.Context, userID, orderStatus, pageNumber, pageSize int64) ([]*model.DOrder, int64, error) {
+	route, err := r.RouteByUserID(ctx, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	target, err := r.storeForRoute(route)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	indexRows, total, err := target.indexModel.FindPageByUserAndStatus(ctx, userID, orderStatus, pageNumber, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(indexRows) == 0 {
+		return []*model.DOrder{}, total, nil
+	}
+
+	orders := make([]*model.DOrder, 0, len(indexRows))
+	for _, indexRow := range indexRows {
+		order, err := target.orderModel.FindOneByOrderNumber(ctx, indexRow.OrderNumber)
+		if err != nil {
+			return nil, 0, err
+		}
+		orders = append(orders, order)
+	}
+
+	return orders, total, nil
+}
+
+func (r *shardedOrderRepository) FindExpiredUnpaidBySlot(ctx context.Context, logicSlot int, before time.Time, limit int64) ([]*model.DOrder, error) {
+	if r.deps.RouteMap == nil {
+		return nil, sharding.ErrRouteNotFound
+	}
+
+	route, err := r.deps.RouteMap.RouteByLogicSlot(logicSlot)
+	if err != nil {
+		return nil, err
+	}
+	target, err := r.storeForRoute(route)
+	if err != nil {
+		return nil, err
+	}
+
+	if limit <= 0 {
+		return []*model.DOrder{}, nil
+	}
+
+	queryLimit := limit
+	if queryLimit < 32 {
+		queryLimit = 32
+	}
+
+	orders := make([]*model.DOrder, 0, limit)
+	var (
+		cursorExpireTime time.Time
+		cursorID         int64
+		hasCursor        bool
+	)
+
+	for int64(len(orders)) < limit {
+		query := fmt.Sprintf(
+			"select * from %s where `status` = 1 and `order_status` = 1 and `order_expire_time` <= ?",
+			shardOrderTable(route.TableSuffix),
+		)
+		args := []interface{}{before}
+		if hasCursor {
+			query += " and (`order_expire_time` > ? or (`order_expire_time` = ? and `id` > ?))"
+			args = append(args, cursorExpireTime, cursorExpireTime, cursorID)
+		}
+		query += " order by `order_expire_time` asc, `id` asc limit ?"
+		args = append(args, queryLimit)
+
+		var batch []*model.DOrder
+		err := target.conn.QueryRowsCtx(ctx, &batch, query, args...)
+		switch {
+		case err == nil:
+		case errors.Is(err, sqlx.ErrNotFound):
+			return orders, nil
+		default:
+			return nil, err
+		}
+		if len(batch) == 0 {
+			return orders, nil
+		}
+
+		for _, order := range batch {
+			if order == nil {
+				continue
+			}
+			if orderMatchesLogicSlot(order, logicSlot) {
+				orders = append(orders, order)
+				if int64(len(orders)) >= limit {
+					return orders, nil
+				}
+			}
+		}
+
+		last := batch[len(batch)-1]
+		cursorExpireTime = last.OrderExpireTime
+		cursorID = last.Id
+		hasCursor = true
+
+		if int64(len(batch)) < queryLimit {
+			return orders, nil
+		}
+	}
+
+	return orders, nil
+}
+
+func (r *shardedOrderRepository) CountActiveTicketsByUserProgram(ctx context.Context, userID, programID int64) (int64, error) {
+	route, err := r.RouteByUserID(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	target, err := r.storeForRoute(route)
+	if err != nil {
+		return 0, err
+	}
+
+	return target.orderModel.CountActiveTicketsByUserProgram(ctx, userID, programID)
+}
+
+func (r *shardedOrderRepository) ListUnpaidReservationsByUserProgram(ctx context.Context, userID, programID int64) (map[int64]int64, error) {
+	route, err := r.RouteByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	target, err := r.storeForRoute(route)
+	if err != nil {
+		return nil, err
+	}
+
+	return target.orderModel.ListUnpaidReservationsByUserProgram(ctx, userID, programID)
+}
+
+func (r *shardedOrderRepository) RouteByUserID(_ context.Context, userID int64) (sharding.Route, error) {
+	return r.resolver.RouteByUserID(userID)
+}
+
+func (r *shardedOrderRepository) RouteByOrderNumber(ctx context.Context, orderNumber int64) (sharding.Route, error) {
+	return r.resolver.RouteByOrderNumber(ctx, orderNumber)
+}
+
+func (r *shardedOrderRepository) transactByRoute(ctx context.Context, route sharding.Route, fn func(context.Context, OrderTx) error) error {
+	target, err := r.storeForRoute(route)
+	if err != nil {
+		return err
+	}
+	return target.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		tx := newSingleOrderTx(route, session, target.orderModel, target.ticketModel, target.indexModel, nil)
+		return fn(ctx, tx)
+	})
+}
+
+type routeStore struct {
+	conn        sqlx.SqlConn
+	orderModel  model.DOrderModel
+	ticketModel model.DOrderTicketUserModel
+	indexModel  model.DUserOrderIndexModel
+}
+
+func (r *shardedOrderRepository) storeForRoute(route sharding.Route) (*routeStore, error) {
+	conn, ok := r.deps.ShardConns[route.DBKey]
+	if !ok {
+		return nil, fmt.Errorf("shard db key not configured: %s", route.DBKey)
+	}
+
+	return &routeStore{
+		conn:        conn,
+		orderModel:  model.NewDOrderModelWithTable(conn, shardOrderTable(route.TableSuffix)),
+		ticketModel: model.NewDOrderTicketUserModelWithTable(conn, shardOrderTicketTable(route.TableSuffix)),
+		indexModel:  model.NewDUserOrderIndexModelWithTable(conn, shardUserOrderIndexTable(route.TableSuffix)),
+	}, nil
+}
+
+func shardOrderTable(suffix string) string {
+	return "d_order_" + suffix
+}
+
+func shardOrderTicketTable(suffix string) string {
+	return "d_order_ticket_user_" + suffix
+}
+
+func shardUserOrderIndexTable(suffix string) string {
+	return "d_user_order_index_" + suffix
+}
+
+func orderMatchesLogicSlot(order *model.DOrder, logicSlot int) bool {
+	if order == nil {
+		return false
+	}
+
+	slot, err := sharding.LogicSlotByOrderNumber(order.OrderNumber)
+	if err == nil {
+		return slot == logicSlot
+	}
+
+	return sharding.LogicSlotByUserID(order.UserId) == logicSlot
+}

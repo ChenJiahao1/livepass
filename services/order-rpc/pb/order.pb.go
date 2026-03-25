@@ -1574,10 +1574,12 @@ func (x *RefundOrderResp) GetRefundTime() string {
 }
 
 type CloseExpiredOrdersReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Limit         int64                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Limit          int64                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	LogicSlotStart int64                  `protobuf:"varint,2,opt,name=logicSlotStart,proto3" json:"logicSlotStart,omitempty"`
+	LogicSlotCount int64                  `protobuf:"varint,3,opt,name=logicSlotCount,proto3" json:"logicSlotCount,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CloseExpiredOrdersReq) Reset() {
@@ -1613,6 +1615,20 @@ func (*CloseExpiredOrdersReq) Descriptor() ([]byte, []int) {
 func (x *CloseExpiredOrdersReq) GetLimit() int64 {
 	if x != nil {
 		return x.Limit
+	}
+	return 0
+}
+
+func (x *CloseExpiredOrdersReq) GetLogicSlotStart() int64 {
+	if x != nil {
+		return x.LogicSlotStart
+	}
+	return 0
+}
+
+func (x *CloseExpiredOrdersReq) GetLogicSlotCount() int64 {
+	if x != nil {
+		return x.LogicSlotCount
 	}
 	return 0
 }
@@ -1899,9 +1915,11 @@ const file_order_proto_rawDesc = "" +
 	"\frefundBillNo\x18\x05 \x01(\x03R\frefundBillNo\x12\x1e\n" +
 	"\n" +
 	"refundTime\x18\x06 \x01(\tR\n" +
-	"refundTime\"-\n" +
+	"refundTime\"}\n" +
 	"\x15CloseExpiredOrdersReq\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x03R\x05limit\":\n" +
+	"\x05limit\x18\x01 \x01(\x03R\x05limit\x12&\n" +
+	"\x0elogicSlotStart\x18\x02 \x01(\x03R\x0elogicSlotStart\x12&\n" +
+	"\x0elogicSlotCount\x18\x03 \x01(\x03R\x0elogicSlotCount\":\n" +
 	"\x16CloseExpiredOrdersResp\x12 \n" +
 	"\vclosedCount\x18\x01 \x01(\x03R\vclosedCount\"Z\n" +
 	"\"CountActiveTicketsByUserProgramReq\x12\x16\n" +

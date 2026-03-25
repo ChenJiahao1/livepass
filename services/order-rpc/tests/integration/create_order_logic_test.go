@@ -15,6 +15,7 @@ import (
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/sharding"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
 
@@ -105,6 +106,16 @@ func TestCreateOrderReturnsOrderNumberAfterKafkaSendSucceeds(t *testing.T) {
 	}
 	if resp.OrderNumber <= 0 {
 		t.Fatalf("expected generated order number, got %d", resp.OrderNumber)
+	}
+	parts, err := sharding.ParseOrderNumber(resp.OrderNumber)
+	if err != nil {
+		t.Fatalf("ParseOrderNumber returned error: %v", err)
+	}
+	if parts.Legacy {
+		t.Fatalf("expected gene order number, got legacy format %d", resp.OrderNumber)
+	}
+	if parts.LogicSlot() != sharding.LogicSlotByUserID(3001) {
+		t.Fatalf("expected logic slot %d, got %d", sharding.LogicSlotByUserID(3001), parts.LogicSlot())
 	}
 	if producer.sendCalls != 1 {
 		t.Fatalf("expected producer send once, got %d", producer.sendCalls)

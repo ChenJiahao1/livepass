@@ -13,11 +13,11 @@ import (
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/repository"
+	"damai-go/services/order-rpc/sharding"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
-
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -71,7 +71,7 @@ func buildOrderSnapshotBundle(
 	now time.Time,
 	closeAfter time.Duration,
 ) (*orderSnapshotBundle, error) {
-	orderEvent, err := buildOrderCreateEvent(xid.New(), in, preorder, userResp, freezeResp, now, closeAfter)
+	orderEvent, err := buildOrderCreateEvent(generateOrderNumberForUser(in.GetUserId(), now), in, preorder, userResp, freezeResp, now, closeAfter)
 	if err != nil {
 		return nil, err
 	}
@@ -247,8 +247,8 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 	}
 
 	var changed bool
-	err = svcCtx.SqlConn.TransactCtx(ctx, func(txCtx context.Context, session sqlx.Session) error {
-		order, err := svcCtx.DOrderModel.FindOneByOrderNumberForUpdate(txCtx, session, orderNumber)
+	err = svcCtx.OrderRepository.TransactByOrderNumber(ctx, orderNumber, func(txCtx context.Context, tx repository.OrderTx) error {
+		order, err := tx.FindOrderByNumberForUpdate(txCtx, orderNumber)
 		if err != nil {
 			if errors.Is(err, model.ErrNotFound) {
 				return xerr.ErrOrderNotFound
@@ -273,10 +273,7 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		}
 
 		cancelTime := time.Now()
-		if err := svcCtx.DOrderModel.UpdateCancelStatus(txCtx, session, order.OrderNumber, cancelTime); err != nil {
-			return err
-		}
-		if err := svcCtx.DOrderTicketUserModel.UpdateCancelStatusByOrderNumber(txCtx, session, order.OrderNumber, cancelTime); err != nil {
+		if err := tx.UpdateCancelStatus(txCtx, order.OrderNumber, cancelTime); err != nil {
 			return err
 		}
 		changed = true
@@ -307,6 +304,13 @@ func lockOrderStatusGuard(ctx context.Context, svcCtx *svc.ServiceContext, order
 
 func buildFreezeRequestNo() string {
 	return fmt.Sprintf("order-%d", xid.New())
+}
+
+func generateOrderNumberForUser(userID int64, now time.Time) int64 {
+	seed := xid.New()
+	workerID := (seed >> 12) & 0x3FF
+	sequence := seed & 0xFFF
+	return sharding.BuildOrderNumber(userID, now, workerID, sequence)
 }
 
 func mapPayOrderResp(order *model.DOrder, payBill *payrpc.GetPayBillResp) *pb.PayOrderResp {
@@ -438,8 +442,8 @@ func compensationRefundReason() string {
 }
 
 func convergeOrderRefunded(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) error {
-	return svcCtx.SqlConn.TransactCtx(ctx, func(txCtx context.Context, session sqlx.Session) error {
-		order, err := svcCtx.DOrderModel.FindOneByOrderNumberForUpdate(txCtx, session, orderNumber)
+	return svcCtx.OrderRepository.TransactByOrderNumber(ctx, orderNumber, func(txCtx context.Context, tx repository.OrderTx) error {
+		order, err := tx.FindOrderByNumberForUpdate(txCtx, orderNumber)
 		if err != nil {
 			if errors.Is(err, model.ErrNotFound) {
 				return xerr.ErrOrderNotFound
@@ -454,10 +458,7 @@ func convergeOrderRefunded(ctx context.Context, svcCtx *svc.ServiceContext, orde
 		}
 
 		refundTime := time.Now()
-		if err := svcCtx.DOrderModel.UpdateRefundStatus(txCtx, session, orderNumber, refundTime); err != nil {
-			return err
-		}
-		if err := svcCtx.DOrderTicketUserModel.UpdateRefundStatusByOrderNumber(txCtx, session, orderNumber, refundTime); err != nil {
+		if err := tx.UpdateRefundStatus(txCtx, orderNumber, refundTime); err != nil {
 			return err
 		}
 
@@ -466,7 +467,7 @@ func convergeOrderRefunded(ctx context.Context, svcCtx *svc.ServiceContext, orde
 }
 
 func findOwnedOrder(ctx context.Context, svcCtx *svc.ServiceContext, userID, orderNumber int64) (*model.DOrder, error) {
-	order, err := svcCtx.DOrderModel.FindOneByOrderNumber(ctx, orderNumber)
+	order, err := svcCtx.OrderRepository.FindOrderByNumber(ctx, orderNumber)
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, xerr.ErrOrderNotFound

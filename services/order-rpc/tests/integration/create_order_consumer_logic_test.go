@@ -7,6 +7,7 @@ import (
 
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/sharding"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
 )
@@ -45,6 +46,9 @@ func TestCreateOrderConsumerPersistsOrderAndTickets(t *testing.T) {
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 2 {
 		t.Fatalf("expected two order ticket rows")
 	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_user_order_index") != 1 {
+		t.Fatalf("expected one user order index row")
+	}
 }
 
 func TestCreateOrderConsumerTreatsDuplicateOrderNumberAsIdempotentSuccess(t *testing.T) {
@@ -81,6 +85,50 @@ func TestCreateOrderConsumerTreatsDuplicateOrderNumberAsIdempotentSuccess(t *tes
 	}
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 1 {
 		t.Fatalf("expected one order ticket row after duplicate consume")
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_user_order_index") != 1 {
+		t.Fatalf("expected one user order index row after duplicate consume")
+	}
+}
+
+func TestCreateOrderConsumerPersistsShadowTablesInDualWriteShadowMode(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeDualWriteShadow)
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+	event := mustBuildOrderCreateEventForTest(t, programRPC.getProgramPreorderResp, userRPC.getUserAndTicketUserListResp, &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-consumer-shadow",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}, time.Now())
+
+	body, err := event.Marshal()
+	if err != nil {
+		t.Fatalf("event.Marshal returned error: %v", err)
+	}
+	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(body); err != nil {
+		t.Fatalf("Consume returned error: %v", err)
+	}
+
+	route, err := svcCtx.OrderRepository.RouteByUserID(context.Background(), 3001)
+	if err != nil {
+		t.Fatalf("RouteByUserID returned error: %v", err)
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_"+route.TableSuffix) != 1 {
+		t.Fatalf("expected one shard order row in d_order_%s", route.TableSuffix)
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user_"+route.TableSuffix) != 1 {
+		t.Fatalf("expected one shard order ticket row in d_order_ticket_user_%s", route.TableSuffix)
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_user_order_index_"+route.TableSuffix) != 1 {
+		t.Fatalf("expected one shard order index row in d_user_order_index_%s", route.TableSuffix)
 	}
 }
 

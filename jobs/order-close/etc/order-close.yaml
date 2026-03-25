@@ -1,5 +1,9 @@
 Interval: 1m
 BatchSize: 100
+ScanSlotStart: 0
+ScanSlotEnd: 0
+ScanSlotBatchSize: 1
+CheckpointSlot: 0
 OrderRpc:
   Etcd:
     Hosts:

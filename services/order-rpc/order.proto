@@ -170,6 +170,8 @@ message RefundOrderResp {
 
 message CloseExpiredOrdersReq {
   int64 limit = 1;
+  int64 logicSlotStart = 2;
+  int64 logicSlotCount = 3;
 }
 
 message CloseExpiredOrdersResp {

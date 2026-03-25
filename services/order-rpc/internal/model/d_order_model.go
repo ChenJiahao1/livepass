@@ -51,8 +51,16 @@ func NewDOrderModel(conn sqlx.SqlConn) DOrderModel {
 	}
 }
 
+func NewDOrderModelWithTable(conn sqlx.SqlConn, table string) DOrderModel {
+	m := newDOrderModel(conn)
+	m.table = normalizeTableName(table)
+	return &customDOrderModel{
+		defaultDOrderModel: m,
+	}
+}
+
 func (m *customDOrderModel) withSession(session sqlx.Session) DOrderModel {
-	return NewDOrderModel(sqlx.NewSqlConnFromSession(session))
+	return NewDOrderModelWithTable(sqlx.NewSqlConnFromSession(session), rawTableName(m.table))
 }
 
 func (m *customDOrderModel) InsertWithSession(ctx context.Context, session sqlx.Session, data *DOrder) (sql.Result, error) {

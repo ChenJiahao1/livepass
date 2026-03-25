@@ -30,21 +30,45 @@ func (l *CloseExpiredOrdersLogic) CloseExpiredOrders(in *pb.CloseExpiredOrdersRe
 		limit = 100
 	}
 
-	orders, err := l.svcCtx.DOrderModel.FindExpiredUnpaid(l.ctx, time.Now(), limit)
-	if err != nil {
-		return nil, err
-	}
-
 	resp := &pb.CloseExpiredOrdersResp{}
-	for _, order := range orders {
-		changed, err := cancelOrderWithLock(l.ctx, l.svcCtx, order.OrderNumber, 0, false, "order_expired_close")
+	now := time.Now()
+	logicSlotStart, logicSlotCount := normalizeCloseExpiredOrderSlotWindow(in)
+	remaining := limit
+	for logicSlot := logicSlotStart; logicSlot < logicSlotStart+logicSlotCount && remaining > 0; logicSlot++ {
+		orders, err := l.svcCtx.OrderRepository.FindExpiredUnpaidBySlot(l.ctx, int(logicSlot), now, remaining)
 		if err != nil {
-			return nil, mapOrderError(err)
+			return nil, err
 		}
-		if changed {
-			resp.ClosedCount++
+
+		for _, order := range orders {
+			changed, err := cancelOrderWithLock(l.ctx, l.svcCtx, order.OrderNumber, 0, false, "order_expired_close")
+			if err != nil {
+				return nil, mapOrderError(err)
+			}
+			if changed {
+				resp.ClosedCount++
+			}
 		}
+		remaining -= int64(len(orders))
 	}
 
 	return resp, nil
+}
+
+func normalizeCloseExpiredOrderSlotWindow(in *pb.CloseExpiredOrdersReq) (int64, int64) {
+	if in == nil {
+		return 0, 1
+	}
+
+	start := in.GetLogicSlotStart()
+	if start < 0 {
+		start = 0
+	}
+
+	count := in.GetLogicSlotCount()
+	if count <= 0 {
+		count = 1
+	}
+
+	return start, count
 }

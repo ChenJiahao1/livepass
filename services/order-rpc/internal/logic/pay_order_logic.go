@@ -10,11 +10,11 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/repository"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type PayOrderLogic struct {
@@ -45,8 +45,8 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 	}
 
 	var resp *pb.PayOrderResp
-	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
-		order, err := l.svcCtx.DOrderModel.FindOneByOrderNumberForUpdate(ctx, session, in.GetOrderNumber())
+	err = l.svcCtx.OrderRepository.TransactByOrderNumber(l.ctx, in.GetOrderNumber(), func(ctx context.Context, tx repository.OrderTx) error {
+		order, err := tx.FindOrderByNumberForUpdate(ctx, in.GetOrderNumber())
 		if err != nil {
 			if errors.Is(err, model.ErrNotFound) {
 				return xerr.ErrOrderNotFound
@@ -100,10 +100,7 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 			}
 			payTime = parsed
 		}
-		if err := l.svcCtx.DOrderModel.UpdatePayStatus(ctx, session, order.OrderNumber, payTime); err != nil {
-			return err
-		}
-		if err := l.svcCtx.DOrderTicketUserModel.UpdatePayStatusByOrderNumber(ctx, session, order.OrderNumber, payTime); err != nil {
+		if err := tx.UpdatePayStatus(ctx, order.OrderNumber, payTime); err != nil {
 			return err
 		}
 

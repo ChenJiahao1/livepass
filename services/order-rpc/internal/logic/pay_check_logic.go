@@ -34,7 +34,7 @@ func (l *PayCheckLogic) PayCheck(in *pb.PayCheckReq) (*pb.PayCheckResp, error) {
 		return nil, err
 	}
 
-	order, err := l.svcCtx.DOrderModel.FindOneByOrderNumber(l.ctx, in.GetOrderNumber())
+	order, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, in.GetOrderNumber())
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, mapOrderError(xerr.ErrOrderNotFound)
