@@ -22,11 +22,14 @@ type RouteMapConfig struct {
 type BackfillConfig struct {
 	BatchSize      int64  `json:",default=100" yaml:"BatchSize"`
 	CheckpointFile string `json:",optional" yaml:"CheckpointFile"`
+	Slots          []int  `json:",optional" yaml:"Slots"`
 }
 
 type VerifyConfig struct {
-	SampleSize int64 `json:",default=10" yaml:"SampleSize"`
-	Slots      []int `json:",optional" yaml:"Slots"`
+	SampleSize     int64  `json:",default=10" yaml:"SampleSize"`
+	BatchSize      int64  `json:",default=500" yaml:"BatchSize"`
+	CheckpointFile string `json:",optional" yaml:"CheckpointFile"`
+	Slots          []int  `json:",optional" yaml:"Slots"`
 }
 
 type SwitchConfig struct {

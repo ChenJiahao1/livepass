@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"fmt"
 	"os"
 
 	"damai-go/jobs/order-migrate/internal/config"
@@ -30,6 +31,9 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 
 	routeMapConfig, routeMap, err := loadRouteMap(c.RouteMap)
 	if err != nil {
+		return nil, err
+	}
+	if err := validateRouteMapShards(routeMapConfig, c.Shards); err != nil {
 		return nil, err
 	}
 
@@ -100,6 +104,16 @@ func loadRouteMap(routeMapConfig config.RouteMapConfig) (config.RouteMapConfig, 
 	}
 
 	return loadedConfig, routeMap, nil
+}
+
+func validateRouteMapShards(routeMapConfig config.RouteMapConfig, shards map[string]config.MySQLConfig) error {
+	for _, entry := range routeMapConfig.Entries {
+		if _, ok := shards[entry.DBKey]; ok {
+			continue
+		}
+		return fmt.Errorf("shard db key not configured for logic slot %d: %s", entry.LogicSlot, entry.DBKey)
+	}
+	return nil
 }
 
 func mustNewMysqlConn(cfg xmysql.Config) sqlx.SqlConn {

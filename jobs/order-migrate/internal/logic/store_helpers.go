@@ -120,6 +120,14 @@ func saveBackfillCheckpoint(path string, checkpoint backfillCheckpoint) error {
 	return os.WriteFile(path, content, 0o644)
 }
 
+func loadVerifyCheckpoint(path string) (backfillCheckpoint, error) {
+	return loadBackfillCheckpoint(path)
+}
+
+func saveVerifyCheckpoint(path string, checkpoint backfillCheckpoint) error {
+	return saveBackfillCheckpoint(path, checkpoint)
+}
+
 func listLegacyOrdersAfter(ctx context.Context, conn sqlx.SqlConn, afterID, limit int64) ([]*orderRow, error) {
 	query := "select * from d_order where `status` = 1 and `id` > ? order by `id` asc limit ?"
 	var rows []*orderRow
@@ -244,6 +252,37 @@ func compareAggregates(logicSlot int, legacy, shard verifyAggregate) error {
 	for status, count := range legacy.StatusCounts {
 		if shard.StatusCounts[status] != count {
 			return fmt.Errorf("status distribution mismatch for slot %d status=%d legacy=%d shard=%d", logicSlot, status, count, shard.StatusCounts[status])
+		}
+	}
+	return nil
+}
+
+func compareOrderNumberSets(legacyOrders, shardOrders []*orderRow) error {
+	legacyNumbers := make([]int64, 0, len(legacyOrders))
+	for _, order := range legacyOrders {
+		if order == nil {
+			continue
+		}
+		legacyNumbers = append(legacyNumbers, order.OrderNumber)
+	}
+
+	shardNumbers := make([]int64, 0, len(shardOrders))
+	for _, order := range shardOrders {
+		if order == nil {
+			continue
+		}
+		shardNumbers = append(shardNumbers, order.OrderNumber)
+	}
+
+	sort.Slice(legacyNumbers, func(i, j int) bool { return legacyNumbers[i] < legacyNumbers[j] })
+	sort.Slice(shardNumbers, func(i, j int) bool { return shardNumbers[i] < shardNumbers[j] })
+
+	if len(legacyNumbers) != len(shardNumbers) {
+		return fmt.Errorf("order number set mismatch: legacy=%v shard=%v", legacyNumbers, shardNumbers)
+	}
+	for idx := range legacyNumbers {
+		if legacyNumbers[idx] != shardNumbers[idx] {
+			return fmt.Errorf("order number set mismatch: legacy=%v shard=%v", legacyNumbers, shardNumbers)
 		}
 	}
 	return nil

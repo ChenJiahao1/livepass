@@ -3,7 +3,9 @@ package logic
 import (
 	"context"
 
+	"damai-go/jobs/order-migrate/internal/config"
 	"damai-go/jobs/order-migrate/internal/svc"
+	"damai-go/services/order-rpc/sharding"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -28,6 +30,20 @@ func NewBackfillOrdersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ba
 }
 
 func (l *BackfillOrdersLogic) BackfillOrders() (*BackfillOrdersResp, error) {
+	targetSlots := resolveBackfillSlots(l.svcCtx.Config.Backfill.Slots, l.svcCtx.RouteMapConfig)
+	updatedConfig, _, err := updateRouteEntries(
+		l.svcCtx.RouteMapConfig,
+		targetSlots,
+		sharding.RouteStatusBackfilling,
+		sharding.WriteModeDualWrite,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := l.svcCtx.SaveRouteMapConfig(updatedConfig); err != nil {
+		return nil, err
+	}
+
 	checkpoint, err := loadBackfillCheckpoint(l.svcCtx.Config.Backfill.CheckpointFile)
 	if err != nil {
 		return nil, err
@@ -43,10 +59,21 @@ func (l *BackfillOrdersLogic) BackfillOrders() (*BackfillOrdersResp, error) {
 	}
 
 	resp := &BackfillOrdersResp{}
+	slotSet := make(map[int]struct{}, len(targetSlots))
+	for _, logicSlot := range targetSlots {
+		slotSet[logicSlot] = struct{}{}
+	}
+	initialCheckpoint := checkpoint.LastOrderID
 	for _, order := range orders {
+		checkpoint.LastOrderID = order.Id
+		resp.LastOrderID = order.Id
+
 		logicSlot, err := logicSlotForOrder(order)
 		if err != nil {
 			return nil, err
+		}
+		if _, ok := slotSet[logicSlot]; !ok {
+			continue
 		}
 		route, err := l.svcCtx.RouteMap.RouteByLogicSlot(logicSlot)
 		if err != nil {
@@ -61,16 +88,26 @@ func (l *BackfillOrdersLogic) BackfillOrders() (*BackfillOrdersResp, error) {
 			return nil, err
 		}
 
-		checkpoint.LastOrderID = order.Id
 		resp.ProcessedCount++
-		resp.LastOrderID = order.Id
 	}
 
-	if resp.ProcessedCount > 0 {
+	if checkpoint.LastOrderID != initialCheckpoint {
 		if err := saveBackfillCheckpoint(l.svcCtx.Config.Backfill.CheckpointFile, checkpoint); err != nil {
 			return nil, err
 		}
 	}
 
 	return resp, nil
+}
+
+func resolveBackfillSlots(configuredSlots []int, routeMapConfig config.RouteMapConfig) []int {
+	if len(configuredSlots) > 0 {
+		return configuredSlots
+	}
+
+	slots := make([]int, 0, len(routeMapConfig.Entries))
+	for _, entry := range routeMapConfig.Entries {
+		slots = append(slots, entry.LogicSlot)
+	}
+	return slots
 }

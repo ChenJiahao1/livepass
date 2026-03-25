@@ -23,6 +23,7 @@
 - `jobs/order-migrate/etc/order-migrate.yaml` 已配置：
   - `LegacyMySQL`
   - `Shards`
+  - `Backfill.Slots`
   - `RouteMap.File`
   - `Backfill.CheckpointFile`
 
@@ -51,6 +52,7 @@ go test ./services/order-rpc/tests/integration -run 'TestCreateOrderConsumerPers
 ## 阶段 3：执行回填
 
 1. 配置 `jobs/order-migrate/etc/order-migrate.yaml`：
+   - `Backfill.Slots`
    - `Backfill.BatchSize`
    - `Backfill.CheckpointFile`
    - `RouteMap.File`
@@ -65,7 +67,10 @@ go run ./jobs/order-migrate -f jobs/order-migrate/etc/order-migrate.yaml -action
    - `d_order_ticket_user_xx`
    - `d_user_order_index_xx`
    - `d_order_route_legacy`
-4. 断点续跑依赖 `CheckpointFile`，重复执行同一命令即可继续。
+4. `backfill` 会把目标槽位写回 `RouteMap.File`：
+   - `Status=backfilling`
+   - `WriteMode=dual_write`
+5. 断点续跑依赖 `CheckpointFile`，重复执行同一命令即可继续。
 
 ## 阶段 4：执行校验
 
@@ -82,6 +87,10 @@ go run ./jobs/order-migrate -f jobs/order-migrate/etc/order-migrate.yaml -action
    - 状态分布
    - 详情抽样
    - 用户列表抽样
+4. 当前校验实现会按批扫描订单表，并按 `order_number` 批量回查票据表和用户索引表，避免按槽位重复全表扫描。
+5. 校验全部通过后，`verify` 会把目标槽位写回 `RouteMap.File`：
+   - `Status=verifying`
+   - `WriteMode=dual_write`
 
 ## 阶段 5：按槽位切新读
 
@@ -93,7 +102,7 @@ go run ./jobs/order-migrate -f jobs/order-migrate/etc/order-migrate.yaml -action
 
 2. `switch` 会把目标槽位写回 `RouteMap.File`：
    - `Status=primary_new`
-   - `WriteMode=dual_write`
+   - `WriteMode=shard_primary`
 3. 发布或 reload `services/order-rpc` 配置，让新 `route_map` 生效。
 4. 验证切新后读一致：
 

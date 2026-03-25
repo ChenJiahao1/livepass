@@ -154,7 +154,28 @@ func validateRouteEntry(entry RouteEntry) error {
 	if !isSupportedWriteMode(entry.WriteMode) {
 		return fmt.Errorf("%w: unsupported write mode %s", ErrInvalidRouteEntry, entry.WriteMode)
 	}
+	if err := validateRouteStatusWriteMode(entry.Status, entry.WriteMode); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func validateRouteStatusWriteMode(status, writeMode string) error {
+	switch status {
+	case RouteStatusStable, RouteStatusRollback:
+		if writeMode != WriteModeLegacyPrimary {
+			return fmt.Errorf("%w: route status %s requires write mode %s", ErrInvalidRouteEntry, status, WriteModeLegacyPrimary)
+		}
+	case RouteStatusShadowWrite, RouteStatusBackfilling, RouteStatusVerifying:
+		if writeMode != WriteModeDualWrite {
+			return fmt.Errorf("%w: route status %s requires write mode %s", ErrInvalidRouteEntry, status, WriteModeDualWrite)
+		}
+	case RouteStatusPrimaryNew:
+		if writeMode != WriteModeShardPrimary {
+			return fmt.Errorf("%w: route status %s requires write mode %s", ErrInvalidRouteEntry, status, WriteModeShardPrimary)
+		}
+	}
 	return nil
 }
 

@@ -86,10 +86,13 @@ func newOrderMigrateTestConfig(t *testing.T, routeMapFile, checkpointFile string
 		Backfill: jobconfig.BackfillConfig{
 			BatchSize:      1,
 			CheckpointFile: checkpointFile,
+			Slots:          []int{10, 11},
 		},
 		Verify: jobconfig.VerifyConfig{
-			SampleSize: 1,
-			Slots:      []int{10},
+			SampleSize:     1,
+			BatchSize:      100,
+			CheckpointFile: t.TempDir() + "/verify.checkpoint.json",
+			Slots:          []int{10},
 		},
 		Switch: jobconfig.SwitchConfig{
 			Slots: []int{10},

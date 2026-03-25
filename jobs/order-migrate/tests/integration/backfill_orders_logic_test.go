@@ -11,7 +11,10 @@ import (
 func TestBackfillOrdersResumesFromCheckpoint(t *testing.T) {
 	resetOrderMigrateState(t)
 
-	routeMapFile := writeOrderMigrateRouteMapFile(t, "v1", buildOrderMigrateRouteEntries())
+	entries := buildOrderMigrateRouteEntries()
+	entries[0].Status = "shadow_write"
+	entries[1].Status = "shadow_write"
+	routeMapFile := writeOrderMigrateRouteMapFile(t, "v1", entries)
 	checkpointFile := t.TempDir() + "/backfill.checkpoint.json"
 	cfg := newOrderMigrateTestConfig(t, routeMapFile, checkpointFile)
 	svcCtx := newOrderMigrateTestServiceContext(t, cfg)
@@ -51,6 +54,10 @@ func TestBackfillOrdersResumesFromCheckpoint(t *testing.T) {
 	}
 	if !strings.Contains(readCheckpointFile(t, checkpointFile), "\"last_order_id\":8001") {
 		t.Fatalf("expected checkpoint to record first legacy order id")
+	}
+	routeMapContent := readCheckpointFile(t, routeMapFile)
+	if !strings.Contains(routeMapContent, "Status: backfilling") {
+		t.Fatalf("expected backfill action to promote slots to backfilling, content=%s", routeMapContent)
 	}
 
 	secondResp, err := logic.BackfillOrders()

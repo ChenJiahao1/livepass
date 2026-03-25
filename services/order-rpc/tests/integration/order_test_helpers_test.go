@@ -571,6 +571,15 @@ func setOrderTestRepositoryMode(t *testing.T, svcCtx *svc.ServiceContext, mode s
 
 	svcCtx.Config.Sharding.Mode = mode
 	svcCtx.ShardingMode = mode
+	svcCtx.Config.Sharding.RouteMap.Version = "v1"
+	svcCtx.Config.Sharding.RouteMap.Entries = buildOrderTestRouteEntryConfigsForMode(mode)
+
+	routeMap, err := sharding.NewRouteMap("v1", buildOrderTestRouteEntriesForMode(mode))
+	if err != nil {
+		t.Fatalf("NewRouteMap error: %v", err)
+	}
+	svcCtx.OrderRouteMap = routeMap
+	svcCtx.OrderRouter = sharding.NewStaticRouter(routeMap)
 	svcCtx.OrderRepository = repository.NewOrderRepository(repository.Dependencies{
 		Mode:                       mode,
 		LegacyConn:                 svcCtx.LegacySqlConn,
@@ -579,7 +588,7 @@ func setOrderTestRepositoryMode(t *testing.T, svcCtx *svc.ServiceContext, mode s
 		LegacyUserOrderIndexModel:  svcCtx.DUserOrderIndexModel,
 		LegacyRouteDirectoryModel:  svcCtx.DOrderRouteLegacyModel,
 		ShardConns:                 svcCtx.ShardSqlConns,
-		RouteMap:                   svcCtx.OrderRouteMap,
+		RouteMap:                   routeMap,
 		Router:                     svcCtx.OrderRouter,
 	})
 	svcCtx.PurchaseLimitStore = limitcache.NewPurchaseLimitStore(svcCtx.Redis, svcCtx.OrderRepository, limitcache.Config{
@@ -587,6 +596,39 @@ func setOrderTestRepositoryMode(t *testing.T, svcCtx *svc.ServiceContext, mode s
 		LedgerTTL:       time.Hour,
 		LoadingCooldown: 200 * time.Millisecond,
 	})
+}
+
+func buildOrderTestRouteEntryConfigsForMode(mode string) []config.RouteEntryConfig {
+	entries := buildOrderTestRouteEntriesForMode(mode)
+	configs := make([]config.RouteEntryConfig, 0, len(entries))
+	for _, entry := range entries {
+		configs = append(configs, config.RouteEntryConfig{
+			Version:     entry.Version,
+			LogicSlot:   entry.LogicSlot,
+			DBKey:       entry.DBKey,
+			TableSuffix: entry.TableSuffix,
+			Status:      entry.Status,
+			WriteMode:   entry.WriteMode,
+		})
+	}
+	return configs
+}
+
+func buildOrderTestRouteEntriesForMode(mode string) []sharding.RouteEntry {
+	entries := buildOrderTestRouteEntries()
+	switch mode {
+	case sharding.MigrationModeDualWriteShadow, sharding.MigrationModeDualWriteReadOld, sharding.MigrationModeDualWriteReadNew:
+		for idx := range entries {
+			entries[idx].Status = sharding.RouteStatusShadowWrite
+			entries[idx].WriteMode = sharding.WriteModeDualWrite
+		}
+	case sharding.MigrationModeShardOnly:
+		for idx := range entries {
+			entries[idx].Status = sharding.RouteStatusPrimaryNew
+			entries[idx].WriteMode = sharding.WriteModeShardPrimary
+		}
+	}
+	return entries
 }
 
 func seedOrderFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...orderFixture) {

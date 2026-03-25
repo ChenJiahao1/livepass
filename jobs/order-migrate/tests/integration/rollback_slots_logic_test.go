@@ -15,7 +15,7 @@ func TestRollbackSlotsFallsBackToLegacyPrimary(t *testing.T) {
 
 	entries := buildOrderMigrateRouteEntries()
 	entries[0].Status = sharding.RouteStatusPrimaryNew
-	entries[0].WriteMode = sharding.WriteModeDualWrite
+	entries[0].WriteMode = sharding.WriteModeShardPrimary
 	routeMapFile := writeOrderMigrateRouteMapFile(t, "v1", entries)
 	cfg := newOrderMigrateTestConfig(t, routeMapFile, t.TempDir()+"/checkpoint.json")
 	svcCtx := newOrderMigrateTestServiceContext(t, cfg)

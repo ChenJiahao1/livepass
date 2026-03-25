@@ -41,7 +41,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("verify finished, verifiedSlots=%d\n", resp.VerifiedSlots)
+		fmt.Printf("verify finished, verifiedSlots=%d comparedOrders=%d lastOrderID=%d completed=%t\n", resp.VerifiedSlots, resp.ComparedOrders, resp.LastOrderID, resp.Completed)
 	case "switch":
 		resp, err := logic.NewSwitchSlotsLogic(ctx, serviceContext).SwitchSlots()
 		if err != nil {

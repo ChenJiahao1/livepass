@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"damai-go/services/order-rpc/internal/model"
@@ -161,73 +163,163 @@ func (r *dualWriteOrderRepository) readRepoForRoute(route sharding.Route) OrderR
 }
 
 func (r *dualWriteOrderRepository) transact(ctx context.Context, primaryRoute, shadowRoute sharding.Route, fn func(context.Context, OrderTx) error) error {
-	primaryDB, err := r.primary.deps.LegacyConn.RawDB()
+	plan, err := r.beginWritePlan(ctx, primaryRoute, shadowRoute)
 	if err != nil {
 		return err
 	}
 
-	shadowStore, err := r.shadow.storeForRoute(shadowRoute)
-	if err != nil {
-		return err
-	}
-	shadowDB, err := shadowStore.conn.RawDB()
-	if err != nil {
-		return err
-	}
-
-	primarySQLTx, err := primaryDB.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	shadowSQLTx, err := shadowDB.BeginTx(ctx, nil)
-	if err != nil {
-		_ = primarySQLTx.Rollback()
-		return err
-	}
-
-	primaryTx := newSingleOrderTx(
-		shadowRoute,
-		sqlx.NewSessionFromTx(primarySQLTx),
-		r.primary.deps.LegacyOrderModel,
-		r.primary.deps.LegacyOrderTicketUserModel,
-		r.primary.deps.LegacyUserOrderIndexModel,
-		r.primary.deps.LegacyRouteDirectoryModel,
-	)
-	shadowTx := newSingleOrderTx(
-		shadowRoute,
-		sqlx.NewSessionFromTx(shadowSQLTx),
-		shadowStore.orderModel,
-		shadowStore.ticketModel,
-		shadowStore.indexModel,
-		nil,
-	)
-	tx := newDualWriteOrderTx(shadowRoute, primaryTx, shadowTx)
+	tx := newDualWriteOrderTx(shadowRoute, plan.primaryTx, plan.shadowTx)
 
 	if err := fn(ctx, tx); err != nil {
-		_ = shadowSQLTx.Rollback()
-		_ = primarySQLTx.Rollback()
+		if plan.shadowSQLTx != nil {
+			_ = plan.shadowSQLTx.Rollback()
+		}
+		_ = plan.primarySQLTx.Rollback()
 		return err
 	}
 
 	if shadowErr := tx.ShadowError(); shadowErr != nil {
-		if err := primarySQLTx.Commit(); err != nil {
-			_ = shadowSQLTx.Rollback()
+		if err := plan.primarySQLTx.Commit(); err != nil {
+			if plan.shadowSQLTx != nil {
+				_ = plan.shadowSQLTx.Rollback()
+			}
 			return err
 		}
-		_ = shadowSQLTx.Rollback()
+		if plan.shadowSQLTx != nil {
+			_ = plan.shadowSQLTx.Rollback()
+		}
 		return shadowErr
 	}
 
-	if err := primarySQLTx.Commit(); err != nil {
-		_ = shadowSQLTx.Rollback()
+	if err := plan.primarySQLTx.Commit(); err != nil {
+		if plan.shadowSQLTx != nil {
+			_ = plan.shadowSQLTx.Rollback()
+		}
 		return err
 	}
-	if err := shadowSQLTx.Commit(); err != nil {
+	if plan.shadowSQLTx == nil {
+		return nil
+	}
+	if err := plan.shadowSQLTx.Commit(); err != nil {
 		return &ShadowWriteError{
-			Route: shadowRoute,
+			Route: plan.shadowRoute,
 			Err:   err,
 		}
 	}
 
 	return nil
+}
+
+type writeTransactionPlan struct {
+	primaryTx    *singleOrderTx
+	shadowTx     *singleOrderTx
+	primarySQLTx *sql.Tx
+	shadowSQLTx  *sql.Tx
+	shadowRoute  sharding.Route
+}
+
+func (r *dualWriteOrderRepository) beginWritePlan(ctx context.Context, primaryRoute, shadowRoute sharding.Route) (*writeTransactionPlan, error) {
+	switch shadowRoute.WriteMode {
+	case sharding.WriteModeLegacyPrimary:
+		primaryTx, primarySQLTx, err := r.beginLegacyWriteTx(ctx, legacyWriteRoute(primaryRoute, shadowRoute))
+		if err != nil {
+			return nil, err
+		}
+		return &writeTransactionPlan{
+			primaryTx:    primaryTx,
+			primarySQLTx: primarySQLTx,
+		}, nil
+	case sharding.WriteModeDualWrite:
+		primaryTx, primarySQLTx, err := r.beginLegacyWriteTx(ctx, legacyWriteRoute(primaryRoute, shadowRoute))
+		if err != nil {
+			return nil, err
+		}
+		shadowTx, shadowSQLTx, err := r.beginShardWriteTx(ctx, shadowRoute)
+		if err != nil {
+			_ = primarySQLTx.Rollback()
+			return nil, err
+		}
+		return &writeTransactionPlan{
+			primaryTx:    primaryTx,
+			shadowTx:     shadowTx,
+			primarySQLTx: primarySQLTx,
+			shadowSQLTx:  shadowSQLTx,
+			shadowRoute:  shadowRoute,
+		}, nil
+	case sharding.WriteModeShardPrimary:
+		primaryTx, primarySQLTx, err := r.beginShardWriteTx(ctx, shadowRoute)
+		if err != nil {
+			return nil, err
+		}
+		legacyShadowRoute := legacyWriteRoute(primaryRoute, shadowRoute)
+		shadowTx, shadowSQLTx, err := r.beginLegacyWriteTx(ctx, legacyShadowRoute)
+		if err != nil {
+			_ = primarySQLTx.Rollback()
+			return nil, err
+		}
+		return &writeTransactionPlan{
+			primaryTx:    primaryTx,
+			shadowTx:     shadowTx,
+			primarySQLTx: primarySQLTx,
+			shadowSQLTx:  shadowSQLTx,
+			shadowRoute:  legacyShadowRoute,
+		}, nil
+	default:
+		return nil, fmt.Errorf("%w: unsupported write mode %s", sharding.ErrInvalidRouteEntry, shadowRoute.WriteMode)
+	}
+}
+
+func (r *dualWriteOrderRepository) beginLegacyWriteTx(ctx context.Context, route sharding.Route) (*singleOrderTx, *sql.Tx, error) {
+	legacyDB, err := r.primary.deps.LegacyConn.RawDB()
+	if err != nil {
+		return nil, nil, err
+	}
+	legacySQLTx, err := legacyDB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return newSingleOrderTx(
+		route,
+		sqlx.NewSessionFromTx(legacySQLTx),
+		r.primary.deps.LegacyOrderModel,
+		r.primary.deps.LegacyOrderTicketUserModel,
+		r.primary.deps.LegacyUserOrderIndexModel,
+		r.primary.deps.LegacyRouteDirectoryModel,
+	), legacySQLTx, nil
+}
+
+func (r *dualWriteOrderRepository) beginShardWriteTx(ctx context.Context, route sharding.Route) (*singleOrderTx, *sql.Tx, error) {
+	shadowStore, err := r.shadow.storeForRoute(route)
+	if err != nil {
+		return nil, nil, err
+	}
+	shadowDB, err := shadowStore.conn.RawDB()
+	if err != nil {
+		return nil, nil, err
+	}
+	shadowSQLTx, err := shadowDB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return newSingleOrderTx(
+		route,
+		sqlx.NewSessionFromTx(shadowSQLTx),
+		shadowStore.orderModel,
+		shadowStore.ticketModel,
+		shadowStore.indexModel,
+		nil,
+	), shadowSQLTx, nil
+}
+
+func legacyWriteRoute(primaryRoute, shadowRoute sharding.Route) sharding.Route {
+	route := shadowRoute
+	if primaryRoute.LogicSlot != 0 {
+		route.LogicSlot = primaryRoute.LogicSlot
+	}
+	route.DBKey = "legacy"
+	route.TableSuffix = ""
+	route.WriteMode = sharding.WriteModeLegacyPrimary
+	return route
 }

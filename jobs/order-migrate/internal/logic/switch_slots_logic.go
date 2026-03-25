@@ -34,7 +34,7 @@ func (l *SwitchSlotsLogic) SwitchSlots() (*SwitchSlotsResp, error) {
 		l.svcCtx.RouteMapConfig,
 		l.svcCtx.Config.Switch.Slots,
 		sharding.RouteStatusPrimaryNew,
-		sharding.WriteModeDualWrite,
+		sharding.WriteModeShardPrimary,
 	)
 	if err != nil {
 		return nil, err

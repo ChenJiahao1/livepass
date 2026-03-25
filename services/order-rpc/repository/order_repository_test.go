@@ -72,7 +72,13 @@ func TestLegacyOrderRepositoryTransactAndQuery(t *testing.T) {
 }
 
 func TestDualWriteOrderRepositoryWritesLegacyAndShardTables(t *testing.T) {
-	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteReadNew, buildFullRouteEntries("00", "01"))
+	entries := buildFullRouteEntries("00", "01")
+	for idx := range entries {
+		entries[idx].Status = sharding.RouteStatusShadowWrite
+		entries[idx].WriteMode = sharding.WriteModeDualWrite
+	}
+
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteReadNew, entries)
 	resetOrderRepositoryState(t)
 
 	repo := NewOrderRepository(deps)
@@ -120,7 +126,13 @@ func TestDualWriteOrderRepositoryWritesLegacyAndShardTables(t *testing.T) {
 }
 
 func TestDualWriteOrderRepositoryReturnsShadowWriteErrorAfterPrimaryCommit(t *testing.T) {
-	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteShadow, buildFullRouteEntries("99", "99"))
+	entries := buildFullRouteEntries("99", "99")
+	for idx := range entries {
+		entries[idx].Status = sharding.RouteStatusShadowWrite
+		entries[idx].WriteMode = sharding.WriteModeDualWrite
+	}
+
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteShadow, entries)
 	resetOrderRepositoryState(t)
 
 	repo := NewOrderRepository(deps)
@@ -149,6 +161,90 @@ func TestDualWriteOrderRepositoryReturnsShadowWriteErrorAfterPrimaryCommit(t *te
 	}
 	if countTableRows(t, testRepositoryMySQLDataSource, "d_order") != 1 {
 		t.Fatalf("expected primary legacy write to commit before shadow failure")
+	}
+}
+
+func TestDualWriteOrderRepositorySkipsShardShadowWhenRouteWriteModeLegacyPrimary(t *testing.T) {
+	entries := buildFullRouteEntries("00", "01")
+	entries[10].Status = sharding.RouteStatusRollback
+	entries[10].WriteMode = sharding.WriteModeLegacyPrimary
+
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteReadNew, entries)
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := mustFindUserIDByLogicSlot(t, 10)
+	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 15, 0, 0, time.UTC), 1, 4)
+
+	err := repo.TransactByUserID(context.Background(), userID, func(ctx context.Context, tx OrderTx) error {
+		if err := tx.InsertOrder(ctx, buildRepositoryOrder(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("TransactByUserID() error = %v, want nil when rollback slot uses legacy_primary", err)
+	}
+
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_order") != 1 {
+		t.Fatalf("expected legacy d_order to contain 1 row")
+	}
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_order_00") != 0 {
+		t.Fatalf("expected rollback slot to skip shard shadow write")
+	}
+}
+
+func TestDualWriteOrderRepositoryCommitsShardPrimaryWhenLegacyShadowFails(t *testing.T) {
+	entries := buildFullRouteEntries("00", "01")
+	entries[10].Status = sharding.RouteStatusPrimaryNew
+	entries[10].WriteMode = sharding.WriteModeShardPrimary
+
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteReadOld, entries)
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := mustFindUserIDByLogicSlot(t, 10)
+	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 20, 0, 0, time.UTC), 1, 5)
+	legacyOrder := buildRepositoryOrder(orderNumber, userID)
+	legacyOrder.OrderPrice = 299
+	seedRepositoryOrderFixturesIntoTable(t, "d_order", legacyOrder)
+
+	err := repo.TransactByUserID(context.Background(), userID, func(ctx context.Context, tx OrderTx) error {
+		if err := tx.InsertOrder(ctx, buildRepositoryOrder(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
+			return err
+		}
+		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	var shadowErr *ShadowWriteError
+	if !errors.As(err, &shadowErr) {
+		t.Fatalf("expected ShadowWriteError, got %v", err)
+	}
+	if shadowErr.Route.DBKey != "legacy" {
+		t.Fatalf("shadow route db key = %s, want legacy", shadowErr.Route.DBKey)
+	}
+
+	route, routeErr := repo.RouteByUserID(context.Background(), userID)
+	if routeErr != nil {
+		t.Fatalf("RouteByUserID() error = %v", routeErr)
+	}
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_order_"+route.TableSuffix) != 1 {
+		t.Fatalf("expected shard primary write to commit before legacy shadow failure")
+	}
+	if countTableRows(t, testRepositoryMySQLDataSource, "d_order") != 1 {
+		t.Fatalf("expected legacy table to keep only the seeded row")
 	}
 }
 
@@ -189,7 +285,7 @@ func TestShardedOrderRepositoryFindExpiredUnpaidBySlotReadsOnlyTargetShard(t *te
 func TestDualWriteOrderRepositoryReadsShardWhenRouteStatusPrimaryNew(t *testing.T) {
 	entries := buildFullRouteEntries("00", "01")
 	entries[10].Status = sharding.RouteStatusPrimaryNew
-	entries[10].WriteMode = sharding.WriteModeDualWrite
+	entries[10].WriteMode = sharding.WriteModeShardPrimary
 
 	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteReadOld, entries)
 	resetOrderRepositoryState(t)

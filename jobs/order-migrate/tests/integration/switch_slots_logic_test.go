@@ -36,4 +36,7 @@ func TestSwitchSlotsPromotesVerifiedSlotToPrimaryNew(t *testing.T) {
 	if !strings.Contains(string(content), "Status: primary_new") {
 		t.Fatalf("expected route map file to promote slot to primary_new, content=%s", string(content))
 	}
+	if !strings.Contains(string(content), "WriteMode: shard_primary") {
+		t.Fatalf("expected route map file to switch write mode to shard_primary, content=%s", string(content))
+	}
 }

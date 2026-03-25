@@ -9,7 +9,7 @@
 ## 回滚原则
 
 - 只做槽位级回滚，不做全量无脑回滚
-- 先恢复读正确，再处理写模式
+- 同时恢复旧读和旧表主写，优先止血
 - 保留 `d_order_route_legacy`，不要在回滚期删除目录表
 
 ## 回滚步骤
@@ -52,10 +52,11 @@ bash scripts/acceptance/order_gene_sharding_migration.sh
 
 ## 回滚后的收敛动作
 
-1. 保持双写，不要立刻删新分片数据。
+1. 保持旧表主写，不要立刻删新分片数据。
 2. 重新执行：
 
 ```bash
+go run ./jobs/order-migrate -f jobs/order-migrate/etc/order-migrate.yaml -action backfill
 go run ./jobs/order-migrate -f jobs/order-migrate/etc/order-migrate.yaml -action verify
 ```
 

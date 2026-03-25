@@ -3,13 +3,19 @@ LegacyMySQL:
 Shards:
   order-db-0:
     DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  order-db-1:
+    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
 RouteMap:
   File: .tmp/order-migrate.route-map.yaml
 Backfill:
   BatchSize: 100
   CheckpointFile: .tmp/order-migrate.backfill.checkpoint.json
+  Slots:
+    - 0
 Verify:
   SampleSize: 10
+  BatchSize: 500
+  CheckpointFile: .tmp/order-migrate.verify.checkpoint.json
   Slots:
     - 0
 Switch:
