@@ -6,16 +6,15 @@ import (
 	"time"
 
 	"damai-go/services/order-rpc/internal/config"
-
-	"github.com/zeromicro/go-zero/core/conf"
+	"damai-go/services/order-rpc/sharding"
 )
 
 func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	t.Parallel()
 
-	var c config.Config
 	configFile := filepath.Join("..", "..", "etc", "order-rpc.yaml")
-	if err := conf.Load(configFile, &c); err != nil {
+	c, err := config.Load(configFile)
+	if err != nil {
 		t.Fatalf("load %s: %v", configFile, err)
 	}
 
@@ -61,17 +60,30 @@ func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T
 	if _, ok := c.Sharding.Shards["order-db-0"]; !ok {
 		t.Fatalf("expected shard config order-db-0 to exist")
 	}
-	if len(c.Sharding.RouteMap.Entries) != 2 {
-		t.Fatalf("expected 2 route map entries, got %d", len(c.Sharding.RouteMap.Entries))
+	if len(c.Sharding.RouteMap.Entries) != 1024 {
+		t.Fatalf("expected 1024 route map entries, got %d", len(c.Sharding.RouteMap.Entries))
+	}
+
+	routeMap, err := sharding.NewRouteMap(c.Sharding.RouteMap.Version, toRouteEntries(c.Sharding.RouteMap.Entries))
+	if err != nil {
+		t.Fatalf("build route map from runtime config: %v", err)
+	}
+	userID := int64(3001)
+	route, err := routeMap.RouteByLogicSlot(sharding.LogicSlotByUserID(userID))
+	if err != nil {
+		t.Fatalf("route runtime config user %d: %v", userID, err)
+	}
+	if route.DBKey == "" || route.TableSuffix == "" {
+		t.Fatalf("expected runtime config route for user %d to be complete, got %+v", userID, route)
 	}
 }
 
 func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	t.Parallel()
 
-	var c config.Config
 	configFile := filepath.Join("..", "..", "etc", "order-rpc.perf.yaml")
-	if err := conf.Load(configFile, &c); err != nil {
+	c, err := config.Load(configFile)
+	if err != nil {
 		t.Fatalf("load %s: %v", configFile, err)
 	}
 
@@ -114,4 +126,23 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	if c.Sharding.RouteMap.Version != "v1" {
 		t.Fatalf("expected perf sharding route map version v1, got %s", c.Sharding.RouteMap.Version)
 	}
+	if len(c.Sharding.RouteMap.Entries) != 1024 {
+		t.Fatalf("expected perf route map entries 1024, got %d", len(c.Sharding.RouteMap.Entries))
+	}
+}
+
+func toRouteEntries(entries []config.RouteEntryConfig) []sharding.RouteEntry {
+	routeEntries := make([]sharding.RouteEntry, 0, len(entries))
+	for _, entry := range entries {
+		routeEntries = append(routeEntries, sharding.RouteEntry{
+			Version:     entry.Version,
+			LogicSlot:   entry.LogicSlot,
+			DBKey:       entry.DBKey,
+			TableSuffix: entry.TableSuffix,
+			Status:      entry.Status,
+			WriteMode:   entry.WriteMode,
+		})
+	}
+
+	return routeEntries
 }

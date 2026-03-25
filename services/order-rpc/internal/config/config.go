@@ -1,12 +1,14 @@
 package config
 
 import (
+	"path/filepath"
 	"time"
 
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/sharding"
 
+	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
@@ -44,6 +46,7 @@ type RouteEntryConfig struct {
 }
 
 type RouteMapConfig struct {
+	File    string             `json:",optional"`
 	Version string             `json:",optional"`
 	Entries []RouteEntryConfig `json:",optional"`
 }
@@ -84,4 +87,36 @@ type Config struct {
 	RepeatGuard RepeatGuardConfig
 	Kafka       KafkaConfig
 	Sharding    ShardingConfig `json:"Sharding,optional"`
+}
+
+func Load(configFile string) (Config, error) {
+	var c Config
+	if err := conf.Load(configFile, &c); err != nil {
+		return Config{}, err
+	}
+	if err := loadRouteMapFile(filepath.Dir(configFile), &c.Sharding.RouteMap); err != nil {
+		return Config{}, err
+	}
+	return c, nil
+}
+
+func loadRouteMapFile(baseDir string, routeMap *RouteMapConfig) error {
+	if routeMap == nil || routeMap.File == "" {
+		return nil
+	}
+
+	routeMapFile := routeMap.File
+	if !filepath.IsAbs(routeMapFile) {
+		routeMapFile = filepath.Join(baseDir, routeMapFile)
+	}
+
+	var loaded RouteMapConfig
+	if err := conf.Load(routeMapFile, &loaded); err != nil {
+		return err
+	}
+
+	routeMap.File = routeMapFile
+	routeMap.Version = loaded.Version
+	routeMap.Entries = loaded.Entries
+	return nil
 }

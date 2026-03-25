@@ -12,7 +12,6 @@ import (
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 
-	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
@@ -24,8 +23,10 @@ var configFile = flag.String("f", "etc/order-rpc.yaml", "the config file")
 func main() {
 	flag.Parse()
 
-	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	c, err := config.Load(*configFile)
+	if err != nil {
+		panic(err)
+	}
 	xid.MustInitEtcd(context.Background(), xid.Config{
 		Hosts:   c.Etcd.Hosts,
 		Service: "order-rpc",

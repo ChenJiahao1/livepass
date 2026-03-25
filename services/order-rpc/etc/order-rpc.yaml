@@ -36,20 +36,7 @@ Sharding:
       ConnMaxLifetime: 3m
       ConnMaxIdleTime: 1m
   RouteMap:
-    Version: v1
-    Entries:
-      - Version: v1
-        LogicSlot: 0
-        DBKey: order-db-0
-        TableSuffix: "00"
-        Status: stable
-        WriteMode: legacy_primary
-      - Version: v1
-        LogicSlot: 1
-        DBKey: order-db-1
-        TableSuffix: "01"
-        Status: stable
-        WriteMode: legacy_primary
+    File: order-rpc.route-map.yaml
 StoreRedis:
   Host: 127.0.0.1:6379
   Type: node
