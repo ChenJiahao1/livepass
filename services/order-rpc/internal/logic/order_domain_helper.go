@@ -14,7 +14,6 @@ import (
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 	"damai-go/services/order-rpc/repository"
-	"damai-go/services/order-rpc/sharding"
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
@@ -380,10 +379,7 @@ func buildFreezeRequestNo() string {
 }
 
 func generateOrderNumberForUser(userID int64, now time.Time) int64 {
-	seed := xid.New()
-	workerID := (seed >> 12) & 0x3FF
-	sequence := seed & 0xFFF
-	return sharding.BuildOrderNumber(userID, now, workerID, sequence)
+	return defaultOrderNumberGenerator.Next(userID, now)
 }
 
 func mapPayOrderResp(order *model.DOrder, payBill *payrpc.GetPayBillResp) *pb.PayOrderResp {
