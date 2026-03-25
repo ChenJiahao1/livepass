@@ -246,8 +246,42 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		defer unlock()
 	}
 
-	var changed bool
-	err = svcCtx.OrderRepository.TransactByOrderNumber(ctx, orderNumber, func(txCtx context.Context, tx repository.OrderTx) error {
+	order, err := loadOrderSnapshot(ctx, svcCtx, orderNumber)
+	if err != nil {
+		return false, err
+	}
+	if requireOwner && order.UserId != userID {
+		return false, xerr.ErrOrderNotFound
+	}
+	if order.OrderStatus == orderStatusCancelled {
+		return false, nil
+	}
+	if order.OrderStatus != orderStatusUnpaid {
+		return false, xerr.ErrOrderStatusInvalid
+	}
+
+	if _, err := svcCtx.ProgramRpc.ReleaseSeatFreeze(ctx, &programrpc.ReleaseSeatFreezeReq{
+		FreezeToken:   order.FreezeToken,
+		ReleaseReason: releaseReason,
+	}); err != nil {
+		return false, err
+	}
+
+	changed, err := finalizeOrderCancel(ctx, svcCtx, order.OrderNumber)
+	if err != nil {
+		return false, err
+	}
+
+	return changed, nil
+}
+
+func loadOrderSnapshot(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) (*model.DOrder, error) {
+	if svcCtx == nil || svcCtx.OrderRepository == nil {
+		return nil, xerr.ErrInternal
+	}
+
+	var snapshot *model.DOrder
+	err := svcCtx.OrderRepository.TransactByOrderNumber(ctx, orderNumber, func(txCtx context.Context, tx repository.OrderTx) error {
 		order, err := tx.FindOrderByNumberForUpdate(txCtx, orderNumber)
 		if err != nil {
 			if errors.Is(err, model.ErrNotFound) {
@@ -255,21 +289,31 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 			}
 			return err
 		}
-		if requireOwner && order.UserId != userID {
-			return xerr.ErrOrderNotFound
+		snapshot = cloneOrderSnapshot(order)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return snapshot, nil
+}
+
+func finalizeOrderCancel(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) (bool, error) {
+	var changed bool
+	err := svcCtx.OrderRepository.TransactByOrderNumber(ctx, orderNumber, func(txCtx context.Context, tx repository.OrderTx) error {
+		order, err := tx.FindOrderByNumberForUpdate(txCtx, orderNumber)
+		if err != nil {
+			if errors.Is(err, model.ErrNotFound) {
+				return xerr.ErrOrderNotFound
+			}
+			return err
 		}
 		if order.OrderStatus == orderStatusCancelled {
 			return nil
 		}
 		if order.OrderStatus != orderStatusUnpaid {
 			return xerr.ErrOrderStatusInvalid
-		}
-
-		if _, err := svcCtx.ProgramRpc.ReleaseSeatFreeze(txCtx, &programrpc.ReleaseSeatFreezeReq{
-			FreezeToken:   order.FreezeToken,
-			ReleaseReason: releaseReason,
-		}); err != nil {
-			return err
 		}
 
 		cancelTime := time.Now()
@@ -284,6 +328,35 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 	}
 
 	return changed, nil
+}
+
+func finalizeOrderPay(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64, payTime time.Time) error {
+	return svcCtx.OrderRepository.TransactByOrderNumber(ctx, orderNumber, func(txCtx context.Context, tx repository.OrderTx) error {
+		order, err := tx.FindOrderByNumberForUpdate(txCtx, orderNumber)
+		if err != nil {
+			if errors.Is(err, model.ErrNotFound) {
+				return xerr.ErrOrderNotFound
+			}
+			return err
+		}
+		if order.OrderStatus == orderStatusPaid {
+			return nil
+		}
+		if order.OrderStatus != orderStatusUnpaid {
+			return xerr.ErrOrderStatusInvalid
+		}
+
+		return tx.UpdatePayStatus(txCtx, order.OrderNumber, payTime)
+	})
+}
+
+func cloneOrderSnapshot(order *model.DOrder) *model.DOrder {
+	if order == nil {
+		return nil
+	}
+
+	cloned := *order
+	return &cloned
 }
 
 func lockOrderStatusGuard(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) (repeatguard.UnlockFunc, error) {

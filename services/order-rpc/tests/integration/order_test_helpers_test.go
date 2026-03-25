@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -117,11 +118,13 @@ type fakeOrderProgramRPC struct {
 	releaseSeatFreezeErr     error
 	lastReleaseSeatFreezeReq *programrpc.ReleaseSeatFreezeReq
 	releaseSeatFreezeCalls   int
+	onReleaseSeatFreeze      func(*programrpc.ReleaseSeatFreezeReq)
 
 	confirmSeatFreezeResp    *programrpc.ConfirmSeatFreezeResp
 	confirmSeatFreezeErr     error
 	lastConfirmSeatFreezeReq *programrpc.ConfirmSeatFreezeReq
 	confirmSeatFreezeCalls   int
+	onConfirmSeatFreeze      func(*programrpc.ConfirmSeatFreezeReq)
 
 	evaluateRefundRuleResp    *programrpc.EvaluateRefundRuleResp
 	evaluateRefundRuleErr     error
@@ -145,6 +148,7 @@ type fakeOrderPayRPC struct {
 	mockPayErr     error
 	lastMockPayReq *payrpc.MockPayReq
 	mockPayCalls   int
+	onMockPay      func(*payrpc.MockPayReq)
 
 	getPayBillResp    *payrpc.GetPayBillResp
 	getPayBillErr     error
@@ -187,6 +191,22 @@ type fakeOrderCreateConsumerFactory struct {
 	consumers     []*fakeOrderCreateConsumer
 	createCalls   int
 	closeCalls    int
+}
+
+type tracingOrderRepository struct {
+	base                       repository.OrderRepository
+	transactByOrderNumberCalls int
+	events                     []string
+	failUpdateCancelStatusErr  error
+	failUpdateCancelStatusN    int
+	failUpdatePayStatusErr     error
+	failUpdatePayStatusN       int
+}
+
+type tracingOrderTx struct {
+	repository.OrderTx
+	repo    *tracingOrderRepository
+	txLabel string
 }
 
 func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC, *fakeOrderPayRPC) {
@@ -788,6 +808,9 @@ func findUserOrderIndexStatusFromTable(t *testing.T, dataSource, table string, o
 func (f *fakeOrderProgramRPC) ConfirmSeatFreeze(ctx context.Context, in *programrpc.ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*programrpc.ConfirmSeatFreezeResp, error) {
 	f.lastConfirmSeatFreezeReq = in
 	f.confirmSeatFreezeCalls++
+	if f.onConfirmSeatFreeze != nil {
+		f.onConfirmSeatFreeze(in)
+	}
 	return f.confirmSeatFreezeResp, f.confirmSeatFreezeErr
 }
 
@@ -805,6 +828,9 @@ func (f *fakeOrderProgramRPC) ReleaseSoldSeats(ctx context.Context, in *programr
 func (f *fakeOrderPayRPC) MockPay(ctx context.Context, in *payrpc.MockPayReq, opts ...grpc.CallOption) (*payrpc.MockPayResp, error) {
 	f.lastMockPayReq = in
 	f.mockPayCalls++
+	if f.onMockPay != nil {
+		f.onMockPay(in)
+	}
 	return f.mockPayResp, f.mockPayErr
 }
 
@@ -1162,7 +1188,92 @@ func (f *fakeOrderProgramRPC) AutoAssignAndFreezeSeats(ctx context.Context, in *
 func (f *fakeOrderProgramRPC) ReleaseSeatFreeze(ctx context.Context, in *programrpc.ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*programrpc.ReleaseSeatFreezeResp, error) {
 	f.lastReleaseSeatFreezeReq = in
 	f.releaseSeatFreezeCalls++
+	if f.onReleaseSeatFreeze != nil {
+		f.onReleaseSeatFreeze(in)
+	}
 	return f.releaseSeatFreezeResp, f.releaseSeatFreezeErr
+}
+
+func newTracingOrderRepository(base repository.OrderRepository) *tracingOrderRepository {
+	return &tracingOrderRepository{base: base}
+}
+
+func (r *tracingOrderRepository) record(event string) {
+	r.events = append(r.events, event)
+}
+
+func (r *tracingOrderRepository) TransactByOrderNumber(ctx context.Context, orderNumber int64, fn func(context.Context, repository.OrderTx) error) error {
+	r.transactByOrderNumberCalls++
+	txLabel := fmt.Sprintf("tx%d", r.transactByOrderNumberCalls)
+
+	return r.base.TransactByOrderNumber(ctx, orderNumber, func(txCtx context.Context, tx repository.OrderTx) error {
+		return fn(txCtx, &tracingOrderTx{
+			OrderTx: tx,
+			repo:    r,
+			txLabel: txLabel,
+		})
+	})
+}
+
+func (r *tracingOrderRepository) TransactByUserID(ctx context.Context, userID int64, fn func(context.Context, repository.OrderTx) error) error {
+	return r.base.TransactByUserID(ctx, userID, fn)
+}
+
+func (r *tracingOrderRepository) FindOrderByNumber(ctx context.Context, orderNumber int64) (*model.DOrder, error) {
+	return r.base.FindOrderByNumber(ctx, orderNumber)
+}
+
+func (r *tracingOrderRepository) FindOrderTicketsByNumber(ctx context.Context, orderNumber int64) ([]*model.DOrderTicketUser, error) {
+	return r.base.FindOrderTicketsByNumber(ctx, orderNumber)
+}
+
+func (r *tracingOrderRepository) FindOrderPageByUser(ctx context.Context, userID, orderStatus, pageNumber, pageSize int64) ([]*model.DOrder, int64, error) {
+	return r.base.FindOrderPageByUser(ctx, userID, orderStatus, pageNumber, pageSize)
+}
+
+func (r *tracingOrderRepository) FindExpiredUnpaidBySlot(ctx context.Context, logicSlot int, before time.Time, limit int64) ([]*model.DOrder, error) {
+	return r.base.FindExpiredUnpaidBySlot(ctx, logicSlot, before, limit)
+}
+
+func (r *tracingOrderRepository) CountActiveTicketsByUserProgram(ctx context.Context, userID, programID int64) (int64, error) {
+	return r.base.CountActiveTicketsByUserProgram(ctx, userID, programID)
+}
+
+func (r *tracingOrderRepository) ListUnpaidReservationsByUserProgram(ctx context.Context, userID, programID int64) (map[int64]int64, error) {
+	return r.base.ListUnpaidReservationsByUserProgram(ctx, userID, programID)
+}
+
+func (r *tracingOrderRepository) RouteByUserID(ctx context.Context, userID int64) (sharding.Route, error) {
+	return r.base.RouteByUserID(ctx, userID)
+}
+
+func (r *tracingOrderRepository) RouteByOrderNumber(ctx context.Context, orderNumber int64) (sharding.Route, error) {
+	return r.base.RouteByOrderNumber(ctx, orderNumber)
+}
+
+func (t *tracingOrderTx) FindOrderByNumberForUpdate(ctx context.Context, orderNumber int64) (*model.DOrder, error) {
+	t.repo.record(t.txLabel + ":find")
+	return t.OrderTx.FindOrderByNumberForUpdate(ctx, orderNumber)
+}
+
+func (t *tracingOrderTx) UpdateCancelStatus(ctx context.Context, orderNumber int64, cancelTime time.Time) error {
+	if t.repo.failUpdateCancelStatusN > 0 {
+		t.repo.failUpdateCancelStatusN--
+		t.repo.record(t.txLabel + ":update_cancel_fail")
+		return t.repo.failUpdateCancelStatusErr
+	}
+	t.repo.record(t.txLabel + ":update_cancel")
+	return t.OrderTx.UpdateCancelStatus(ctx, orderNumber, cancelTime)
+}
+
+func (t *tracingOrderTx) UpdatePayStatus(ctx context.Context, orderNumber int64, payTime time.Time) error {
+	if t.repo.failUpdatePayStatusN > 0 {
+		t.repo.failUpdatePayStatusN--
+		t.repo.record(t.txLabel + ":update_pay_fail")
+		return t.repo.failUpdatePayStatusErr
+	}
+	t.repo.record(t.txLabel + ":update_pay")
+	return t.OrderTx.UpdatePayStatus(ctx, orderNumber, payTime)
 }
 
 func (f *fakeOrderUserRPC) Register(ctx context.Context, in *userrpc.RegisterReq, opts ...grpc.CallOption) (*userrpc.BoolResp, error) {

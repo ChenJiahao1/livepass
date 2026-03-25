@@ -2,12 +2,14 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/pb"
 	"damai-go/services/order-rpc/sharding"
+	programrpc "damai-go/services/program-rpc/programrpc"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -61,6 +63,127 @@ func TestCancelOrderCancelsOwnerUnpaidOrder(t *testing.T) {
 	}
 	if repeatGuard.unlockCalls != 1 {
 		t.Fatalf("expected order status guard unlock once, got %d", repeatGuard.unlockCalls)
+	}
+}
+
+func TestCancelOrderWrapsReleaseBetweenTwoRepositoryTransactions(t *testing.T) {
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	traceRepo := newTracingOrderRepository(svcCtx.OrderRepository)
+	svcCtx.OrderRepository = traceRepo
+	programRPC.onReleaseSeatFreeze = func(*programrpc.ReleaseSeatFreezeReq) {
+		traceRepo.record("program:release")
+	}
+	seedOrderFixtures(t, svcCtx, orderFixture{
+		ID:          8009,
+		OrderNumber: 91009,
+		ProgramID:   10001,
+		UserID:      3001,
+		OrderStatus: testOrderStatusUnpaid,
+		FreezeToken: "freeze-cancel-split-tx",
+	})
+	seedOrderTicketUserFixtures(t, svcCtx, orderTicketUserFixture{
+		ID:           8809,
+		OrderNumber:  91009,
+		UserID:       3001,
+		TicketUserID: 701,
+		SeatID:       501,
+		SeatRow:      1,
+		SeatCol:      1,
+	})
+
+	_, err := logicpkg.NewCancelOrderLogic(context.Background(), svcCtx).CancelOrder(&pb.CancelOrderReq{
+		UserId:      3001,
+		OrderNumber: 91009,
+	})
+	if err != nil {
+		t.Fatalf("CancelOrder returned error: %v", err)
+	}
+	if traceRepo.transactByOrderNumberCalls != 2 {
+		t.Fatalf("expected 2 repository transactions, got %d", traceRepo.transactByOrderNumberCalls)
+	}
+	expected := []string{"tx1:find", "program:release", "tx2:find", "tx2:update_cancel"}
+	if got := traceRepo.events; len(got) != len(expected) {
+		t.Fatalf("unexpected event count: got=%v want=%v", got, expected)
+	} else {
+		for i := range expected {
+			if got[i] != expected[i] {
+				t.Fatalf("unexpected event order: got=%v want=%v", got, expected)
+			}
+		}
+	}
+}
+
+func TestCancelOrderRetriesAfterFinalizeFailure(t *testing.T) {
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	traceRepo := newTracingOrderRepository(svcCtx.OrderRepository)
+	traceRepo.failUpdateCancelStatusErr = errors.New("inject update cancel failure")
+	traceRepo.failUpdateCancelStatusN = 1
+	svcCtx.OrderRepository = traceRepo
+	programRPC.onReleaseSeatFreeze = func(*programrpc.ReleaseSeatFreezeReq) {
+		traceRepo.record("program:release")
+	}
+	seedOrderFixtures(t, svcCtx, orderFixture{
+		ID:          8010,
+		OrderNumber: 91010,
+		ProgramID:   10001,
+		UserID:      3001,
+		OrderStatus: testOrderStatusUnpaid,
+		FreezeToken: "freeze-cancel-retry",
+	})
+	seedOrderTicketUserFixtures(t, svcCtx, orderTicketUserFixture{
+		ID:           8810,
+		OrderNumber:  91010,
+		UserID:       3001,
+		TicketUserID: 701,
+		SeatID:       501,
+		SeatRow:      1,
+		SeatCol:      1,
+	})
+
+	_, err := logicpkg.NewCancelOrderLogic(context.Background(), svcCtx).CancelOrder(&pb.CancelOrderReq{
+		UserId:      3001,
+		OrderNumber: 91010,
+	})
+	if err == nil {
+		t.Fatalf("expected first CancelOrder to fail")
+	}
+	if findOrderStatus(t, testOrderMySQLDataSource, 91010) != testOrderStatusUnpaid {
+		t.Fatalf("expected order to remain unpaid after finalize failure")
+	}
+
+	resp, err := logicpkg.NewCancelOrderLogic(context.Background(), svcCtx).CancelOrder(&pb.CancelOrderReq{
+		UserId:      3001,
+		OrderNumber: 91010,
+	})
+	if err != nil {
+		t.Fatalf("second CancelOrder returned error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatalf("expected retry cancel success response")
+	}
+	if programRPC.releaseSeatFreezeCalls != 2 {
+		t.Fatalf("expected release seat retried once, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+	if traceRepo.transactByOrderNumberCalls != 4 {
+		t.Fatalf("expected 4 repository transactions, got %d", traceRepo.transactByOrderNumberCalls)
+	}
+	expected := []string{
+		"tx1:find", "program:release", "tx2:find", "tx2:update_cancel_fail",
+		"tx3:find", "program:release", "tx4:find", "tx4:update_cancel",
+	}
+	if got := traceRepo.events; len(got) != len(expected) {
+		t.Fatalf("unexpected event count: got=%v want=%v", got, expected)
+	} else {
+		for i := range expected {
+			if got[i] != expected[i] {
+				t.Fatalf("unexpected event order: got=%v want=%v", got, expected)
+			}
+		}
+	}
+	if findOrderStatus(t, testOrderMySQLDataSource, 91010) != testOrderStatusCancelled {
+		t.Fatalf("expected order status cancelled after retry")
 	}
 }
 
