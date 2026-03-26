@@ -46,9 +46,6 @@ func TestBackfillOrdersResumesFromCheckpoint(t *testing.T) {
 	if countTableRowsByOrderNumber(t, "d_order_"+firstRoute.TableSuffix, legacyOrderNumber1) != 1 {
 		t.Fatalf("expected first order backfilled into shard table")
 	}
-	if countTableRowsByOrderNumber(t, "d_user_order_index_"+firstRoute.TableSuffix, legacyOrderNumber1) != 1 {
-		t.Fatalf("expected first order index backfilled into shard table")
-	}
 	if countTableRowsByOrderNumber(t, "d_order_route_legacy", legacyOrderNumber1) != 1 {
 		t.Fatalf("expected legacy route directory row")
 	}

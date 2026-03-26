@@ -16,7 +16,7 @@ import (
 )
 
 func TestRefundOrder(t *testing.T) {
-	t.Run("paid shard order refunds and updates shard user order index", func(t *testing.T) {
+	t.Run("paid shard order refunds and updates shard snapshots", func(t *testing.T) {
 		svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
 		resetOrderDomainState(t)
 		setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
@@ -37,9 +37,6 @@ func TestRefundOrder(t *testing.T) {
 		})
 		seedShardOrderTicketUserFixtures(t, svcCtx, route,
 			orderTicketUserFixture{ID: 99100, OrderNumber: orderNumber, UserID: userID, TicketUserID: 701, SeatID: 50101, OrderStatus: testOrderStatusPaid},
-		)
-		seedUserOrderIndexFixtures(t, svcCtx, route,
-			userOrderIndexFixture{ID: 99200, OrderNumber: orderNumber, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusPaid, CreateOrderTime: "2026-12-31 19:00:00"},
 		)
 		payRPC.getPayBillResp = &payrpc.GetPayBillResp{
 			PayBillNo:   94000,
@@ -74,8 +71,8 @@ func TestRefundOrder(t *testing.T) {
 		if resp.OrderStatus != testOrderStatusRefunded {
 			t.Fatalf("unexpected refund response: %+v", resp)
 		}
-		if findUserOrderIndexStatusFromTable(t, testOrderMySQLDataSource, "d_user_order_index_"+route.TableSuffix, orderNumber) != testOrderStatusRefunded {
-			t.Fatalf("expected shard user order index status refunded")
+		if findOrderStatusFromTable(t, testOrderMySQLDataSource, "d_order_"+route.TableSuffix, orderNumber) != testOrderStatusRefunded {
+			t.Fatalf("expected shard order status refunded")
 		}
 
 		listResp, err := logicpkg.NewListOrdersLogic(context.Background(), svcCtx).ListOrders(&pb.ListOrdersReq{

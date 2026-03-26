@@ -166,7 +166,7 @@ func TestGetOrderReadsLegacyOrderThroughRouteDirectoryInShardOnlyMode(t *testing
 	}
 }
 
-func TestListOrdersReadsFromShardUserOrderIndex(t *testing.T) {
+func TestListOrdersReadsFromShardOrderTableDirectly(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
@@ -178,10 +178,6 @@ func TestListOrdersReadsFromShardUserOrderIndex(t *testing.T) {
 	seedShardOrderFixtures(t, svcCtx, route,
 		orderFixture{ID: 8001, OrderNumber: orderNumber1, ProgramID: 10001, UserID: userID, OrderStatus: testOrderStatusUnpaid, CreateOrderTime: "2026-03-24 10:00:00"},
 		orderFixture{ID: 8002, OrderNumber: orderNumber2, ProgramID: 10001, UserID: userID, OrderStatus: testOrderStatusCancelled, CancelOrderTime: "2026-03-24 10:01:00", CreateOrderTime: "2026-03-24 10:01:00"},
-	)
-	seedUserOrderIndexFixtures(t, svcCtx, route,
-		userOrderIndexFixture{ID: 8101, OrderNumber: orderNumber1, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusUnpaid, CreateOrderTime: "2026-03-24 10:00:00"},
-		userOrderIndexFixture{ID: 8102, OrderNumber: orderNumber2, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusCancelled, CreateOrderTime: "2026-03-24 10:01:00"},
 	)
 
 	l := logicpkg.NewListOrdersLogic(context.Background(), svcCtx)

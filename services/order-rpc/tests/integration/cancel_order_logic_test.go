@@ -187,7 +187,7 @@ func TestCancelOrderRetriesAfterFinalizeFailure(t *testing.T) {
 	}
 }
 
-func TestCancelOrderUpdatesShardUserOrderIndexStatus(t *testing.T) {
+func TestCancelOrderUpdatesShardOrderStatus(t *testing.T) {
 	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	repeatGuard := &fakeOrderRepeatGuard{}
 	svcCtx.RepeatGuard = repeatGuard
@@ -214,10 +214,6 @@ func TestCancelOrderUpdatesShardUserOrderIndexStatus(t *testing.T) {
 		SeatRow:      1,
 		SeatCol:      2,
 	})
-	seedUserOrderIndexFixtures(t, svcCtx, route,
-		userOrderIndexFixture{ID: 8102, OrderNumber: orderNumber, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusUnpaid},
-	)
-
 	l := logicpkg.NewCancelOrderLogic(context.Background(), svcCtx)
 	resp, err := l.CancelOrder(&pb.CancelOrderReq{
 		UserId:      userID,
@@ -229,8 +225,8 @@ func TestCancelOrderUpdatesShardUserOrderIndexStatus(t *testing.T) {
 	if !resp.Success {
 		t.Fatalf("expected success response")
 	}
-	if findUserOrderIndexStatusFromTable(t, svcCtx.Config.MySQL.DataSource, "d_user_order_index_"+route.TableSuffix, orderNumber) != testOrderStatusCancelled {
-		t.Fatalf("expected shard user order index status cancelled")
+	if findOrderStatusFromTable(t, svcCtx.Config.MySQL.DataSource, "d_order_"+route.TableSuffix, orderNumber) != testOrderStatusCancelled {
+		t.Fatalf("expected shard order status cancelled")
 	}
 
 	listResp, err := logicpkg.NewListOrdersLogic(context.Background(), svcCtx).ListOrders(&pb.ListOrdersReq{

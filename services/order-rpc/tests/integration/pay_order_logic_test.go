@@ -40,9 +40,6 @@ func TestPayOrder(t *testing.T) {
 		seedShardOrderTicketUserFixtures(t, svcCtx, route,
 			orderTicketUserFixture{ID: 89101, OrderNumber: orderNumber, UserID: userID, TicketUserID: 701, OrderStatus: testOrderStatusUnpaid},
 		)
-		seedUserOrderIndexFixtures(t, svcCtx, route,
-			userOrderIndexFixture{ID: 89201, OrderNumber: orderNumber, UserID: userID, ProgramID: 10001, OrderStatus: testOrderStatusUnpaid, CreateOrderTime: "2026-12-31 19:00:00"},
-		)
 		payRPC.mockPayResp = &payrpc.MockPayResp{
 			PayBillNo: 93001,
 			PayStatus: 2,
@@ -70,9 +67,6 @@ func TestPayOrder(t *testing.T) {
 		}
 		if findOrderTicketStatusFromTable(t, testOrderMySQLDataSource, "d_order_ticket_user_"+route.TableSuffix, orderNumber) != testOrderStatusPaid {
 			t.Fatalf("expected shard order ticket status paid")
-		}
-		if findUserOrderIndexStatusFromTable(t, testOrderMySQLDataSource, "d_user_order_index_"+route.TableSuffix, orderNumber) != testOrderStatusPaid {
-			t.Fatalf("expected shard user order index status paid")
 		}
 
 		listResp, err := logicpkg.NewListOrdersLogic(context.Background(), svcCtx).ListOrders(&pb.ListOrdersReq{

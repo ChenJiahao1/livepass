@@ -46,9 +46,6 @@ func TestCreateOrderConsumerPersistsOrderAndTickets(t *testing.T) {
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 2 {
 		t.Fatalf("expected two order ticket rows")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_user_order_index") != 1 {
-		t.Fatalf("expected one user order index row")
-	}
 }
 
 func TestCreateOrderConsumerTreatsDuplicateOrderNumberAsIdempotentSuccess(t *testing.T) {
@@ -85,9 +82,6 @@ func TestCreateOrderConsumerTreatsDuplicateOrderNumberAsIdempotentSuccess(t *tes
 	}
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 1 {
 		t.Fatalf("expected one order ticket row after duplicate consume")
-	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_user_order_index") != 1 {
-		t.Fatalf("expected one user order index row after duplicate consume")
 	}
 }
 
@@ -126,9 +120,6 @@ func TestCreateOrderConsumerPersistsShadowTablesInDualWriteShadowMode(t *testing
 	}
 	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user_"+route.TableSuffix) != 1 {
 		t.Fatalf("expected one shard order ticket row in d_order_ticket_user_%s", route.TableSuffix)
-	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_user_order_index_"+route.TableSuffix) != 1 {
-		t.Fatalf("expected one shard order index row in d_user_order_index_%s", route.TableSuffix)
 	}
 }
 

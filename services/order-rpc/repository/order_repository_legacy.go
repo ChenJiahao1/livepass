@@ -33,7 +33,7 @@ func (r *legacyOrderRepository) TransactByOrderNumber(ctx context.Context, order
 		return err
 	}
 	return r.deps.LegacyConn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		tx := newSingleOrderTx(route, session, r.deps.LegacyOrderModel, r.deps.LegacyOrderTicketUserModel, r.deps.LegacyUserOrderIndexModel, r.deps.LegacyRouteDirectoryModel)
+		tx := newSingleOrderTx(route, session, r.deps.LegacyOrderModel, r.deps.LegacyOrderTicketUserModel, r.deps.LegacyRouteDirectoryModel)
 		return fn(ctx, tx)
 	})
 }
@@ -44,7 +44,7 @@ func (r *legacyOrderRepository) TransactByUserID(ctx context.Context, userID int
 		return err
 	}
 	return r.deps.LegacyConn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		tx := newSingleOrderTx(route, session, r.deps.LegacyOrderModel, r.deps.LegacyOrderTicketUserModel, r.deps.LegacyUserOrderIndexModel, r.deps.LegacyRouteDirectoryModel)
+		tx := newSingleOrderTx(route, session, r.deps.LegacyOrderModel, r.deps.LegacyOrderTicketUserModel, r.deps.LegacyRouteDirectoryModel)
 		return fn(ctx, tx)
 	})
 }

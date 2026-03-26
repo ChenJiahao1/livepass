@@ -63,20 +63,6 @@ type orderTicketRow struct {
 	Status             int64     `db:"status"`
 }
 
-type userOrderIndexRow struct {
-	Id              int64     `db:"id"`
-	OrderNumber     int64     `db:"order_number"`
-	UserId          int64     `db:"user_id"`
-	ProgramId       int64     `db:"program_id"`
-	OrderStatus     int64     `db:"order_status"`
-	TicketCount     int64     `db:"ticket_count"`
-	OrderPrice      int64     `db:"order_price"`
-	CreateOrderTime time.Time `db:"create_order_time"`
-	CreateTime      time.Time `db:"create_time"`
-	EditTime        time.Time `db:"edit_time"`
-	Status          int64     `db:"status"`
-}
-
 type backfillCheckpoint struct {
 	LastOrderID int64 `json:"last_order_id"`
 }
@@ -179,20 +165,6 @@ func listOrdersByTable(ctx context.Context, conn sqlx.SqlConn, table string) ([]
 		return rows, nil
 	case errors.Is(err, sqlx.ErrNotFound):
 		return []*orderRow{}, nil
-	default:
-		return nil, err
-	}
-}
-
-func listUserOrderIndexesByTable(ctx context.Context, conn sqlx.SqlConn, table string) ([]*userOrderIndexRow, error) {
-	query := fmt.Sprintf("select * from %s where `status` = 1 order by `order_number` asc, `id` asc", table)
-	var rows []*userOrderIndexRow
-	err := conn.QueryRowsCtx(ctx, &rows, query)
-	switch {
-	case err == nil:
-		return rows, nil
-	case errors.Is(err, sqlx.ErrNotFound):
-		return []*userOrderIndexRow{}, nil
 	default:
 		return nil, err
 	}
@@ -395,24 +367,6 @@ func filterTicketsByOrderNumbers(rows []*orderTicketRow, orderNumbers map[int64]
 	return filtered
 }
 
-func filterUserOrderIndexesByOrderNumbers(rows []*userOrderIndexRow, orderNumbers map[int64]struct{}) []*userOrderIndexRow {
-	if len(orderNumbers) == 0 {
-		return []*userOrderIndexRow{}
-	}
-
-	filtered := make([]*userOrderIndexRow, 0, len(rows))
-	for _, row := range rows {
-		if row == nil {
-			continue
-		}
-		if _, ok := orderNumbers[row.OrderNumber]; !ok {
-			continue
-		}
-		filtered = append(filtered, row)
-	}
-	return filtered
-}
-
 func compareTicketSnapshots(legacyRows, shardRows []*orderTicketRow) error {
 	if len(legacyRows) != len(shardRows) {
 		return fmt.Errorf("ticket snapshot mismatch: row count legacy=%d shard=%d", len(legacyRows), len(shardRows))
@@ -438,31 +392,6 @@ func compareTicketSnapshots(legacyRows, shardRows []*orderTicketRow) error {
 	return nil
 }
 
-func compareUserOrderIndexSnapshots(legacyRows, shardRows []*userOrderIndexRow) error {
-	if len(legacyRows) != len(shardRows) {
-		return fmt.Errorf("user order index mismatch: row count legacy=%d shard=%d", len(legacyRows), len(shardRows))
-	}
-
-	for i := range legacyRows {
-		legacyRow := legacyRows[i]
-		shardRow := shardRows[i]
-		if !userOrderIndexEqual(legacyRow, shardRow) {
-			return fmt.Errorf(
-				"user order index mismatch: order=%d legacy(status=%d price=%d tickets=%d) shard(status=%d price=%d tickets=%d)",
-				snapshotUserIndexOrderNumber(legacyRow, shardRow),
-				snapshotUserIndexStatus(legacyRow),
-				snapshotUserIndexPrice(legacyRow),
-				snapshotUserIndexTicketCount(legacyRow),
-				snapshotUserIndexStatus(shardRow),
-				snapshotUserIndexPrice(shardRow),
-				snapshotUserIndexTicketCount(shardRow),
-			)
-		}
-	}
-
-	return nil
-}
-
 func ticketSnapshotEqual(legacyRow, shardRow *orderTicketRow) bool {
 	if legacyRow == nil || shardRow == nil {
 		return legacyRow == shardRow
@@ -477,18 +406,6 @@ func ticketSnapshotEqual(legacyRow, shardRow *orderTicketRow) bool {
 		legacyRow.SeatCol == shardRow.SeatCol &&
 		legacyRow.SeatPrice == shardRow.SeatPrice &&
 		legacyRow.OrderStatus == shardRow.OrderStatus
-}
-
-func userOrderIndexEqual(legacyRow, shardRow *userOrderIndexRow) bool {
-	if legacyRow == nil || shardRow == nil {
-		return legacyRow == shardRow
-	}
-	return legacyRow.OrderNumber == shardRow.OrderNumber &&
-		legacyRow.UserId == shardRow.UserId &&
-		legacyRow.ProgramId == shardRow.ProgramId &&
-		legacyRow.OrderStatus == shardRow.OrderStatus &&
-		legacyRow.TicketCount == shardRow.TicketCount &&
-		legacyRow.OrderPrice == shardRow.OrderPrice
 }
 
 func snapshotOrderNumber(legacyRow, shardRow *orderTicketRow) int64 {
@@ -522,37 +439,6 @@ func snapshotTicketStatus(row *orderTicketRow) int64 {
 	return row.OrderStatus
 }
 
-func snapshotUserIndexOrderNumber(legacyRow, shardRow *userOrderIndexRow) int64 {
-	if legacyRow != nil {
-		return legacyRow.OrderNumber
-	}
-	if shardRow != nil {
-		return shardRow.OrderNumber
-	}
-	return 0
-}
-
-func snapshotUserIndexStatus(row *userOrderIndexRow) int64 {
-	if row == nil {
-		return 0
-	}
-	return row.OrderStatus
-}
-
-func snapshotUserIndexPrice(row *userOrderIndexRow) int64 {
-	if row == nil {
-		return 0
-	}
-	return row.OrderPrice
-}
-
-func snapshotUserIndexTicketCount(row *userOrderIndexRow) int64 {
-	if row == nil {
-		return 0
-	}
-	return row.TicketCount
-}
-
 func upsertOrderBundle(ctx context.Context, svcCtx *svc.ServiceContext, route sharding.Route, order *orderRow, tickets []*orderTicketRow) error {
 	if svcCtx == nil {
 		return fmt.Errorf("service context is nil")
@@ -583,9 +469,6 @@ func upsertOrderBundle(ctx context.Context, svcCtx *svc.ServiceContext, route sh
 		if err := upsertTicketTx(ctx, tx, "d_order_ticket_user_"+route.TableSuffix, ticket); err != nil {
 			return err
 		}
-	}
-	if err := upsertUserOrderIndexTx(ctx, tx, "d_user_order_index_"+route.TableSuffix, order); err != nil {
-		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return err
@@ -702,40 +585,6 @@ func upsertTicketTx(ctx context.Context, tx *sql.Tx, table string, ticket *order
 		ticket.CreateTime,
 		ticket.EditTime,
 		ticket.Status,
-	)
-	return err
-}
-
-func upsertUserOrderIndexTx(ctx context.Context, tx *sql.Tx, table string, order *orderRow) error {
-	query := fmt.Sprintf(
-		`INSERT INTO %s (
-			id, order_number, user_id, program_id, order_status, ticket_count, order_price, create_order_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON DUPLICATE KEY UPDATE
-			user_id = VALUES(user_id),
-			program_id = VALUES(program_id),
-			order_status = VALUES(order_status),
-			ticket_count = VALUES(ticket_count),
-			order_price = VALUES(order_price),
-			create_order_time = VALUES(create_order_time),
-			edit_time = VALUES(edit_time),
-			status = VALUES(status)`,
-		table,
-	)
-	_, err := tx.ExecContext(
-		ctx,
-		query,
-		order.Id,
-		order.OrderNumber,
-		order.UserId,
-		order.ProgramId,
-		order.OrderStatus,
-		order.TicketCount,
-		order.OrderPrice,
-		order.CreateOrderTime,
-		order.CreateTime,
-		order.EditTime,
-		order.Status,
 	)
 	return err
 }
