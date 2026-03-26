@@ -84,17 +84,6 @@ type orderTicketUserFixture struct {
 	CreateOrderTime    string
 }
 
-type userOrderIndexFixture struct {
-	ID              int64
-	OrderNumber     int64
-	UserID          int64
-	ProgramID       int64
-	OrderStatus     int64
-	TicketCount     int64
-	OrderPrice      int64
-	CreateOrderTime string
-}
-
 type legacyOrderRouteFixture struct {
 	OrderNumber  int64
 	UserID       int64
@@ -259,7 +248,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	redisClient := xredis.MustNew(cfg.StoreRedis)
 	legacyOrderModel := model.NewDOrderModel(conn)
 	legacyOrderTicketUserModel := model.NewDOrderTicketUserModel(conn)
-	legacyUserOrderIndexModel := model.NewDUserOrderIndexModel(conn)
 	legacyRouteDirectoryModel := model.NewDOrderRouteLegacyModel(conn)
 	routeMap, err := sharding.NewRouteMap(cfg.Sharding.RouteMap.Version, buildOrderTestRouteEntries())
 	if err != nil {
@@ -271,7 +259,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		LegacyConn:                 conn,
 		LegacyOrderModel:           legacyOrderModel,
 		LegacyOrderTicketUserModel: legacyOrderTicketUserModel,
-		LegacyUserOrderIndexModel:  legacyUserOrderIndexModel,
 		LegacyRouteDirectoryModel:  legacyRouteDirectoryModel,
 		ShardConns: map[string]sqlx.SqlConn{
 			"order-db-0": shardConn0,
@@ -297,7 +284,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		PurchaseLimitStore:         purchaseLimitStore,
 		DOrderModel:                legacyOrderModel,
 		DOrderTicketUserModel:      legacyOrderTicketUserModel,
-		DUserOrderIndexModel:       legacyUserOrderIndexModel,
 		DOrderRouteLegacyModel:     legacyRouteDirectoryModel,
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
@@ -556,11 +542,9 @@ func resetOrderDomainState(t *testing.T) {
 	for _, relativePath := range []string{
 		"sql/order/d_order.sql",
 		"sql/order/d_order_ticket_user.sql",
-		"sql/order/d_user_order_index.sql",
 		"sql/order/d_order_route_legacy.sql",
 		"sql/order/sharding/d_order_shards.sql",
 		"sql/order/sharding/d_order_ticket_user_shards.sql",
-		"sql/order/sharding/d_user_order_index_shards.sql",
 	} {
 		execOrderSQLFile(t, db, relativePath)
 	}
@@ -585,7 +569,6 @@ func setOrderTestRepositoryMode(t *testing.T, svcCtx *svc.ServiceContext, mode s
 		LegacyConn:                 svcCtx.LegacySqlConn,
 		LegacyOrderModel:           svcCtx.DOrderModel,
 		LegacyOrderTicketUserModel: svcCtx.DOrderTicketUserModel,
-		LegacyUserOrderIndexModel:  svcCtx.DUserOrderIndexModel,
 		LegacyRouteDirectoryModel:  svcCtx.DOrderRouteLegacyModel,
 		ShardConns:                 svcCtx.ShardSqlConns,
 		RouteMap:                   routeMap,
@@ -721,39 +704,6 @@ func seedShardOrderTicketUserFixtures(t *testing.T, svcCtx *svc.ServiceContext, 
 	seedOrderTicketUserFixturesIntoTable(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user_"+route.TableSuffix, fixtures...)
 }
 
-func seedUserOrderIndexFixtures(t *testing.T, svcCtx *svc.ServiceContext, route sharding.Route, fixtures ...userOrderIndexFixture) {
-	t.Helper()
-
-	table := "d_user_order_index"
-	if route.TableSuffix != "" {
-		table = "d_user_order_index_" + route.TableSuffix
-	}
-	db := openOrderTestDB(t, svcCtx.Config.MySQL.DataSource)
-	defer db.Close()
-
-	for _, fixture := range fixtures {
-		fixture = withUserOrderIndexFixtureDefaults(fixture)
-		mustExecOrderSQL(
-			t,
-			db,
-			`INSERT INTO `+table+` (
-				id, order_number, user_id, program_id, order_status, ticket_count, order_price, create_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			fixture.ID,
-			fixture.OrderNumber,
-			fixture.UserID,
-			fixture.ProgramID,
-			fixture.OrderStatus,
-			fixture.TicketCount,
-			fixture.OrderPrice,
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			1,
-		)
-	}
-}
-
 func seedLegacyOrderRouteFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...legacyOrderRouteFixture) {
 	t.Helper()
 
@@ -828,20 +778,6 @@ func findOrderTicketStatusFromTable(t *testing.T, dataSource, table string, orde
 	var status int64
 	if err := db.QueryRow("SELECT order_status FROM "+table+" WHERE order_number = ? ORDER BY id ASC LIMIT 1", orderNumber).Scan(&status); err != nil {
 		t.Fatalf("QueryRow order ticket status error: %v", err)
-	}
-
-	return status
-}
-
-func findUserOrderIndexStatusFromTable(t *testing.T, dataSource, table string, orderNumber int64) int64 {
-	t.Helper()
-
-	db := openOrderTestDB(t, dataSource)
-	defer db.Close()
-
-	var status int64
-	if err := db.QueryRow("SELECT order_status FROM "+table+" WHERE order_number = ?", orderNumber).Scan(&status); err != nil {
-		t.Fatalf("QueryRow user order index status error: %v", err)
 	}
 
 	return status
@@ -992,23 +928,6 @@ func withOrderTicketUserFixtureDefaults(fixture orderTicketUserFixture) orderTic
 	}
 	if fixture.OrderStatus == 0 {
 		fixture.OrderStatus = testOrderStatusUnpaid
-	}
-	if fixture.CreateOrderTime == "" {
-		fixture.CreateOrderTime = "2026-01-01 00:00:00"
-	}
-
-	return fixture
-}
-
-func withUserOrderIndexFixtureDefaults(fixture userOrderIndexFixture) userOrderIndexFixture {
-	if fixture.OrderStatus == 0 {
-		fixture.OrderStatus = testOrderStatusUnpaid
-	}
-	if fixture.TicketCount == 0 {
-		fixture.TicketCount = 1
-	}
-	if fixture.OrderPrice == 0 {
-		fixture.OrderPrice = 299
 	}
 	if fixture.CreateOrderTime == "" {
 		fixture.CreateOrderTime = "2026-01-01 00:00:00"

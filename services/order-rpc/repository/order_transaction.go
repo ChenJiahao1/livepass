@@ -16,19 +16,16 @@ type singleOrderTx struct {
 	session          sqlx.Session
 	orderModel       model.DOrderModel
 	ticketModel      model.DOrderTicketUserModel
-	indexModel       model.DUserOrderIndexModel
 	legacyRouteModel model.DOrderRouteLegacyModel
 }
 
 func newSingleOrderTx(route sharding.Route, session sqlx.Session, orderModel model.DOrderModel,
-	ticketModel model.DOrderTicketUserModel, indexModel model.DUserOrderIndexModel,
-	legacyRouteModel model.DOrderRouteLegacyModel) *singleOrderTx {
+	ticketModel model.DOrderTicketUserModel, legacyRouteModel model.DOrderRouteLegacyModel) *singleOrderTx {
 	return &singleOrderTx{
 		route:            route,
 		session:          session,
 		orderModel:       orderModel,
 		ticketModel:      ticketModel,
-		indexModel:       indexModel,
 		legacyRouteModel: legacyRouteModel,
 	}
 }
@@ -44,14 +41,6 @@ func (t *singleOrderTx) InsertOrder(ctx context.Context, order *model.DOrder) er
 
 func (t *singleOrderTx) InsertOrderTickets(ctx context.Context, tickets []*model.DOrderTicketUser) error {
 	return t.ticketModel.InsertBatch(ctx, t.session, tickets)
-}
-
-func (t *singleOrderTx) InsertUserOrderIndex(ctx context.Context, index *model.DUserOrderIndex) error {
-	if t.indexModel == nil {
-		return nil
-	}
-	_, err := t.indexModel.InsertWithSession(ctx, t.session, index)
-	return err
 }
 
 func (t *singleOrderTx) InsertLegacyRoute(ctx context.Context, legacyRoute *model.DOrderRouteLegacy) error {
@@ -73,7 +62,7 @@ func (t *singleOrderTx) UpdateCancelStatus(ctx context.Context, orderNumber int6
 	if err := t.ticketModel.UpdateCancelStatusByOrderNumber(ctx, t.session, orderNumber, cancelTime); err != nil {
 		return err
 	}
-	return t.updateUserOrderIndexStatus(ctx, orderNumber, 2, cancelTime)
+	return nil
 }
 
 func (t *singleOrderTx) UpdatePayStatus(ctx context.Context, orderNumber int64, payTime time.Time) error {
@@ -83,7 +72,7 @@ func (t *singleOrderTx) UpdatePayStatus(ctx context.Context, orderNumber int64, 
 	if err := t.ticketModel.UpdatePayStatusByOrderNumber(ctx, t.session, orderNumber, payTime); err != nil {
 		return err
 	}
-	return t.updateUserOrderIndexStatus(ctx, orderNumber, 3, payTime)
+	return nil
 }
 
 func (t *singleOrderTx) UpdateRefundStatus(ctx context.Context, orderNumber int64, refundTime time.Time) error {
@@ -93,14 +82,7 @@ func (t *singleOrderTx) UpdateRefundStatus(ctx context.Context, orderNumber int6
 	if err := t.ticketModel.UpdateRefundStatusByOrderNumber(ctx, t.session, orderNumber, refundTime); err != nil {
 		return err
 	}
-	return t.updateUserOrderIndexStatus(ctx, orderNumber, 4, refundTime)
-}
-
-func (t *singleOrderTx) updateUserOrderIndexStatus(ctx context.Context, orderNumber, orderStatus int64, editTime time.Time) error {
-	if t.indexModel == nil {
-		return nil
-	}
-	return t.indexModel.UpdateOrderStatusByOrderNumber(ctx, t.session, orderNumber, orderStatus, editTime)
+	return nil
 }
 
 type ShadowWriteError struct {
@@ -154,16 +136,6 @@ func (t *dualWriteOrderTx) InsertOrderTickets(ctx context.Context, tickets []*mo
 	}
 	t.captureShadowError(func() error {
 		return t.shadow.InsertOrderTickets(ctx, tickets)
-	})
-	return nil
-}
-
-func (t *dualWriteOrderTx) InsertUserOrderIndex(ctx context.Context, index *model.DUserOrderIndex) error {
-	if err := t.primary.InsertUserOrderIndex(ctx, index); err != nil {
-		return err
-	}
-	t.captureShadowError(func() error {
-		return t.shadow.InsertUserOrderIndex(ctx, index)
 	})
 	return nil
 }

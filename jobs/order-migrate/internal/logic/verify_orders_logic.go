@@ -86,9 +86,6 @@ func (l *VerifyOrdersLogic) VerifyOrders() (*VerifyOrdersResp, error) {
 		if err := compareTicketSnapshots(legacySlotData.tickets, shardSlotData.tickets); err != nil {
 			return nil, err
 		}
-		if err := compareUserOrderIndexSnapshots(legacySlotData.indexes, shardSlotData.indexes); err != nil {
-			return nil, err
-		}
 		resp.ComparedOrders += int64(len(legacySlotData.orders))
 	}
 

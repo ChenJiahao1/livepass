@@ -117,24 +117,7 @@ func (r *shardedOrderRepository) FindOrderPageByUser(ctx context.Context, userID
 		return nil, 0, err
 	}
 
-	indexRows, total, err := target.indexModel.FindPageByUserAndStatus(ctx, userID, orderStatus, pageNumber, pageSize)
-	if err != nil {
-		return nil, 0, err
-	}
-	if len(indexRows) == 0 {
-		return []*model.DOrder{}, total, nil
-	}
-
-	orders := make([]*model.DOrder, 0, len(indexRows))
-	for _, indexRow := range indexRows {
-		order, err := target.orderModel.FindOneByOrderNumber(ctx, indexRow.OrderNumber)
-		if err != nil {
-			return nil, 0, err
-		}
-		orders = append(orders, order)
-	}
-
-	return orders, total, nil
+	return target.orderModel.FindPageByUserAndStatus(ctx, userID, orderStatus, pageNumber, pageSize)
 }
 
 func (r *shardedOrderRepository) FindExpiredUnpaidBySlot(ctx context.Context, logicSlot int, before time.Time, limit int64) ([]*model.DOrder, error) {
@@ -258,7 +241,7 @@ func (r *shardedOrderRepository) transactByRoute(ctx context.Context, route shar
 		return err
 	}
 	return target.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		tx := newSingleOrderTx(route, session, target.orderModel, target.ticketModel, target.indexModel, nil)
+		tx := newSingleOrderTx(route, session, target.orderModel, target.ticketModel, nil)
 		return fn(ctx, tx)
 	})
 }
@@ -267,7 +250,6 @@ type routeStore struct {
 	conn        sqlx.SqlConn
 	orderModel  model.DOrderModel
 	ticketModel model.DOrderTicketUserModel
-	indexModel  model.DUserOrderIndexModel
 }
 
 func (r *shardedOrderRepository) storeForRoute(route sharding.Route) (*routeStore, error) {
@@ -280,7 +262,6 @@ func (r *shardedOrderRepository) storeForRoute(route sharding.Route) (*routeStor
 		conn:        conn,
 		orderModel:  model.NewDOrderModelWithTable(conn, shardOrderTable(route.TableSuffix)),
 		ticketModel: model.NewDOrderTicketUserModelWithTable(conn, shardOrderTicketTable(route.TableSuffix)),
-		indexModel:  model.NewDUserOrderIndexModelWithTable(conn, shardUserOrderIndexTable(route.TableSuffix)),
 	}, nil
 }
 
@@ -290,10 +271,6 @@ func shardOrderTable(suffix string) string {
 
 func shardOrderTicketTable(suffix string) string {
 	return "d_order_ticket_user_" + suffix
-}
-
-func shardUserOrderIndexTable(suffix string) string {
-	return "d_user_order_index_" + suffix
 }
 
 func orderMatchesLogicSlot(order *model.DOrder, logicSlot int) bool {

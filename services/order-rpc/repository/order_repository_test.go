@@ -37,9 +37,6 @@ func TestLegacyOrderRepositoryTransactAndQuery(t *testing.T) {
 		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
 			return err
 		}
-		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
-			return err
-		}
 		return nil
 	})
 	if err != nil {
@@ -92,9 +89,6 @@ func TestDualWriteOrderRepositoryWritesLegacyAndShardTables(t *testing.T) {
 		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
 			return err
 		}
-		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
-			return err
-		}
 		return nil
 	})
 	if err != nil {
@@ -112,16 +106,46 @@ func TestDualWriteOrderRepositoryWritesLegacyAndShardTables(t *testing.T) {
 	if countTableRows(t, testRepositoryMySQLDataSource, "d_order_"+route.TableSuffix) != 1 {
 		t.Fatalf("expected shard d_order_%s to contain 1 row", route.TableSuffix)
 	}
-	if countTableRows(t, testRepositoryMySQLDataSource, "d_user_order_index_"+route.TableSuffix) != 1 {
-		t.Fatalf("expected shard d_user_order_index_%s to contain 1 row", route.TableSuffix)
-	}
-
 	orders, total, err := repo.FindOrderPageByUser(context.Background(), userID, 1, 1, 10)
 	if err != nil {
 		t.Fatalf("FindOrderPageByUser() error = %v", err)
 	}
 	if total != 1 || len(orders) != 1 {
 		t.Fatalf("page result total=%d len=%d, want 1/1", total, len(orders))
+	}
+}
+
+func TestShardedOrderRepositoryFindOrderPageByUserReadsOrderTableDirectly(t *testing.T) {
+	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeShardOnly, buildFullRouteEntries("00", "01"))
+	resetOrderRepositoryState(t)
+
+	repo := NewOrderRepository(deps)
+	userID := int64(3002)
+	orderNumber1 := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 5, 0, 0, time.UTC), 1, 2)
+	orderNumber2 := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 6, 0, 0, time.UTC), 1, 3)
+
+	route, err := repo.RouteByUserID(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("RouteByUserID() error = %v", err)
+	}
+
+	firstOrder := buildRepositoryOrder(orderNumber1, userID)
+	firstOrder.CreateOrderTime = time.Date(2026, time.March, 24, 10, 5, 0, 0, time.UTC)
+	secondOrder := buildRepositoryOrder(orderNumber2, userID)
+	secondOrder.CreateOrderTime = time.Date(2026, time.March, 24, 10, 6, 0, 0, time.UTC)
+	secondOrder.OrderStatus = 2
+
+	seedRepositoryOrderFixturesIntoTable(t, "d_order_"+route.TableSuffix, firstOrder, secondOrder)
+
+	orders, total, err := repo.FindOrderPageByUser(context.Background(), userID, 0, 1, 10)
+	if err != nil {
+		t.Fatalf("FindOrderPageByUser() error = %v", err)
+	}
+	if total != 2 || len(orders) != 2 {
+		t.Fatalf("page result total=%d len=%d, want 2/2", total, len(orders))
+	}
+	if orders[0].OrderNumber != orderNumber2 || orders[1].OrderNumber != orderNumber1 {
+		t.Fatalf("unexpected order list sequence: %+v", orders)
 	}
 }
 
@@ -144,9 +168,6 @@ func TestDualWriteOrderRepositoryReturnsShadowWriteErrorAfterPrimaryCommit(t *te
 			return err
 		}
 		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
-			return err
-		}
-		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
 			return err
 		}
 		return nil
@@ -183,9 +204,6 @@ func TestDualWriteOrderRepositorySkipsShardShadowWhenRouteWriteModeLegacyPrimary
 		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
 			return err
 		}
-		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
-			return err
-		}
 		return nil
 	})
 	if err != nil {
@@ -220,9 +238,6 @@ func TestDualWriteOrderRepositoryCommitsShardPrimaryWhenLegacyShadowFails(t *tes
 			return err
 		}
 		if err := tx.InsertOrderTickets(ctx, buildRepositoryTickets(orderNumber, userID)); err != nil {
-			return err
-		}
-		if err := tx.InsertUserOrderIndex(ctx, buildRepositoryOrderIndex(orderNumber, userID)); err != nil {
 			return err
 		}
 		return nil
@@ -452,7 +467,6 @@ func newTestOrderRepositoryDeps(t *testing.T, mode string, entries []sharding.Ro
 		LegacyConn:                 legacyConn,
 		LegacyOrderModel:           model.NewDOrderModel(legacyConn),
 		LegacyOrderTicketUserModel: model.NewDOrderTicketUserModel(legacyConn),
-		LegacyUserOrderIndexModel:  model.NewDUserOrderIndexModel(legacyConn),
 		LegacyRouteDirectoryModel:  model.NewDOrderRouteLegacyModel(legacyConn),
 		ShardConns:                 map[string]sqlx.SqlConn{"order-db-0": shardConn0, "order-db-1": shardConn1},
 		RouteMap:                   routeMap,
@@ -562,23 +576,6 @@ func buildRepositoryTickets(orderNumber, userID int64) []*model.DOrderTicketUser
 	}
 }
 
-func buildRepositoryOrderIndex(orderNumber, userID int64) *model.DUserOrderIndex {
-	now := time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)
-	return &model.DUserOrderIndex{
-		Id:              orderNumber + 3001,
-		OrderNumber:     orderNumber,
-		UserId:          userID,
-		ProgramId:       10001,
-		OrderStatus:     1,
-		TicketCount:     2,
-		OrderPrice:      598,
-		CreateOrderTime: now,
-		CreateTime:      now,
-		EditTime:        now,
-		Status:          1,
-	}
-}
-
 func resetOrderRepositoryState(t *testing.T) {
 	t.Helper()
 
@@ -588,11 +585,9 @@ func resetOrderRepositoryState(t *testing.T) {
 	for _, relativePath := range []string{
 		"sql/order/d_order.sql",
 		"sql/order/d_order_ticket_user.sql",
-		"sql/order/d_user_order_index.sql",
 		"sql/order/d_order_route_legacy.sql",
 		"sql/order/sharding/d_order_shards.sql",
 		"sql/order/sharding/d_order_ticket_user_shards.sql",
-		"sql/order/sharding/d_user_order_index_shards.sql",
 	} {
 		execRepositorySQLFile(t, db, relativePath)
 	}

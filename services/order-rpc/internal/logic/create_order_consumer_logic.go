@@ -70,9 +70,6 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		if err := tx.InsertOrderTickets(ctx, writeModels.orderTickets); err != nil {
 			return err
 		}
-		if err := tx.InsertUserOrderIndex(ctx, writeModels.userOrderIndex); err != nil {
-			return err
-		}
 		legacyRoute, err := buildLegacyOrderRouteRecord(orderEvent, tx.Route(), writeModels.order.CreateTime)
 		if err != nil {
 			return err

@@ -24,7 +24,8 @@ CREATE TABLE `d_order_00` (
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 active, 0 deleted',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_number` (`order_number`),
-  KEY `idx_user_status_time` (`user_id`,`order_status`,`create_order_time`),
+  KEY `idx_user_status_time` (`user_id`,`order_status`,`create_order_time`,`id`),
+  KEY `idx_user_time` (`user_id`,`create_order_time`,`id`),
   KEY `idx_program_user_status` (`program_id`,`user_id`,`order_status`),
   KEY `idx_close_scan` (`order_status`,`order_expire_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='order main shard table 00';

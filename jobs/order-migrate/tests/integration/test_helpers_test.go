@@ -48,17 +48,6 @@ type migrateOrderTicketFixture struct {
 	SeatPrice        int64
 }
 
-type migrateUserOrderIndexFixture struct {
-	ID              int64
-	OrderNumber     int64
-	UserID          int64
-	ProgramID       int64
-	OrderStatus     int64
-	TicketCount     int64
-	OrderPrice      int64
-	CreateOrderTime string
-}
-
 func newOrderMigrateTestServiceContext(t *testing.T, cfg jobconfig.Config) *jobsvc.ServiceContext {
 	t.Helper()
 
@@ -155,11 +144,9 @@ func resetOrderMigrateState(t *testing.T) {
 	for _, relativePath := range []string{
 		"sql/order/d_order.sql",
 		"sql/order/d_order_ticket_user.sql",
-		"sql/order/d_user_order_index.sql",
 		"sql/order/d_order_route_legacy.sql",
 		"sql/order/sharding/d_order_shards.sql",
 		"sql/order/sharding/d_order_ticket_user_shards.sql",
-		"sql/order/sharding/d_user_order_index_shards.sql",
 	} {
 		execOrderMigrateSQLFile(t, db, relativePath)
 	}
@@ -323,64 +310,6 @@ func seedShardOrderTicketFixturesIntoTable(t *testing.T, table string, fixtures 
 	}
 }
 
-func seedLegacyUserOrderIndexFixtures(t *testing.T, fixtures ...migrateUserOrderIndexFixture) {
-	t.Helper()
-
-	db := openOrderMigrateTestDB(t)
-	defer db.Close()
-
-	for _, fixture := range fixtures {
-		fixture = withMigrateUserOrderIndexDefaults(fixture)
-		if _, err := db.Exec(
-			`INSERT INTO d_user_order_index (
-				id, order_number, user_id, program_id, order_status, ticket_count, order_price, create_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			fixture.ID,
-			fixture.OrderNumber,
-			fixture.UserID,
-			fixture.ProgramID,
-			fixture.OrderStatus,
-			fixture.TicketCount,
-			fixture.OrderPrice,
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			1,
-		); err != nil {
-			t.Fatalf("seed legacy user order index error: %v", err)
-		}
-	}
-}
-
-func seedShardUserOrderIndexFixturesIntoTable(t *testing.T, table string, fixtures ...migrateUserOrderIndexFixture) {
-	t.Helper()
-
-	db := openOrderMigrateTestDB(t)
-	defer db.Close()
-
-	for _, fixture := range fixtures {
-		fixture = withMigrateUserOrderIndexDefaults(fixture)
-		if _, err := db.Exec(
-			`INSERT INTO `+table+` (
-				id, order_number, user_id, program_id, order_status, ticket_count, order_price, create_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			fixture.ID,
-			fixture.OrderNumber,
-			fixture.UserID,
-			fixture.ProgramID,
-			fixture.OrderStatus,
-			fixture.TicketCount,
-			fixture.OrderPrice,
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			1,
-		); err != nil {
-			t.Fatalf("seed shard user order index into %s error: %v", table, err)
-		}
-	}
-}
-
 func countTableRowsByOrderNumber(t *testing.T, table string, orderNumber int64) int64 {
 	t.Helper()
 
@@ -516,25 +445,6 @@ func withMigrateOrderTicketDefaults(fixture migrateOrderTicketFixture) migrateOr
 	}
 	if fixture.TicketCategoryID == 0 {
 		fixture.TicketCategoryID = 40001
-	}
-	return fixture
-}
-
-func withMigrateUserOrderIndexDefaults(fixture migrateUserOrderIndexFixture) migrateUserOrderIndexFixture {
-	if fixture.ProgramID == 0 {
-		fixture.ProgramID = 10001
-	}
-	if fixture.OrderStatus == 0 {
-		fixture.OrderStatus = 1
-	}
-	if fixture.TicketCount == 0 {
-		fixture.TicketCount = 1
-	}
-	if fixture.OrderPrice == 0 {
-		fixture.OrderPrice = 299
-	}
-	if fixture.CreateOrderTime == "" {
-		fixture.CreateOrderTime = "2026-01-01 00:00:00"
 	}
 	return fixture
 }

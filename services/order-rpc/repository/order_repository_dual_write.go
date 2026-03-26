@@ -284,7 +284,6 @@ func (r *dualWriteOrderRepository) beginLegacyWriteTx(ctx context.Context, route
 		sqlx.NewSessionFromTx(legacySQLTx),
 		r.primary.deps.LegacyOrderModel,
 		r.primary.deps.LegacyOrderTicketUserModel,
-		r.primary.deps.LegacyUserOrderIndexModel,
 		r.primary.deps.LegacyRouteDirectoryModel,
 	), legacySQLTx, nil
 }
@@ -308,7 +307,6 @@ func (r *dualWriteOrderRepository) beginShardWriteTx(ctx context.Context, route 
 		sqlx.NewSessionFromTx(shadowSQLTx),
 		shadowStore.orderModel,
 		shadowStore.ticketModel,
-		shadowStore.indexModel,
 		nil,
 	), shadowSQLTx, nil
 }

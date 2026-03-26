@@ -11,9 +11,8 @@ import (
 )
 
 type orderWriteModels struct {
-	order          *model.DOrder
-	orderTickets   []*model.DOrderTicketUser
-	userOrderIndex *model.DUserOrderIndex
+	order        *model.DOrder
+	orderTickets []*model.DOrderTicketUser
 }
 
 func MapEventToOrderModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*model.DOrder, []*model.DOrderTicketUser, error) {
@@ -103,18 +102,5 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 	return &orderWriteModels{
 		order:        order,
 		orderTickets: orderTickets,
-		userOrderIndex: &model.DUserOrderIndex{
-			Id:              xid.New(),
-			OrderNumber:     orderEvent.OrderNumber,
-			UserId:          orderEvent.UserID,
-			ProgramId:       orderEvent.ProgramID,
-			OrderStatus:     orderStatusUnpaid,
-			TicketCount:     int64(len(orderEvent.TicketUserSnapshot)),
-			OrderPrice:      order.OrderPrice,
-			CreateOrderTime: createOrderTime,
-			CreateTime:      now,
-			EditTime:        now,
-			Status:          1,
-		},
 	}, nil
 }

@@ -19,14 +19,12 @@ const (
 type verifySlotData struct {
 	orders  []*orderRow
 	tickets []*orderTicketRow
-	indexes []*userOrderIndexRow
 }
 
 type verifyShardTarget struct {
 	conn        sqlx.SqlConn
 	orderTable  string
 	ticketTable string
-	indexTable  string
 	slots       []int
 }
 
@@ -73,7 +71,7 @@ func loadLegacyVerifySlotData(ctx context.Context, conn sqlx.SqlConn, logicSlots
 			break
 		}
 	}
-	if err := populateVerifyChildRows(ctx, conn, "d_order_ticket_user", "d_user_order_index", datasets); err != nil {
+	if err := populateVerifyChildRows(ctx, conn, "d_order_ticket_user", datasets); err != nil {
 		return nil, 0, false, err
 	}
 	return datasets, cursor, completed, nil
@@ -98,7 +96,7 @@ func loadShardVerifySlotData(ctx context.Context, shardConns map[string]sqlx.Sql
 		if err := collectVerifyOrdersByTableRange(ctx, target.conn, target.orderTable, afterID, scanEnd, subset); err != nil {
 			return nil, err
 		}
-		if err := populateVerifyChildRows(ctx, target.conn, target.ticketTable, target.indexTable, subset); err != nil {
+		if err := populateVerifyChildRows(ctx, target.conn, target.ticketTable, subset); err != nil {
 			return nil, err
 		}
 	}
@@ -121,7 +119,6 @@ func buildVerifyShardTargets(shardConns map[string]sqlx.SqlConn, routes []shardi
 				conn:        conn,
 				orderTable:  "d_order_" + route.TableSuffix,
 				ticketTable: "d_order_ticket_user_" + route.TableSuffix,
-				indexTable:  "d_user_order_index_" + route.TableSuffix,
 			}
 			targetByKey[key] = target
 		}
@@ -181,7 +178,7 @@ func collectVerifyOrdersByTableRange(ctx context.Context, conn sqlx.SqlConn, tab
 	return nil
 }
 
-func populateVerifyChildRows(ctx context.Context, conn sqlx.SqlConn, ticketTable, indexTable string, datasets map[int]*verifySlotData) error {
+func populateVerifyChildRows(ctx context.Context, conn sqlx.SqlConn, ticketTable string, datasets map[int]*verifySlotData) error {
 	orderNumbers, slotByOrderNumber := collectVerifyOrderNumbers(datasets)
 	if len(orderNumbers) == 0 {
 		return nil
@@ -197,18 +194,6 @@ func populateVerifyChildRows(ctx context.Context, conn sqlx.SqlConn, ticketTable
 			continue
 		}
 		dataset.tickets = append(dataset.tickets, row)
-	}
-
-	indexRows, err := listUserOrderIndexesByOrderNumbers(ctx, conn, indexTable, orderNumbers)
-	if err != nil {
-		return err
-	}
-	for _, row := range indexRows {
-		dataset, ok := datasets[slotByOrderNumber[row.OrderNumber]]
-		if !ok {
-			continue
-		}
-		dataset.indexes = append(dataset.indexes, row)
 	}
 
 	return nil
@@ -272,27 +257,6 @@ func listTicketsByOrderNumbers(ctx context.Context, conn sqlx.SqlConn, table str
 			chunk,
 		)
 		var chunkRows []*orderTicketRow
-		err := conn.QueryRowsCtx(ctx, &chunkRows, query, args...)
-		switch {
-		case err == nil:
-			rows = append(rows, chunkRows...)
-		case err == sqlx.ErrNotFound:
-			continue
-		default:
-			return nil, err
-		}
-	}
-	return rows, nil
-}
-
-func listUserOrderIndexesByOrderNumbers(ctx context.Context, conn sqlx.SqlConn, table string, orderNumbers []int64) ([]*userOrderIndexRow, error) {
-	rows := make([]*userOrderIndexRow, 0)
-	for _, chunk := range chunkOrderNumbers(orderNumbers, verifyOrderNumberQueryBatchSize) {
-		query, args := buildOrderNumberInQuery(
-			fmt.Sprintf("select * from %s where `status` = 1 and `order_number` in (%%s) order by `order_number` asc, `id` asc", table),
-			chunk,
-		)
-		var chunkRows []*userOrderIndexRow
 		err := conn.QueryRowsCtx(ctx, &chunkRows, query, args...)
 		switch {
 		case err == nil:

@@ -50,45 +50,10 @@ func TestVerifyOrdersDetectsTicketSnapshotMismatch(t *testing.T) {
 	seedShardOrderTicketFixturesIntoTable(t, "d_order_ticket_user_"+route.TableSuffix,
 		migrateOrderTicketFixture{ID: 9201, OrderNumber: orderNumber, UserID: userID, TicketUserID: 703, SeatID: 602, SeatRow: 1, SeatCol: 1},
 	)
-	seedLegacyUserOrderIndexFixtures(t, migrateUserOrderIndexFixture{ID: 10201, OrderNumber: orderNumber, UserID: userID, OrderPrice: 299})
-	seedShardUserOrderIndexFixturesIntoTable(t, "d_user_order_index_"+route.TableSuffix,
-		migrateUserOrderIndexFixture{ID: 10201, OrderNumber: orderNumber, UserID: userID, OrderPrice: 299},
-	)
-
 	logic := logicpkg.NewVerifyOrdersLogic(context.Background(), svcCtx)
 	_, err := logic.VerifyOrders()
 	if err == nil || !strings.Contains(err.Error(), "ticket snapshot mismatch") {
 		t.Fatalf("VerifyOrders() error = %v, want ticket snapshot mismatch", err)
-	}
-}
-
-func TestVerifyOrdersDetectsUserOrderIndexMismatch(t *testing.T) {
-	resetOrderMigrateState(t)
-
-	routeMapFile := writeOrderMigrateRouteMapFile(t, "v1", buildOrderMigrateRouteEntries())
-	cfg := newOrderMigrateTestConfig(t, routeMapFile, t.TempDir()+"/checkpoint.json")
-	svcCtx := newOrderMigrateTestServiceContext(t, cfg)
-
-	userID := mustFindUserIDByLogicSlotForMigrate(t, 10)
-	orderNumber := sharding.BuildOrderNumber(userID, mustParseMigrateTime(t, "2026-03-24 12:20:00"), 1, 3)
-	route := routeForUser(userID)
-	orderFixture := migrateOrderFixture{ID: 8301, OrderNumber: orderNumber, UserID: userID, OrderPrice: 299}
-
-	seedLegacyOrderFixtures(t, orderFixture)
-	seedLegacyOrderFixturesIntoTable(t, "d_order_"+route.TableSuffix, orderFixture)
-	seedLegacyOrderTicketFixtures(t, migrateOrderTicketFixture{ID: 9301, OrderNumber: orderNumber, UserID: userID, TicketUserID: 704, SeatID: 611, SeatRow: 1, SeatCol: 1})
-	seedShardOrderTicketFixturesIntoTable(t, "d_order_ticket_user_"+route.TableSuffix,
-		migrateOrderTicketFixture{ID: 9301, OrderNumber: orderNumber, UserID: userID, TicketUserID: 704, SeatID: 611, SeatRow: 1, SeatCol: 1},
-	)
-	seedLegacyUserOrderIndexFixtures(t, migrateUserOrderIndexFixture{ID: 10301, OrderNumber: orderNumber, UserID: userID, OrderStatus: 1, OrderPrice: 299})
-	seedShardUserOrderIndexFixturesIntoTable(t, "d_user_order_index_"+route.TableSuffix,
-		migrateUserOrderIndexFixture{ID: 10301, OrderNumber: orderNumber, UserID: userID, OrderStatus: 2, OrderPrice: 299},
-	)
-
-	logic := logicpkg.NewVerifyOrdersLogic(context.Background(), svcCtx)
-	_, err := logic.VerifyOrders()
-	if err == nil || !strings.Contains(err.Error(), "user order index mismatch") {
-		t.Fatalf("VerifyOrders() error = %v, want user order index mismatch", err)
 	}
 }
 
@@ -113,11 +78,6 @@ func TestVerifyOrdersPromotesBackfillingSlotToVerifying(t *testing.T) {
 	seedShardOrderTicketFixturesIntoTable(t, "d_order_ticket_user_"+route.TableSuffix,
 		migrateOrderTicketFixture{ID: 9401, OrderNumber: orderNumber, UserID: userID, TicketUserID: 704, SeatID: 621, SeatRow: 1, SeatCol: 1},
 	)
-	seedLegacyUserOrderIndexFixtures(t, migrateUserOrderIndexFixture{ID: 10401, OrderNumber: orderNumber, UserID: userID, OrderStatus: 1, OrderPrice: 299})
-	seedShardUserOrderIndexFixturesIntoTable(t, "d_user_order_index_"+route.TableSuffix,
-		migrateUserOrderIndexFixture{ID: 10401, OrderNumber: orderNumber, UserID: userID, OrderStatus: 1, OrderPrice: 299},
-	)
-
 	logic := logicpkg.NewVerifyOrdersLogic(context.Background(), svcCtx)
 	resp, err := logic.VerifyOrders()
 	if err != nil {
@@ -171,18 +131,6 @@ func TestVerifyOrdersPersistsCheckpointBeforePromotingSlots(t *testing.T) {
 		migrateOrderTicketFixture{ID: 9501, OrderNumber: firstOrderNumber, UserID: userID, TicketUserID: 705, SeatID: 631, SeatRow: 1, SeatCol: 1},
 		migrateOrderTicketFixture{ID: 9502, OrderNumber: secondOrderNumber, UserID: userID, TicketUserID: 706, SeatID: 632, SeatRow: 1, SeatCol: 2},
 	)
-	seedLegacyUserOrderIndexFixtures(
-		t,
-		migrateUserOrderIndexFixture{ID: 10501, OrderNumber: firstOrderNumber, UserID: userID, OrderStatus: 1, OrderPrice: 299},
-		migrateUserOrderIndexFixture{ID: 10502, OrderNumber: secondOrderNumber, UserID: userID, OrderStatus: 1, OrderPrice: 399},
-	)
-	seedShardUserOrderIndexFixturesIntoTable(
-		t,
-		"d_user_order_index_"+route.TableSuffix,
-		migrateUserOrderIndexFixture{ID: 10501, OrderNumber: firstOrderNumber, UserID: userID, OrderStatus: 1, OrderPrice: 299},
-		migrateUserOrderIndexFixture{ID: 10502, OrderNumber: secondOrderNumber, UserID: userID, OrderStatus: 1, OrderPrice: 399},
-	)
-
 	logic := logicpkg.NewVerifyOrdersLogic(context.Background(), svcCtx)
 	resp, err := logic.VerifyOrders()
 	if err != nil {
