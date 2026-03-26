@@ -192,7 +192,6 @@ func TestCancelOrderUpdatesShardOrderStatus(t *testing.T) {
 	repeatGuard := &fakeOrderRepeatGuard{}
 	svcCtx.RepeatGuard = repeatGuard
 	resetOrderDomainState(t)
-	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	userID := int64(3001)
 	orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC), 1, 2)

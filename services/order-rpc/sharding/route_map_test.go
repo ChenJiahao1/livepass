@@ -13,14 +13,14 @@ func TestRouteMapSelectsPhysicalTargetByVersionAndSlot(t *testing.T) {
 			DBKey:       "order-db-0",
 			TableSuffix: "00",
 			Status:      RouteStatusStable,
-			WriteMode:   WriteModeLegacyPrimary,
+			WriteMode:   WriteModeShardPrimary,
 		},
 		{
 			Version:     "v2",
 			LogicSlot:   9,
 			DBKey:       "order-db-1",
 			TableSuffix: "07",
-			Status:      RouteStatusPrimaryNew,
+			Status:      RouteStatusStable,
 			WriteMode:   WriteModeShardPrimary,
 		},
 	})
@@ -43,51 +43,42 @@ func TestRouteMapSelectsPhysicalTargetByVersionAndSlot(t *testing.T) {
 	}
 }
 
-func TestMigrationModeRejectsIllegalStateTransition(t *testing.T) {
-	if err := ValidateMigrationModeTransition(MigrationModeLegacyOnly, MigrationModeShardOnly); err == nil {
-		t.Fatalf("ValidateMigrationModeTransition() error = nil, want rejection")
-	}
-	if err := ValidateMigrationModeTransition(MigrationModeLegacyOnly, MigrationModeDualWriteShadow); err != nil {
-		t.Fatalf("ValidateMigrationModeTransition() error = %v, want nil", err)
-	}
-}
-
-func TestRouteMapRejectsInvalidStatusWriteModeCombination(t *testing.T) {
+func TestRouteMapRejectsNonStableShardPrimaryEntries(t *testing.T) {
 	testCases := []struct {
 		name  string
 		entry RouteEntry
 	}{
 		{
-			name: "primary new requires shard primary",
+			name: "non stable status rejected",
 			entry: RouteEntry{
 				Version:     "v1",
 				LogicSlot:   10,
 				DBKey:       "order-db-0",
 				TableSuffix: "00",
-				Status:      RouteStatusPrimaryNew,
-				WriteMode:   WriteModeDualWrite,
+				Status:      "shadow_write",
+				WriteMode:   WriteModeShardPrimary,
 			},
 		},
 		{
-			name: "rollback requires legacy primary",
+			name: "non shard primary rejected",
 			entry: RouteEntry{
 				Version:     "v1",
 				LogicSlot:   11,
 				DBKey:       "order-db-1",
 				TableSuffix: "01",
-				Status:      RouteStatusRollback,
-				WriteMode:   WriteModeDualWrite,
+				Status:      RouteStatusStable,
+				WriteMode:   "primary_old",
 			},
 		},
 		{
-			name: "backfilling requires dual write",
+			name: "dual write rejected",
 			entry: RouteEntry{
 				Version:     "v1",
 				LogicSlot:   12,
 				DBKey:       "order-db-0",
 				TableSuffix: "00",
-				Status:      RouteStatusBackfilling,
-				WriteMode:   WriteModeLegacyPrimary,
+				Status:      RouteStatusStable,
+				WriteMode:   "fanout",
 			},
 		},
 	}
@@ -96,11 +87,23 @@ func TestRouteMapRejectsInvalidStatusWriteModeCombination(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := NewRouteMap("v1", []RouteEntry{tc.entry})
 			if err == nil {
-				t.Fatalf("NewRouteMap() error = nil, want invalid status/write mode rejection")
+				t.Fatalf("NewRouteMap() error = nil, want shard-only route rejection")
 			}
-			if !strings.Contains(err.Error(), "write mode") {
-				t.Fatalf("NewRouteMap() error = %v, want write mode validation message", err)
+			if !strings.Contains(err.Error(), "stable") &&
+				!strings.Contains(err.Error(), "shard_primary") &&
+				!strings.Contains(err.Error(), "unsupported route status") &&
+				!strings.Contains(err.Error(), "unsupported write mode") {
+				t.Fatalf("NewRouteMap() error = %v, want shard-only validation message", err)
 			}
 		})
+	}
+}
+
+func TestValidateRouteStatusTransitionAllowsStableOnly(t *testing.T) {
+	if err := ValidateRouteStatusTransition(RouteStatusStable, RouteStatusStable); err != nil {
+		t.Fatalf("ValidateRouteStatusTransition() error = %v, want nil", err)
+	}
+	if err := ValidateRouteStatusTransition(RouteStatusStable, "shadow_write"); err == nil {
+		t.Fatalf("ValidateRouteStatusTransition() error = nil, want rejection")
 	}
 }

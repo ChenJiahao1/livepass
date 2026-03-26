@@ -116,7 +116,6 @@ func TestCountActiveTicketsByUserProgramIncludesPaidOnly(t *testing.T) {
 func TestGetOrderReadsFromShardByGeneOrderNumber(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
-	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	userID := int64(3001)
 	orderNumber := sharding.BuildOrderNumber(userID, testOrderNow(), 1, 1)
@@ -137,10 +136,9 @@ func TestGetOrderReadsFromShardByGeneOrderNumber(t *testing.T) {
 	}
 }
 
-func TestGetOrderRejectsLegacyOrderNumberInShardOnlyMode(t *testing.T) {
+func TestGetOrderRejectsOldFormatOrderNumber(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
-	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	orderNumber := xid.New()
 	l := logicpkg.NewGetOrderLogic(context.Background(), svcCtx)
@@ -156,7 +154,6 @@ func TestGetOrderRejectsLegacyOrderNumberInShardOnlyMode(t *testing.T) {
 func TestListOrdersReadsFromShardOrderTableDirectly(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
-	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	userID := int64(3001)
 	orderNumber1 := sharding.BuildOrderNumber(userID, testOrderNow(), 1, 1)

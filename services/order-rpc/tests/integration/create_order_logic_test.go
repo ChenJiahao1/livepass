@@ -111,9 +111,6 @@ func TestCreateOrderReturnsOrderNumberAfterKafkaSendSucceeds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseOrderNumber returned error: %v", err)
 	}
-	if parts.Legacy {
-		t.Fatalf("expected gene order number, got legacy format %d", resp.OrderNumber)
-	}
 	if parts.LogicSlot() != sharding.LogicSlotByUserID(3001) {
 		t.Fatalf("expected logic slot %d, got %d", sharding.LogicSlotByUserID(3001), parts.LogicSlot())
 	}
@@ -277,10 +274,10 @@ func TestCreateOrderDoesNotInsertOrderRowsSynchronously(t *testing.T) {
 	if resp.OrderNumber <= 0 {
 		t.Fatalf("expected generated order number, got %d", resp.OrderNumber)
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
+	if countShardOrderRows(t, svcCtx.Config.MySQL.DataSource) != 0 {
 		t.Fatalf("expected no order row before consumer writes database")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 0 {
+	if countShardOrderTicketRows(t, svcCtx.Config.MySQL.DataSource) != 0 {
 		t.Fatalf("expected no order ticket rows before consumer writes database")
 	}
 }
@@ -648,10 +645,10 @@ func TestCreateOrderLeavesTablesEmptyWhenSeatFreezeFails(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected seat freeze error")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
+	if countShardOrderRows(t, svcCtx.Config.MySQL.DataSource) != 0 {
 		t.Fatalf("expected no order row when freeze fails")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 0 {
+	if countShardOrderTicketRows(t, svcCtx.Config.MySQL.DataSource) != 0 {
 		t.Fatalf("expected no order ticket rows when freeze fails")
 	}
 	if programRPC.releaseSeatFreezeCalls != 0 {
@@ -824,10 +821,10 @@ func TestCreateOrderDoesNotFailBeforeAsyncPersistence(t *testing.T) {
 	if programRPC.releaseSeatFreezeCalls != 0 {
 		t.Fatalf("expected no compensation release call before async persistence, got %d", programRPC.releaseSeatFreezeCalls)
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
+	if countShardOrderRows(t, svcCtx.Config.MySQL.DataSource) != 0 {
 		t.Fatalf("expected no order row before consumer persistence")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 0 {
+	if countShardOrderTicketRows(t, svcCtx.Config.MySQL.DataSource) != 0 {
 		t.Fatalf("expected no order ticket rows before consumer persistence")
 	}
 }

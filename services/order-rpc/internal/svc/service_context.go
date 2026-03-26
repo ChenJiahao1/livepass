@@ -5,7 +5,6 @@ import (
 	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
 	"damai-go/services/order-rpc/internal/limitcache"
-	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/repository"
@@ -23,16 +22,12 @@ import (
 type ServiceContext struct {
 	Config                     config.Config
 	SqlConn                    sqlx.SqlConn
-	LegacySqlConn              sqlx.SqlConn
 	ShardSqlConns              map[string]sqlx.SqlConn
 	Redis                      *xredis.Client
 	PurchaseLimitStore         *limitcache.PurchaseLimitStore
-	DOrderModel                model.DOrderModel
-	DOrderTicketUserModel      model.DOrderTicketUserModel
 	OrderRouteMap              *sharding.RouteMap
 	OrderRouter                sharding.Router
 	OrderRepository            repository.OrderRepository
-	ShardingMode               string
 	RepeatGuard                repeatguard.Guard
 	ProgramRpc                 programrpc.ProgramRpc
 	PayRpc                     payrpc.PayRpc
@@ -43,10 +38,9 @@ type ServiceContext struct {
 
 func NewServiceContext(c config.Config) *ServiceContext {
 	c.MySQL = c.MySQL.Normalize()
-	c.Sharding = c.Sharding.Normalize(c.MySQL)
-	c.MySQL = c.Sharding.LegacyMySQL
+	c.Sharding = c.Sharding.Normalize()
 
-	legacyConn := mustNewMysqlConn(c.MySQL)
+	sqlConn := mustNewMysqlConn(c.MySQL)
 	shardConns := make(map[string]sqlx.SqlConn, len(c.Sharding.Shards))
 	for key, shardCfg := range c.Sharding.Shards {
 		shardConns[key] = mustNewMysqlConn(shardCfg)
@@ -57,16 +51,10 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if routeMap != nil {
 		orderRouter = sharding.NewStaticRouter(routeMap)
 	}
-	legacyOrderModel := model.NewDOrderModel(legacyConn)
-	legacyOrderTicketUserModel := model.NewDOrderTicketUserModel(legacyConn)
 	orderRepository := repository.NewOrderRepository(repository.Dependencies{
-		Mode:                       c.Sharding.Mode,
-		LegacyConn:                 legacyConn,
-		LegacyOrderModel:           legacyOrderModel,
-		LegacyOrderTicketUserModel: legacyOrderTicketUserModel,
-		ShardConns:                 shardConns,
-		RouteMap:                   routeMap,
-		Router:                     orderRouter,
+		ShardConns: shardConns,
+		RouteMap:   routeMap,
+		Router:     orderRouter,
 	})
 	var rds *xredis.Client
 	if c.StoreRedis.Host != "" {
@@ -104,17 +92,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	return &ServiceContext{
 		Config:                     c,
-		SqlConn:                    legacyConn,
-		LegacySqlConn:              legacyConn,
+		SqlConn:                    sqlConn,
 		ShardSqlConns:              shardConns,
 		Redis:                      rds,
 		PurchaseLimitStore:         limitcache.NewPurchaseLimitStore(rds, orderRepository, limitcache.Config{}),
-		DOrderModel:                legacyOrderModel,
-		DOrderTicketUserModel:      legacyOrderTicketUserModel,
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,
-		ShardingMode:               c.Sharding.Mode,
 		RepeatGuard:                repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
 		ProgramRpc:                 newProgramRPC(c.ProgramRpc),
 		PayRpc:                     newPayRPC(c.PayRpc),

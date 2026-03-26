@@ -32,8 +32,8 @@ PROGRAM_SQL_FILES=(
 )
 
 ORDER_SQL_FILES=(
-  "sql/order/d_order.sql"
-  "sql/order/d_order_ticket_user.sql"
+  "sql/order/sharding/d_order_shards.sql"
+  "sql/order/sharding/d_order_ticket_user_shards.sql"
 )
 
 PAY_SQL_FILES=(

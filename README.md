@@ -25,7 +25,7 @@ docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
 
 当前仓库提供的基础设施 compose 已包含 MySQL、Redis、etcd、Kafka。`services/order-rpc/etc/order-rpc.yaml` 的本地 `Kafka.Brokers` 默认指向 `127.0.0.1:9094`，与 compose 暴露端口保持一致。当前下单异步链路语义对齐原 Java 开源版：Kafka 发送失败时立即释放锁座并返回错误；创建消息超过 `Kafka.MaxMessageDelay` 仍未消费时，consumer 会按废单处理并释放锁座，不再补写订单。这不是“消息绝不丢失”的方案。
 
-如需模拟 `legacy + order-db-0 + order-db-1` 真实分库，可使用专用 MySQL compose：
+如需模拟 `order-db-0 + order-db-1` 订单分片库，可使用专用 MySQL compose：
 
 ```bash
 docker compose -f deploy/mysql/docker-compose.sharding.yml up -d
@@ -33,7 +33,6 @@ docker compose -f deploy/mysql/docker-compose.sharding.yml up -d
 
 对应端口：
 
-- `legacy`: `127.0.0.1:3316`
 - `order-db-0`: `127.0.0.1:3317`
 - `order-db-1`: `127.0.0.1:3318`
 

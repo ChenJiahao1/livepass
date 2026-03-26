@@ -18,9 +18,6 @@ func TestLogicSlotByUserIDMatchesOrderNumber(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseOrderNumber() error = %v", err)
 	}
-	if parts.Legacy {
-		t.Fatalf("ParseOrderNumber() legacy = true, want false")
-	}
 
 	slotByOrder := int(parts.DBGene)<<5 | int(parts.TableGene)
 	if slotByOrder != slotByUser {
@@ -34,7 +31,7 @@ func TestLogicSlotByUserIDMatchesOrderNumber(t *testing.T) {
 	}
 }
 
-func TestParseLegacyOrderNumberRequiresDirectoryLookup(t *testing.T) {
+func TestParseOldFormatOrderNumberReturnsInvalid(t *testing.T) {
 	node, err := snowflake.NewNode(7)
 	if err != nil {
 		t.Fatalf("snowflake.NewNode() error = %v", err)

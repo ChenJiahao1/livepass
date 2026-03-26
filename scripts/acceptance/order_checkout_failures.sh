@@ -167,7 +167,7 @@ scenario_close_expired_order() {
   create_order
   wait_order_visible
 
-  mysql_exec_db "damai_order" "UPDATE d_order SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}"
+  mysql_exec_db "damai_order" "UPDATE d_order_00 SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}; UPDATE d_order_01 SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}"
   run_order_close_once
 
   body="$(curl_json "/order/get" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"

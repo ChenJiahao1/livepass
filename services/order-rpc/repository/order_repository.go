@@ -34,28 +34,11 @@ type OrderRepository interface {
 }
 
 type Dependencies struct {
-	Mode                       string
-	LegacyConn                 sqlx.SqlConn
-	LegacyOrderModel           model.DOrderModel
-	LegacyOrderTicketUserModel model.DOrderTicketUserModel
-	ShardConns                 map[string]sqlx.SqlConn
-	RouteMap                   *sharding.RouteMap
-	Router                     sharding.Router
+	ShardConns map[string]sqlx.SqlConn
+	RouteMap   *sharding.RouteMap
+	Router     sharding.Router
 }
 
 func NewOrderRepository(deps Dependencies) OrderRepository {
-	legacyRepo := newLegacyOrderRepository(deps)
-	if deps.Router == nil || deps.RouteMap == nil || len(deps.ShardConns) == 0 {
-		return legacyRepo
-	}
-
-	shardedRepo := newShardedOrderRepository(deps)
-	switch deps.Mode {
-	case sharding.MigrationModeShardOnly:
-		return shardedRepo
-	case sharding.MigrationModeDualWriteShadow, sharding.MigrationModeDualWriteReadOld, sharding.MigrationModeDualWriteReadNew:
-		return newDualWriteOrderRepository(deps.Mode, legacyRepo, shardedRepo)
-	default:
-		return legacyRepo
-	}
+	return newShardedOrderRepository(deps)
 }

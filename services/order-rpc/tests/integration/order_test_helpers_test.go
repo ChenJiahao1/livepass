@@ -238,18 +238,12 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	shardConn0 := sqlx.NewMysql(cfg.Sharding.Shards["order-db-0"].DataSource)
 	shardConn1 := sqlx.NewMysql(cfg.Sharding.Shards["order-db-1"].DataSource)
 	redisClient := xredis.MustNew(cfg.StoreRedis)
-	legacyOrderModel := model.NewDOrderModel(conn)
-	legacyOrderTicketUserModel := model.NewDOrderTicketUserModel(conn)
 	routeMap, err := sharding.NewRouteMap(cfg.Sharding.RouteMap.Version, buildOrderTestRouteEntries())
 	if err != nil {
 		t.Fatalf("NewRouteMap error: %v", err)
 	}
 	orderRouter := sharding.NewStaticRouter(routeMap)
 	orderRepository := repository.NewOrderRepository(repository.Dependencies{
-		Mode:                       cfg.Sharding.Mode,
-		LegacyConn:                 conn,
-		LegacyOrderModel:           legacyOrderModel,
-		LegacyOrderTicketUserModel: legacyOrderTicketUserModel,
 		ShardConns: map[string]sqlx.SqlConn{
 			"order-db-0": shardConn0,
 			"order-db-1": shardConn1,
@@ -263,24 +257,20 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		LoadingCooldown: 200 * time.Millisecond,
 	})
 	svcCtx := &svc.ServiceContext{
-		Config:        cfg,
-		SqlConn:       conn,
-		LegacySqlConn: conn,
+		Config:  cfg,
+		SqlConn: conn,
 		ShardSqlConns: map[string]sqlx.SqlConn{
 			"order-db-0": shardConn0,
 			"order-db-1": shardConn1,
 		},
-		Redis:                      redisClient,
-		PurchaseLimitStore:         purchaseLimitStore,
-		DOrderModel:                legacyOrderModel,
-		DOrderTicketUserModel:      legacyOrderTicketUserModel,
-		OrderRouteMap:              routeMap,
-		OrderRouter:                orderRouter,
-		OrderRepository:            orderRepository,
-		ShardingMode:               cfg.Sharding.Mode,
-		ProgramRpc:                 programRPC,
-		UserRpc:                    userRPC,
-		PayRpc:                     payRPC,
+		Redis:              redisClient,
+		PurchaseLimitStore: purchaseLimitStore,
+		OrderRouteMap:      routeMap,
+		OrderRouter:        orderRouter,
+		OrderRepository:    orderRepository,
+		ProgramRpc:         programRPC,
+		UserRpc:            userRPC,
+		PayRpc:             payRPC,
 		OrderCreateProducer:        orderCreateProducer,
 		OrderCreateConsumerFactory: orderCreateConsumerFactory,
 	}
@@ -290,10 +280,7 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 
 func buildOrderTestShardingConfig() config.ShardingConfig {
 	return config.ShardingConfig{
-		Mode: sharding.MigrationModeLegacyOnly,
-		LegacyMySQL: xmysql.Config{
-			DataSource: testOrderMySQLDataSource,
-		},
+		Mode: "shard_only",
 		Shards: map[string]xmysql.Config{
 			"order-db-0": {DataSource: testOrderMySQLDataSource},
 			"order-db-1": {DataSource: testOrderMySQLDataSource},
@@ -331,7 +318,7 @@ func buildOrderTestRouteEntries() []sharding.RouteEntry {
 			DBKey:       "order-db-0",
 			TableSuffix: "00",
 			Status:      sharding.RouteStatusStable,
-			WriteMode:   sharding.WriteModeLegacyPrimary,
+			WriteMode:   sharding.WriteModeShardPrimary,
 		}
 		if slot%2 == 1 {
 			entry.DBKey = "order-db-1"
@@ -433,11 +420,11 @@ func requirePurchaseLimitLedgerAbsentFor(t *testing.T, svcCtx *svc.ServiceContex
 func primePurchaseLimitLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
 	t.Helper()
 
-	activeCount, err := svcCtx.DOrderModel.CountActiveTicketsByUserProgram(context.Background(), userID, programID)
+	activeCount, err := svcCtx.OrderRepository.CountActiveTicketsByUserProgram(context.Background(), userID, programID)
 	if err != nil {
 		t.Fatalf("count active tickets for purchase limit ledger error: %v", err)
 	}
-	reservations, err := svcCtx.DOrderModel.ListUnpaidReservationsByUserProgram(context.Background(), userID, programID)
+	reservations, err := svcCtx.OrderRepository.ListUnpaidReservationsByUserProgram(context.Background(), userID, programID)
 	if err != nil {
 		t.Fatalf("list unpaid reservations for purchase limit ledger error: %v", err)
 	}
@@ -529,8 +516,6 @@ func resetOrderDomainState(t *testing.T) {
 	defer db.Close()
 
 	for _, relativePath := range []string{
-		"sql/order/d_order.sql",
-		"sql/order/d_order_ticket_user.sql",
 		"sql/order/sharding/d_order_shards.sql",
 		"sql/order/sharding/d_order_ticket_user_shards.sql",
 	} {
@@ -538,146 +523,23 @@ func resetOrderDomainState(t *testing.T) {
 	}
 }
 
-func setOrderTestRepositoryMode(t *testing.T, svcCtx *svc.ServiceContext, mode string) {
-	t.Helper()
-
-	svcCtx.Config.Sharding.Mode = mode
-	svcCtx.ShardingMode = mode
-	svcCtx.Config.Sharding.RouteMap.Version = "v1"
-	svcCtx.Config.Sharding.RouteMap.Entries = buildOrderTestRouteEntryConfigsForMode(mode)
-
-	routeMap, err := sharding.NewRouteMap("v1", buildOrderTestRouteEntriesForMode(mode))
-	if err != nil {
-		t.Fatalf("NewRouteMap error: %v", err)
-	}
-	svcCtx.OrderRouteMap = routeMap
-	svcCtx.OrderRouter = sharding.NewStaticRouter(routeMap)
-	svcCtx.OrderRepository = repository.NewOrderRepository(repository.Dependencies{
-		Mode:                       mode,
-		LegacyConn:                 svcCtx.LegacySqlConn,
-		LegacyOrderModel:           svcCtx.DOrderModel,
-		LegacyOrderTicketUserModel: svcCtx.DOrderTicketUserModel,
-		ShardConns:                 svcCtx.ShardSqlConns,
-		RouteMap:                   routeMap,
-		Router:                     svcCtx.OrderRouter,
-	})
-	svcCtx.PurchaseLimitStore = limitcache.NewPurchaseLimitStore(svcCtx.Redis, svcCtx.OrderRepository, limitcache.Config{
-		Prefix:          testPurchaseLimitLedgerPrefix,
-		LedgerTTL:       time.Hour,
-		LoadingCooldown: 200 * time.Millisecond,
-	})
-}
-
-func buildOrderTestRouteEntryConfigsForMode(mode string) []config.RouteEntryConfig {
-	entries := buildOrderTestRouteEntriesForMode(mode)
-	configs := make([]config.RouteEntryConfig, 0, len(entries))
-	for _, entry := range entries {
-		configs = append(configs, config.RouteEntryConfig{
-			Version:     entry.Version,
-			LogicSlot:   entry.LogicSlot,
-			DBKey:       entry.DBKey,
-			TableSuffix: entry.TableSuffix,
-			Status:      entry.Status,
-			WriteMode:   entry.WriteMode,
-		})
-	}
-	return configs
-}
-
-func buildOrderTestRouteEntriesForMode(mode string) []sharding.RouteEntry {
-	entries := buildOrderTestRouteEntries()
-	switch mode {
-	case sharding.MigrationModeDualWriteShadow, sharding.MigrationModeDualWriteReadOld, sharding.MigrationModeDualWriteReadNew:
-		for idx := range entries {
-			entries[idx].Status = sharding.RouteStatusShadowWrite
-			entries[idx].WriteMode = sharding.WriteModeDualWrite
-		}
-	case sharding.MigrationModeShardOnly:
-		for idx := range entries {
-			entries[idx].Status = sharding.RouteStatusPrimaryNew
-			entries[idx].WriteMode = sharding.WriteModeShardPrimary
-		}
-	}
-	return entries
-}
-
 func seedOrderFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...orderFixture) {
 	t.Helper()
 
-	db := openOrderTestDB(t, svcCtx.Config.MySQL.DataSource)
-	defer db.Close()
-
 	for _, fixture := range fixtures {
 		fixture = withOrderFixtureDefaults(fixture)
-		mustExecOrderSQL(
-			t,
-			db,
-			`INSERT INTO d_order (
-				id, order_number, program_id, program_title, program_item_picture, program_place, program_show_time,
-				program_permit_choose_seat, user_id, distribution_mode, take_ticket_mode, ticket_count, order_price,
-				order_status, freeze_token, order_expire_time, create_order_time, cancel_order_time, pay_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			fixture.ID,
-			fixture.OrderNumber,
-			fixture.ProgramID,
-			fixture.ProgramTitle,
-			fixture.ProgramItemPicture,
-			fixture.ProgramPlace,
-			fixture.ProgramShowTime,
-			fixture.ProgramPermitChooseSeat,
-			fixture.UserID,
-			fixture.DistributionMode,
-			fixture.TakeTicketMode,
-			fixture.TicketCount,
-			fixture.OrderPrice,
-			fixture.OrderStatus,
-			fixture.FreezeToken,
-			fixture.OrderExpireTime,
-			fixture.CreateOrderTime,
-			nullTimeIfEmpty(fixture.CancelOrderTime),
-			nullTimeIfEmpty(fixture.PayOrderTime),
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			1,
-		)
+		route := orderRouteForUser(t, svcCtx, fixture.UserID)
+		seedOrderFixturesIntoTable(t, svcCtx.Config.MySQL.DataSource, "d_order_"+route.TableSuffix, fixture)
 	}
 }
 
 func seedOrderTicketUserFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...orderTicketUserFixture) {
 	t.Helper()
 
-	db := openOrderTestDB(t, svcCtx.Config.MySQL.DataSource)
-	defer db.Close()
-
 	for _, fixture := range fixtures {
 		fixture = withOrderTicketUserFixtureDefaults(fixture)
-		mustExecOrderSQL(
-			t,
-			db,
-			`INSERT INTO d_order_ticket_user (
-				id, order_number, user_id, ticket_user_id, ticket_user_name, ticket_user_id_number,
-				ticket_category_id, ticket_category_name, ticket_price, seat_id, seat_row, seat_col,
-				seat_price, order_status, create_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			fixture.ID,
-			fixture.OrderNumber,
-			fixture.UserID,
-			fixture.TicketUserID,
-			fixture.TicketUserName,
-			fixture.TicketUserIDNumber,
-			fixture.TicketCategoryID,
-			fixture.TicketCategoryName,
-			fixture.TicketPrice,
-			fixture.SeatID,
-			fixture.SeatRow,
-			fixture.SeatCol,
-			fixture.SeatPrice,
-			fixture.OrderStatus,
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			fixture.CreateOrderTime,
-			1,
-		)
+		route := orderRouteForUser(t, svcCtx, fixture.UserID)
+		seedOrderTicketUserFixturesIntoTable(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user_"+route.TableSuffix, fixture)
 	}
 }
 
@@ -705,10 +567,40 @@ func countRows(t *testing.T, dataSource, table string) int64 {
 	return count
 }
 
+func countShardOrderRows(t *testing.T, dataSource string) int64 {
+	t.Helper()
+
+	var count int64
+	for _, table := range []string{"d_order_00", "d_order_01"} {
+		count += countRows(t, dataSource, table)
+	}
+
+	return count
+}
+
+func countShardOrderTicketRows(t *testing.T, dataSource string) int64 {
+	t.Helper()
+
+	var count int64
+	for _, table := range []string{"d_order_ticket_user_00", "d_order_ticket_user_01"} {
+		count += countRows(t, dataSource, table)
+	}
+
+	return count
+}
+
 func findOrderStatus(t *testing.T, dataSource string, orderNumber int64) int64 {
 	t.Helper()
 
-	return findOrderStatusFromTable(t, dataSource, "d_order", orderNumber)
+	for _, table := range []string{"d_order_00", "d_order_01"} {
+		status, found := findOrderStatusFromTableIfExists(t, dataSource, table, orderNumber)
+		if found {
+			return status
+		}
+	}
+
+	t.Fatalf("order status not found for orderNumber=%d", orderNumber)
+	return 0
 }
 
 func findOrderStatusFromTable(t *testing.T, dataSource, table string, orderNumber int64) int64 {
@@ -725,10 +617,37 @@ func findOrderStatusFromTable(t *testing.T, dataSource, table string, orderNumbe
 	return status
 }
 
+func findOrderStatusFromTableIfExists(t *testing.T, dataSource, table string, orderNumber int64) (int64, bool) {
+	t.Helper()
+
+	db := openOrderTestDB(t, dataSource)
+	defer db.Close()
+
+	var status int64
+	err := db.QueryRow("SELECT order_status FROM "+table+" WHERE order_number = ?", orderNumber).Scan(&status)
+	if err == nil {
+		return status, true
+	}
+	if err == sql.ErrNoRows {
+		return 0, false
+	}
+
+	t.Fatalf("QueryRow order status error: %v", err)
+	return 0, false
+}
+
 func findOrderTicketStatus(t *testing.T, dataSource string, orderNumber int64) int64 {
 	t.Helper()
 
-	return findOrderTicketStatusFromTable(t, dataSource, "d_order_ticket_user", orderNumber)
+	for _, table := range []string{"d_order_ticket_user_00", "d_order_ticket_user_01"} {
+		status, found := findOrderTicketStatusFromTableIfExists(t, dataSource, table, orderNumber)
+		if found {
+			return status
+		}
+	}
+
+	t.Fatalf("order ticket status not found for orderNumber=%d", orderNumber)
+	return 0
 }
 
 func findOrderTicketStatusFromTable(t *testing.T, dataSource, table string, orderNumber int64) int64 {
@@ -743,6 +662,25 @@ func findOrderTicketStatusFromTable(t *testing.T, dataSource, table string, orde
 	}
 
 	return status
+}
+
+func findOrderTicketStatusFromTableIfExists(t *testing.T, dataSource, table string, orderNumber int64) (int64, bool) {
+	t.Helper()
+
+	db := openOrderTestDB(t, dataSource)
+	defer db.Close()
+
+	var status int64
+	err := db.QueryRow("SELECT order_status FROM "+table+" WHERE order_number = ? ORDER BY id ASC LIMIT 1", orderNumber).Scan(&status)
+	if err == nil {
+		return status, true
+	}
+	if err == sql.ErrNoRows {
+		return 0, false
+	}
+
+	t.Fatalf("QueryRow order ticket status error: %v", err)
+	return 0, false
 }
 
 func (f *fakeOrderProgramRPC) ConfirmSeatFreeze(ctx context.Context, in *programrpc.ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*programrpc.ConfirmSeatFreezeResp, error) {

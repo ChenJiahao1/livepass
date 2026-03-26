@@ -16,7 +16,7 @@ const (
 	orderCreateCompensationTimeout     = 2 * time.Second
 )
 
-func compensateOrderCreateSendFailureLegacy(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken string) {
+func compensateOrderCreateSendFailureFallback(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken string) {
 	releaseOrderCreateFreeze(ctx, svcCtx, freezeToken, orderCreateSendFailedReleaseReason)
 }
 

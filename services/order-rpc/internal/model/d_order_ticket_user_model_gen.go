@@ -61,7 +61,7 @@ type (
 func newDOrderTicketUserModel(conn sqlx.SqlConn) *defaultDOrderTicketUserModel {
 	return &defaultDOrderTicketUserModel{
 		conn:  conn,
-		table: "`d_order_ticket_user`",
+		table: "`d_order_ticket_user_00`",
 	}
 }
 

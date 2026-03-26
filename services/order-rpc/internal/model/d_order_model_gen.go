@@ -66,7 +66,7 @@ type (
 func newDOrderModel(conn sqlx.SqlConn) *defaultDOrderModel {
 	return &defaultDOrderModel{
 		conn:  conn,
-		table: "`d_order`",
+		table: "`d_order_00`",
 	}
 }
 

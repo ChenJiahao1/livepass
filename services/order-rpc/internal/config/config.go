@@ -6,7 +6,6 @@ import (
 
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
-	"damai-go/services/order-rpc/sharding"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -53,19 +52,14 @@ type RouteMapConfig struct {
 
 type ShardingConfig struct {
 	Mode        string                   `json:",default=shard_only"`
-	LegacyMySQL xmysql.Config            `json:"LegacyMySQL,optional"`
 	Shards      map[string]xmysql.Config `json:",optional"`
 	RouteMap    RouteMapConfig           `json:"RouteMap,optional"`
 }
 
-func (c ShardingConfig) Normalize(legacyMySQL xmysql.Config) ShardingConfig {
+func (c ShardingConfig) Normalize() ShardingConfig {
 	if c.Mode == "" {
-		c.Mode = sharding.MigrationModeShardOnly
+		c.Mode = "shard_only"
 	}
-	if c.LegacyMySQL.DataSource == "" {
-		c.LegacyMySQL = legacyMySQL
-	}
-	c.LegacyMySQL = c.LegacyMySQL.Normalize()
 	if c.Shards == nil {
 		c.Shards = map[string]xmysql.Config{}
 	}

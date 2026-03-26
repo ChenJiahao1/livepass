@@ -58,7 +58,7 @@
   - 本轮压测期望的座位总量
 - `REQUIRE_CLEAN_STATE`
   - 默认 `1`
-  - 要求 `d_order`、Redis frozen keys 在开跑前是干净的
+  - 要求订单分片表、Redis frozen keys 在开跑前是干净的
 - `REQUIRE_ZERO_LAG`
   - 默认 `1`
   - 要求 Kafka consumer lag 为 `0`
@@ -213,7 +213,7 @@ k6 run \
 - `remain_number` 是否等于 `REQUIRED_SEAT_COUNT`
 - MySQL 可售座位数是否等于 `REQUIRED_SEAT_COUNT`
 - 若 `REQUIRE_CLEAN_STATE=1`
-  - `damai_order.d_order = 0`
+  - `damai_order.d_order_00 + damai_order.d_order_01 = 0`
 
 ### 6.6 Redis seat ledger
 

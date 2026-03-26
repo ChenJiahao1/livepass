@@ -648,7 +648,7 @@ check_program_inventory() {
   total_seats="$(mysql_scalar "SELECT COUNT(*) FROM damai_program.d_seat WHERE program_id = ${PROGRAM_ID} AND ticket_category_id = ${TICKET_CATEGORY_ID} AND status = 1;")"
   remain_number="$(mysql_scalar "SELECT remain_number FROM damai_program.d_ticket_category WHERE id = ${TICKET_CATEGORY_ID};")"
   available_count="$(mysql_scalar "SELECT COUNT(*) FROM damai_program.d_seat WHERE program_id = ${PROGRAM_ID} AND ticket_category_id = ${TICKET_CATEGORY_ID} AND seat_status = 1 AND status = 1;")"
-  order_count="$(mysql_scalar "SELECT COUNT(*) FROM damai_order.d_order;")"
+  order_count="$(mysql_scalar "SELECT (SELECT COUNT(*) FROM damai_order.d_order_00) + (SELECT COUNT(*) FROM damai_order.d_order_01);")"
 
   if [[ "${program_exists}" != "1" ]]; then
     fail_check "program missing: programId=${PROGRAM_ID}"
@@ -682,12 +682,12 @@ check_program_inventory() {
 
   if (( REQUIRE_CLEAN_STATE == 1 )); then
     if [[ "${order_count}" != "0" ]]; then
-      fail_check "order table not clean: d_order=${order_count}"
+      fail_check "order shard tables not clean: total=${order_count}"
     else
-      pass "order table clean"
+      pass "order shard tables clean"
     fi
   else
-    warn "clean state check skipped: d_order=${order_count}"
+    warn "clean state check skipped: shard_total=${order_count}"
   fi
 }
 

@@ -75,7 +75,6 @@ func TestCloseExpiredOrdersClosesOnlyExpiredUnpaidRows(t *testing.T) {
 func TestCloseExpiredOrdersScansRequestedLogicSlots(t *testing.T) {
 	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
-	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	slot10UserID := mustFindOrderTestUserIDByLogicSlot(t, 10)
 	slot11UserID := mustFindOrderTestUserIDByLogicSlot(t, 11)

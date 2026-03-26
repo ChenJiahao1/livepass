@@ -167,7 +167,7 @@ main() {
 
   require_cmd mysql
 
-  current_order_count="$(run_mysql_scalar 'SELECT COUNT(*) FROM d_order;')"
+  current_order_count="$(run_mysql_scalar 'SELECT (SELECT COUNT(*) FROM d_order_00) + (SELECT COUNT(*) FROM d_order_01);')"
   if [[ -n "${BASELINE_START_ORDER_COUNT}" ]]; then
     order_delta="$((current_order_count - BASELINE_START_ORDER_COUNT))"
   else
@@ -180,8 +180,8 @@ main() {
 
   printf '%-32s %s\n' "metric" "value"
   printf '%-32s %s\n' "kafka_lag_total" "${kafka_lag_total}"
-  printf '%-32s %s\n' "d_order_count" "${current_order_count}"
-  printf '%-32s %s\n' "d_order_delta_vs_start" "${order_delta}"
+  printf '%-32s %s\n' "shard_order_count" "${current_order_count}"
+  printf '%-32s %s\n' "shard_order_delta_vs_start" "${order_delta}"
   printf '%-32s %s\n' "sample_visibility_latency_ms" "${visibility_latency}"
   printf '%-32s %s\n' "skip_expired_event_count" "${expired_skip_count}"
 }

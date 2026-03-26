@@ -23,7 +23,6 @@ type OrderNumberParts struct {
 	TableGene uint8
 	WorkerID  int64
 	Sequence  int64
-	Legacy    bool
 }
 
 func (p OrderNumberParts) LogicSlot() int {
@@ -56,7 +55,7 @@ func ParseOrderNumber(orderNumber int64) (OrderNumberParts, error) {
 	}
 
 	timePart := orderNumber >> timePartShift
-	if isLegacyOrderNumber(timePart) {
+	if isOldFormatOrderNumber(timePart) {
 		return OrderNumberParts{}, ErrInvalidOrderNumber
 	}
 
@@ -78,12 +77,12 @@ func LogicSlotByOrderNumber(orderNumber int64) (int, error) {
 	return parts.LogicSlot(), nil
 }
 
-func isLegacyOrderNumber(timePart int64) bool {
+func isOldFormatOrderNumber(timePart int64) bool {
 	if timePart < 0 || timePart > maxOrderTimePart {
 		return true
 	}
 
-	// Legacy snowflake IDs encode millisecond timestamps in the high bits.
+	// Old snowflake IDs encode millisecond timestamps in the high bits.
 	// After shifting into this layout they decode to implausibly future seconds.
 	nowPart := time.Now().UTC().Unix() - orderNumberEpoch
 	return timePart > nowPart+7*24*60*60

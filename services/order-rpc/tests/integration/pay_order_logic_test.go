@@ -22,7 +22,6 @@ func TestPayOrder(t *testing.T) {
 		repeatGuard := &fakeOrderRepeatGuard{}
 		svcCtx.RepeatGuard = repeatGuard
 		resetOrderDomainState(t)
-		setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 		userID := int64(3001)
 		orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC), 1, 1)
@@ -59,8 +58,8 @@ func TestPayOrder(t *testing.T) {
 		if resp.OrderStatus != testOrderStatusPaid {
 			t.Fatalf("unexpected response: %+v", resp)
 		}
-		if countRows(t, testOrderMySQLDataSource, "d_order") != 0 {
-			t.Fatalf("expected legacy table to stay untouched in shard only mode")
+		if countShardOrderRows(t, testOrderMySQLDataSource) != 1 {
+			t.Fatalf("expected exactly one shard order row after pay")
 		}
 		if findOrderStatusFromTable(t, testOrderMySQLDataSource, "d_order_"+route.TableSuffix, orderNumber) != testOrderStatusPaid {
 			t.Fatalf("expected shard order status paid")

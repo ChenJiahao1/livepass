@@ -19,7 +19,6 @@ func TestRefundOrder(t *testing.T) {
 	t.Run("paid shard order refunds and updates shard snapshots", func(t *testing.T) {
 		svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
 		resetOrderDomainState(t)
-		setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 		userID := int64(3001)
 		orderNumber := sharding.BuildOrderNumber(userID, time.Date(2026, time.March, 24, 10, 30, 0, 0, time.UTC), 1, 3)

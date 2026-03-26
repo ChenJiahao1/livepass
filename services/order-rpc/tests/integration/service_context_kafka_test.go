@@ -67,8 +67,8 @@ func TestNewOrderServiceContextEnsuresKafkaTopicExists(t *testing.T) {
 func TestNewOrderServiceContextBuildsShardingResources(t *testing.T) {
 	cfg := buildKafkaServiceContextConfig("order.create.command.v1")
 	svcCtx := svc.NewServiceContext(cfg)
-	if svcCtx.LegacySqlConn == nil {
-		t.Fatalf("expected legacy sql conn to be wired")
+	if svcCtx.SqlConn == nil {
+		t.Fatalf("expected sql conn to be wired")
 	}
 	if len(svcCtx.ShardSqlConns) != 2 {
 		t.Fatalf("expected 2 shard sql conns, got %d", len(svcCtx.ShardSqlConns))
@@ -132,8 +132,6 @@ Kafka:
   MaxMessageDelay: 60s
 Sharding:
   Mode: shard_only
-  LegacyMySQL:
-    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
   Shards:
     order-db-0:
       DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
@@ -209,8 +207,6 @@ Kafka:
   Brokers:
     - 127.0.0.1:9094
 Sharding:
-  LegacyMySQL:
-    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
   Shards:
     order-db-0:
       DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
@@ -275,9 +271,6 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 		},
 		Sharding: config.ShardingConfig{
 			Mode: "shard_only",
-			LegacyMySQL: xmysql.Config{
-				DataSource: testOrderMySQLDataSource,
-			},
 			Shards: map[string]xmysql.Config{
 				"order-db-0": {
 					DataSource: testOrderMySQLDataSource,

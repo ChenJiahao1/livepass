@@ -6,16 +6,9 @@ import (
 )
 
 const (
-	RouteStatusStable      = "stable"
-	RouteStatusShadowWrite = "shadow_write"
-	RouteStatusBackfilling = "backfilling"
-	RouteStatusVerifying   = "verifying"
-	RouteStatusPrimaryNew  = "primary_new"
-	RouteStatusRollback    = "rollback"
+	RouteStatusStable = "stable"
 
-	WriteModeLegacyPrimary = "legacy_primary"
-	WriteModeDualWrite     = "dual_write"
-	WriteModeShardPrimary  = "shard_primary"
+	WriteModeShardPrimary = "shard_primary"
 )
 
 var (
@@ -26,32 +19,7 @@ var (
 
 var allowedRouteStatusTransitions = map[string]map[string]struct{}{
 	RouteStatusStable: {
-		RouteStatusStable:      {},
-		RouteStatusShadowWrite: {},
-	},
-	RouteStatusShadowWrite: {
-		RouteStatusStable:      {},
-		RouteStatusShadowWrite: {},
-		RouteStatusBackfilling: {},
-	},
-	RouteStatusBackfilling: {
-		RouteStatusShadowWrite: {},
-		RouteStatusBackfilling: {},
-		RouteStatusVerifying:   {},
-	},
-	RouteStatusVerifying: {
-		RouteStatusBackfilling: {},
-		RouteStatusVerifying:   {},
-		RouteStatusPrimaryNew:  {},
-	},
-	RouteStatusPrimaryNew: {
-		RouteStatusPrimaryNew: {},
-		RouteStatusRollback:   {},
-	},
-	RouteStatusRollback: {
-		RouteStatusRollback:    {},
-		RouteStatusShadowWrite: {},
-		RouteStatusStable:      {},
+		RouteStatusStable: {},
 	},
 }
 
@@ -162,26 +130,18 @@ func validateRouteEntry(entry RouteEntry) error {
 }
 
 func validateRouteStatusWriteMode(status, writeMode string) error {
-	switch status {
-	case RouteStatusStable, RouteStatusRollback:
-		if writeMode != WriteModeLegacyPrimary && writeMode != WriteModeShardPrimary {
-			return fmt.Errorf("%w: route status %s requires write mode %s or %s", ErrInvalidRouteEntry, status, WriteModeLegacyPrimary, WriteModeShardPrimary)
-		}
-	case RouteStatusShadowWrite, RouteStatusBackfilling, RouteStatusVerifying:
-		if writeMode != WriteModeDualWrite {
-			return fmt.Errorf("%w: route status %s requires write mode %s", ErrInvalidRouteEntry, status, WriteModeDualWrite)
-		}
-	case RouteStatusPrimaryNew:
-		if writeMode != WriteModeShardPrimary {
-			return fmt.Errorf("%w: route status %s requires write mode %s", ErrInvalidRouteEntry, status, WriteModeShardPrimary)
-		}
+	if status != RouteStatusStable {
+		return fmt.Errorf("%w: route status %s requires %s", ErrInvalidRouteEntry, status, RouteStatusStable)
+	}
+	if writeMode != WriteModeShardPrimary {
+		return fmt.Errorf("%w: route write mode %s requires %s", ErrInvalidRouteEntry, writeMode, WriteModeShardPrimary)
 	}
 	return nil
 }
 
 func isSupportedRouteStatus(status string) bool {
 	switch status {
-	case RouteStatusStable, RouteStatusShadowWrite, RouteStatusBackfilling, RouteStatusVerifying, RouteStatusPrimaryNew, RouteStatusRollback:
+	case RouteStatusStable:
 		return true
 	default:
 		return false
@@ -190,7 +150,7 @@ func isSupportedRouteStatus(status string) bool {
 
 func isSupportedWriteMode(mode string) bool {
 	switch mode {
-	case WriteModeLegacyPrimary, WriteModeDualWrite, WriteModeShardPrimary:
+	case WriteModeShardPrimary:
 		return true
 	default:
 		return false
