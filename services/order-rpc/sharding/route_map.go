@@ -164,8 +164,8 @@ func validateRouteEntry(entry RouteEntry) error {
 func validateRouteStatusWriteMode(status, writeMode string) error {
 	switch status {
 	case RouteStatusStable, RouteStatusRollback:
-		if writeMode != WriteModeLegacyPrimary {
-			return fmt.Errorf("%w: route status %s requires write mode %s", ErrInvalidRouteEntry, status, WriteModeLegacyPrimary)
+		if writeMode != WriteModeLegacyPrimary && writeMode != WriteModeShardPrimary {
+			return fmt.Errorf("%w: route status %s requires write mode %s or %s", ErrInvalidRouteEntry, status, WriteModeLegacyPrimary, WriteModeShardPrimary)
 		}
 	case RouteStatusShadowWrite, RouteStatusBackfilling, RouteStatusVerifying:
 		if writeMode != WriteModeDualWrite {

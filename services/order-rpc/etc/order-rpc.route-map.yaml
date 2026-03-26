@@ -5,6142 +5,6142 @@ Entries:
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 2
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 3
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 4
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 5
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 6
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 7
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 8
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 9
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 10
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 11
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 12
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 13
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 14
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 15
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 16
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 17
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 18
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 19
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 20
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 21
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 22
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 23
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 24
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 25
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 26
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 27
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 28
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 29
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 30
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 31
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 32
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 33
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 34
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 35
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 36
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 37
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 38
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 39
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 40
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 41
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 42
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 43
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 44
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 45
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 46
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 47
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 48
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 49
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 50
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 51
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 52
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 53
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 54
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 55
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 56
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 57
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 58
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 59
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 60
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 61
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 62
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 63
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 64
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 65
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 66
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 67
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 68
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 69
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 70
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 71
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 72
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 73
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 74
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 75
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 76
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 77
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 78
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 79
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 80
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 81
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 82
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 83
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 84
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 85
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 86
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 87
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 88
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 89
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 90
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 91
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 92
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 93
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 94
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 95
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 96
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 97
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 98
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 99
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 100
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 101
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 102
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 103
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 104
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 105
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 106
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 107
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 108
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 109
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 110
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 111
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 112
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 113
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 114
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 115
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 116
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 117
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 118
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 119
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 120
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 121
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 122
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 123
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 124
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 125
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 126
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 127
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 128
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 129
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 130
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 131
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 132
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 133
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 134
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 135
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 136
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 137
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 138
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 139
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 140
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 141
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 142
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 143
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 144
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 145
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 146
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 147
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 148
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 149
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 150
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 151
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 152
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 153
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 154
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 155
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 156
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 157
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 158
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 159
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 160
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 161
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 162
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 163
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 164
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 165
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 166
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 167
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 168
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 169
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 170
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 171
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 172
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 173
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 174
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 175
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 176
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 177
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 178
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 179
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 180
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 181
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 182
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 183
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 184
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 185
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 186
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 187
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 188
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 189
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 190
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 191
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 192
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 193
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 194
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 195
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 196
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 197
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 198
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 199
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 200
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 201
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 202
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 203
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 204
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 205
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 206
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 207
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 208
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 209
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 210
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 211
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 212
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 213
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 214
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 215
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 216
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 217
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 218
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 219
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 220
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 221
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 222
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 223
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 224
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 225
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 226
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 227
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 228
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 229
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 230
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 231
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 232
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 233
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 234
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 235
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 236
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 237
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 238
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 239
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 240
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 241
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 242
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 243
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 244
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 245
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 246
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 247
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 248
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 249
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 250
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 251
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 252
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 253
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 254
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 255
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 256
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 257
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 258
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 259
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 260
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 261
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 262
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 263
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 264
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 265
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 266
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 267
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 268
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 269
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 270
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 271
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 272
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 273
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 274
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 275
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 276
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 277
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 278
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 279
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 280
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 281
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 282
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 283
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 284
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 285
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 286
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 287
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 288
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 289
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 290
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 291
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 292
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 293
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 294
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 295
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 296
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 297
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 298
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 299
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 300
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 301
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 302
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 303
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 304
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 305
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 306
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 307
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 308
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 309
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 310
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 311
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 312
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 313
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 314
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 315
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 316
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 317
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 318
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 319
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 320
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 321
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 322
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 323
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 324
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 325
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 326
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 327
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 328
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 329
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 330
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 331
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 332
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 333
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 334
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 335
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 336
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 337
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 338
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 339
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 340
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 341
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 342
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 343
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 344
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 345
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 346
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 347
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 348
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 349
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 350
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 351
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 352
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 353
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 354
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 355
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 356
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 357
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 358
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 359
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 360
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 361
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 362
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 363
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 364
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 365
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 366
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 367
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 368
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 369
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 370
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 371
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 372
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 373
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 374
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 375
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 376
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 377
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 378
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 379
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 380
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 381
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 382
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 383
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 384
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 385
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 386
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 387
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 388
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 389
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 390
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 391
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 392
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 393
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 394
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 395
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 396
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 397
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 398
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 399
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 400
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 401
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 402
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 403
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 404
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 405
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 406
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 407
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 408
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 409
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 410
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 411
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 412
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 413
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 414
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 415
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 416
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 417
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 418
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 419
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 420
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 421
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 422
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 423
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 424
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 425
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 426
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 427
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 428
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 429
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 430
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 431
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 432
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 433
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 434
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 435
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 436
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 437
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 438
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 439
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 440
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 441
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 442
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 443
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 444
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 445
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 446
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 447
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 448
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 449
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 450
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 451
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 452
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 453
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 454
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 455
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 456
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 457
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 458
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 459
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 460
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 461
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 462
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 463
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 464
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 465
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 466
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 467
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 468
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 469
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 470
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 471
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 472
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 473
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 474
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 475
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 476
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 477
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 478
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 479
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 480
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 481
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 482
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 483
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 484
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 485
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 486
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 487
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 488
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 489
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 490
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 491
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 492
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 493
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 494
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 495
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 496
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 497
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 498
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 499
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 500
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 501
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 502
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 503
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 504
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 505
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 506
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 507
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 508
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 509
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 510
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 511
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 512
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 513
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 514
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 515
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 516
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 517
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 518
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 519
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 520
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 521
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 522
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 523
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 524
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 525
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 526
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 527
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 528
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 529
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 530
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 531
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 532
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 533
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 534
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 535
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 536
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 537
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 538
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 539
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 540
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 541
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 542
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 543
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 544
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 545
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 546
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 547
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 548
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 549
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 550
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 551
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 552
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 553
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 554
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 555
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 556
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 557
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 558
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 559
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 560
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 561
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 562
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 563
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 564
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 565
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 566
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 567
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 568
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 569
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 570
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 571
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 572
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 573
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 574
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 575
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 576
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 577
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 578
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 579
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 580
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 581
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 582
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 583
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 584
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 585
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 586
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 587
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 588
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 589
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 590
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 591
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 592
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 593
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 594
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 595
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 596
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 597
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 598
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 599
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 600
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 601
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 602
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 603
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 604
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 605
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 606
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 607
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 608
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 609
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 610
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 611
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 612
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 613
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 614
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 615
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 616
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 617
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 618
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 619
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 620
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 621
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 622
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 623
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 624
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 625
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 626
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 627
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 628
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 629
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 630
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 631
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 632
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 633
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 634
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 635
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 636
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 637
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 638
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 639
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 640
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 641
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 642
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 643
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 644
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 645
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 646
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 647
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 648
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 649
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 650
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 651
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 652
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 653
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 654
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 655
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 656
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 657
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 658
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 659
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 660
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 661
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 662
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 663
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 664
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 665
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 666
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 667
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 668
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 669
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 670
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 671
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 672
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 673
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 674
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 675
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 676
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 677
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 678
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 679
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 680
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 681
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 682
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 683
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 684
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 685
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 686
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 687
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 688
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 689
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 690
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 691
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 692
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 693
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 694
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 695
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 696
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 697
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 698
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 699
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 700
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 701
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 702
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 703
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 704
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 705
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 706
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 707
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 708
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 709
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 710
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 711
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 712
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 713
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 714
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 715
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 716
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 717
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 718
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 719
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 720
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 721
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 722
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 723
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 724
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 725
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 726
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 727
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 728
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 729
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 730
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 731
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 732
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 733
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 734
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 735
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 736
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 737
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 738
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 739
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 740
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 741
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 742
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 743
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 744
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 745
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 746
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 747
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 748
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 749
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 750
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 751
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 752
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 753
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 754
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 755
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 756
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 757
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 758
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 759
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 760
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 761
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 762
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 763
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 764
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 765
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 766
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 767
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 768
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 769
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 770
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 771
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 772
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 773
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 774
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 775
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 776
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 777
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 778
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 779
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 780
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 781
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 782
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 783
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 784
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 785
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 786
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 787
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 788
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 789
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 790
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 791
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 792
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 793
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 794
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 795
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 796
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 797
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 798
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 799
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 800
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 801
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 802
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 803
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 804
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 805
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 806
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 807
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 808
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 809
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 810
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 811
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 812
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 813
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 814
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 815
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 816
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 817
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 818
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 819
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 820
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 821
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 822
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 823
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 824
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 825
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 826
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 827
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 828
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 829
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 830
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 831
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 832
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 833
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 834
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 835
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 836
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 837
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 838
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 839
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 840
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 841
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 842
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 843
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 844
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 845
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 846
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 847
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 848
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 849
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 850
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 851
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 852
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 853
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 854
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 855
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 856
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 857
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 858
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 859
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 860
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 861
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 862
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 863
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 864
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 865
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 866
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 867
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 868
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 869
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 870
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 871
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 872
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 873
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 874
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 875
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 876
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 877
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 878
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 879
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 880
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 881
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 882
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 883
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 884
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 885
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 886
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 887
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 888
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 889
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 890
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 891
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 892
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 893
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 894
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 895
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 896
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 897
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 898
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 899
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 900
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 901
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 902
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 903
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 904
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 905
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 906
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 907
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 908
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 909
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 910
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 911
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 912
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 913
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 914
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 915
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 916
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 917
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 918
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 919
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 920
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 921
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 922
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 923
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 924
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 925
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 926
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 927
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 928
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 929
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 930
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 931
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 932
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 933
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 934
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 935
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 936
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 937
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 938
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 939
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 940
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 941
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 942
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 943
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 944
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 945
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 946
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 947
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 948
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 949
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 950
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 951
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 952
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 953
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 954
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 955
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 956
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 957
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 958
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 959
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 960
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 961
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 962
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 963
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 964
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 965
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 966
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 967
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 968
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 969
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 970
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 971
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 972
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 973
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 974
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 975
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 976
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 977
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 978
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 979
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 980
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 981
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 982
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 983
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 984
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 985
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 986
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 987
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 988
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 989
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 990
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 991
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 992
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 993
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 994
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 995
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 996
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 997
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 998
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 999
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1000
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1001
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1002
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1003
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1004
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1005
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1006
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1007
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1008
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1009
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1010
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1011
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1012
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1013
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1014
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1015
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1016
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1017
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1018
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1019
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1020
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1021
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1022
     DBKey: order-db-0
     TableSuffix: "00"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary
   - Version: v1
     LogicSlot: 1023
     DBKey: order-db-1
     TableSuffix: "01"
     Status: stable
-    WriteMode: legacy_primary
+    WriteMode: shard_primary

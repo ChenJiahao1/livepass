@@ -40,11 +40,7 @@ func TestParseLegacyOrderNumberRequiresDirectoryLookup(t *testing.T) {
 		t.Fatalf("snowflake.NewNode() error = %v", err)
 	}
 
-	parts, err := ParseOrderNumber(node.Generate().Int64())
-	if err != nil {
-		t.Fatalf("ParseOrderNumber() error = %v", err)
-	}
-	if !parts.Legacy {
-		t.Fatalf("ParseOrderNumber() legacy = false, want true")
+	if _, err := ParseOrderNumber(node.Generate().Int64()); err != ErrInvalidOrderNumber {
+		t.Fatalf("ParseOrderNumber() error = %v, want %v", err, ErrInvalidOrderNumber)
 	}
 }

@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -136,33 +137,19 @@ func TestGetOrderReadsFromShardByGeneOrderNumber(t *testing.T) {
 	}
 }
 
-func TestGetOrderReadsLegacyOrderThroughRouteDirectoryInShardOnlyMode(t *testing.T) {
+func TestGetOrderRejectsLegacyOrderNumberInShardOnlyMode(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
-	userID := int64(3001)
 	orderNumber := xid.New()
-	route := orderRouteForUser(t, svcCtx, userID)
-	seedShardOrderFixtures(t, svcCtx, route, orderFixture{ID: 8001, OrderNumber: orderNumber, ProgramID: 10001, UserID: userID, TicketCount: 1})
-	seedShardOrderTicketUserFixtures(t, svcCtx, route, orderTicketUserFixture{ID: 8801, OrderNumber: orderNumber, UserID: userID, TicketUserID: 701, SeatID: 501, SeatRow: 1, SeatCol: 1})
-	seedLegacyOrderRouteFixtures(t, svcCtx, legacyOrderRouteFixture{
-		OrderNumber:  orderNumber,
-		UserID:       userID,
-		LogicSlot:    int64(route.LogicSlot),
-		RouteVersion: route.Version,
-	})
-
 	l := logicpkg.NewGetOrderLogic(context.Background(), svcCtx)
-	resp, err := l.GetOrder(&pb.GetOrderReq{
-		UserId:      userID,
+	_, err := l.GetOrder(&pb.GetOrderReq{
+		UserId:      3001,
 		OrderNumber: orderNumber,
 	})
-	if err != nil {
-		t.Fatalf("GetOrder returned error: %v", err)
-	}
-	if resp.OrderNumber != orderNumber || len(resp.OrderTicketInfoVoList) != 1 {
-		t.Fatalf("unexpected legacy order detail response: %+v", resp)
+	if !errors.Is(err, sharding.ErrInvalidOrderNumber) {
+		t.Fatalf("GetOrder error = %v, want %v", err, sharding.ErrInvalidOrderNumber)
 	}
 }
 

@@ -14,8 +14,7 @@ const (
 )
 
 var (
-	ErrInvalidOrderNumber                 = errors.New("invalid order number")
-	ErrLegacyOrderRequiresDirectoryLookup = errors.New("legacy order requires directory lookup")
+	ErrInvalidOrderNumber = errors.New("invalid order number")
 )
 
 type OrderNumberParts struct {
@@ -58,10 +57,7 @@ func ParseOrderNumber(orderNumber int64) (OrderNumberParts, error) {
 
 	timePart := orderNumber >> timePartShift
 	if isLegacyOrderNumber(timePart) {
-		return OrderNumberParts{
-			TimePart: timePart,
-			Legacy:   true,
-		}, nil
+		return OrderNumberParts{}, ErrInvalidOrderNumber
 	}
 
 	return OrderNumberParts{
@@ -77,9 +73,6 @@ func LogicSlotByOrderNumber(orderNumber int64) (int, error) {
 	parts, err := ParseOrderNumber(orderNumber)
 	if err != nil {
 		return 0, err
-	}
-	if parts.Legacy {
-		return 0, ErrLegacyOrderRequiresDirectoryLookup
 	}
 
 	return parts.LogicSlot(), nil

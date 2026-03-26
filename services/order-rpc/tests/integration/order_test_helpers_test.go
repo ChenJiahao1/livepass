@@ -84,14 +84,6 @@ type orderTicketUserFixture struct {
 	CreateOrderTime    string
 }
 
-type legacyOrderRouteFixture struct {
-	OrderNumber  int64
-	UserID       int64
-	LogicSlot    int64
-	RouteVersion string
-	CreateTime   string
-}
-
 type fakeOrderProgramRPC struct {
 	getProgramPreorderResp            *programrpc.ProgramPreorderInfo
 	getProgramPreorderRespByProgramID map[int64]*programrpc.ProgramPreorderInfo
@@ -248,7 +240,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	redisClient := xredis.MustNew(cfg.StoreRedis)
 	legacyOrderModel := model.NewDOrderModel(conn)
 	legacyOrderTicketUserModel := model.NewDOrderTicketUserModel(conn)
-	legacyRouteDirectoryModel := model.NewDOrderRouteLegacyModel(conn)
 	routeMap, err := sharding.NewRouteMap(cfg.Sharding.RouteMap.Version, buildOrderTestRouteEntries())
 	if err != nil {
 		t.Fatalf("NewRouteMap error: %v", err)
@@ -259,7 +250,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		LegacyConn:                 conn,
 		LegacyOrderModel:           legacyOrderModel,
 		LegacyOrderTicketUserModel: legacyOrderTicketUserModel,
-		LegacyRouteDirectoryModel:  legacyRouteDirectoryModel,
 		ShardConns: map[string]sqlx.SqlConn{
 			"order-db-0": shardConn0,
 			"order-db-1": shardConn1,
@@ -284,7 +274,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		PurchaseLimitStore:         purchaseLimitStore,
 		DOrderModel:                legacyOrderModel,
 		DOrderTicketUserModel:      legacyOrderTicketUserModel,
-		DOrderRouteLegacyModel:     legacyRouteDirectoryModel,
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,
@@ -542,7 +531,6 @@ func resetOrderDomainState(t *testing.T) {
 	for _, relativePath := range []string{
 		"sql/order/d_order.sql",
 		"sql/order/d_order_ticket_user.sql",
-		"sql/order/d_order_route_legacy.sql",
 		"sql/order/sharding/d_order_shards.sql",
 		"sql/order/sharding/d_order_ticket_user_shards.sql",
 	} {
@@ -569,7 +557,6 @@ func setOrderTestRepositoryMode(t *testing.T, svcCtx *svc.ServiceContext, mode s
 		LegacyConn:                 svcCtx.LegacySqlConn,
 		LegacyOrderModel:           svcCtx.DOrderModel,
 		LegacyOrderTicketUserModel: svcCtx.DOrderTicketUserModel,
-		LegacyRouteDirectoryModel:  svcCtx.DOrderRouteLegacyModel,
 		ShardConns:                 svcCtx.ShardSqlConns,
 		RouteMap:                   routeMap,
 		Router:                     svcCtx.OrderRouter,
@@ -702,31 +689,6 @@ func seedShardOrderFixtures(t *testing.T, svcCtx *svc.ServiceContext, route shar
 func seedShardOrderTicketUserFixtures(t *testing.T, svcCtx *svc.ServiceContext, route sharding.Route, fixtures ...orderTicketUserFixture) {
 	t.Helper()
 	seedOrderTicketUserFixturesIntoTable(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user_"+route.TableSuffix, fixtures...)
-}
-
-func seedLegacyOrderRouteFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...legacyOrderRouteFixture) {
-	t.Helper()
-
-	db := openOrderTestDB(t, svcCtx.Config.MySQL.DataSource)
-	defer db.Close()
-
-	for _, fixture := range fixtures {
-		fixture = withLegacyOrderRouteFixtureDefaults(fixture)
-		mustExecOrderSQL(
-			t,
-			db,
-			`INSERT INTO d_order_route_legacy (
-				order_number, user_id, logic_slot, route_version, status, create_time, edit_time
-			) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			fixture.OrderNumber,
-			fixture.UserID,
-			fixture.LogicSlot,
-			fixture.RouteVersion,
-			1,
-			fixture.CreateTime,
-			fixture.CreateTime,
-		)
-	}
 }
 
 func countRows(t *testing.T, dataSource, table string) int64 {
@@ -931,17 +893,6 @@ func withOrderTicketUserFixtureDefaults(fixture orderTicketUserFixture) orderTic
 	}
 	if fixture.CreateOrderTime == "" {
 		fixture.CreateOrderTime = "2026-01-01 00:00:00"
-	}
-
-	return fixture
-}
-
-func withLegacyOrderRouteFixtureDefaults(fixture legacyOrderRouteFixture) legacyOrderRouteFixture {
-	if fixture.RouteVersion == "" {
-		fixture.RouteVersion = "v1"
-	}
-	if fixture.CreateTime == "" {
-		fixture.CreateTime = "2026-01-01 00:00:00"
 	}
 
 	return fixture

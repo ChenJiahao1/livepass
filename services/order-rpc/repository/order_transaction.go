@@ -12,21 +12,19 @@ import (
 )
 
 type singleOrderTx struct {
-	route            sharding.Route
-	session          sqlx.Session
-	orderModel       model.DOrderModel
-	ticketModel      model.DOrderTicketUserModel
-	legacyRouteModel model.DOrderRouteLegacyModel
+	route       sharding.Route
+	session     sqlx.Session
+	orderModel  model.DOrderModel
+	ticketModel model.DOrderTicketUserModel
 }
 
 func newSingleOrderTx(route sharding.Route, session sqlx.Session, orderModel model.DOrderModel,
-	ticketModel model.DOrderTicketUserModel, legacyRouteModel model.DOrderRouteLegacyModel) *singleOrderTx {
+	ticketModel model.DOrderTicketUserModel) *singleOrderTx {
 	return &singleOrderTx{
-		route:            route,
-		session:          session,
-		orderModel:       orderModel,
-		ticketModel:      ticketModel,
-		legacyRouteModel: legacyRouteModel,
+		route:       route,
+		session:     session,
+		orderModel:  orderModel,
+		ticketModel: ticketModel,
 	}
 }
 
@@ -41,14 +39,6 @@ func (t *singleOrderTx) InsertOrder(ctx context.Context, order *model.DOrder) er
 
 func (t *singleOrderTx) InsertOrderTickets(ctx context.Context, tickets []*model.DOrderTicketUser) error {
 	return t.ticketModel.InsertBatch(ctx, t.session, tickets)
-}
-
-func (t *singleOrderTx) InsertLegacyRoute(ctx context.Context, legacyRoute *model.DOrderRouteLegacy) error {
-	if t.legacyRouteModel == nil || legacyRoute == nil {
-		return nil
-	}
-	_, err := t.legacyRouteModel.InsertWithSession(ctx, t.session, legacyRoute)
-	return err
 }
 
 func (t *singleOrderTx) FindOrderByNumberForUpdate(ctx context.Context, orderNumber int64) (*model.DOrder, error) {
@@ -138,10 +128,6 @@ func (t *dualWriteOrderTx) InsertOrderTickets(ctx context.Context, tickets []*mo
 		return t.shadow.InsertOrderTickets(ctx, tickets)
 	})
 	return nil
-}
-
-func (t *dualWriteOrderTx) InsertLegacyRoute(ctx context.Context, legacyRoute *model.DOrderRouteLegacy) error {
-	return t.primary.InsertLegacyRoute(ctx, legacyRoute)
 }
 
 func (t *dualWriteOrderTx) FindOrderByNumberForUpdate(ctx context.Context, orderNumber int64) (*model.DOrder, error) {

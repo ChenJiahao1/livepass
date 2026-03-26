@@ -14,7 +14,6 @@ type OrderTx interface {
 	Route() sharding.Route
 	InsertOrder(ctx context.Context, order *model.DOrder) error
 	InsertOrderTickets(ctx context.Context, tickets []*model.DOrderTicketUser) error
-	InsertLegacyRoute(ctx context.Context, legacyRoute *model.DOrderRouteLegacy) error
 	FindOrderByNumberForUpdate(ctx context.Context, orderNumber int64) (*model.DOrder, error)
 	UpdateCancelStatus(ctx context.Context, orderNumber int64, cancelTime time.Time) error
 	UpdatePayStatus(ctx context.Context, orderNumber int64, payTime time.Time) error
@@ -39,7 +38,6 @@ type Dependencies struct {
 	LegacyConn                 sqlx.SqlConn
 	LegacyOrderModel           model.DOrderModel
 	LegacyOrderTicketUserModel model.DOrderTicketUserModel
-	LegacyRouteDirectoryModel  model.DOrderRouteLegacyModel
 	ShardConns                 map[string]sqlx.SqlConn
 	RouteMap                   *sharding.RouteMap
 	Router                     sharding.Router

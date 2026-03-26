@@ -29,7 +29,6 @@ type ServiceContext struct {
 	PurchaseLimitStore         *limitcache.PurchaseLimitStore
 	DOrderModel                model.DOrderModel
 	DOrderTicketUserModel      model.DOrderTicketUserModel
-	DOrderRouteLegacyModel     model.DOrderRouteLegacyModel
 	OrderRouteMap              *sharding.RouteMap
 	OrderRouter                sharding.Router
 	OrderRepository            repository.OrderRepository
@@ -60,13 +59,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 	legacyOrderModel := model.NewDOrderModel(legacyConn)
 	legacyOrderTicketUserModel := model.NewDOrderTicketUserModel(legacyConn)
-	legacyRouteDirectoryModel := model.NewDOrderRouteLegacyModel(legacyConn)
 	orderRepository := repository.NewOrderRepository(repository.Dependencies{
 		Mode:                       c.Sharding.Mode,
 		LegacyConn:                 legacyConn,
 		LegacyOrderModel:           legacyOrderModel,
 		LegacyOrderTicketUserModel: legacyOrderTicketUserModel,
-		LegacyRouteDirectoryModel:  legacyRouteDirectoryModel,
 		ShardConns:                 shardConns,
 		RouteMap:                   routeMap,
 		Router:                     orderRouter,
@@ -114,7 +111,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		PurchaseLimitStore:         limitcache.NewPurchaseLimitStore(rds, orderRepository, limitcache.Config{}),
 		DOrderModel:                legacyOrderModel,
 		DOrderTicketUserModel:      legacyOrderTicketUserModel,
-		DOrderRouteLegacyModel:     legacyRouteDirectoryModel,
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,

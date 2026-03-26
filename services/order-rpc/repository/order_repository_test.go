@@ -15,7 +15,6 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/sharding"
 
-	"github.com/bwmarrin/snowflake"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -355,101 +354,6 @@ func TestDualWriteOrderRepositoryReadsLegacyWhenRouteStatusRollback(t *testing.T
 	}
 }
 
-func TestDualWriteOrderRepositoryFindLegacyOrderFallsBackWhenRouteDirectoryMissing(t *testing.T) {
-	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteShadow, buildFullRouteEntries("00", "01"))
-	resetOrderRepositoryState(t)
-
-	repo := NewOrderRepository(deps)
-	userID := int64(3004)
-	node, err := snowflake.NewNode(7)
-	if err != nil {
-		t.Fatalf("snowflake.NewNode() error = %v", err)
-	}
-	orderNumber := node.Generate().Int64()
-
-	seedRepositoryOrderFixturesIntoTable(t, "d_order", buildRepositoryOrder(orderNumber, userID))
-
-	order, err := repo.FindOrderByNumber(context.Background(), orderNumber)
-	if err != nil {
-		t.Fatalf("FindOrderByNumber() error = %v", err)
-	}
-	if order.OrderNumber != orderNumber {
-		t.Fatalf("order number = %d, want %d", order.OrderNumber, orderNumber)
-	}
-}
-
-func TestDualWriteOrderRepositoryTransactLegacyOrderFallsBackWhenRouteDirectoryMissing(t *testing.T) {
-	deps := newTestOrderRepositoryDeps(t, sharding.MigrationModeDualWriteShadow, buildFullRouteEntries("00", "01"))
-	resetOrderRepositoryState(t)
-
-	repo := NewOrderRepository(deps)
-	userID := int64(3005)
-	node, err := snowflake.NewNode(8)
-	if err != nil {
-		t.Fatalf("snowflake.NewNode() error = %v", err)
-	}
-	orderNumber := node.Generate().Int64()
-	payTime := time.Date(2026, time.March, 24, 12, 0, 0, 0, time.UTC)
-
-	seedRepositoryOrderFixturesIntoTable(t, "d_order", buildRepositoryOrder(orderNumber, userID))
-	db := openRepositoryTestDB(t, testRepositoryMySQLDataSource)
-	defer db.Close()
-	for _, ticket := range buildRepositoryTickets(orderNumber, userID) {
-		if _, err := db.Exec(
-			`INSERT INTO d_order_ticket_user (
-				id, order_number, user_id, ticket_user_id, ticket_user_name, ticket_user_id_number,
-				ticket_category_id, ticket_category_name, ticket_price, seat_id, seat_row, seat_col,
-				seat_price, order_status, create_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			ticket.Id,
-			ticket.OrderNumber,
-			ticket.UserId,
-			ticket.TicketUserId,
-			ticket.TicketUserName,
-			ticket.TicketUserIdNumber,
-			ticket.TicketCategoryId,
-			ticket.TicketCategoryName,
-			ticket.TicketPrice,
-			ticket.SeatId,
-			ticket.SeatRow,
-			ticket.SeatCol,
-			ticket.SeatPrice,
-			ticket.OrderStatus,
-			ticket.CreateOrderTime,
-			ticket.CreateTime,
-			ticket.EditTime,
-			ticket.Status,
-		); err != nil {
-			t.Fatalf("insert legacy ticket fixture error: %v", err)
-		}
-	}
-
-	err = repo.TransactByOrderNumber(context.Background(), orderNumber, func(ctx context.Context, tx OrderTx) error {
-		if tx.Route().DBKey != "legacy" {
-			t.Fatalf("tx route db key = %s, want legacy", tx.Route().DBKey)
-		}
-		return tx.UpdatePayStatus(ctx, orderNumber, payTime)
-	})
-	if err != nil {
-		t.Fatalf("TransactByOrderNumber() error = %v", err)
-	}
-
-	if findOrderStatusFromTable(t, testRepositoryMySQLDataSource, "d_order", orderNumber) != 3 {
-		t.Fatalf("expected legacy order status updated to paid")
-	}
-	if findOrderTicketStatusFromTable(t, testRepositoryMySQLDataSource, "d_order_ticket_user", orderNumber) != 3 {
-		t.Fatalf("expected legacy ticket status updated to paid")
-	}
-
-	route, err := repo.RouteByUserID(context.Background(), userID)
-	if err != nil {
-		t.Fatalf("RouteByUserID() error = %v", err)
-	}
-	if countTableRows(t, testRepositoryMySQLDataSource, "d_order_"+route.TableSuffix) != 0 {
-		t.Fatalf("expected shard table to stay untouched when route directory missing")
-	}
-}
-
 func newTestOrderRepositoryDeps(t *testing.T, mode string, entries []sharding.RouteEntry) Dependencies {
 	t.Helper()
 
@@ -467,7 +371,6 @@ func newTestOrderRepositoryDeps(t *testing.T, mode string, entries []sharding.Ro
 		LegacyConn:                 legacyConn,
 		LegacyOrderModel:           model.NewDOrderModel(legacyConn),
 		LegacyOrderTicketUserModel: model.NewDOrderTicketUserModel(legacyConn),
-		LegacyRouteDirectoryModel:  model.NewDOrderRouteLegacyModel(legacyConn),
 		ShardConns:                 map[string]sqlx.SqlConn{"order-db-0": shardConn0, "order-db-1": shardConn1},
 		RouteMap:                   routeMap,
 		Router:                     sharding.NewStaticRouter(routeMap),
@@ -585,7 +488,6 @@ func resetOrderRepositoryState(t *testing.T) {
 	for _, relativePath := range []string{
 		"sql/order/d_order.sql",
 		"sql/order/d_order_ticket_user.sql",
-		"sql/order/d_order_route_legacy.sql",
 		"sql/order/sharding/d_order_shards.sql",
 		"sql/order/sharding/d_order_ticket_user_shards.sql",
 	} {

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"damai-go/services/order-rpc/internal/model"
@@ -20,9 +19,8 @@ func newLegacyOrderRepository(deps Dependencies) *legacyOrderRepository {
 	return &legacyOrderRepository{
 		deps: deps,
 		resolver: routeResolver{
-			router:           deps.Router,
-			routeMap:         deps.RouteMap,
-			legacyRouteModel: deps.LegacyRouteDirectoryModel,
+			router:   deps.Router,
+			routeMap: deps.RouteMap,
 		},
 	}
 }
@@ -33,7 +31,7 @@ func (r *legacyOrderRepository) TransactByOrderNumber(ctx context.Context, order
 		return err
 	}
 	return r.deps.LegacyConn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		tx := newSingleOrderTx(route, session, r.deps.LegacyOrderModel, r.deps.LegacyOrderTicketUserModel, r.deps.LegacyRouteDirectoryModel)
+		tx := newSingleOrderTx(route, session, r.deps.LegacyOrderModel, r.deps.LegacyOrderTicketUserModel)
 		return fn(ctx, tx)
 	})
 }
@@ -44,7 +42,7 @@ func (r *legacyOrderRepository) TransactByUserID(ctx context.Context, userID int
 		return err
 	}
 	return r.deps.LegacyConn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		tx := newSingleOrderTx(route, session, r.deps.LegacyOrderModel, r.deps.LegacyOrderTicketUserModel, r.deps.LegacyRouteDirectoryModel)
+		tx := newSingleOrderTx(route, session, r.deps.LegacyOrderModel, r.deps.LegacyOrderTicketUserModel)
 		return fn(ctx, tx)
 	})
 }
@@ -96,16 +94,6 @@ func (r *legacyOrderRepository) RouteByOrderNumber(ctx context.Context, orderNum
 	route, err := r.resolver.RouteByOrderNumber(ctx, orderNumber)
 	if err == nil {
 		return route, nil
-	}
-	if !errors.Is(err, sharding.ErrLegacyOrderRequiresDirectoryLookup) {
-		return sharding.Route{
-			LogicSlot:   0,
-			DBKey:       "legacy",
-			TableSuffix: "",
-			Version:     "legacy",
-			WriteMode:   sharding.WriteModeLegacyPrimary,
-			Status:      sharding.RouteStatusStable,
-		}, nil
 	}
 
 	return sharding.Route{

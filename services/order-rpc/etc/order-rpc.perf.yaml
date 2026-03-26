@@ -15,7 +15,7 @@ MySQL:
   ConnMaxLifetime: 5m
   ConnMaxIdleTime: 2m
 Sharding:
-  Mode: legacy_only
+  Mode: shard_only
   LegacyMySQL:
     DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
     MaxOpenConns: 24

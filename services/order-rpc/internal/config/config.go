@@ -52,7 +52,7 @@ type RouteMapConfig struct {
 }
 
 type ShardingConfig struct {
-	Mode        string                   `json:",default=legacy_only"`
+	Mode        string                   `json:",default=shard_only"`
 	LegacyMySQL xmysql.Config            `json:"LegacyMySQL,optional"`
 	Shards      map[string]xmysql.Config `json:",optional"`
 	RouteMap    RouteMapConfig           `json:"RouteMap,optional"`
@@ -60,7 +60,7 @@ type ShardingConfig struct {
 
 func (c ShardingConfig) Normalize(legacyMySQL xmysql.Config) ShardingConfig {
 	if c.Mode == "" {
-		c.Mode = sharding.MigrationModeLegacyOnly
+		c.Mode = sharding.MigrationModeShardOnly
 	}
 	if c.LegacyMySQL.DataSource == "" {
 		c.LegacyMySQL = legacyMySQL

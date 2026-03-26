@@ -13,9 +13,8 @@ import (
 )
 
 type routeResolver struct {
-	router           sharding.Router
-	routeMap         *sharding.RouteMap
-	legacyRouteModel model.DOrderRouteLegacyModel
+	router   sharding.Router
+	routeMap *sharding.RouteMap
 }
 
 func (r routeResolver) RouteByUserID(userID int64) (sharding.Route, error) {
@@ -26,29 +25,11 @@ func (r routeResolver) RouteByUserID(userID int64) (sharding.Route, error) {
 }
 
 func (r routeResolver) RouteByOrderNumber(ctx context.Context, orderNumber int64) (sharding.Route, error) {
+	_ = ctx
 	if r.router != nil {
-		route, err := r.router.RouteByOrderNumber(orderNumber)
-		if err == nil {
-			return route, nil
-		}
-		if !errors.Is(err, sharding.ErrLegacyOrderRequiresDirectoryLookup) {
-			return sharding.Route{}, err
-		}
+		return r.router.RouteByOrderNumber(orderNumber)
 	}
-	if r.legacyRouteModel == nil || r.routeMap == nil {
-		return sharding.Route{}, sharding.ErrLegacyOrderRequiresDirectoryLookup
-	}
-
-	legacyRoute, err := r.legacyRouteModel.FindOne(ctx, orderNumber)
-	if err != nil {
-		return sharding.Route{}, err
-	}
-
-	version := legacyRoute.RouteVersion
-	if version == "" {
-		version = r.routeMap.CurrentVersion()
-	}
-	return r.routeMap.RouteByVersionAndSlot(version, int(legacyRoute.LogicSlot))
+	return sharding.Route{}, sharding.ErrRouteNotFound
 }
 
 type shardedOrderRepository struct {
@@ -60,9 +41,8 @@ func newShardedOrderRepository(deps Dependencies) *shardedOrderRepository {
 	return &shardedOrderRepository{
 		deps: deps,
 		resolver: routeResolver{
-			router:           deps.Router,
-			routeMap:         deps.RouteMap,
-			legacyRouteModel: deps.LegacyRouteDirectoryModel,
+			router:   deps.Router,
+			routeMap: deps.RouteMap,
 		},
 	}
 }
@@ -241,7 +221,7 @@ func (r *shardedOrderRepository) transactByRoute(ctx context.Context, route shar
 		return err
 	}
 	return target.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		tx := newSingleOrderTx(route, session, target.orderModel, target.ticketModel, nil)
+		tx := newSingleOrderTx(route, session, target.orderModel, target.ticketModel)
 		return fn(ctx, tx)
 	})
 }
@@ -279,9 +259,9 @@ func orderMatchesLogicSlot(order *model.DOrder, logicSlot int) bool {
 	}
 
 	slot, err := sharding.LogicSlotByOrderNumber(order.OrderNumber)
-	if err == nil {
-		return slot == logicSlot
+	if err != nil {
+		return false
 	}
 
-	return sharding.LogicSlotByUserID(order.UserId) == logicSlot
+	return slot == logicSlot
 }

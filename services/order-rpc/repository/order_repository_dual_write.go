@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
@@ -125,23 +124,7 @@ func (r *dualWriteOrderRepository) shadowRouteByOrderNumber(ctx context.Context,
 	if err == nil {
 		return route, false, nil
 	}
-	if !shouldFallbackLegacyOrderToPrimary(orderNumber, err) {
-		return sharding.Route{}, false, err
-	}
-
-	primaryRoute, primaryErr := r.primary.RouteByOrderNumber(ctx, orderNumber)
-	if primaryErr != nil {
-		return sharding.Route{}, false, primaryErr
-	}
-	return primaryRoute, true, nil
-}
-
-func shouldFallbackLegacyOrderToPrimary(orderNumber int64, err error) bool {
-	parts, parseErr := sharding.ParseOrderNumber(orderNumber)
-	if parseErr != nil || !parts.Legacy {
-		return false
-	}
-	return errors.Is(err, sharding.ErrLegacyOrderRequiresDirectoryLookup) || errors.Is(err, model.ErrNotFound)
+	return sharding.Route{}, false, err
 }
 
 func (r *dualWriteOrderRepository) readRepo() OrderRepository {
@@ -284,7 +267,6 @@ func (r *dualWriteOrderRepository) beginLegacyWriteTx(ctx context.Context, route
 		sqlx.NewSessionFromTx(legacySQLTx),
 		r.primary.deps.LegacyOrderModel,
 		r.primary.deps.LegacyOrderTicketUserModel,
-		r.primary.deps.LegacyRouteDirectoryModel,
 	), legacySQLTx, nil
 }
 
@@ -307,7 +289,6 @@ func (r *dualWriteOrderRepository) beginShardWriteTx(ctx context.Context, route 
 		sqlx.NewSessionFromTx(shadowSQLTx),
 		shadowStore.orderModel,
 		shadowStore.ticketModel,
-		nil,
 	), shadowSQLTx, nil
 }
 

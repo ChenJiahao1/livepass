@@ -10,7 +10,6 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/repository"
-	"damai-go/services/order-rpc/sharding"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -70,13 +69,6 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		if err := tx.InsertOrderTickets(ctx, writeModels.orderTickets); err != nil {
 			return err
 		}
-		legacyRoute, err := buildLegacyOrderRouteRecord(orderEvent, tx.Route(), writeModels.order.CreateTime)
-		if err != nil {
-			return err
-		}
-		if err := tx.InsertLegacyRoute(ctx, legacyRoute); err != nil {
-			return err
-		}
 		return nil
 	})
 	if err != nil {
@@ -109,24 +101,4 @@ func validateOrderCreateEvent(orderEvent *orderevent.OrderCreateEvent) error {
 func isDuplicateOrderNumberErr(err error) bool {
 	var mysqlErr *mysqlDriver.MySQLError
 	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
-}
-
-func buildLegacyOrderRouteRecord(orderEvent *orderevent.OrderCreateEvent, route sharding.Route, now time.Time) (*model.DOrderRouteLegacy, error) {
-	parts, err := sharding.ParseOrderNumber(orderEvent.OrderNumber)
-	if err != nil {
-		return nil, err
-	}
-	if !parts.Legacy {
-		return nil, nil
-	}
-
-	return &model.DOrderRouteLegacy{
-		OrderNumber:  orderEvent.OrderNumber,
-		UserId:       orderEvent.UserID,
-		LogicSlot:    int64(sharding.LogicSlotByUserID(orderEvent.UserID)),
-		RouteVersion: route.Version,
-		Status:       1,
-		CreateTime:   now,
-		EditTime:     now,
-	}, nil
 }

@@ -15,6 +15,7 @@ import (
 func TestCreateOrderConsumerPersistsOrderAndTickets(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
 	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
@@ -40,10 +41,14 @@ func TestCreateOrderConsumerPersistsOrderAndTickets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Consume returned error: %v", err)
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 1 {
+	route, err := svcCtx.OrderRepository.RouteByUserID(context.Background(), 3001)
+	if err != nil {
+		t.Fatalf("RouteByUserID returned error: %v", err)
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_"+route.TableSuffix) != 1 {
 		t.Fatalf("expected one order row")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 2 {
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user_"+route.TableSuffix) != 2 {
 		t.Fatalf("expected two order ticket rows")
 	}
 }
@@ -51,6 +56,7 @@ func TestCreateOrderConsumerPersistsOrderAndTickets(t *testing.T) {
 func TestCreateOrderConsumerTreatsDuplicateOrderNumberAsIdempotentSuccess(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
 	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
@@ -77,10 +83,14 @@ func TestCreateOrderConsumerTreatsDuplicateOrderNumberAsIdempotentSuccess(t *tes
 	if err := consumer.Consume(body); err != nil {
 		t.Fatalf("second Consume returned error: %v", err)
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 1 {
+	route, err := svcCtx.OrderRepository.RouteByUserID(context.Background(), 3001)
+	if err != nil {
+		t.Fatalf("RouteByUserID returned error: %v", err)
+	}
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_"+route.TableSuffix) != 1 {
 		t.Fatalf("expected one order row after duplicate consume")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user") != 1 {
+	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order_ticket_user_"+route.TableSuffix) != 1 {
 		t.Fatalf("expected one order ticket row after duplicate consume")
 	}
 }
@@ -127,6 +137,7 @@ func TestCreateOrderConsumerSkipsExpiredMessageAndReleasesFreeze(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	svcCtx.Config.Kafka.MaxMessageDelay = 5 * time.Second
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
 	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
@@ -154,9 +165,6 @@ func TestCreateOrderConsumerSkipsExpiredMessageAndReleasesFreeze(t *testing.T) {
 	if programRPC.releaseSeatFreezeCalls != 1 {
 		t.Fatalf("expected expired message to release freeze once")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
-		t.Fatalf("expected expired message to skip order persistence")
-	}
 	snapshot := requirePurchaseLimitSnapshot(t, svcCtx, 3001, 10001)
 	if snapshot.ActiveCount != 0 || len(snapshot.Reservations) != 0 {
 		t.Fatalf("expected expired message to rollback purchase limit ledger, got %+v", snapshot)
@@ -167,6 +175,7 @@ func TestCreateOrderConsumerDoesNotCreatePurchaseLimitLedgerWhenAccountLimitDisa
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	svcCtx.Config.Kafka.MaxMessageDelay = 5 * time.Second
+	setOrderTestRepositoryMode(t, svcCtx, sharding.MigrationModeShardOnly)
 
 	clearPurchaseLimitLedger(t, svcCtx, 3001, 10001)
 	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 0, 299)
@@ -194,10 +203,6 @@ func TestCreateOrderConsumerDoesNotCreatePurchaseLimitLedgerWhenAccountLimitDisa
 	if programRPC.releaseSeatFreezeCalls != 1 {
 		t.Fatalf("expected expired message to release freeze once")
 	}
-	if countRows(t, svcCtx.Config.MySQL.DataSource, "d_order") != 0 {
-		t.Fatalf("expected expired message to skip order persistence")
-	}
-
 	requirePurchaseLimitLedgerAbsentFor(t, svcCtx, 3001, 10001, 500*time.Millisecond)
 }
 

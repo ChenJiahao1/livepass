@@ -131,7 +131,7 @@ Kafka:
   ConsumerWorkers: 1
   MaxMessageDelay: 60s
 Sharding:
-  Mode: legacy_only
+  Mode: shard_only
   LegacyMySQL:
     DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
   Shards:
@@ -145,7 +145,7 @@ Sharding:
         DBKey: order-db-0
         TableSuffix: "00"
         Status: stable
-        WriteMode: legacy_primary
+        WriteMode: shard_primary
 `)
 	if err := os.WriteFile(configFile, content, 0o644); err != nil {
 		t.Fatalf("write %s: %v", configFile, err)
@@ -165,8 +165,8 @@ Sharding:
 	if c.Kafka.MaxMessageDelay != 60*time.Second {
 		t.Fatalf("expected max message delay 60s, got %s", c.Kafka.MaxMessageDelay)
 	}
-	if c.Sharding.Mode != "legacy_only" {
-		t.Fatalf("expected sharding mode legacy_only, got %s", c.Sharding.Mode)
+	if c.Sharding.Mode != "shard_only" {
+		t.Fatalf("expected sharding mode shard_only, got %s", c.Sharding.Mode)
 	}
 	if c.Sharding.RouteMap.Version != "v1" {
 		t.Fatalf("expected route map version v1, got %s", c.Sharding.RouteMap.Version)
@@ -222,7 +222,7 @@ Sharding:
         DBKey: order-db-0
         TableSuffix: "00"
         Status: stable
-        WriteMode: legacy_primary
+        WriteMode: shard_primary
 `)
 	if err := os.WriteFile(configFile, content, 0o644); err != nil {
 		t.Fatalf("write %s: %v", configFile, err)
@@ -239,8 +239,8 @@ Sharding:
 	if c.Kafka.ConsumerWorkers != 1 {
 		t.Fatalf("expected default consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
 	}
-	if c.Sharding.Mode != "legacy_only" {
-		t.Fatalf("expected default sharding mode legacy_only, got %s", c.Sharding.Mode)
+	if c.Sharding.Mode != "shard_only" {
+		t.Fatalf("expected default sharding mode shard_only, got %s", c.Sharding.Mode)
 	}
 }
 
@@ -274,7 +274,7 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 			RetryBackoff:     time.Second,
 		},
 		Sharding: config.ShardingConfig{
-			Mode: "legacy_only",
+			Mode: "shard_only",
 			LegacyMySQL: xmysql.Config{
 				DataSource: testOrderMySQLDataSource,
 			},
@@ -295,7 +295,7 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 						DBKey:       "order-db-0",
 						TableSuffix: "00",
 						Status:      sharding.RouteStatusStable,
-						WriteMode:   sharding.WriteModeLegacyPrimary,
+						WriteMode:   sharding.WriteModeShardPrimary,
 					},
 				},
 			},
