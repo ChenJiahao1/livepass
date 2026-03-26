@@ -39,10 +39,10 @@ type (
 	DOrderTicketUser struct {
 		Id                 int64     `db:"id"`                    // primary key
 		OrderNumber        int64     `db:"order_number"`          // order number
-		UserId             int64     `db:"user_id"`               // owner user id
-		TicketUserId       int64     `db:"ticket_user_id"`        // ticket user id
-		TicketUserName     string    `db:"ticket_user_name"`      // ticket user name snapshot
-		TicketUserIdNumber string    `db:"ticket_user_id_number"` // ticket user id number snapshot
+		UserId             int64     `db:"user_id"`               // 下单用户ID
+		TicketUserId       int64     `db:"ticket_user_id"`        // 观演人ID
+		TicketUserName     string    `db:"ticket_user_name"`      // 观演人姓名快照
+		TicketUserIdNumber string    `db:"ticket_user_id_number"` // 观演人证件号快照
 		TicketCategoryId   int64     `db:"ticket_category_id"`    // ticket category id
 		TicketCategoryName string    `db:"ticket_category_name"`  // ticket category name snapshot
 		TicketPrice        float64   `db:"ticket_price"`          // ticket category price snapshot

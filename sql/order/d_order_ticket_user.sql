@@ -2,10 +2,10 @@ DROP TABLE IF EXISTS `d_order_ticket_user`;
 CREATE TABLE `d_order_ticket_user` (
   `id` bigint NOT NULL COMMENT 'primary key',
   `order_number` bigint NOT NULL COMMENT 'order number',
-  `user_id` bigint NOT NULL COMMENT 'owner user id',
-  `ticket_user_id` bigint NOT NULL COMMENT 'ticket user id',
-  `ticket_user_name` varchar(128) NOT NULL COMMENT 'ticket user name snapshot',
-  `ticket_user_id_number` varchar(64) NOT NULL COMMENT 'ticket user id number snapshot',
+  `user_id` bigint NOT NULL COMMENT '下单用户ID',
+  `ticket_user_id` bigint NOT NULL COMMENT '观演人ID',
+  `ticket_user_name` varchar(128) NOT NULL COMMENT '观演人姓名快照',
+  `ticket_user_id_number` varchar(64) NOT NULL COMMENT '观演人证件号快照',
   `ticket_category_id` bigint NOT NULL COMMENT 'ticket category id',
   `ticket_category_name` varchar(128) NOT NULL COMMENT 'ticket category name snapshot',
   `ticket_price` decimal(10,0) NOT NULL COMMENT 'ticket category price snapshot',
@@ -22,4 +22,4 @@ CREATE TABLE `d_order_ticket_user` (
   KEY `idx_order_number` (`order_number`),
   KEY `idx_user_ticket_user` (`user_id`,`ticket_user_id`),
   KEY `idx_create_order_time` (`create_order_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='order ticket user snapshot table';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单观演人明细表';

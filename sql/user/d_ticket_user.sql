@@ -12,4 +12,4 @@ CREATE TABLE `d_ticket_user` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_d_ticket_user_identity` (`user_id`,`id_type`,`id_number`),
   KEY `idx_d_ticket_user_user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购票人表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='观演人表';
