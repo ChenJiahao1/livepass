@@ -1191,7 +1191,27 @@ func (f *fakeOrderProgramRPC) UpdateProgram(ctx context.Context, in *programrpc.
 	return nil, nil
 }
 
+func (f *fakeOrderProgramRPC) InvalidProgram(ctx context.Context, in *programrpc.ProgramInvalidReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) ResetProgram(ctx context.Context, in *programrpc.ProgramResetReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	return nil, nil
+}
+
 func (f *fakeOrderProgramRPC) ListProgramCategories(ctx context.Context, in *programrpc.Empty, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) ListProgramCategoriesByType(ctx context.Context, in *programrpc.ProgramCategoryTypeReq, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) ListProgramCategoriesByParent(ctx context.Context, in *programrpc.ParentProgramCategoryReq, opts ...grpc.CallOption) (*programrpc.ProgramCategoryListResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) BatchCreateProgramCategories(ctx context.Context, in *programrpc.ProgramCategoryBatchSaveReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
 	return nil, nil
 }
 
@@ -1215,7 +1235,31 @@ func (f *fakeOrderProgramRPC) GetProgramPreorder(ctx context.Context, in *progra
 	return f.getProgramPreorderResp, f.getProgramPreorderErr
 }
 
+func (f *fakeOrderProgramRPC) CreateProgramShowTime(ctx context.Context, in *programrpc.ProgramShowTimeAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) CreateTicketCategory(ctx context.Context, in *programrpc.TicketCategoryAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) GetTicketCategoryDetail(ctx context.Context, in *programrpc.TicketCategoryReq, opts ...grpc.CallOption) (*programrpc.TicketCategoryDetailInfo, error) {
+	return nil, nil
+}
+
 func (f *fakeOrderProgramRPC) ListTicketCategoriesByProgram(ctx context.Context, in *programrpc.ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*programrpc.TicketCategoryDetailListResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) CreateSeat(ctx context.Context, in *programrpc.SeatAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) BatchCreateSeats(ctx context.Context, in *programrpc.SeatBatchAddReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) GetSeatRelateInfo(ctx context.Context, in *programrpc.SeatListReq, opts ...grpc.CallOption) (*programrpc.SeatRelateInfo, error) {
 	return nil, nil
 }
 

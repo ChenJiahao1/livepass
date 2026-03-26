@@ -42,6 +42,12 @@ Upstreams:
     Mappings:
       - Method: post
         Path: /order/create
+  - Name: pay-api
+    Http:
+      Target: 127.0.0.1:8892
+    Mappings:
+      - Method: post
+        Path: /pay/detail
 Auth:
   ChannelMap:
     "0001": secret-0001
@@ -59,8 +65,8 @@ Auth:
 		t.Fatalf("expected default channel header X-Channel-Code, got %q", c.Auth.ChannelCodeHeader)
 	}
 
-	if len(c.Upstreams) != 3 {
-		t.Fatalf("expected 3 upstreams, got %d", len(c.Upstreams))
+	if len(c.Upstreams) != 4 {
+		t.Fatalf("expected 4 upstreams, got %d", len(c.Upstreams))
 	}
 }
 
@@ -87,6 +93,19 @@ func TestLoadGatewayRuntimeConfigIncludesPrometheus(t *testing.T) {
 	if orderAPIUpstream.Http.Timeout != 6000 {
 		t.Fatalf("expected order-api timeout 6000, got %d", orderAPIUpstream.Http.Timeout)
 	}
+	assertGatewayMappingExists(t, orderAPIUpstream, "/order/account/order/count")
+	assertGatewayMappingExists(t, orderAPIUpstream, "/order/get/cache")
+
+	payAPIUpstream := findGatewayUpstream(t, c.Upstreams, "pay-api")
+	if payAPIUpstream.Http == nil {
+		t.Fatalf("expected pay-api http upstream to be configured")
+	}
+	if payAPIUpstream.Http.Target != "127.0.0.1:8892" {
+		t.Fatalf("expected pay-api target 127.0.0.1:8892, got %q", payAPIUpstream.Http.Target)
+	}
+	assertGatewayMappingExists(t, payAPIUpstream, "/pay/common/pay")
+	assertGatewayMappingExists(t, payAPIUpstream, "/pay/detail")
+	assertGatewayMappingExists(t, payAPIUpstream, "/pay/refund")
 }
 
 func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
@@ -112,6 +131,19 @@ func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
 	if orderAPIUpstream.Http.Timeout != 10000 {
 		t.Fatalf("expected order-api timeout 10000, got %d", orderAPIUpstream.Http.Timeout)
 	}
+	assertGatewayMappingExists(t, orderAPIUpstream, "/order/account/order/count")
+	assertGatewayMappingExists(t, orderAPIUpstream, "/order/get/cache")
+
+	payAPIUpstream := findGatewayUpstream(t, c.Upstreams, "pay-api")
+	if payAPIUpstream.Http == nil {
+		t.Fatalf("expected pay-api http upstream to be configured")
+	}
+	if payAPIUpstream.Http.Target != "127.0.0.1:8892" {
+		t.Fatalf("expected pay-api target 127.0.0.1:8892, got %q", payAPIUpstream.Http.Target)
+	}
+	assertGatewayMappingExists(t, payAPIUpstream, "/pay/common/pay")
+	assertGatewayMappingExists(t, payAPIUpstream, "/pay/detail")
+	assertGatewayMappingExists(t, payAPIUpstream, "/pay/refund")
 }
 
 func findGatewayUpstream(t *testing.T, upstreams []gateway.Upstream, name string) gateway.Upstream {
@@ -125,4 +157,16 @@ func findGatewayUpstream(t *testing.T, upstreams []gateway.Upstream, name string
 
 	t.Fatalf("expected upstream %q to exist", name)
 	return gateway.Upstream{}
+}
+
+func assertGatewayMappingExists(t *testing.T, upstream gateway.Upstream, path string) {
+	t.Helper()
+
+	for _, mapping := range upstream.Mappings {
+		if mapping.Path == path {
+			return
+		}
+	}
+
+	t.Fatalf("expected upstream %q to contain mapping %q", upstream.Name, path)
 }

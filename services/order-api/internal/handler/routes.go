@@ -54,4 +54,19 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			}...,
 		),
 	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/order/account/order/count",
+				Handler: AccountOrderCountHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/order/get/cache",
+				Handler: GetOrderCacheHandler(serverCtx),
+			},
+		},
+	)
 }

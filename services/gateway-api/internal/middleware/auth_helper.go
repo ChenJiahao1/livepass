@@ -12,7 +12,9 @@ import (
 const userIDHeader = "X-User-Id"
 
 func requiresAuth(path string) bool {
-	return strings.HasPrefix(path, "/order/") || strings.HasPrefix(path, "/agent/")
+	return strings.HasPrefix(path, "/order/") ||
+		strings.HasPrefix(path, "/pay/") ||
+		strings.HasPrefix(path, "/agent/")
 }
 
 func writeUnauthorized(w http.ResponseWriter, r *http.Request, err error) {

@@ -44,6 +44,14 @@ type fakeOrderRPC struct {
 	refundOrderResp    *orderrpc.RefundOrderResp
 	refundOrderErr     error
 	lastRefundOrderReq *orderrpc.RefundOrderReq
+
+	countActiveTicketsByUserProgramResp    *orderrpc.CountActiveTicketsByUserProgramResp
+	countActiveTicketsByUserProgramErr     error
+	lastCountActiveTicketsByUserProgramReq *orderrpc.CountActiveTicketsByUserProgramReq
+
+	getOrderCacheResp    *orderrpc.GetOrderCacheResp
+	getOrderCacheErr     error
+	lastGetOrderCacheReq *orderrpc.GetOrderCacheReq
 }
 
 func (f *fakeOrderRPC) CreateOrder(ctx context.Context, in *orderrpc.CreateOrderReq, opts ...grpc.CallOption) (*orderrpc.CreateOrderResp, error) {
@@ -96,7 +104,13 @@ func (f *fakeOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.Clos
 }
 
 func (f *fakeOrderRPC) CountActiveTicketsByUserProgram(ctx context.Context, in *orderrpc.CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*orderrpc.CountActiveTicketsByUserProgramResp, error) {
-	return nil, nil
+	f.lastCountActiveTicketsByUserProgramReq = in
+	return f.countActiveTicketsByUserProgramResp, f.countActiveTicketsByUserProgramErr
+}
+
+func (f *fakeOrderRPC) GetOrderCache(ctx context.Context, in *orderrpc.GetOrderCacheReq, opts ...grpc.CallOption) (*orderrpc.GetOrderCacheResp, error) {
+	f.lastGetOrderCacheReq = in
+	return f.getOrderCacheResp, f.getOrderCacheErr
 }
 
 var _ orderrpc.OrderRpc = (*fakeOrderRPC)(nil)

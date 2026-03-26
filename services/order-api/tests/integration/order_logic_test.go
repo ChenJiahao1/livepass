@@ -268,3 +268,44 @@ func TestRefundOrderForwardsUserIDAndPayload(t *testing.T) {
 		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastRefundOrderReq)
 	}
 }
+
+func TestAccountOrderCountForwardsExplicitUserAndProgram(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		countActiveTicketsByUserProgramResp: &orderrpc.CountActiveTicketsByUserProgramResp{ActiveTicketCount: 5},
+	}
+
+	l := logicpkg.NewAccountOrderCountLogic(context.Background(), newOrderAPIServiceContext(fakeRPC))
+	resp, err := l.AccountOrderCount(&types.AccountOrderCountReq{
+		UserID:    3001,
+		ProgramID: 10001,
+	})
+	if err != nil {
+		t.Fatalf("AccountOrderCount returned error: %v", err)
+	}
+	if resp.Count != 5 {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fakeRPC.lastCountActiveTicketsByUserProgramReq == nil ||
+		fakeRPC.lastCountActiveTicketsByUserProgramReq.UserId != 3001 ||
+		fakeRPC.lastCountActiveTicketsByUserProgramReq.ProgramId != 10001 {
+		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastCountActiveTicketsByUserProgramReq)
+	}
+}
+
+func TestGetOrderCacheForwardsOrderNumber(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		getOrderCacheResp: &orderrpc.GetOrderCacheResp{Cache: "91001"},
+	}
+
+	l := logicpkg.NewGetOrderCacheLogic(context.Background(), newOrderAPIServiceContext(fakeRPC))
+	resp, err := l.GetOrderCache(&types.OrderCacheReq{OrderNumber: 91001})
+	if err != nil {
+		t.Fatalf("GetOrderCache returned error: %v", err)
+	}
+	if resp.Cache != "91001" {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fakeRPC.lastGetOrderCacheReq == nil || fakeRPC.lastGetOrderCacheReq.OrderNumber != 91001 {
+		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastGetOrderCacheReq)
+	}
+}

@@ -91,6 +91,7 @@ go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml
 go run services/user-api/user.go -f services/user-api/etc/user-api.yaml
 go run services/program-api/program.go -f services/program-api/etc/program-api.yaml
 go run services/order-api/order.go -f services/order-api/etc/order-api.yaml
+go run services/pay-api/pay.go -f services/pay-api/etc/pay-api.yaml
 go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.yaml
 ```
 
@@ -107,7 +108,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 1. 基础设施：MySQL、Redis、etcd、Kafka
 2. `user-rpc`、`program-rpc`、`pay-rpc`
 3. `order-rpc`
-4. `user-api`、`program-api`、`order-api`
+4. `user-api`、`program-api`、`order-api`、`pay-api`
 5. `agents`
 6. `gateway-api`
 
@@ -120,9 +121,17 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 
 `jobs/order-close` 代码仍保留在仓库中，但当前不作为常驻定时任务写入默认启动清单；只在验证“超时关单”场景时，按 [docs/api/order-checkout-failure-acceptance.md](docs/api/order-checkout-failure-acceptance.md) 手动触发一次。
 
-`user-rpc`、`program-rpc`、`pay-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-rpc` 默认监听 `8080`，`order-rpc` 默认监听 `8082`，`program-rpc` 默认监听 `8083`，`pay-rpc` 默认监听 `8084`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`，`gateway-api` 默认监听 `8081`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
+`user-rpc`、`program-rpc`、`pay-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-rpc` 默认监听 `8080`，`order-rpc` 默认监听 `8082`，`program-rpc` 默认监听 `8083`，`pay-rpc` 默认监听 `8084`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`，`agents` 默认监听 `8891`，`pay-api` 默认监听 `8892`，`gateway-api` 默认监听 `8081`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
 
 `gateway-api` 已启用 `Telemetry` 配置；若要得到完整链路，还需给下游 API/RPC 服务同步补齐 `Telemetry`。
+
+`gateway-api` 当前已透传以下新增兼容接口：
+
+- `POST /order/account/order/count`
+- `POST /order/get/cache`
+- `POST /pay/common/pay`
+- `POST /pay/detail`
+- `POST /pay/refund`
 
 ## Order 压测基线准备
 
@@ -157,6 +166,7 @@ Prometheus 抓取端点：
 - `gateway-api`: `http://127.0.0.1:9101/metrics`
 - `order-api`: `http://127.0.0.1:9102/metrics`
 - `order-rpc`: `http://127.0.0.1:9103/metrics`
+- `pay-api`: `http://127.0.0.1:9104/metrics`
 
 `k6` 基线压测脚本：
 

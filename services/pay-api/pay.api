@@ -1,0 +1,54 @@
+syntax = "v1"
+
+type (
+	CommonPayReq {
+		OrderNumber int64  `json:"orderNumber"`
+		UserID      int64  `json:"userId"`
+		Subject     string `json:"subject"`
+		Channel     string `json:"channel,optional"`
+		Amount      int64  `json:"amount"`
+	}
+	CommonPayResp {
+		PayBillNo int64  `json:"payBillNo"`
+		PayStatus int64  `json:"payStatus"`
+		PayTime   string `json:"payTime,optional"`
+	}
+	PayBillReq {
+		OrderNumber int64 `json:"orderNumber"`
+	}
+	PayBillDetailResp {
+		PayBillNo   int64  `json:"payBillNo"`
+		OrderNumber int64  `json:"orderNumber"`
+		UserID      int64  `json:"userId"`
+		Subject     string `json:"subject,optional"`
+		Channel     string `json:"channel,optional"`
+		Amount      int64  `json:"amount"`
+		PayStatus   int64  `json:"payStatus"`
+		PayTime     string `json:"payTime,optional"`
+	}
+	RefundReq {
+		OrderNumber int64  `json:"orderNumber"`
+		Amount      int64  `json:"amount"`
+		Channel     string `json:"channel,optional"`
+		Reason      string `json:"reason,optional"`
+	}
+	RefundResp {
+		RefundBillNo int64  `json:"refundBillNo"`
+		OrderNumber  int64  `json:"orderNumber"`
+		RefundAmount int64  `json:"refundAmount"`
+		PayStatus    int64  `json:"payStatus"`
+		RefundTime   string `json:"refundTime,optional"`
+	}
+)
+
+service pay-api {
+	@handler CommonPay
+	post /pay/common/pay (CommonPayReq) returns (CommonPayResp)
+
+	@handler GetPayBill
+	post /pay/detail (PayBillReq) returns (PayBillDetailResp)
+
+	@handler Refund
+	post /pay/refund (RefundReq) returns (RefundResp)
+}
+

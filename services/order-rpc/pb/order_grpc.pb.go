@@ -22,6 +22,7 @@ const (
 	OrderRpc_CreateOrder_FullMethodName                     = "/order.OrderRpc/CreateOrder"
 	OrderRpc_ListOrders_FullMethodName                      = "/order.OrderRpc/ListOrders"
 	OrderRpc_GetOrder_FullMethodName                        = "/order.OrderRpc/GetOrder"
+	OrderRpc_GetOrderCache_FullMethodName                   = "/order.OrderRpc/GetOrderCache"
 	OrderRpc_GetOrderServiceView_FullMethodName             = "/order.OrderRpc/GetOrderServiceView"
 	OrderRpc_CancelOrder_FullMethodName                     = "/order.OrderRpc/CancelOrder"
 	OrderRpc_PayOrder_FullMethodName                        = "/order.OrderRpc/PayOrder"
@@ -39,6 +40,7 @@ type OrderRpcClient interface {
 	CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
 	ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 	GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
+	GetOrderCache(ctx context.Context, in *GetOrderCacheReq, opts ...grpc.CallOption) (*GetOrderCacheResp, error)
 	GetOrderServiceView(ctx context.Context, in *GetOrderServiceViewReq, opts ...grpc.CallOption) (*OrderServiceViewResp, error)
 	CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 	PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
@@ -81,6 +83,16 @@ func (c *orderRpcClient) GetOrder(ctx context.Context, in *GetOrderReq, opts ...
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(OrderDetailInfo)
 	err := c.cc.Invoke(ctx, OrderRpc_GetOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderRpcClient) GetOrderCache(ctx context.Context, in *GetOrderCacheReq, opts ...grpc.CallOption) (*GetOrderCacheResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrderCacheResp)
+	err := c.cc.Invoke(ctx, OrderRpc_GetOrderCache_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -174,6 +186,7 @@ type OrderRpcServer interface {
 	CreateOrder(context.Context, *CreateOrderReq) (*CreateOrderResp, error)
 	ListOrders(context.Context, *ListOrdersReq) (*ListOrdersResp, error)
 	GetOrder(context.Context, *GetOrderReq) (*OrderDetailInfo, error)
+	GetOrderCache(context.Context, *GetOrderCacheReq) (*GetOrderCacheResp, error)
 	GetOrderServiceView(context.Context, *GetOrderServiceViewReq) (*OrderServiceViewResp, error)
 	CancelOrder(context.Context, *CancelOrderReq) (*BoolResp, error)
 	PayOrder(context.Context, *PayOrderReq) (*PayOrderResp, error)
@@ -200,6 +213,9 @@ func (UnimplementedOrderRpcServer) ListOrders(context.Context, *ListOrdersReq) (
 }
 func (UnimplementedOrderRpcServer) GetOrder(context.Context, *GetOrderReq) (*OrderDetailInfo, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOrder not implemented")
+}
+func (UnimplementedOrderRpcServer) GetOrderCache(context.Context, *GetOrderCacheReq) (*GetOrderCacheResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOrderCache not implemented")
 }
 func (UnimplementedOrderRpcServer) GetOrderServiceView(context.Context, *GetOrderServiceViewReq) (*OrderServiceViewResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOrderServiceView not implemented")
@@ -296,6 +312,24 @@ func _OrderRpc_GetOrder_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OrderRpcServer).GetOrder(ctx, req.(*GetOrderReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderRpc_GetOrderCache_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrderCacheReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).GetOrderCache(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_GetOrderCache_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).GetOrderCache(ctx, req.(*GetOrderCacheReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -462,6 +496,10 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetOrder",
 			Handler:    _OrderRpc_GetOrder_Handler,
+		},
+		{
+			MethodName: "GetOrderCache",
+			Handler:    _OrderRpc_GetOrderCache_Handler,
 		},
 		{
 			MethodName: "GetOrderServiceView",

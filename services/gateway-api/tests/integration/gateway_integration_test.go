@@ -29,7 +29,10 @@ func TestGatewayForwardsUserRequestToUserAPI(t *testing.T) {
 	orderAPI := httptest.NewServer(http.NotFoundHandler())
 	defer orderAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
 	defer server.Stop()
 
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/user/login", nil, nil)
@@ -71,7 +74,10 @@ func TestGatewayForwardsProgramRequestToProgramAPI(t *testing.T) {
 	orderAPI := httptest.NewServer(http.NotFoundHandler())
 	defer orderAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
 	defer server.Stop()
 
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/program/page", nil, bytes.NewBufferString(`{}`))
@@ -109,7 +115,10 @@ func TestGatewayBlocksUnauthorizedOrderRequest(t *testing.T) {
 	}))
 	defer orderAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
 	defer server.Stop()
 
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/order/create", nil, bytes.NewBufferString(`{}`))
@@ -144,7 +153,10 @@ func TestGatewayForwardsAuthorizedOrderRequest(t *testing.T) {
 	}))
 	defer orderAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
 	defer server.Stop()
 
 	headers := map[string]string{
@@ -193,7 +205,10 @@ func TestGatewayForwardsAuthorizedRefundOrderRequest(t *testing.T) {
 	}))
 	defer orderAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
 	defer server.Stop()
 
 	headers := map[string]string{
@@ -218,6 +233,149 @@ func TestGatewayForwardsAuthorizedRefundOrderRequest(t *testing.T) {
 	}
 }
 
+func TestGatewayForwardsAuthorizedOrderManagementRoutes(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		path string
+		body string
+	}{
+		{
+			name: "account order count",
+			path: "/order/account/order/count",
+			body: `{"service":"order-account-count"}`,
+		},
+		{
+			name: "get order cache",
+			path: "/order/get/cache",
+			body: `{"service":"order-cache"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			userAPI := httptest.NewServer(http.NotFoundHandler())
+			defer userAPI.Close()
+
+			programAPI := httptest.NewServer(http.NotFoundHandler())
+			defer programAPI.Close()
+
+			var gotPath string
+			orderAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPath = r.URL.Path
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer orderAPI.Close()
+
+			payAPI := httptest.NewServer(http.NotFoundHandler())
+			defer payAPI.Close()
+
+			server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
+			defer server.Stop()
+
+			headers := map[string]string{
+				"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
+				"X-Channel-Code": "0001",
+			}
+			resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, tc.path, headers, bytes.NewBufferString(`{}`))
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("read response body: %v", err)
+			}
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", resp.StatusCode)
+			}
+			if gotPath != tc.path {
+				t.Fatalf("expected upstream path %s, got %q", tc.path, gotPath)
+			}
+			if string(body) != tc.body {
+				t.Fatalf("expected body %s, got %s", tc.body, string(body))
+			}
+		})
+	}
+}
+
+func TestGatewayForwardsAuthorizedPayRequests(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		path string
+		body string
+	}{
+		{
+			name: "common pay",
+			path: "/pay/common/pay",
+			body: `{"service":"pay-common"}`,
+		},
+		{
+			name: "pay detail",
+			path: "/pay/detail",
+			body: `{"service":"pay-detail"}`,
+		},
+		{
+			name: "pay refund",
+			path: "/pay/refund",
+			body: `{"service":"pay-refund"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			userAPI := httptest.NewServer(http.NotFoundHandler())
+			defer userAPI.Close()
+
+			programAPI := httptest.NewServer(http.NotFoundHandler())
+			defer programAPI.Close()
+
+			orderAPI := httptest.NewServer(http.NotFoundHandler())
+			defer orderAPI.Close()
+
+			var gotPath string
+			payAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPath = r.URL.Path
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer payAPI.Close()
+
+			server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
+			defer server.Stop()
+
+			headers := map[string]string{
+				"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
+				"X-Channel-Code": "0001",
+			}
+			resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, tc.path, headers, bytes.NewBufferString(`{}`))
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("read response body: %v", err)
+			}
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", resp.StatusCode)
+			}
+			if gotPath != tc.path {
+				t.Fatalf("expected upstream path %s, got %q", tc.path, gotPath)
+			}
+			if string(body) != tc.body {
+				t.Fatalf("expected body %s, got %s", tc.body, string(body))
+			}
+		})
+	}
+}
+
 func TestGatewayBlocksUnauthorizedAgentRequest(t *testing.T) {
 	t.Parallel()
 
@@ -230,6 +388,9 @@ func TestGatewayBlocksUnauthorizedAgentRequest(t *testing.T) {
 	orderAPI := httptest.NewServer(http.NotFoundHandler())
 	defer orderAPI.Close()
 
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
 	var called bool
 	agentsAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -237,7 +398,7 @@ func TestGatewayBlocksUnauthorizedAgentRequest(t *testing.T) {
 	}))
 	defer agentsAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000, agentsAPI.URL))
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000, agentsAPI.URL))
 	defer server.Stop()
 
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/chat", nil, bytes.NewBufferString(`{"message":"hi"}`))
@@ -263,6 +424,9 @@ func TestGatewayForwardsAuthorizedAgentRequestWithUserHeader(t *testing.T) {
 	orderAPI := httptest.NewServer(http.NotFoundHandler())
 	defer orderAPI.Close()
 
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
 	var gotPath string
 	var gotUserHeader string
 	agentsAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -273,7 +437,7 @@ func TestGatewayForwardsAuthorizedAgentRequestWithUserHeader(t *testing.T) {
 	}))
 	defer agentsAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000, agentsAPI.URL))
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000, agentsAPI.URL))
 	defer server.Stop()
 
 	headers := map[string]string{
@@ -315,7 +479,10 @@ func TestGatewayPreservesUpstreamStatusCode(t *testing.T) {
 	orderAPI := httptest.NewServer(http.NotFoundHandler())
 	defer orderAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
 	defer server.Stop()
 
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/user/login", nil, bytes.NewBufferString(`{}`))
@@ -371,7 +538,10 @@ func TestGatewayPreservesOrderAPIStatusCodes(t *testing.T) {
 			}))
 			defer orderAPI.Close()
 
-			server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 1000))
+			payAPI := httptest.NewServer(http.NotFoundHandler())
+			defer payAPI.Close()
+
+			server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
 			defer server.Stop()
 
 			headers := map[string]string{
@@ -411,7 +581,10 @@ func TestGatewayReturnsErrorWhenUpstreamTimeout(t *testing.T) {
 	orderAPI := httptest.NewServer(http.NotFoundHandler())
 	defer orderAPI.Close()
 
-	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, 10))
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 10))
 	defer server.Stop()
 
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/user/login", nil, bytes.NewBufferString(`{}`))

@@ -3,6 +3,15 @@
 
 package types
 
+type AccountOrderCountReq struct {
+	UserID    int64 `json:"userId"`
+	ProgramID int64 `json:"programId"`
+}
+
+type AccountOrderCountResp struct {
+	Count int64 `json:"count"`
+}
+
 type BoolResp struct {
 	Success bool `json:"success"`
 }
@@ -38,6 +47,14 @@ type ListOrdersResp struct {
 	PageSize  int64           `json:"pageSize"`
 	TotalSize int64           `json:"totalSize"`
 	List      []OrderListInfo `json:"list,optional"`
+}
+
+type OrderCacheReq struct {
+	OrderNumber int64 `json:"orderNumber"`
+}
+
+type OrderCacheResp struct {
+	Cache string `json:"cache,optional"`
 }
 
 type OrderDetailInfo struct {

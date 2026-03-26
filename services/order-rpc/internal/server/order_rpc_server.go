@@ -38,6 +38,11 @@ func (s *OrderRpcServer) GetOrder(ctx context.Context, in *pb.GetOrderReq) (*pb.
 	return l.GetOrder(in)
 }
 
+func (s *OrderRpcServer) GetOrderCache(ctx context.Context, in *pb.GetOrderCacheReq) (*pb.GetOrderCacheResp, error) {
+	l := logic.NewGetOrderCacheLogic(ctx, s.svcCtx)
+	return l.GetOrderCache(in)
+}
+
 func (s *OrderRpcServer) GetOrderServiceView(ctx context.Context, in *pb.GetOrderServiceViewReq) (*pb.OrderServiceViewResp, error) {
 	l := logic.NewGetOrderServiceViewLogic(ctx, s.svcCtx)
 	return l.GetOrderServiceView(in)

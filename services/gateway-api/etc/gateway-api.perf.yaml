@@ -75,11 +75,15 @@ Upstreams:
       Timeout: 10000
     Mappings:
       - Method: post
+        Path: /order/account/order/count
+      - Method: post
         Path: /order/cancel
       - Method: post
         Path: /order/create
       - Method: post
         Path: /order/get
+      - Method: post
+        Path: /order/get/cache
       - Method: post
         Path: /order/pay
       - Method: post
@@ -88,6 +92,17 @@ Upstreams:
         Path: /order/refund
       - Method: post
         Path: /order/select/list
+  - Name: pay-api
+    Http:
+      Target: 127.0.0.1:8892
+      Timeout: 3000
+    Mappings:
+      - Method: post
+        Path: /pay/common/pay
+      - Method: post
+        Path: /pay/detail
+      - Method: post
+        Path: /pay/refund
   - Name: agents-api
     Http:
       Target: 127.0.0.1:8891

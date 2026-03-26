@@ -1,0 +1,14 @@
+Name: pay-api
+Host: 0.0.0.0
+Port: 8892
+Timeout: 5000
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9104
+
+PayRpc:
+  Timeout: 5000
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: pay.rpc

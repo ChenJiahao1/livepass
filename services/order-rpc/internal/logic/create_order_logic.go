@@ -122,5 +122,9 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, mapOrderError(xerr.ErrInternal)
 	}
 
+	if err := SetOrderCreateMarker(l.ctx, l.svcCtx.Redis, orderEvent.OrderNumber); err != nil {
+		l.Errorf("set order create marker failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
+	}
+
 	return &pb.CreateOrderResp{OrderNumber: orderEvent.OrderNumber}, nil
 }

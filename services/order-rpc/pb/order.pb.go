@@ -565,6 +565,94 @@ func (x *GetOrderServiceViewReq) GetOrderNumber() int64 {
 	return 0
 }
 
+type GetOrderCacheReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrderNumber   int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrderCacheReq) Reset() {
+	*x = GetOrderCacheReq{}
+	mi := &file_order_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrderCacheReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrderCacheReq) ProtoMessage() {}
+
+func (x *GetOrderCacheReq) ProtoReflect() protoreflect.Message {
+	mi := &file_order_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrderCacheReq.ProtoReflect.Descriptor instead.
+func (*GetOrderCacheReq) Descriptor() ([]byte, []int) {
+	return file_order_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetOrderCacheReq) GetOrderNumber() int64 {
+	if x != nil {
+		return x.OrderNumber
+	}
+	return 0
+}
+
+type GetOrderCacheResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cache         string                 `protobuf:"bytes,1,opt,name=cache,proto3" json:"cache,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrderCacheResp) Reset() {
+	*x = GetOrderCacheResp{}
+	mi := &file_order_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrderCacheResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrderCacheResp) ProtoMessage() {}
+
+func (x *GetOrderCacheResp) ProtoReflect() protoreflect.Message {
+	mi := &file_order_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrderCacheResp.ProtoReflect.Descriptor instead.
+func (*GetOrderCacheResp) Descriptor() ([]byte, []int) {
+	return file_order_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetOrderCacheResp) GetCache() string {
+	if x != nil {
+		return x.Cache
+	}
+	return ""
+}
+
 type OrderServiceViewResp struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	OrderNumber         int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
@@ -583,7 +671,7 @@ type OrderServiceViewResp struct {
 
 func (x *OrderServiceViewResp) Reset() {
 	*x = OrderServiceViewResp{}
-	mi := &file_order_proto_msgTypes[8]
+	mi := &file_order_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -595,7 +683,7 @@ func (x *OrderServiceViewResp) String() string {
 func (*OrderServiceViewResp) ProtoMessage() {}
 
 func (x *OrderServiceViewResp) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[8]
+	mi := &file_order_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -608,7 +696,7 @@ func (x *OrderServiceViewResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderServiceViewResp.ProtoReflect.Descriptor instead.
 func (*OrderServiceViewResp) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{8}
+	return file_order_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *OrderServiceViewResp) GetOrderNumber() int64 {
@@ -699,7 +787,7 @@ type OrderTicketInfo struct {
 
 func (x *OrderTicketInfo) Reset() {
 	*x = OrderTicketInfo{}
-	mi := &file_order_proto_msgTypes[9]
+	mi := &file_order_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -711,7 +799,7 @@ func (x *OrderTicketInfo) String() string {
 func (*OrderTicketInfo) ProtoMessage() {}
 
 func (x *OrderTicketInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[9]
+	mi := &file_order_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -724,7 +812,7 @@ func (x *OrderTicketInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderTicketInfo.ProtoReflect.Descriptor instead.
 func (*OrderTicketInfo) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{9}
+	return file_order_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *OrderTicketInfo) GetTicketUserId() int64 {
@@ -823,7 +911,7 @@ type OrderDetailInfo struct {
 
 func (x *OrderDetailInfo) Reset() {
 	*x = OrderDetailInfo{}
-	mi := &file_order_proto_msgTypes[10]
+	mi := &file_order_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -835,7 +923,7 @@ func (x *OrderDetailInfo) String() string {
 func (*OrderDetailInfo) ProtoMessage() {}
 
 func (x *OrderDetailInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[10]
+	mi := &file_order_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -848,7 +936,7 @@ func (x *OrderDetailInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderDetailInfo.ProtoReflect.Descriptor instead.
 func (*OrderDetailInfo) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{10}
+	return file_order_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *OrderDetailInfo) GetOrderNumber() int64 {
@@ -987,7 +1075,7 @@ type CancelOrderReq struct {
 
 func (x *CancelOrderReq) Reset() {
 	*x = CancelOrderReq{}
-	mi := &file_order_proto_msgTypes[11]
+	mi := &file_order_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -999,7 +1087,7 @@ func (x *CancelOrderReq) String() string {
 func (*CancelOrderReq) ProtoMessage() {}
 
 func (x *CancelOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[11]
+	mi := &file_order_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1012,7 +1100,7 @@ func (x *CancelOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelOrderReq.ProtoReflect.Descriptor instead.
 func (*CancelOrderReq) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{11}
+	return file_order_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CancelOrderReq) GetUserId() int64 {
@@ -1041,7 +1129,7 @@ type PayOrderReq struct {
 
 func (x *PayOrderReq) Reset() {
 	*x = PayOrderReq{}
-	mi := &file_order_proto_msgTypes[12]
+	mi := &file_order_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1053,7 +1141,7 @@ func (x *PayOrderReq) String() string {
 func (*PayOrderReq) ProtoMessage() {}
 
 func (x *PayOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[12]
+	mi := &file_order_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1066,7 +1154,7 @@ func (x *PayOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PayOrderReq.ProtoReflect.Descriptor instead.
 func (*PayOrderReq) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{12}
+	return file_order_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *PayOrderReq) GetUserId() int64 {
@@ -1110,7 +1198,7 @@ type PayOrderResp struct {
 
 func (x *PayOrderResp) Reset() {
 	*x = PayOrderResp{}
-	mi := &file_order_proto_msgTypes[13]
+	mi := &file_order_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1122,7 +1210,7 @@ func (x *PayOrderResp) String() string {
 func (*PayOrderResp) ProtoMessage() {}
 
 func (x *PayOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[13]
+	mi := &file_order_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1135,7 +1223,7 @@ func (x *PayOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PayOrderResp.ProtoReflect.Descriptor instead.
 func (*PayOrderResp) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{13}
+	return file_order_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *PayOrderResp) GetOrderNumber() int64 {
@@ -1183,7 +1271,7 @@ type PayCheckReq struct {
 
 func (x *PayCheckReq) Reset() {
 	*x = PayCheckReq{}
-	mi := &file_order_proto_msgTypes[14]
+	mi := &file_order_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1195,7 +1283,7 @@ func (x *PayCheckReq) String() string {
 func (*PayCheckReq) ProtoMessage() {}
 
 func (x *PayCheckReq) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[14]
+	mi := &file_order_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1208,7 +1296,7 @@ func (x *PayCheckReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PayCheckReq.ProtoReflect.Descriptor instead.
 func (*PayCheckReq) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{14}
+	return file_order_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *PayCheckReq) GetUserId() int64 {
@@ -1238,7 +1326,7 @@ type PayCheckResp struct {
 
 func (x *PayCheckResp) Reset() {
 	*x = PayCheckResp{}
-	mi := &file_order_proto_msgTypes[15]
+	mi := &file_order_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1250,7 +1338,7 @@ func (x *PayCheckResp) String() string {
 func (*PayCheckResp) ProtoMessage() {}
 
 func (x *PayCheckResp) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[15]
+	mi := &file_order_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1263,7 +1351,7 @@ func (x *PayCheckResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PayCheckResp.ProtoReflect.Descriptor instead.
 func (*PayCheckResp) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{15}
+	return file_order_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *PayCheckResp) GetOrderNumber() int64 {
@@ -1312,7 +1400,7 @@ type RefundOrderReq struct {
 
 func (x *RefundOrderReq) Reset() {
 	*x = RefundOrderReq{}
-	mi := &file_order_proto_msgTypes[16]
+	mi := &file_order_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1324,7 +1412,7 @@ func (x *RefundOrderReq) String() string {
 func (*RefundOrderReq) ProtoMessage() {}
 
 func (x *RefundOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[16]
+	mi := &file_order_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1337,7 +1425,7 @@ func (x *RefundOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefundOrderReq.ProtoReflect.Descriptor instead.
 func (*RefundOrderReq) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{16}
+	return file_order_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RefundOrderReq) GetUserId() int64 {
@@ -1371,7 +1459,7 @@ type PreviewRefundOrderReq struct {
 
 func (x *PreviewRefundOrderReq) Reset() {
 	*x = PreviewRefundOrderReq{}
-	mi := &file_order_proto_msgTypes[17]
+	mi := &file_order_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1383,7 +1471,7 @@ func (x *PreviewRefundOrderReq) String() string {
 func (*PreviewRefundOrderReq) ProtoMessage() {}
 
 func (x *PreviewRefundOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[17]
+	mi := &file_order_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1396,7 +1484,7 @@ func (x *PreviewRefundOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreviewRefundOrderReq.ProtoReflect.Descriptor instead.
 func (*PreviewRefundOrderReq) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{17}
+	return file_order_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PreviewRefundOrderReq) GetUserId() int64 {
@@ -1426,7 +1514,7 @@ type PreviewRefundOrderResp struct {
 
 func (x *PreviewRefundOrderResp) Reset() {
 	*x = PreviewRefundOrderResp{}
-	mi := &file_order_proto_msgTypes[18]
+	mi := &file_order_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1438,7 +1526,7 @@ func (x *PreviewRefundOrderResp) String() string {
 func (*PreviewRefundOrderResp) ProtoMessage() {}
 
 func (x *PreviewRefundOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[18]
+	mi := &file_order_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1451,7 +1539,7 @@ func (x *PreviewRefundOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreviewRefundOrderResp.ProtoReflect.Descriptor instead.
 func (*PreviewRefundOrderResp) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{18}
+	return file_order_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PreviewRefundOrderResp) GetOrderNumber() int64 {
@@ -1503,7 +1591,7 @@ type RefundOrderResp struct {
 
 func (x *RefundOrderResp) Reset() {
 	*x = RefundOrderResp{}
-	mi := &file_order_proto_msgTypes[19]
+	mi := &file_order_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +1603,7 @@ func (x *RefundOrderResp) String() string {
 func (*RefundOrderResp) ProtoMessage() {}
 
 func (x *RefundOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[19]
+	mi := &file_order_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +1616,7 @@ func (x *RefundOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefundOrderResp.ProtoReflect.Descriptor instead.
 func (*RefundOrderResp) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{19}
+	return file_order_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RefundOrderResp) GetOrderNumber() int64 {
@@ -1584,7 +1672,7 @@ type CloseExpiredOrdersReq struct {
 
 func (x *CloseExpiredOrdersReq) Reset() {
 	*x = CloseExpiredOrdersReq{}
-	mi := &file_order_proto_msgTypes[20]
+	mi := &file_order_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1596,7 +1684,7 @@ func (x *CloseExpiredOrdersReq) String() string {
 func (*CloseExpiredOrdersReq) ProtoMessage() {}
 
 func (x *CloseExpiredOrdersReq) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[20]
+	mi := &file_order_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1609,7 +1697,7 @@ func (x *CloseExpiredOrdersReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseExpiredOrdersReq.ProtoReflect.Descriptor instead.
 func (*CloseExpiredOrdersReq) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{20}
+	return file_order_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CloseExpiredOrdersReq) GetLimit() int64 {
@@ -1642,7 +1730,7 @@ type CloseExpiredOrdersResp struct {
 
 func (x *CloseExpiredOrdersResp) Reset() {
 	*x = CloseExpiredOrdersResp{}
-	mi := &file_order_proto_msgTypes[21]
+	mi := &file_order_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1654,7 +1742,7 @@ func (x *CloseExpiredOrdersResp) String() string {
 func (*CloseExpiredOrdersResp) ProtoMessage() {}
 
 func (x *CloseExpiredOrdersResp) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[21]
+	mi := &file_order_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1667,7 +1755,7 @@ func (x *CloseExpiredOrdersResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseExpiredOrdersResp.ProtoReflect.Descriptor instead.
 func (*CloseExpiredOrdersResp) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{21}
+	return file_order_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CloseExpiredOrdersResp) GetClosedCount() int64 {
@@ -1687,7 +1775,7 @@ type CountActiveTicketsByUserProgramReq struct {
 
 func (x *CountActiveTicketsByUserProgramReq) Reset() {
 	*x = CountActiveTicketsByUserProgramReq{}
-	mi := &file_order_proto_msgTypes[22]
+	mi := &file_order_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1699,7 +1787,7 @@ func (x *CountActiveTicketsByUserProgramReq) String() string {
 func (*CountActiveTicketsByUserProgramReq) ProtoMessage() {}
 
 func (x *CountActiveTicketsByUserProgramReq) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[22]
+	mi := &file_order_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1712,7 +1800,7 @@ func (x *CountActiveTicketsByUserProgramReq) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CountActiveTicketsByUserProgramReq.ProtoReflect.Descriptor instead.
 func (*CountActiveTicketsByUserProgramReq) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{22}
+	return file_order_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CountActiveTicketsByUserProgramReq) GetUserId() int64 {
@@ -1738,7 +1826,7 @@ type CountActiveTicketsByUserProgramResp struct {
 
 func (x *CountActiveTicketsByUserProgramResp) Reset() {
 	*x = CountActiveTicketsByUserProgramResp{}
-	mi := &file_order_proto_msgTypes[23]
+	mi := &file_order_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1750,7 +1838,7 @@ func (x *CountActiveTicketsByUserProgramResp) String() string {
 func (*CountActiveTicketsByUserProgramResp) ProtoMessage() {}
 
 func (x *CountActiveTicketsByUserProgramResp) ProtoReflect() protoreflect.Message {
-	mi := &file_order_proto_msgTypes[23]
+	mi := &file_order_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1763,7 +1851,7 @@ func (x *CountActiveTicketsByUserProgramResp) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use CountActiveTicketsByUserProgramResp.ProtoReflect.Descriptor instead.
 func (*CountActiveTicketsByUserProgramResp) Descriptor() ([]byte, []int) {
-	return file_order_proto_rawDescGZIP(), []int{23}
+	return file_order_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CountActiveTicketsByUserProgramResp) GetActiveTicketCount() int64 {
@@ -1822,7 +1910,11 @@ const file_order_proto_rawDesc = "" +
 	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\"R\n" +
 	"\x16GetOrderServiceViewReq\x12\x16\n" +
 	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12 \n" +
-	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\"\xfc\x02\n" +
+	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\"4\n" +
+	"\x10GetOrderCacheReq\x12 \n" +
+	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\")\n" +
+	"\x11GetOrderCacheResp\x12\x14\n" +
+	"\x05cache\x18\x01 \x01(\tR\x05cache\"\xfc\x02\n" +
 	"\x14OrderServiceViewResp\x12 \n" +
 	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12 \n" +
 	"\vorderStatus\x18\x02 \x01(\x03R\vorderStatus\x12\x1c\n" +
@@ -1926,12 +2018,13 @@ const file_order_proto_rawDesc = "" +
 	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12\x1c\n" +
 	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\"S\n" +
 	"#CountActiveTicketsByUserProgramResp\x12,\n" +
-	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount2\x8d\x06\n" +
+	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount2\xd1\x06\n" +
 	"\bOrderRpc\x12<\n" +
 	"\vCreateOrder\x12\x15.order.CreateOrderReq\x1a\x16.order.CreateOrderResp\x129\n" +
 	"\n" +
 	"ListOrders\x12\x14.order.ListOrdersReq\x1a\x15.order.ListOrdersResp\x126\n" +
-	"\bGetOrder\x12\x12.order.GetOrderReq\x1a\x16.order.OrderDetailInfo\x12Q\n" +
+	"\bGetOrder\x12\x12.order.GetOrderReq\x1a\x16.order.OrderDetailInfo\x12B\n" +
+	"\rGetOrderCache\x12\x17.order.GetOrderCacheReq\x1a\x18.order.GetOrderCacheResp\x12Q\n" +
 	"\x13GetOrderServiceView\x12\x1d.order.GetOrderServiceViewReq\x1a\x1b.order.OrderServiceViewResp\x125\n" +
 	"\vCancelOrder\x12\x15.order.CancelOrderReq\x1a\x0f.order.BoolResp\x123\n" +
 	"\bPayOrder\x12\x12.order.PayOrderReq\x1a\x13.order.PayOrderResp\x123\n" +
@@ -1953,7 +2046,7 @@ func file_order_proto_rawDescGZIP() []byte {
 	return file_order_proto_rawDescData
 }
 
-var file_order_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_order_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_order_proto_goTypes = []any{
 	(*BoolResp)(nil),                            // 0: order.BoolResp
 	(*CreateOrderReq)(nil),                      // 1: order.CreateOrderReq
@@ -1963,50 +2056,54 @@ var file_order_proto_goTypes = []any{
 	(*ListOrdersResp)(nil),                      // 5: order.ListOrdersResp
 	(*GetOrderReq)(nil),                         // 6: order.GetOrderReq
 	(*GetOrderServiceViewReq)(nil),              // 7: order.GetOrderServiceViewReq
-	(*OrderServiceViewResp)(nil),                // 8: order.OrderServiceViewResp
-	(*OrderTicketInfo)(nil),                     // 9: order.OrderTicketInfo
-	(*OrderDetailInfo)(nil),                     // 10: order.OrderDetailInfo
-	(*CancelOrderReq)(nil),                      // 11: order.CancelOrderReq
-	(*PayOrderReq)(nil),                         // 12: order.PayOrderReq
-	(*PayOrderResp)(nil),                        // 13: order.PayOrderResp
-	(*PayCheckReq)(nil),                         // 14: order.PayCheckReq
-	(*PayCheckResp)(nil),                        // 15: order.PayCheckResp
-	(*RefundOrderReq)(nil),                      // 16: order.RefundOrderReq
-	(*PreviewRefundOrderReq)(nil),               // 17: order.PreviewRefundOrderReq
-	(*PreviewRefundOrderResp)(nil),              // 18: order.PreviewRefundOrderResp
-	(*RefundOrderResp)(nil),                     // 19: order.RefundOrderResp
-	(*CloseExpiredOrdersReq)(nil),               // 20: order.CloseExpiredOrdersReq
-	(*CloseExpiredOrdersResp)(nil),              // 21: order.CloseExpiredOrdersResp
-	(*CountActiveTicketsByUserProgramReq)(nil),  // 22: order.CountActiveTicketsByUserProgramReq
-	(*CountActiveTicketsByUserProgramResp)(nil), // 23: order.CountActiveTicketsByUserProgramResp
+	(*GetOrderCacheReq)(nil),                    // 8: order.GetOrderCacheReq
+	(*GetOrderCacheResp)(nil),                   // 9: order.GetOrderCacheResp
+	(*OrderServiceViewResp)(nil),                // 10: order.OrderServiceViewResp
+	(*OrderTicketInfo)(nil),                     // 11: order.OrderTicketInfo
+	(*OrderDetailInfo)(nil),                     // 12: order.OrderDetailInfo
+	(*CancelOrderReq)(nil),                      // 13: order.CancelOrderReq
+	(*PayOrderReq)(nil),                         // 14: order.PayOrderReq
+	(*PayOrderResp)(nil),                        // 15: order.PayOrderResp
+	(*PayCheckReq)(nil),                         // 16: order.PayCheckReq
+	(*PayCheckResp)(nil),                        // 17: order.PayCheckResp
+	(*RefundOrderReq)(nil),                      // 18: order.RefundOrderReq
+	(*PreviewRefundOrderReq)(nil),               // 19: order.PreviewRefundOrderReq
+	(*PreviewRefundOrderResp)(nil),              // 20: order.PreviewRefundOrderResp
+	(*RefundOrderResp)(nil),                     // 21: order.RefundOrderResp
+	(*CloseExpiredOrdersReq)(nil),               // 22: order.CloseExpiredOrdersReq
+	(*CloseExpiredOrdersResp)(nil),              // 23: order.CloseExpiredOrdersResp
+	(*CountActiveTicketsByUserProgramReq)(nil),  // 24: order.CountActiveTicketsByUserProgramReq
+	(*CountActiveTicketsByUserProgramResp)(nil), // 25: order.CountActiveTicketsByUserProgramResp
 }
 var file_order_proto_depIdxs = []int32{
 	4,  // 0: order.ListOrdersResp.list:type_name -> order.OrderListInfo
-	9,  // 1: order.OrderDetailInfo.orderTicketInfoVoList:type_name -> order.OrderTicketInfo
+	11, // 1: order.OrderDetailInfo.orderTicketInfoVoList:type_name -> order.OrderTicketInfo
 	1,  // 2: order.OrderRpc.CreateOrder:input_type -> order.CreateOrderReq
 	3,  // 3: order.OrderRpc.ListOrders:input_type -> order.ListOrdersReq
 	6,  // 4: order.OrderRpc.GetOrder:input_type -> order.GetOrderReq
-	7,  // 5: order.OrderRpc.GetOrderServiceView:input_type -> order.GetOrderServiceViewReq
-	11, // 6: order.OrderRpc.CancelOrder:input_type -> order.CancelOrderReq
-	12, // 7: order.OrderRpc.PayOrder:input_type -> order.PayOrderReq
-	14, // 8: order.OrderRpc.PayCheck:input_type -> order.PayCheckReq
-	17, // 9: order.OrderRpc.PreviewRefundOrder:input_type -> order.PreviewRefundOrderReq
-	16, // 10: order.OrderRpc.RefundOrder:input_type -> order.RefundOrderReq
-	20, // 11: order.OrderRpc.CloseExpiredOrders:input_type -> order.CloseExpiredOrdersReq
-	22, // 12: order.OrderRpc.CountActiveTicketsByUserProgram:input_type -> order.CountActiveTicketsByUserProgramReq
-	2,  // 13: order.OrderRpc.CreateOrder:output_type -> order.CreateOrderResp
-	5,  // 14: order.OrderRpc.ListOrders:output_type -> order.ListOrdersResp
-	10, // 15: order.OrderRpc.GetOrder:output_type -> order.OrderDetailInfo
-	8,  // 16: order.OrderRpc.GetOrderServiceView:output_type -> order.OrderServiceViewResp
-	0,  // 17: order.OrderRpc.CancelOrder:output_type -> order.BoolResp
-	13, // 18: order.OrderRpc.PayOrder:output_type -> order.PayOrderResp
-	15, // 19: order.OrderRpc.PayCheck:output_type -> order.PayCheckResp
-	18, // 20: order.OrderRpc.PreviewRefundOrder:output_type -> order.PreviewRefundOrderResp
-	19, // 21: order.OrderRpc.RefundOrder:output_type -> order.RefundOrderResp
-	21, // 22: order.OrderRpc.CloseExpiredOrders:output_type -> order.CloseExpiredOrdersResp
-	23, // 23: order.OrderRpc.CountActiveTicketsByUserProgram:output_type -> order.CountActiveTicketsByUserProgramResp
-	13, // [13:24] is the sub-list for method output_type
-	2,  // [2:13] is the sub-list for method input_type
+	8,  // 5: order.OrderRpc.GetOrderCache:input_type -> order.GetOrderCacheReq
+	7,  // 6: order.OrderRpc.GetOrderServiceView:input_type -> order.GetOrderServiceViewReq
+	13, // 7: order.OrderRpc.CancelOrder:input_type -> order.CancelOrderReq
+	14, // 8: order.OrderRpc.PayOrder:input_type -> order.PayOrderReq
+	16, // 9: order.OrderRpc.PayCheck:input_type -> order.PayCheckReq
+	19, // 10: order.OrderRpc.PreviewRefundOrder:input_type -> order.PreviewRefundOrderReq
+	18, // 11: order.OrderRpc.RefundOrder:input_type -> order.RefundOrderReq
+	22, // 12: order.OrderRpc.CloseExpiredOrders:input_type -> order.CloseExpiredOrdersReq
+	24, // 13: order.OrderRpc.CountActiveTicketsByUserProgram:input_type -> order.CountActiveTicketsByUserProgramReq
+	2,  // 14: order.OrderRpc.CreateOrder:output_type -> order.CreateOrderResp
+	5,  // 15: order.OrderRpc.ListOrders:output_type -> order.ListOrdersResp
+	12, // 16: order.OrderRpc.GetOrder:output_type -> order.OrderDetailInfo
+	9,  // 17: order.OrderRpc.GetOrderCache:output_type -> order.GetOrderCacheResp
+	10, // 18: order.OrderRpc.GetOrderServiceView:output_type -> order.OrderServiceViewResp
+	0,  // 19: order.OrderRpc.CancelOrder:output_type -> order.BoolResp
+	15, // 20: order.OrderRpc.PayOrder:output_type -> order.PayOrderResp
+	17, // 21: order.OrderRpc.PayCheck:output_type -> order.PayCheckResp
+	20, // 22: order.OrderRpc.PreviewRefundOrder:output_type -> order.PreviewRefundOrderResp
+	21, // 23: order.OrderRpc.RefundOrder:output_type -> order.RefundOrderResp
+	23, // 24: order.OrderRpc.CloseExpiredOrders:output_type -> order.CloseExpiredOrdersResp
+	25, // 25: order.OrderRpc.CountActiveTicketsByUserProgram:output_type -> order.CountActiveTicketsByUserProgramResp
+	14, // [14:26] is the sub-list for method output_type
+	2,  // [2:14] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -2023,7 +2120,7 @@ func file_order_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_order_proto_rawDesc), len(file_order_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

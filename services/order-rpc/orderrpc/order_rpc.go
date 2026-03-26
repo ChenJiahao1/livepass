@@ -22,6 +22,8 @@ type (
 	CountActiveTicketsByUserProgramResp = pb.CountActiveTicketsByUserProgramResp
 	CreateOrderReq                      = pb.CreateOrderReq
 	CreateOrderResp                     = pb.CreateOrderResp
+	GetOrderCacheReq                    = pb.GetOrderCacheReq
+	GetOrderCacheResp                   = pb.GetOrderCacheResp
 	GetOrderReq                         = pb.GetOrderReq
 	GetOrderServiceViewReq              = pb.GetOrderServiceViewReq
 	ListOrdersReq                       = pb.ListOrdersReq
@@ -43,6 +45,7 @@ type (
 		CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
 		ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 		GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
+		GetOrderCache(ctx context.Context, in *GetOrderCacheReq, opts ...grpc.CallOption) (*GetOrderCacheResp, error)
 		GetOrderServiceView(ctx context.Context, in *GetOrderServiceViewReq, opts ...grpc.CallOption) (*OrderServiceViewResp, error)
 		CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 		PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
@@ -77,6 +80,11 @@ func (m *defaultOrderRpc) ListOrders(ctx context.Context, in *ListOrdersReq, opt
 func (m *defaultOrderRpc) GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.GetOrder(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) GetOrderCache(ctx context.Context, in *GetOrderCacheReq, opts ...grpc.CallOption) (*GetOrderCacheResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.GetOrderCache(ctx, in, opts...)
 }
 
 func (m *defaultOrderRpc) GetOrderServiceView(ctx context.Context, in *GetOrderServiceViewReq, opts ...grpc.CallOption) (*OrderServiceViewResp, error) {

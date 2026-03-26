@@ -108,6 +108,19 @@ type (
 		RefundBillNo  int64  `json:"refundBillNo"`
 		RefundTime    string `json:"refundTime,optional"`
 	}
+	AccountOrderCountReq {
+		UserID    int64 `json:"userId"`
+		ProgramID int64 `json:"programId"`
+	}
+	AccountOrderCountResp {
+		Count int64 `json:"count"`
+	}
+	OrderCacheReq {
+		OrderNumber int64 `json:"orderNumber"`
+	}
+	OrderCacheResp {
+		Cache string `json:"cache,optional"`
+	}
 	BoolResp {
 		Success bool `json:"success"`
 	}
@@ -137,5 +150,13 @@ service order-api {
 
 	@handler RefundOrder
 	post /order/refund (RefundOrderReq) returns (RefundOrderResp)
+}
+
+service order-api {
+	@handler AccountOrderCount
+	post /order/account/order/count (AccountOrderCountReq) returns (AccountOrderCountResp)
+
+	@handler GetOrderCache
+	post /order/get/cache (OrderCacheReq) returns (OrderCacheResp)
 }
 

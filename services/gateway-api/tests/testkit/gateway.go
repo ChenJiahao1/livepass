@@ -29,7 +29,7 @@ func MustCreateToken(t *testing.T, userID int64, secret string) string {
 	return token
 }
 
-func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget string, timeout int64, agentsTarget ...string) config.Config {
+func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarget string, timeout int64, agentsTarget ...string) config.Config {
 	t.Helper()
 
 	var c config.Config
@@ -70,8 +70,22 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget string, 
 				Timeout: timeout,
 			},
 			Mappings: []gateway.RouteMapping{
+				{Method: http.MethodPost, Path: "/order/account/order/count"},
 				{Method: http.MethodPost, Path: "/order/create"},
+				{Method: http.MethodPost, Path: "/order/get/cache"},
 				{Method: http.MethodPost, Path: "/order/refund"},
+			},
+		},
+		{
+			Name: "pay-api",
+			Http: &gateway.HttpClientConf{
+				Target:  mustHostFromURL(t, payTarget),
+				Timeout: timeout,
+			},
+			Mappings: []gateway.RouteMapping{
+				{Method: http.MethodPost, Path: "/pay/common/pay"},
+				{Method: http.MethodPost, Path: "/pay/detail"},
+				{Method: http.MethodPost, Path: "/pay/refund"},
 			},
 		},
 	}
