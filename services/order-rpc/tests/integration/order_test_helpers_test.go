@@ -27,13 +27,14 @@ import (
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 )
 
-var testOrderMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true")
+var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order_integration?parseTime=true"
 
 const testPurchaseLimitLedgerPrefix = "damai-go:test:order:purchase-limit"
 
@@ -174,6 +175,13 @@ type fakeOrderCreateConsumerFactory struct {
 	closeCalls    int
 }
 
+type fakeAsyncCloseClient struct {
+	enqueueErr      error
+	enqueueCalls    int
+	lastOrderNumber int64
+	lastExpireAt    time.Time
+}
+
 type tracingOrderRepository struct {
 	base                       repository.OrderRepository
 	transactByOrderNumberCalls int
@@ -233,10 +241,11 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	payRPC := &fakeOrderPayRPC{}
 	orderCreateProducer := &fakeOrderCreateProducer{}
 	orderCreateConsumerFactory := &fakeOrderCreateConsumerFactory{}
+	asyncCloseClient := &fakeAsyncCloseClient{}
 	cfg.MySQL.DataSource = xmysql.WithLocalTime(cfg.MySQL.DataSource)
 	conn := sqlx.NewMysql(cfg.MySQL.DataSource)
-	shardConn0 := sqlx.NewMysql(cfg.Sharding.Shards["order-db-0"].DataSource)
-	shardConn1 := sqlx.NewMysql(cfg.Sharding.Shards["order-db-1"].DataSource)
+	shardConn0 := sqlx.NewMysql(xmysql.WithLocalTime(cfg.Sharding.Shards["order-db-0"].DataSource))
+	shardConn1 := sqlx.NewMysql(xmysql.WithLocalTime(cfg.Sharding.Shards["order-db-1"].DataSource))
 	redisClient := xredis.MustNew(cfg.StoreRedis)
 	routeMap, err := sharding.NewRouteMap(cfg.Sharding.RouteMap.Version, buildOrderTestRouteEntries())
 	if err != nil {
@@ -273,9 +282,17 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		PayRpc:             payRPC,
 		OrderCreateProducer:        orderCreateProducer,
 		OrderCreateConsumerFactory: orderCreateConsumerFactory,
+		AsyncCloseClient:           asyncCloseClient,
 	}
 
 	return svcCtx, programRPC, userRPC, payRPC
+}
+
+func (f *fakeAsyncCloseClient) EnqueueCloseTimeout(_ context.Context, orderNumber int64, expireAt time.Time) error {
+	f.enqueueCalls++
+	f.lastOrderNumber = orderNumber
+	f.lastExpireAt = expireAt
+	return f.enqueueErr
 }
 
 func buildOrderTestShardingConfig() config.ShardingConfig {
@@ -727,6 +744,8 @@ func (f *fakeOrderPayRPC) Refund(ctx context.Context, in *payrpc.RefundReq, opts
 func openOrderTestDB(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 
+	ensureOrderTestDatabase(t, dataSource)
+
 	db, err := sql.Open("mysql", xmysql.WithLocalTime(dataSource))
 	if err != nil {
 		t.Fatalf("sql.Open error: %v", err)
@@ -737,6 +756,38 @@ func openOrderTestDB(t *testing.T, dataSource string) *sql.DB {
 	}
 
 	return db
+}
+
+func ensureOrderTestDatabase(t *testing.T, dataSource string) {
+	t.Helper()
+
+	cfg, err := mysqlDriver.ParseDSN(dataSource)
+	if err != nil {
+		t.Fatalf("mysql parse dsn error: %v", err)
+	}
+	if cfg.DBName == "" {
+		t.Fatalf("expected mysql dsn to include database name: %s", dataSource)
+	}
+
+	dbName := cfg.DBName
+	cfg.DBName = ""
+
+	adminDB, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		t.Fatalf("sql.Open admin db error: %v", err)
+	}
+	defer adminDB.Close()
+
+	if err := adminDB.Ping(); err != nil {
+		t.Fatalf("admin db ping error: %v", err)
+	}
+
+	stmt := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+		strings.ReplaceAll(dbName, "`", "``"),
+	)
+	if _, err := adminDB.Exec(stmt); err != nil {
+		t.Fatalf("create test database error: %v", err)
+	}
 }
 
 func execOrderSQLFile(t *testing.T, db *sql.DB, relativePath string) {

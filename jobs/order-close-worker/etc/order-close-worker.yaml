@@ -1,0 +1,12 @@
+Asynq:
+  Queue: order_close
+  Concurrency: 4
+  ShutdownTimeout: 10s
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node
+OrderRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: order.rpc

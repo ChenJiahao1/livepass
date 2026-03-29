@@ -48,6 +48,15 @@ func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T
 	if c.Kafka.ConsumerWorkers != 1 {
 		t.Fatalf("expected kafka consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
 	}
+	if c.AsyncClose.Queue != "order_close" {
+		t.Fatalf("expected async close queue order_close, got %s", c.AsyncClose.Queue)
+	}
+	if c.AsyncClose.EnqueueTimeout != 500*time.Millisecond {
+		t.Fatalf("expected async close enqueue timeout 500ms, got %s", c.AsyncClose.EnqueueTimeout)
+	}
+	if c.AsyncClose.UniqueTTL != 30*time.Minute {
+		t.Fatalf("expected async close unique ttl 30m, got %s", c.AsyncClose.UniqueTTL)
+	}
 	if c.Sharding.Mode != "shard_only" {
 		t.Fatalf("expected sharding mode shard_only, got %s", c.Sharding.Mode)
 	}
@@ -116,6 +125,15 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	}
 	if c.Kafka.ConsumerWorkers != 1 {
 		t.Fatalf("expected kafka consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
+	}
+	if c.AsyncClose.Queue != "order_close" {
+		t.Fatalf("expected perf async close queue order_close, got %s", c.AsyncClose.Queue)
+	}
+	if c.AsyncClose.EnqueueTimeout != 500*time.Millisecond {
+		t.Fatalf("expected perf async close enqueue timeout 500ms, got %s", c.AsyncClose.EnqueueTimeout)
+	}
+	if c.AsyncClose.UniqueTTL != 30*time.Minute {
+		t.Fatalf("expected perf async close unique ttl 30m, got %s", c.AsyncClose.UniqueTTL)
 	}
 	if c.Sharding.Mode != "shard_only" {
 		t.Fatalf("expected perf sharding mode shard_only, got %s", c.Sharding.Mode)

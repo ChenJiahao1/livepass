@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,11 +15,11 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/sharding"
 
-	_ "github.com/go-sql-driver/mysql"
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-var testRepositoryMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true")
+var testRepositoryMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order_repository?parseTime=true"
 
 func TestOrderRepositoryWritesAndQueriesShardTables(t *testing.T) {
 	deps := newTestOrderRepositoryDeps(t, buildFullRouteEntries("00", "01"))
@@ -150,15 +151,15 @@ func TestOrderRepositoryFindExpiredUnpaidBySlotReadsOnlyTargetShard(t *testing.T
 	seedRepositoryOrderFixturesIntoTable(
 		t,
 		"d_order_00",
-		buildRepositoryOrderWithExpiry(slot0OrderNumber, slot0UserID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)),
+		buildRepositoryOrderWithExpiry(slot0OrderNumber, slot0UserID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.Local)),
 	)
 	seedRepositoryOrderFixturesIntoTable(
 		t,
 		"d_order_01",
-		buildRepositoryOrderWithExpiry(slot1OrderNumber, slot1UserID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.UTC)),
+		buildRepositoryOrderWithExpiry(slot1OrderNumber, slot1UserID, time.Date(2026, time.March, 24, 10, 0, 0, 0, time.Local)),
 	)
 
-	orders, err := repo.FindExpiredUnpaidBySlot(context.Background(), 10, time.Date(2026, time.March, 24, 12, 0, 0, 0, time.UTC), 10)
+	orders, err := repo.FindExpiredUnpaidBySlot(context.Background(), 10, time.Date(2026, time.March, 24, 12, 0, 0, 0, time.Local), 10)
 	if err != nil {
 		t.Fatalf("FindExpiredUnpaidBySlot() error = %v", err)
 	}
@@ -173,8 +174,9 @@ func TestOrderRepositoryFindExpiredUnpaidBySlotReadsOnlyTargetShard(t *testing.T
 func newTestOrderRepositoryDeps(t *testing.T, entries []sharding.RouteEntry) Dependencies {
 	t.Helper()
 
-	shardConn0 := sqlx.NewMysql(testRepositoryMySQLDataSource)
-	shardConn1 := sqlx.NewMysql(testRepositoryMySQLDataSource)
+	shardDataSource := xmysql.WithLocalTime(testRepositoryMySQLDataSource)
+	shardConn0 := sqlx.NewMysql(shardDataSource)
+	shardConn1 := sqlx.NewMysql(shardDataSource)
 
 	routeMap, err := sharding.NewRouteMap("v1", entries)
 	if err != nil {
@@ -307,6 +309,8 @@ func resetOrderRepositoryState(t *testing.T) {
 func openRepositoryTestDB(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 
+	ensureRepositoryTestDatabase(t, dataSource)
+
 	db, err := sql.Open("mysql", xmysql.WithLocalTime(dataSource))
 	if err != nil {
 		t.Fatalf("sql.Open() error = %v", err)
@@ -317,6 +321,38 @@ func openRepositoryTestDB(t *testing.T, dataSource string) *sql.DB {
 	}
 
 	return db
+}
+
+func ensureRepositoryTestDatabase(t *testing.T, dataSource string) {
+	t.Helper()
+
+	cfg, err := mysqlDriver.ParseDSN(dataSource)
+	if err != nil {
+		t.Fatalf("mysql parse dsn error: %v", err)
+	}
+	if cfg.DBName == "" {
+		t.Fatalf("expected mysql dsn to include database name: %s", dataSource)
+	}
+
+	dbName := cfg.DBName
+	cfg.DBName = ""
+
+	adminDB, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		t.Fatalf("sql.Open admin db error = %v", err)
+	}
+	defer adminDB.Close()
+
+	if err := adminDB.Ping(); err != nil {
+		t.Fatalf("admin db ping error = %v", err)
+	}
+
+	stmt := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+		strings.ReplaceAll(dbName, "`", "``"),
+	)
+	if _, err := adminDB.Exec(stmt); err != nil {
+		t.Fatalf("create test database error = %v", err)
+	}
 }
 
 func seedRepositoryOrderFixturesIntoTable(t *testing.T, table string, fixtures ...*model.DOrder) {

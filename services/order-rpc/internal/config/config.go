@@ -35,6 +35,15 @@ type KafkaConfig struct {
 	RetryBackoff    time.Duration `json:",default=1s"`
 }
 
+type AsyncCloseConfig struct {
+	Enable         bool          `json:",default=false"`
+	Queue          string        `json:",default=order_close"`
+	EnqueueTimeout time.Duration `json:",default=500ms"`
+	UniqueTTL      time.Duration `json:",default=30m"`
+	MaxRetry       int           `json:",default=8"`
+	Redis          xredis.Config `json:"Redis,optional"`
+}
+
 type RouteEntryConfig struct {
 	Version     string
 	LogicSlot   int
@@ -80,6 +89,7 @@ type Config struct {
 	Order       OrderConfig
 	RepeatGuard RepeatGuardConfig
 	Kafka       KafkaConfig
+	AsyncClose  AsyncCloseConfig `json:"AsyncClose,optional"`
 	Sharding    ShardingConfig `json:"Sharding,optional"`
 }
 

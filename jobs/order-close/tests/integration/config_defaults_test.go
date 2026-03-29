@@ -26,6 +26,24 @@ func TestDefaultOrderCloseConfigCoversAllLogicSlots(t *testing.T) {
 	}
 }
 
+func TestDefaultOrderCloseConfigUsesCompensationCadence(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "jobs/order-close/etc/order-close.yaml"))
+	if err != nil {
+		t.Fatalf("ReadFile(order-close.yaml) error = %v", err)
+	}
+	text := string(content)
+
+	if !strings.Contains(text, "Interval: 5s") {
+		t.Fatalf("expected Interval: 5s, content=%s", text)
+	}
+	if !strings.Contains(text, "BatchSize: 200") {
+		t.Fatalf("expected BatchSize: 200, content=%s", text)
+	}
+	if !strings.Contains(text, "ScanSlotBatchSize: 64") {
+		t.Fatalf("expected ScanSlotBatchSize: 64, content=%s", text)
+	}
+}
+
 func orderCloseProjectRoot(t *testing.T) string {
 	t.Helper()
 

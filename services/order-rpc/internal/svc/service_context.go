@@ -1,6 +1,9 @@
 package svc
 
 import (
+	"context"
+	"time"
+
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
@@ -19,6 +22,10 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
+type AsyncCloseClient interface {
+	EnqueueCloseTimeout(ctx context.Context, orderNumber int64, expireAt time.Time) error
+}
+
 type ServiceContext struct {
 	Config                     config.Config
 	SqlConn                    sqlx.SqlConn
@@ -34,6 +41,7 @@ type ServiceContext struct {
 	UserRpc                    userrpc.UserRpc
 	OrderCreateProducer        mq.OrderCreateProducer
 	OrderCreateConsumerFactory mq.OrderCreateConsumerFactory
+	AsyncCloseClient           AsyncCloseClient
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -89,6 +97,10 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		orderCreateProducer = mq.NewOrderCreateProducer(c.Kafka)
 		orderCreateConsumerFactory = mq.NewOrderCreateConsumerFactory()
 	}
+	asyncCloseClient, err := newAsyncCloseClient(c.AsyncClose)
+	if err != nil {
+		panic(err)
+	}
 
 	return &ServiceContext{
 		Config:                     c,
@@ -105,6 +117,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		UserRpc:                    newUserRPC(c.UserRpc),
 		OrderCreateProducer:        orderCreateProducer,
 		OrderCreateConsumerFactory: orderCreateConsumerFactory,
+		AsyncCloseClient:           asyncCloseClient,
 	}
 }
 

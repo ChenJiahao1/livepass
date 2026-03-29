@@ -74,6 +74,11 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	if err != nil {
 		return err
 	}
+	if l.svcCtx.AsyncCloseClient != nil {
+		if err := l.svcCtx.AsyncCloseClient.EnqueueCloseTimeout(l.ctx, orderEvent.OrderNumber, writeModels.order.OrderExpireTime); err != nil {
+			l.Errorf("enqueue order async close failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
+		}
+	}
 
 	return nil
 }

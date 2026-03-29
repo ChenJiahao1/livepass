@@ -1,6 +1,6 @@
 # damai-go
 
-基于 Go 与 go-zero 的大麦业务总线重建项目。
+基于 Go 与 go-zero 的大麦业务总线重建项目，洪峰吞吐优先。
 
 当前已落地能力：
 
@@ -87,6 +87,7 @@ go run services/user-rpc/user.go -f services/user-rpc/etc/user-rpc.yaml
 go run services/program-rpc/program.go -f services/program-rpc/etc/program-rpc.yaml
 go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay-rpc.yaml
 go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml
+go run jobs/order-close-worker/order_close_worker.go -f jobs/order-close-worker/etc/order-close-worker.yaml
 go run services/user-api/user.go -f services/user-api/etc/user-api.yaml
 go run services/program-api/program.go -f services/program-api/etc/program-api.yaml
 go run services/order-api/order.go -f services/order-api/etc/order-api.yaml
@@ -107,9 +108,10 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 1. 基础设施：MySQL、Redis、etcd、Kafka
 2. `user-rpc`、`program-rpc`、`pay-rpc`
 3. `order-rpc`
-4. `user-api`、`program-api`、`order-api`、`pay-api`
-5. `agents`
-6. `gateway-api`
+4. `jobs/order-close-worker`
+5. `user-api`、`program-api`、`order-api`、`pay-api`
+6. `agents`
+7. `gateway-api`
 
 `agents` 运行配置可参考 [agents/README.md](agents/README.md) 和 [agents/.env.example](agents/.env.example)，其中至少需要确认：
 
@@ -118,7 +120,9 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 - `PROGRAM_RPC_TARGET=127.0.0.1:8083`
 - `ORDER_RPC_TARGET=127.0.0.1:8082`
 
-`jobs/order-close` 代码仍保留在仓库中，但当前不作为常驻定时任务写入默认启动清单；只在验证“超时关单”场景时，按 [docs/api/order-checkout-failure-acceptance.md](docs/api/order-checkout-failure-acceptance.md) 手动触发一次。
+`jobs/order-close-worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 做单订单超时关单。当前示例配置复用本地 `127.0.0.1:6379` Redis 便于联调；压测和生产环境应切换到独立 Redis，避免与座位账本、限购账本抢占热点资源。
+
+`jobs/order-close` 仍保留在仓库中，但职责已调整为扫描补偿器：用于回补 Asynq 漏投、漏消费或 Redis 故障期间遗漏的超时订单，不再作为唯一主触发链路。
 
 `user-rpc`、`program-rpc`、`pay-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-rpc` 默认监听 `8080`，`order-rpc` 默认监听 `8082`，`program-rpc` 默认监听 `8083`，`pay-rpc` 默认监听 `8084`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`，`agents` 默认监听 `8891`，`pay-api` 默认监听 `8892`，`gateway-api` 默认监听 `8081`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
 

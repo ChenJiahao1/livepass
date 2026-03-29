@@ -65,6 +65,31 @@ func newTestEtcdRepeatGuard(t *testing.T, endpoints []string) repeatguard.Guard 
 	)
 }
 
+func newClosedTestEtcdRepeatGuard(t *testing.T) repeatguard.Guard {
+	t.Helper()
+
+	endpoints := mustTestEtcdEndpoints(t)
+	client, err := clientv3.New(clientv3.Config{
+		Endpoints:   endpoints,
+		DialTimeout: 500 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("new etcd client %v: %v", endpoints, err)
+	}
+	if err := client.Close(); err != nil {
+		t.Fatalf("close etcd client %v: %v", endpoints, err)
+	}
+
+	return repeatguard.NewEtcdGuard(
+		client,
+		config.RepeatGuardConfig{
+			Prefix:             "/damai-go/tests/repeat-guard/",
+			SessionTTL:         10,
+			LockAcquireTimeout: 200 * time.Millisecond,
+		},
+	)
+}
+
 func newTestEtcdRepeatGuardFromConfig(t *testing.T, cfg config.Config) repeatguard.Guard {
 	t.Helper()
 

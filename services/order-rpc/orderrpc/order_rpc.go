@@ -16,6 +16,7 @@ import (
 type (
 	BoolResp                            = pb.BoolResp
 	CancelOrderReq                      = pb.CancelOrderReq
+	CloseExpiredOrderReq                = pb.CloseExpiredOrderReq
 	CloseExpiredOrdersReq               = pb.CloseExpiredOrdersReq
 	CloseExpiredOrdersResp              = pb.CloseExpiredOrdersResp
 	CountActiveTicketsByUserProgramReq  = pb.CountActiveTicketsByUserProgramReq
@@ -52,6 +53,7 @@ type (
 		PayCheck(ctx context.Context, in *PayCheckReq, opts ...grpc.CallOption) (*PayCheckResp, error)
 		PreviewRefundOrder(ctx context.Context, in *PreviewRefundOrderReq, opts ...grpc.CallOption) (*PreviewRefundOrderResp, error)
 		RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error)
+		CloseExpiredOrder(ctx context.Context, in *CloseExpiredOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 		CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 		CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
 	}
@@ -115,6 +117,11 @@ func (m *defaultOrderRpc) PreviewRefundOrder(ctx context.Context, in *PreviewRef
 func (m *defaultOrderRpc) RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.RefundOrder(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) CloseExpiredOrder(ctx context.Context, in *CloseExpiredOrderReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.CloseExpiredOrder(ctx, in, opts...)
 }
 
 func (m *defaultOrderRpc) CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error) {

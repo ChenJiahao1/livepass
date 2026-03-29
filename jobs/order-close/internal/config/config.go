@@ -7,11 +7,11 @@ import (
 )
 
 type Config struct {
-	Interval          time.Duration `json:",default=1m"`
-	BatchSize         int64         `json:",default=100"`
+	Interval          time.Duration `json:",default=5s"`
+	BatchSize         int64         `json:",default=200"`
 	ScanSlotStart     int64         `json:",default=0"`
 	ScanSlotEnd       int64         `json:",default=1023"`
-	ScanSlotBatchSize int64         `json:",default=1"`
+	ScanSlotBatchSize int64         `json:",default=64"`
 	CheckpointSlot    int64         `json:",default=0"`
 	OrderRpc          zrpc.RpcClientConf
 }

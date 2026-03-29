@@ -26,8 +26,8 @@ func TestEtcdGuardReturnsLockedForDuplicateKey(t *testing.T) {
 	}
 }
 
-func TestEtcdGuardReturnsUnavailableWhenClusterIsDown(t *testing.T) {
-	guard := newTestEtcdRepeatGuard(t, []string{"127.0.0.1:32379"})
+func TestEtcdGuardReturnsUnavailableWhenClientIsClosed(t *testing.T) {
+	guard := newClosedTestEtcdRepeatGuard(t)
 
 	_, err := guard.Lock(context.Background(), "create_order:3001:10001")
 	if status.Code(err) != codes.Unavailable {

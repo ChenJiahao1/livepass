@@ -1,8 +1,8 @@
-Interval: 1m
-BatchSize: 100
+Interval: 5s
+BatchSize: 200
 ScanSlotStart: 0
 ScanSlotEnd: 1023
-ScanSlotBatchSize: 1
+ScanSlotBatchSize: 64
 CheckpointSlot: 0
 OrderRpc:
   Etcd:

@@ -54,6 +54,15 @@ UserRpc:
     Key: user.rpc
 Order:
   CloseAfter: 15m
+AsyncClose:
+  Enable: true
+  Queue: order_close
+  EnqueueTimeout: 500ms
+  UniqueTTL: 30m
+  MaxRetry: 8
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node
 RepeatGuard:
   Prefix: /damai-go/repeat-guard/order-create/
   SessionTTL: 10

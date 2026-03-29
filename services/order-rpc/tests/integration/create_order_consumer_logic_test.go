@@ -51,6 +51,48 @@ func TestCreateOrderConsumerPersistsOrderAndTickets(t *testing.T) {
 	}
 }
 
+func TestCreateOrderConsumerEnqueuesCloseTimeoutAfterPersist(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		3001,
+		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+	event := mustBuildOrderCreateEventForTest(t, programRPC.getProgramPreorderResp, userRPC.getUserAndTicketUserListResp, &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-consumer-enqueue",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 501, TicketCategoryId: 40001, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}, time.Now())
+
+	body, err := event.Marshal()
+	if err != nil {
+		t.Fatalf("event.Marshal returned error: %v", err)
+	}
+
+	err = logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(body)
+	if err != nil {
+		t.Fatalf("Consume returned error: %v", err)
+	}
+
+	asyncCloseClient, ok := svcCtx.AsyncCloseClient.(*fakeAsyncCloseClient)
+	if !ok {
+		t.Fatalf("expected fake async close client, got %T", svcCtx.AsyncCloseClient)
+	}
+	if asyncCloseClient.enqueueCalls != 1 {
+		t.Fatalf("expected enqueue once, got %d", asyncCloseClient.enqueueCalls)
+	}
+	if asyncCloseClient.lastOrderNumber != 9001 {
+		t.Fatalf("expected enqueue order number 9001, got %d", asyncCloseClient.lastOrderNumber)
+	}
+	if asyncCloseClient.lastExpireAt.IsZero() {
+		t.Fatalf("expected enqueue expire time to be recorded")
+	}
+}
+
 func TestCreateOrderConsumerTreatsDuplicateOrderNumberAsIdempotentSuccess(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)

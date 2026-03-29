@@ -32,6 +32,10 @@ func (f *fakeJobOrderRPC) GetOrder(ctx context.Context, in *orderrpc.GetOrderReq
 	return nil, nil
 }
 
+func (f *fakeJobOrderRPC) GetOrderCache(ctx context.Context, in *orderrpc.GetOrderCacheReq, opts ...grpc.CallOption) (*orderrpc.GetOrderCacheResp, error) {
+	return nil, nil
+}
+
 func (f *fakeJobOrderRPC) GetOrderServiceView(ctx context.Context, in *orderrpc.GetOrderServiceViewReq, opts ...grpc.CallOption) (*orderrpc.OrderServiceViewResp, error) {
 	return nil, nil
 }
@@ -54,6 +58,10 @@ func (f *fakeJobOrderRPC) PreviewRefundOrder(ctx context.Context, in *orderrpc.P
 
 func (f *fakeJobOrderRPC) RefundOrder(ctx context.Context, in *orderrpc.RefundOrderReq, opts ...grpc.CallOption) (*orderrpc.RefundOrderResp, error) {
 	return nil, nil
+}
+
+func (f *fakeJobOrderRPC) CloseExpiredOrder(ctx context.Context, in *orderrpc.CloseExpiredOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+	return &orderrpc.BoolResp{Success: true}, nil
 }
 
 func (f *fakeJobOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {
