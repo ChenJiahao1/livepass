@@ -17,7 +17,9 @@ const (
 )
 
 func compensateOrderCreateSendFailureFallback(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken string) {
-	releaseOrderCreateFreeze(ctx, svcCtx, freezeToken, orderCreateSendFailedReleaseReason)
+	_ = ctx
+	_ = svcCtx
+	_ = freezeToken
 }
 
 func compensateOrderCreateExpired(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64, freezeToken string) {
@@ -34,6 +36,15 @@ func compensateOrderCreateSeatFreezeFailure(ctx context.Context, svcCtx *svc.Ser
 }
 
 func compensateOrderCreateSendFailure(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64, freezeToken string) {
+	_ = ctx
+	_ = svcCtx
+	_ = userID
+	_ = programID
+	_ = orderNumber
+	_ = freezeToken
+}
+
+func compensateOrderCreateBeforeSendFailure(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64, freezeToken string) {
 	releaseOrderCreatePurchaseLimit(ctx, svcCtx, userID, programID, orderNumber)
 	releaseOrderCreateFreeze(ctx, svcCtx, freezeToken, orderCreateSendFailedReleaseReason)
 }

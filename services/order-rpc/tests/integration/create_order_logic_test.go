@@ -161,7 +161,7 @@ func TestCreateOrderRejectsWhenPurchaseLimitLedgerMissing(t *testing.T) {
 	waitPurchaseLimitLedgerReady(t, svcCtx, 3001, 10001, 0)
 }
 
-func TestCreateOrderReleasesSeatFreezeWhenKafkaSendFails(t *testing.T) {
+func TestCreateOrderKeepsSeatFreezeWhenKafkaSendFails(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
@@ -195,15 +195,12 @@ func TestCreateOrderReleasesSeatFreezeWhenKafkaSendFails(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected kafka send error")
 	}
-	if programRPC.releaseSeatFreezeCalls != 1 {
-		t.Fatalf("expected release seat freeze once, got %d", programRPC.releaseSeatFreezeCalls)
-	}
-	if programRPC.lastReleaseSeatFreezeReq == nil || programRPC.lastReleaseSeatFreezeReq.FreezeToken != "freeze-create-send-failed" {
-		t.Fatalf("unexpected release seat freeze request: %+v", programRPC.lastReleaseSeatFreezeReq)
+	if programRPC.releaseSeatFreezeCalls != 0 {
+		t.Fatalf("expected seat freeze to remain held after kafka send failure, got %d releases", programRPC.releaseSeatFreezeCalls)
 	}
 }
 
-func TestCreateOrderRollsBackPurchaseLimitWhenKafkaSendFails(t *testing.T) {
+func TestCreateOrderKeepsPurchaseLimitWhenKafkaSendFails(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
@@ -237,8 +234,8 @@ func TestCreateOrderRollsBackPurchaseLimitWhenKafkaSendFails(t *testing.T) {
 	}
 
 	snapshot := requirePurchaseLimitSnapshot(t, svcCtx, 3001, 10001)
-	if snapshot.ActiveCount != 0 || len(snapshot.Reservations) != 0 {
-		t.Fatalf("expected purchase limit ledger rollback after kafka send failure, got %+v", snapshot)
+	if snapshot.ActiveCount != 1 || snapshot.Reservations == nil || snapshot.Reservations[findOnlyOrderNumber(t, snapshot.Reservations)] != 1 {
+		t.Fatalf("expected purchase limit ledger reservation to remain after kafka send failure, got %+v", snapshot)
 	}
 }
 
@@ -772,6 +769,21 @@ func TestCreateOrderDoesNotCreatePurchaseLimitLedgerWhenAccountLimitDisabledAndK
 	}
 
 	requirePurchaseLimitLedgerAbsentFor(t, svcCtx, 3001, 10001, 500*time.Millisecond)
+}
+
+func findOnlyOrderNumber(t *testing.T, reservations map[int64]int64) int64 {
+	t.Helper()
+
+	if len(reservations) != 1 {
+		t.Fatalf("expected exactly one reservation, got %+v", reservations)
+	}
+
+	for orderNumber := range reservations {
+		return orderNumber
+	}
+
+	t.Fatalf("expected exactly one reservation, got %+v", reservations)
+	return 0
 }
 
 func TestCreateOrderDoesNotFailBeforeAsyncPersistence(t *testing.T) {

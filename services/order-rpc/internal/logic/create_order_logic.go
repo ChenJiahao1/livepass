@@ -102,23 +102,22 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 
 	orderEvent, err := buildOrderCreateEvent(orderNumber, in, preorder, userResp, freezeResp, now, closeAfter)
 	if err != nil {
-		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
+		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(err)
 	}
 
 	if l.svcCtx.OrderCreateProducer == nil {
-		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
+		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(xerr.ErrInternal)
 	}
 
 	body, err := orderEvent.Marshal()
 	if err != nil {
-		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
+		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(xerr.ErrInternal)
 	}
 	if err := l.svcCtx.OrderCreateProducer.Send(l.ctx, strconv.FormatInt(orderEvent.OrderNumber, 10), body); err != nil {
 		l.Errorf("send order create event failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-		compensateOrderCreateSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(xerr.ErrInternal)
 	}
 
