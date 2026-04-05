@@ -2,7 +2,6 @@ package logic
 
 import (
 	"database/sql"
-	"encoding/json"
 	"time"
 
 	"damai-go/pkg/xerr"
@@ -124,7 +123,7 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 		})
 	}
 
-	outboxPayload, err := buildOrderOutboxPayload(orderEvent.OrderNumber, orderEvent.ProgramID, orderEvent.UserID)
+	createdOutbox, err := newOrderOutboxRow(now, orderEvent.OrderNumber, orderEvent.ProgramID, orderEvent.UserID, "order.created")
 	if err != nil {
 		return nil, err
 	}
@@ -143,30 +142,6 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 		},
 		viewerGuards: viewerGuards,
 		seatGuards:   seatGuards,
-		outboxRows: []*model.DOrderOutbox{
-			{
-				Id:              xid.New(),
-				OrderNumber:     orderEvent.OrderNumber,
-				EventType:       "order.created",
-				Payload:         outboxPayload,
-				PublishedStatus: 0,
-				PublishedTime:   sql.NullTime{},
-				CreateTime:      now,
-				EditTime:        now,
-				Status:          1,
-			},
-		},
+		outboxRows:   []*model.DOrderOutbox{createdOutbox},
 	}, nil
-}
-
-func buildOrderOutboxPayload(orderNumber, programID, userID int64) (string, error) {
-	payload, err := json.Marshal(map[string]int64{
-		"orderNumber": orderNumber,
-		"programId":   programID,
-		"userId":      userID,
-	})
-	if err != nil {
-		return "", err
-	}
-	return string(payload), nil
 }

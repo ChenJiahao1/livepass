@@ -271,19 +271,23 @@ func shardOrderTicketTable(suffix string) string {
 }
 
 func shardOrderUserGuardTable(suffix string) string {
-	return "d_order_user_guard_" + suffix
+	_ = suffix
+	return "d_order_user_guard"
 }
 
 func shardOrderViewerGuardTable(suffix string) string {
-	return "d_order_viewer_guard_" + suffix
+	_ = suffix
+	return "d_order_viewer_guard"
 }
 
 func shardOrderSeatGuardTable(suffix string) string {
-	return "d_order_seat_guard_" + suffix
+	_ = suffix
+	return "d_order_seat_guard"
 }
 
 func shardOrderOutboxTable(suffix string) string {
-	return "d_order_outbox_" + suffix
+	_ = suffix
+	return "d_order_outbox"
 }
 
 func orderMatchesLogicSlot(order *model.DOrder, logicSlot int) bool {

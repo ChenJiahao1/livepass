@@ -322,23 +322,11 @@ func finalizeOrderCancel(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		if err := tx.DeleteGuardsByOrderNumber(txCtx, order.OrderNumber); err != nil {
 			return err
 		}
-		payload, err := buildOrderOutboxPayload(order.OrderNumber, order.ProgramId, order.UserId)
+		closedOutbox, err := newOrderOutboxRow(cancelTime, order.OrderNumber, order.ProgramId, order.UserId, "order.closed")
 		if err != nil {
 			return err
 		}
-		if err := tx.InsertOutbox(txCtx, []*model.DOrderOutbox{
-			{
-				Id:              xid.New(),
-				OrderNumber:     order.OrderNumber,
-				EventType:       "order.closed",
-				Payload:         payload,
-				PublishedStatus: 0,
-				PublishedTime:   sql.NullTime{},
-				CreateTime:      cancelTime,
-				EditTime:        cancelTime,
-				Status:          1,
-			},
-		}); err != nil {
+		if err := tx.InsertOutbox(txCtx, []*model.DOrderOutbox{closedOutbox}); err != nil {
 			return err
 		}
 		changed = true
@@ -550,6 +538,16 @@ func convergeOrderRefunded(ctx context.Context, svcCtx *svc.ServiceContext, orde
 
 		refundTime := time.Now()
 		if err := tx.UpdateRefundStatus(txCtx, orderNumber, refundTime); err != nil {
+			return err
+		}
+		if err := tx.DeleteGuardsByOrderNumber(txCtx, order.OrderNumber); err != nil {
+			return err
+		}
+		refundedOutbox, err := newOrderOutboxRow(refundTime, order.OrderNumber, order.ProgramId, order.UserId, "order.refunded")
+		if err != nil {
+			return err
+		}
+		if err := tx.InsertOutbox(txCtx, []*model.DOrderOutbox{refundedOutbox}); err != nil {
 			return err
 		}
 

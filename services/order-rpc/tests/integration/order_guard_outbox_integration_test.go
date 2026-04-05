@@ -3,14 +3,18 @@ package integration_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	orderevent "damai-go/services/order-rpc/internal/event"
 	logicpkg "damai-go/services/order-rpc/internal/logic"
+	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/pb"
 	"damai-go/services/order-rpc/sharding"
+
+	mysqlDriver "github.com/go-sql-driver/mysql"
 )
 
 func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {
@@ -35,10 +39,10 @@ func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {
 
 	orderTable := "d_order_" + route.TableSuffix
 	ticketTable := "d_order_ticket_user_" + route.TableSuffix
-	userGuardTable := "d_order_user_guard_" + route.TableSuffix
-	viewerGuardTable := "d_order_viewer_guard_" + route.TableSuffix
-	seatGuardTable := "d_order_seat_guard_" + route.TableSuffix
-	outboxTable := "d_order_outbox_" + route.TableSuffix
+	userGuardTable := "d_order_user_guard"
+	viewerGuardTable := "d_order_viewer_guard"
+	seatGuardTable := "d_order_seat_guard"
+	outboxTable := "d_order_outbox"
 
 	requireOrderCoreFields(t, svcCtx.Config.MySQL.DataSource, orderTable, orderNumber, 10001, 3001)
 	requireTicketUsersAndSeats(t, svcCtx.Config.MySQL.DataSource, ticketTable, orderNumber, []int64{701, 702}, []int64{501, 502})
@@ -66,10 +70,10 @@ func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RouteByOrderNumber returned error: %v", err)
 	}
-	userGuardTable := "d_order_user_guard_" + route.TableSuffix
-	viewerGuardTable := "d_order_viewer_guard_" + route.TableSuffix
-	seatGuardTable := "d_order_seat_guard_" + route.TableSuffix
-	outboxTable := "d_order_outbox_" + route.TableSuffix
+	userGuardTable := "d_order_user_guard"
+	viewerGuardTable := "d_order_viewer_guard"
+	seatGuardTable := "d_order_seat_guard"
+	outboxTable := "d_order_outbox"
 	orderTable := "d_order_" + route.TableSuffix
 
 	closeResp, err := logicpkg.NewCloseExpiredOrderLogic(context.Background(), svcCtx).CloseExpiredOrder(&pb.CloseExpiredOrderReq{
@@ -92,6 +96,38 @@ func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, viewerGuardTable, orderNumber)
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, seatGuardTable, orderNumber)
 	requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, outboxTable, orderNumber, "order.closed")
+}
+
+func TestCreateOrderGuardsRejectDuplicateSeatAcrossOrderSuffixes(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	firstUserID := mustFindOrderTestUserIDByLogicSlot(t, 10)
+	secondUserID := mustFindOrderTestUserIDByLogicSlot(t, 11)
+	firstRoute := orderRouteForUser(t, svcCtx, firstUserID)
+	secondRoute := orderRouteForUser(t, svcCtx, secondUserID)
+	if firstRoute.TableSuffix == secondRoute.TableSuffix {
+		t.Fatalf("expected different order suffixes, got %s and %s", firstRoute.TableSuffix, secondRoute.TableSuffix)
+	}
+
+	firstOrderNumber := sharding.BuildOrderNumber(firstUserID, time.Date(2026, time.April, 5, 12, 0, 0, 0, time.UTC), 1, 11)
+	secondOrderNumber := sharding.BuildOrderNumber(secondUserID, time.Date(2026, time.April, 5, 12, 0, 1, 0, time.UTC), 1, 12)
+
+	firstEvent := buildTestOrderCreateEvent(firstOrderNumber, firstUserID, []int64{701}, []int64{601})
+	secondEvent := buildTestOrderCreateEvent(secondOrderNumber, secondUserID, []int64{801}, []int64{601})
+
+	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(mustMarshalOrderCreateEvent(t, firstEvent)); err != nil {
+		t.Fatalf("first Consume returned error: %v", err)
+	}
+
+	err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(mustMarshalOrderCreateEvent(t, secondEvent))
+	var mysqlErr *mysqlDriver.MySQLError
+	if !errors.As(err, &mysqlErr) || mysqlErr.Number != 1062 {
+		t.Fatalf("expected duplicate key from global seat guard, got %v", err)
+	}
+	if _, findErr := svcCtx.OrderRepository.FindOrderByNumber(context.Background(), secondOrderNumber); !errors.Is(findErr, model.ErrNotFound) {
+		t.Fatalf("expected second order insert rolled back, got err=%v", findErr)
+	}
 }
 
 func testOrderCreateEvent(orderNumber int64, occurredAt, freezeExpireTime string) *orderevent.OrderCreateEvent {
@@ -130,6 +166,65 @@ func testOrderCreateEvent(orderNumber int64, occurredAt, freezeExpireTime string
 			{SeatID: 502, RowCode: 1, ColCode: 2, Price: 299},
 		},
 	}
+}
+
+func buildTestOrderCreateEvent(orderNumber, userID int64, ticketUserIDs, seatIDs []int64) *orderevent.OrderCreateEvent {
+	ticketSnapshots := make([]orderevent.TicketUserSnapshot, 0, len(ticketUserIDs))
+	seatSnapshots := make([]orderevent.SeatSnapshot, 0, len(seatIDs))
+	for idx, ticketUserID := range ticketUserIDs {
+		ticketSnapshots = append(ticketSnapshots, orderevent.TicketUserSnapshot{
+			TicketUserID: ticketUserID,
+			Name:         fmt.Sprintf("观演人-%d", ticketUserID),
+			IDNumber:     fmt.Sprintf("11010119900101%04d", ticketUserID),
+		})
+		seatSnapshots = append(seatSnapshots, orderevent.SeatSnapshot{
+			SeatID:  seatIDs[idx],
+			RowCode: 1,
+			ColCode: int64(idx + 1),
+			Price:   299,
+		})
+	}
+
+	return &orderevent.OrderCreateEvent{
+		EventID:          fmt.Sprintf("evt-%d", orderNumber),
+		Version:          orderevent.OrderCreateEventVersion,
+		OrderNumber:      orderNumber,
+		RequestNo:        fmt.Sprintf("req-%d", orderNumber),
+		OccurredAt:       "2026-04-05 12:00:00",
+		UserID:           userID,
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		TicketUserIDs:    ticketUserIDs,
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+		FreezeToken:      fmt.Sprintf("freeze-%d", orderNumber),
+		FreezeExpireTime: "2026-04-05 12:15:00",
+		ProgramSnapshot: orderevent.ProgramSnapshot{
+			Title:            "测试演出",
+			ItemPicture:      "https://example.com/program.jpg",
+			Place:            "测试场馆",
+			ShowTime:         "2026-12-31 19:30:00",
+			PermitChooseSeat: 0,
+		},
+		TicketCategorySnapshot: orderevent.TicketCategorySnapshot{
+			ID:    40001,
+			Name:  "普通票",
+			Price: 299,
+		},
+		TicketUserSnapshot: ticketSnapshots,
+		SeatSnapshot:       seatSnapshots,
+	}
+}
+
+func mustMarshalOrderCreateEvent(t *testing.T, event *orderevent.OrderCreateEvent) []byte {
+	t.Helper()
+
+	body, err := event.Marshal()
+	if err != nil {
+		t.Fatalf("event.Marshal returned error: %v", err)
+	}
+
+	return body
 }
 
 func requireOrderCoreFields(t *testing.T, dataSource, table string, orderNumber, programID, userID int64) {
