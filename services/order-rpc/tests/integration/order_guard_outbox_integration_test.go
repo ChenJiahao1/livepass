@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -285,17 +286,37 @@ func requireOutboxEvent(t *testing.T, dataSource, table string, orderNumber int6
 	db := openOrderTestDB(t, dataSource)
 	defer db.Close()
 
-	var count int64
+	var (
+		gotEventType    string
+		payload         string
+		publishedStatus int64
+	)
 	err := db.QueryRow(
-		"SELECT COUNT(1) FROM "+table+" WHERE order_number = ? AND event_type = ?",
+		"SELECT event_type, payload, published_status FROM "+table+" WHERE order_number = ? AND event_type = ? LIMIT 1",
 		orderNumber,
 		expectedEventType,
-	).Scan(&count)
+	).Scan(&gotEventType, &payload, &publishedStatus)
 	if err != nil {
 		t.Fatalf("query outbox event error: %v", err)
 	}
-	if count != 1 {
-		t.Fatalf("outbox event count = %d, want 1, order=%d event=%s", count, orderNumber, expectedEventType)
+	if gotEventType != expectedEventType {
+		t.Fatalf("outbox event_type = %s, want %s", gotEventType, expectedEventType)
+	}
+	if publishedStatus != 0 {
+		t.Fatalf("published_status = %d, want 0", publishedStatus)
+	}
+
+	var decoded map[string]int64
+	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
+		t.Fatalf("decode outbox payload error: %v", err)
+	}
+	if decoded["orderNumber"] != orderNumber || decoded["programId"] != 10001 || decoded["userId"] != 3001 {
+		t.Fatalf(
+			"unexpected outbox payload, got orderNumber=%d programId=%d userId=%d",
+			decoded["orderNumber"],
+			decoded["programId"],
+			decoded["userId"],
+		)
 	}
 }
 

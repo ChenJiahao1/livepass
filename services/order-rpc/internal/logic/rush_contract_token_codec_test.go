@@ -30,6 +30,18 @@ func TestRushContractPurchaseTokenCodecRoundTrip(t *testing.T) {
 }
 
 func TestCreatePurchaseTokenAndCreateOrderAreConsistentAndIdempotent(t *testing.T) {
+	originalGenerator := defaultOrderNumberGenerator
+	originalNow := rushContractNow
+	defer func() {
+		defaultOrderNumberGenerator = originalGenerator
+		rushContractNow = originalNow
+	}()
+
+	base := time.Date(2026, time.March, 25, 10, 30, 15, 0, time.UTC)
+	gen := newOrderNumberGenerator(func() int64 { return 0 })
+	defaultOrderNumberGenerator = gen
+	rushContractNow = func() time.Time { return base }
+
 	createPurchaseTokenLogic := NewCreatePurchaseTokenLogic(context.Background(), nil)
 	createOrderLogic := NewCreateOrderLogic(context.Background(), nil)
 
