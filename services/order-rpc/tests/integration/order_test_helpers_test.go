@@ -272,14 +272,14 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 			"order-db-0": shardConn0,
 			"order-db-1": shardConn1,
 		},
-		Redis:              redisClient,
-		PurchaseLimitStore: purchaseLimitStore,
-		OrderRouteMap:      routeMap,
-		OrderRouter:        orderRouter,
-		OrderRepository:    orderRepository,
-		ProgramRpc:         programRPC,
-		UserRpc:            userRPC,
-		PayRpc:             payRPC,
+		Redis:                      redisClient,
+		PurchaseLimitStore:         purchaseLimitStore,
+		OrderRouteMap:              routeMap,
+		OrderRouter:                orderRouter,
+		OrderRepository:            orderRepository,
+		ProgramRpc:                 programRPC,
+		UserRpc:                    userRPC,
+		PayRpc:                     payRPC,
 		OrderCreateProducer:        orderCreateProducer,
 		OrderCreateConsumerFactory: orderCreateConsumerFactory,
 		AsyncCloseClient:           asyncCloseClient,
@@ -535,6 +535,10 @@ func resetOrderDomainState(t *testing.T) {
 	for _, relativePath := range []string{
 		"sql/order/sharding/d_order_shards.sql",
 		"sql/order/sharding/d_order_ticket_user_shards.sql",
+		"sql/order/sharding/d_order_user_guard.sql",
+		"sql/order/sharding/d_order_viewer_guard.sql",
+		"sql/order/sharding/d_order_seat_guard.sql",
+		"sql/order/sharding/d_order_outbox.sql",
 	} {
 		execOrderSQLFile(t, db, relativePath)
 	}

@@ -319,6 +319,28 @@ func finalizeOrderCancel(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		if err := tx.UpdateCancelStatus(txCtx, order.OrderNumber, cancelTime); err != nil {
 			return err
 		}
+		if err := tx.DeleteGuardsByOrderNumber(txCtx, order.OrderNumber); err != nil {
+			return err
+		}
+		payload, err := buildOrderOutboxPayload(order.OrderNumber, order.ProgramId, order.UserId)
+		if err != nil {
+			return err
+		}
+		if err := tx.InsertOutbox(txCtx, []*model.DOrderOutbox{
+			{
+				Id:              xid.New(),
+				OrderNumber:     order.OrderNumber,
+				EventType:       "order.closed",
+				Payload:         payload,
+				PublishedStatus: 0,
+				PublishedTime:   sql.NullTime{},
+				CreateTime:      cancelTime,
+				EditTime:        cancelTime,
+				Status:          1,
+			},
+		}); err != nil {
+			return err
+		}
 		changed = true
 		return nil
 	})

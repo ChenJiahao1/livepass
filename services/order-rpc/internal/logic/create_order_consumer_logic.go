@@ -69,6 +69,18 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		if err := tx.InsertOrderTickets(ctx, writeModels.orderTickets); err != nil {
 			return err
 		}
+		if err := tx.InsertUserGuard(ctx, writeModels.userGuard); err != nil {
+			return err
+		}
+		if err := tx.InsertViewerGuards(ctx, writeModels.viewerGuards); err != nil {
+			return err
+		}
+		if err := tx.InsertSeatGuards(ctx, writeModels.seatGuards); err != nil {
+			return err
+		}
+		if err := tx.InsertOutbox(ctx, writeModels.outboxRows); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {

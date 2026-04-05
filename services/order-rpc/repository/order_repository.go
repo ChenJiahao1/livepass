@@ -14,6 +14,11 @@ type OrderTx interface {
 	Route() sharding.Route
 	InsertOrder(ctx context.Context, order *model.DOrder) error
 	InsertOrderTickets(ctx context.Context, tickets []*model.DOrderTicketUser) error
+	InsertUserGuard(ctx context.Context, guard *model.DOrderUserGuard) error
+	InsertViewerGuards(ctx context.Context, guards []*model.DOrderViewerGuard) error
+	InsertSeatGuards(ctx context.Context, guards []*model.DOrderSeatGuard) error
+	InsertOutbox(ctx context.Context, rows []*model.DOrderOutbox) error
+	DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error
 	FindOrderByNumberForUpdate(ctx context.Context, orderNumber int64) (*model.DOrder, error)
 	UpdateCancelStatus(ctx context.Context, orderNumber int64, cancelTime time.Time) error
 	UpdatePayStatus(ctx context.Context, orderNumber int64, payTime time.Time) error
