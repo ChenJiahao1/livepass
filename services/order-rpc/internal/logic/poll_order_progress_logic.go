@@ -7,6 +7,8 @@ import (
 	"damai-go/services/order-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type PollOrderProgressLogic struct {
@@ -24,7 +26,5 @@ func NewPollOrderProgressLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *PollOrderProgressLogic) PollOrderProgress(in *pb.PollOrderProgressReq) (*pb.PollOrderProgressResp, error) {
-	// todo: add your logic here and delete this line
-
-	return &pb.PollOrderProgressResp{}, nil
+	return nil, status.Error(codes.Unimplemented, "poll order progress is not implemented in task1 contract phase")
 }

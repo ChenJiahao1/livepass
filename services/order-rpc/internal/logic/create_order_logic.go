@@ -2,11 +2,13 @@ package logic
 
 import (
 	"context"
+	"damai-go/pkg/xerr"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
-	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type CreateOrderLogic struct {
@@ -28,7 +30,13 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, err
 	}
 
-	// Task 1 仅固化对外契约：CreateOrder 先返回预分配轮询订单号，后续状态机在后续任务实现。
-	orderNumber := generateOrderNumberForUser(in.GetUserId(), time.Now())
+	tokenUserID, orderNumber, err := decodeRushContractPurchaseToken(in.GetPurchaseToken())
+	if err != nil {
+		return nil, err
+	}
+	if tokenUserID != in.GetUserId() {
+		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
+
 	return &pb.CreateOrderResp{OrderNumber: orderNumber}, nil
 }

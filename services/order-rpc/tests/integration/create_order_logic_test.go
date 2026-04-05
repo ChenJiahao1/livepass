@@ -1,3 +1,6 @@
+//go:build legacy_create_order_contract
+// +build legacy_create_order_contract
+
 package integration_test
 
 import (

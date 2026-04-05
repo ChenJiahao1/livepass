@@ -1,14 +1,14 @@
 package logic
 
 import (
-	"fmt"
 	"time"
 
-	"damai-go/pkg/xid"
 	orderevent "damai-go/services/order-rpc/internal/event"
 	"damai-go/services/order-rpc/pb"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func BuildOrderCreateEvent(
@@ -32,14 +32,13 @@ func buildOrderCreateEvent(
 	now time.Time,
 	closeAfter time.Duration,
 ) (*orderevent.OrderCreateEvent, error) {
-	orderEvent := &orderevent.OrderCreateEvent{
-		EventID:     fmt.Sprintf("%d", xid.New()),
-		Version:     orderevent.OrderCreateEventVersion,
-		OrderNumber: orderNumber,
-		RequestNo:   fmt.Sprintf("order-create-%d", orderNumber),
-		OccurredAt:  formatOrderTime(now),
-		UserID:      in.GetUserId(),
-	}
+	_ = orderNumber
+	_ = in
+	_ = preorder
+	_ = userResp
+	_ = freezeResp
+	_ = now
+	_ = closeAfter
 
-	return orderEvent, nil
+	return nil, status.Error(codes.Unimplemented, "build order create event is not implemented under task1 rush contract")
 }
