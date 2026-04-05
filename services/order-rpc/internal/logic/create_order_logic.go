@@ -2,16 +2,9 @@ package logic
 
 import (
 	"context"
-	"errors"
-	"strconv"
-	"time"
-
-	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
-	programrpc "damai-go/services/program-rpc/programrpc"
-	userrpc "damai-go/services/user-rpc/userrpc"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -35,95 +28,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, err
 	}
 
-	if l.svcCtx.RepeatGuard != nil {
-		unlock, err := l.svcCtx.RepeatGuard.Lock(l.ctx, repeatguard.OrderCreateKey(in.GetUserId(), in.GetProgramId()))
-		if err != nil {
-			if errors.Is(err, repeatguard.ErrLocked) {
-				return nil, mapOrderError(xerr.ErrOrderSubmitTooFrequent)
-			}
-			return nil, mapOrderError(err)
-		}
-		if unlock != nil {
-			defer unlock()
-		}
-	}
-
-	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramDetailReq{
-		Id: in.GetProgramId(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	userResp, err := l.svcCtx.UserRpc.GetUserAndTicketUserList(l.ctx, &userrpc.GetUserAndTicketUserListReq{
-		UserId: in.GetUserId(),
-	})
-	if err != nil {
-		return nil, err
-	}
-	if err := validateRequestedTicketUsers(userResp, in.GetUserId(), in.GetTicketUserIds()); err != nil {
-		return nil, mapOrderError(err)
-	}
-
-	if preorder.GetPerOrderLimitPurchaseCount() > 0 && int64(len(in.GetTicketUserIds())) > preorder.GetPerOrderLimitPurchaseCount() {
-		return nil, mapOrderError(xerr.ErrOrderPurchaseLimitExceeded)
-	}
-
-	now := time.Now()
-	orderNumber := generateOrderNumberForUser(in.GetUserId(), now)
-	if preorder.GetPerAccountLimitPurchaseCount() > 0 {
-		if err := l.svcCtx.PurchaseLimitStore.Reserve(
-			l.ctx,
-			in.GetUserId(),
-			in.GetProgramId(),
-			orderNumber,
-			int64(len(in.GetTicketUserIds())),
-			preorder.GetPerAccountLimitPurchaseCount(),
-		); err != nil {
-			return nil, mapOrderError(err)
-		}
-	}
-	closeAfter := l.svcCtx.Config.Order.CloseAfter
-	if closeAfter <= 0 {
-		closeAfter = 15 * time.Minute
-	}
-	freezeReq := &programrpc.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        in.GetProgramId(),
-		TicketCategoryId: in.GetTicketCategoryId(),
-		Count:            int64(len(in.GetTicketUserIds())),
-		RequestNo:        buildFreezeRequestNo(),
-		FreezeSeconds:    int64(closeAfter / time.Second),
-	}
-	freezeResp, err := l.svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(l.ctx, freezeReq)
-	if err != nil {
-		compensateOrderCreateSeatFreezeFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeReq)
-		return nil, err
-	}
-
-	orderEvent, err := buildOrderCreateEvent(orderNumber, in, preorder, userResp, freezeResp, now, closeAfter)
-	if err != nil {
-		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
-		return nil, mapOrderError(err)
-	}
-
-	if l.svcCtx.OrderCreateProducer == nil {
-		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
-		return nil, mapOrderError(xerr.ErrInternal)
-	}
-
-	body, err := orderEvent.Marshal()
-	if err != nil {
-		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
-		return nil, mapOrderError(xerr.ErrInternal)
-	}
-	if err := l.svcCtx.OrderCreateProducer.Send(l.ctx, strconv.FormatInt(orderEvent.OrderNumber, 10), body); err != nil {
-		l.Errorf("send order create event failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-		return nil, mapOrderError(xerr.ErrInternal)
-	}
-
-	if err := SetOrderCreateMarker(l.ctx, l.svcCtx.Redis, orderEvent.OrderNumber); err != nil {
-		l.Errorf("set order create marker failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-	}
-
-	return &pb.CreateOrderResp{OrderNumber: orderEvent.OrderNumber}, nil
+	// Task 1 仅固化对外契约：CreateOrder 先返回预分配轮询订单号，后续状态机在后续任务实现。
+	orderNumber := generateOrderNumberForUser(in.GetUserId(), time.Now())
+	return &pb.CreateOrderResp{OrderNumber: orderNumber}, nil
 }

@@ -39,7 +39,7 @@ type orderSnapshotBundle struct {
 }
 
 func validateCreateOrderReq(in *pb.CreateOrderReq) error {
-	if in.GetUserId() <= 0 || in.GetProgramId() <= 0 || in.GetTicketCategoryId() <= 0 || len(in.GetTicketUserIds()) == 0 {
+	if in.GetUserId() <= 0 || in.GetPurchaseToken() == "" {
 		return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
