@@ -9,19 +9,15 @@ from app.state import ConversationState
 class OrderAgent(ToolCallingAgent):
     agent_name = "order"
     toolset = "order"
-    prompt_template = "order/system.md"
-
-    def build_prompt_context(self, state: ConversationState) -> dict[str, object]:
-        context = super().build_prompt_context(state)
-        context["selected_order_id"] = state.get("selected_order_id")
-        context["current_user_id"] = state.get("current_user_id")
-        return context
 
     def initial_trace(self, state: ConversationState) -> list[str]:
         order_id = state.get("selected_order_id")
         return [f"order:{order_id}"] if order_id else []
 
     async def handle(self, state: ConversationState) -> dict[str, object]:
+        if self.llm is not None:
+            return await self._handle_with_skill_runtime(state)
+
         tools = await self.get_tools()
         order_id = self.extract_order_id(state)
         current_user_id = state.get("current_user_id")
@@ -82,7 +78,89 @@ class OrderAgent(ToolCallingAgent):
                     selected_order_id=resolved_order_id,
                 )
 
-        return await super().handle(state)
+        return self.result(
+            state,
+            reply="当前未获取到足够订单信息，请稍后重试。",
+            trace=self.initial_trace(state),
+            selected_order_id=order_id,
+            result_summary="订单处理失败",
+        )
+
+    async def _handle_with_skill_runtime(self, state: ConversationState) -> dict[str, object]:
+        order_id = self.extract_order_id(state)
+        current_user_id = state.get("current_user_id")
+        if order_id:
+            result = await self.execute_skill(
+                state,
+                skill_id="order.get_detail",
+                task_type="order_get_detail",
+                goal="查询订单详情",
+                required_slots=["order_id"],
+                fallback_policy="return_parent",
+                expected_output_schema="order_detail_v1",
+                input_slots={"order_id": order_id, "user_id": current_user_id},
+            )
+            output = result.get("output", {})
+            resolved_order_id = output.get("order_id") or output.get("orderNumber") or order_id
+            status = output.get("status") or output.get("orderStatus", "未知")
+            payment_status = output.get("payment_status") or output.get("payStatus", "未知")
+            ticket_status = output.get("ticket_status") or output.get("ticketStatus", "未知")
+            return self.result(
+                state,
+                reply=(
+                    f"订单 {resolved_order_id} 当前状态 {status}，"
+                    f"支付状态 {payment_status}，票券状态 {ticket_status}。"
+                ),
+                trace=[*self.initial_trace(state), *[f"tool:{name}" for name in result.get("tool_calls", [])]],
+                selected_order_id=resolved_order_id,
+            )
+
+        if current_user_id:
+            result = await self.execute_skill(
+                state,
+                skill_id="order.list_recent",
+                task_type="order_list_recent",
+                goal="查询最近订单",
+                required_slots=[],
+                fallback_policy="return_parent",
+                expected_output_schema="order_list_recent_v1",
+                input_slots={"user_id": current_user_id},
+            )
+            items = self._normalize_orders(result.get("output", {}).get("orders", []))
+            trace = [f"tool:{name}" for name in result.get("tool_calls", [])]
+            if not items:
+                return self.result(
+                    state,
+                    reply="当前账号下没有可查询订单。",
+                    trace=trace,
+                    selected_order_id=None,
+                    result_summary="当前账号无订单",
+                )
+            if len(items) == 1:
+                only_order = items[0]
+                reply = self._format_single_order(only_order)
+                return self.result(
+                    state,
+                    reply=reply,
+                    trace=trace,
+                    selected_order_id=only_order.get("order_id"),
+                    result_summary=reply,
+                )
+            reply = self._format_order_list(items)
+            return self.result(
+                state,
+                reply=reply,
+                trace=trace,
+                selected_order_id=None,
+                result_summary="已向用户展示订单列表",
+            )
+
+        return self.result(
+            state,
+            reply="请先提供需要查询的订单号。",
+            selected_order_id=None,
+            result_summary="缺少订单号",
+        )
 
     def _format_single_order(self, order: dict[str, object]) -> str:
         order_id = order.get("order_id", "未知订单")

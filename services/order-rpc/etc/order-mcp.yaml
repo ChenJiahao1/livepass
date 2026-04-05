@@ -1,0 +1,28 @@
+Name: order-mcp
+Host: 127.0.0.1
+Port: 9082
+Mode: dev
+
+Mcp:
+  Name: order
+  Version: 1.0.0
+  UseStreamable: true
+  MessageEndpoint: /message
+
+MySQL:
+  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order_integration?parseTime=true
+
+ProgramRpc:
+  Endpoints:
+    - 127.0.0.1:8083
+
+PayRpc:
+  Endpoints:
+    - 127.0.0.1:8084
+
+UserRpc:
+  Endpoints:
+    - 127.0.0.1:8080
+
+Sharding:
+  Mode: shard_only

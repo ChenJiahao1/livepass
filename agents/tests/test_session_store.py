@@ -55,3 +55,22 @@ def test_state_store_saves_state_and_refreshes_ttl():
         (f"agents:conversation:{session.conversation_id}", 600),
         (f"agents:conversation:{session.conversation_id}", 600),
     ]
+
+
+def test_state_store_persists_runtime_session_fields():
+    redis_client = FakeRedis()
+    store = ConversationStateStore(redis_client=redis_client, ttl_seconds=600)
+
+    session = store.get_or_create(user_id=3001, conversation_id=None)
+    session.selected_order_id = "ORD-10001"
+    session.recent_order_candidates = [{"order_id": "ORD-10001"}]
+    session.last_task_summary = "退款资格已确认"
+    session.last_handoff_ticket_id = "HOF-1001"
+    store.save(session)
+
+    loaded = store.get_or_create(user_id=3001, conversation_id=session.conversation_id)
+
+    assert loaded.selected_order_id == "ORD-10001"
+    assert loaded.recent_order_candidates == [{"order_id": "ORD-10001"}]
+    assert loaded.last_task_summary == "退款资格已确认"
+    assert loaded.last_handoff_ticket_id == "HOF-1001"

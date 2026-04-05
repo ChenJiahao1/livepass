@@ -3,30 +3,39 @@
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from typing import Any
 
-from langchain.agents import create_agent
-from langchain_core.messages import AIMessage, BaseMessage
-from langchain_core.messages.utils import convert_to_messages
-
-from app.config import get_settings
-from app.mcp_client.tracing import reset_trace_buffer, set_trace_buffer
-from app.prompts import PromptRenderer
+from app.orchestrator.skill_resolver import SkillResolver
+from app.registry.provider_registry import ProviderRegistry
+from app.registry.skill_registry import SkillRegistry
+from app.runtime.subagent_runtime import SubagentRuntime
 from app.state import ConversationState
+from app.tasking.task_card import TaskCard
+from app.tools.broker import ToolBroker
+from app.tools.policies import ToolPolicy
 
 ORDER_ID_PATTERN = re.compile(r"(ORD-\d{4,}|\d{4,})")
 _UNSET = object()
 
 
+@lru_cache(maxsize=1)
+def _default_skill_registry() -> SkillRegistry:
+    return SkillRegistry.from_default()
+
+
+@lru_cache(maxsize=1)
+def _default_provider_registry() -> ProviderRegistry:
+    return ProviderRegistry.from_default()
+
+
 class ToolCallingAgent:
     agent_name = ""
     toolset = ""
-    prompt_template = ""
 
-    def __init__(self, *, registry, llm, prompt_renderer: PromptRenderer | None = None) -> None:
+    def __init__(self, *, registry, llm) -> None:
         self.registry = registry
         self.llm = llm
-        self.prompt_renderer = prompt_renderer or PromptRenderer()
 
     async def get_tools(self) -> list:
         if self.registry is None:
@@ -34,60 +43,10 @@ class ToolCallingAgent:
         return await self.registry.get_tools(self.toolset)
 
     async def handle(self, state: ConversationState) -> dict[str, Any]:
-        return await self.run_tool_agent(state)
-
-    async def run_tool_agent(self, state: ConversationState) -> dict[str, Any]:
-        trace = list(self.initial_trace(state))
-        tools = await self.get_tools()
-        system_prompt = self.prompt_renderer.render(
-            self.prompt_template,
-            **self.build_prompt_context(state),
-        )
-        agent = create_agent(
-            model=self.llm,
-            tools=tools,
-            system_prompt=system_prompt,
-            name=self.agent_name,
-        )
-        token = set_trace_buffer(trace)
-        try:
-            result = await agent.ainvoke(
-                {"messages": convert_to_messages(state.get("messages", []))},
-                config={"recursion_limit": max(4, get_settings().max_tool_steps * 2 + 2)},
-            )
-        except Exception:
-            return self.result(
-                state,
-                reply="当前处理失败，已转人工继续处理。",
-                trace=trace,
-                need_handoff=True,
-                completed=True,
-                result_summary="当前处理失败，已转人工继续处理。",
-            )
-        finally:
-            reset_trace_buffer(token)
-
-        reply = self.extract_reply(result.get("messages", [])) or self.empty_reply()
-        return self.result(
-            state,
-            reply=reply,
-            trace=trace,
-            need_handoff=self.default_need_handoff(state),
-            completed=True,
-            result_summary=reply,
-        )
-
-    def build_prompt_context(self, state: ConversationState) -> dict[str, Any]:
-        return {}
+        raise NotImplementedError
 
     def initial_trace(self, state: ConversationState) -> list[str]:
         return []
-
-    def default_need_handoff(self, state: ConversationState) -> bool:
-        return False
-
-    def empty_reply(self) -> str:
-        return "当前未获取到足够信息，请稍后重试。"
 
     def result(
         self,
@@ -150,24 +109,60 @@ class ToolCallingAgent:
             return None
         return match.group(1)
 
-    def extract_reply(self, messages: list[BaseMessage]) -> str:
-        for message in reversed(messages):
-            if isinstance(message, AIMessage):
-                text = self._message_text(message)
-                if text:
-                    return text
-        return ""
+    def _build_skill_runtime(self) -> SubagentRuntime:
+        skill_registry = _default_skill_registry()
+        provider_registry = _default_provider_registry()
+        return SubagentRuntime(
+            broker=ToolBroker(
+                registry=self.registry,
+                skill_registry=skill_registry,
+                provider_registry=provider_registry,
+                policy=ToolPolicy.from_skill_registry(skill_registry),
+            ),
+            skill_registry=skill_registry,
+        )
 
-    def _message_text(self, message: AIMessage) -> str:
-        content = message.content
-        if isinstance(content, str):
-            return content.strip()
-        if isinstance(content, list):
-            parts = []
-            for block in content:
-                if isinstance(block, str):
-                    parts.append(block)
-                elif isinstance(block, dict) and isinstance(block.get("text"), str):
-                    parts.append(block["text"])
-            return "\n".join(part.strip() for part in parts if part.strip()).strip()
-        return ""
+    async def execute_skill(
+        self,
+        state: ConversationState,
+        *,
+        skill_id: str,
+        task_type: str,
+        goal: str,
+        required_slots: list[str],
+        fallback_policy: str,
+        expected_output_schema: str,
+        risk_level: str = "low",
+        input_slots: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        session_id = str(state.get("conversation_id") or state.get("thread_id") or self.agent_name or "session")
+        task = TaskCard(
+            task_id=f"{self.agent_name}-task",
+            session_id=session_id,
+            domain=skill_id.split(".")[0],
+            task_type=task_type,
+            skill_id=skill_id,
+            goal=goal,
+            source_message=self.latest_user_message(state),
+            input_slots=input_slots or {},
+            required_slots=required_slots,
+            risk_level=risk_level,
+            fallback_policy=fallback_policy,
+            expected_output_schema=expected_output_schema,
+        )
+        resolver = SkillResolver(
+            skill_registry=_default_skill_registry(),
+            provider_registry=_default_provider_registry(),
+        )
+        runtime = self._build_skill_runtime()
+        return await runtime.execute(
+            task=task,
+            resolution=resolver.resolve(task),
+            session_state={
+                "selected_order_id": state.get("selected_order_id"),
+                "recent_order_candidates": state.get("recent_order_candidates", []),
+                "last_task_summary": state.get("last_task_summary"),
+                "last_handoff_ticket_id": state.get("last_handoff_ticket_id"),
+            },
+            llm=self.llm,
+        )

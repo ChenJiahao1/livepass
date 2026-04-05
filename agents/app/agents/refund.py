@@ -7,12 +7,6 @@ from app.state import ConversationState
 class RefundAgent(ToolCallingAgent):
     agent_name = "refund"
     toolset = "refund"
-    prompt_template = "refund/system.md"
-
-    def build_prompt_context(self, state: ConversationState) -> dict[str, object]:
-        context = super().build_prompt_context(state)
-        context["selected_order_id"] = state.get("selected_order_id")
-        return context
 
     def initial_trace(self, state: ConversationState) -> list[str]:
         order_id = state.get("selected_order_id")
@@ -27,6 +21,9 @@ class RefundAgent(ToolCallingAgent):
                 selected_order_id=None,
                 result_summary="缺少订单号",
             )
+
+        if self.llm is not None:
+            return await self._handle_with_skill_runtime(state, order_id)
 
         tools = await self.get_tools()
         current_user_id = state.get("current_user_id")
@@ -77,4 +74,70 @@ class RefundAgent(ToolCallingAgent):
                 result_summary="退款被拒绝",
             )
 
-        return await super().handle(state)
+        return self.result(
+            state,
+            reply="当前无法处理退款请求，请稍后重试。",
+            trace=self.initial_trace(state),
+            selected_order_id=order_id,
+            result_summary="退款处理失败",
+        )
+
+    async def _handle_with_skill_runtime(self, state: ConversationState, order_id: str) -> dict[str, object]:
+        current_user_id = state.get("current_user_id")
+        message = self.latest_user_message(state)
+        wants_submit = any(keyword in message for keyword in ("帮我退款", "申请退款", "发起退款"))
+        if wants_submit:
+            result = await self.execute_skill(
+                state,
+                skill_id="refund.submit",
+                task_type="refund_submit",
+                goal="提交订单退款",
+                required_slots=["order_id"],
+                fallback_policy="handoff",
+                expected_output_schema="refund_submit_v1",
+                risk_level="medium",
+                input_slots={"order_id": order_id, "user_id": current_user_id},
+            )
+            output = result.get("output", {})
+            refund_amount = output.get("refund_amount") or output.get("refundAmount", "待确认")
+            return self.result(
+                state,
+                reply=f"订单 {order_id} 已提交退款，退款金额 {refund_amount}。",
+                trace=[*self.initial_trace(state), *[f"tool:{name}" for name in result.get("tool_calls", [])]],
+                selected_order_id=order_id,
+                result_summary="退款申请已提交",
+            )
+
+        result = await self.execute_skill(
+            state,
+            skill_id="refund.preview",
+            task_type="refund_preview",
+            goal="确认订单是否可退款",
+            required_slots=["order_id"],
+            fallback_policy="handoff",
+            expected_output_schema="refund_preview_v1",
+            risk_level="medium",
+            input_slots={"order_id": order_id, "user_id": current_user_id},
+        )
+        output = result.get("output", {})
+        allow_refund = output.get("allow_refund")
+        if allow_refund is None:
+            allow_refund = output.get("allowRefund")
+        if allow_refund:
+            refund_amount = output.get("refund_amount") or output.get("refundAmount", "待确认")
+            refund_percent = output.get("refund_percent") or output.get("refundPercent", "待确认")
+            return self.result(
+                state,
+                reply=f"订单 {order_id} 当前可退款，预计退款 {refund_amount}，退款比例 {refund_percent}%。",
+                trace=[*self.initial_trace(state), *[f"tool:{name}" for name in result.get("tool_calls", [])]],
+                selected_order_id=order_id,
+                result_summary="退款资格已确认",
+            )
+        reject_reason = output.get("reject_reason") or output.get("rejectReason") or "当前订单不可退。"
+        return self.result(
+            state,
+            reply=reject_reason,
+            trace=[*self.initial_trace(state), *[f"tool:{name}" for name in result.get("tool_calls", [])]],
+            selected_order_id=order_id,
+            result_summary="退款被拒绝",
+        )

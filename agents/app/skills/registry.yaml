@@ -1,0 +1,92 @@
+version: v1
+
+providers:
+  activity:
+    provider_type: python_mcp
+    server_name: activity
+    toolset: activity
+    transport: stdio
+  order:
+    provider_type: go_mcp
+    server_name: order
+    toolset: order
+    transport: http
+  handoff:
+    provider_type: python_mcp
+    server_name: handoff
+    toolset: handoff
+    transport: stdio
+
+skills:
+  activity.search_program:
+    version: v1
+    domain: activity
+    agent_type: activity
+    skill_path: skills/activity-search-program/SKILL.md
+    provider: activity
+    tools: [search_programs]
+    required_slots: [program_id]
+    max_steps: 2
+    termination_rule: got_program_detail_or_fail
+    fallback_policy: return_parent
+    audit_tags: [activity, search]
+  order.list_recent:
+    version: v1
+    domain: order
+    agent_type: order
+    skill_path: skills/order-list-recent/SKILL.md
+    provider: order
+    tools: [list_user_orders]
+    required_slots: []
+    max_steps: 2
+    termination_rule: got_recent_orders_or_empty
+    fallback_policy: return_parent
+    audit_tags: [order, list_recent]
+  order.get_detail:
+    version: v1
+    domain: order
+    agent_type: order
+    skill_path: skills/order-get-detail/SKILL.md
+    provider: order
+    tools: [get_order_detail_for_service]
+    required_slots: [order_id]
+    max_steps: 2
+    termination_rule: got_order_detail_or_fail
+    fallback_policy: return_parent
+    audit_tags: [order, detail]
+  refund.preview:
+    version: v1
+    domain: refund
+    agent_type: refund
+    skill_path: skills/refund-preview/SKILL.md
+    provider: order
+    tools: [preview_refund_order]
+    required_slots: [order_id]
+    max_steps: 3
+    termination_rule: got_preview_or_fail
+    fallback_policy: handoff
+    audit_tags: [refund, preview]
+  refund.submit:
+    version: v1
+    domain: refund
+    agent_type: refund
+    skill_path: skills/refund-submit/SKILL.md
+    provider: order
+    tools: [refund_order]
+    required_slots: [order_id]
+    max_steps: 3
+    termination_rule: got_submit_result_or_fail
+    fallback_policy: handoff
+    audit_tags: [refund, submit]
+  handoff.create_ticket:
+    version: v1
+    domain: handoff
+    agent_type: handoff
+    skill_path: skills/handoff-create-ticket/SKILL.md
+    provider: handoff
+    tools: [create_handoff_ticket]
+    required_slots: []
+    max_steps: 1
+    termination_rule: got_ticket_or_fail
+    fallback_policy: handoff
+    audit_tags: [handoff]

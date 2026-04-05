@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.api.routes import get_graph, get_llm, get_session_store, get_tool_registry
+from app.api.routes import get_agent_runtime, get_llm, get_session_store, get_tool_registry
 from app.main import create_app
 from app.session.store import ConversationStateStore
 
@@ -20,7 +20,7 @@ class FakeRedis:
         return True
 
 
-class FakeGraph:
+class FakeAgentRuntime:
     def __init__(self):
         self.calls: list[dict] = []
 
@@ -42,21 +42,21 @@ class FakeGraph:
         }
 
 
-def build_test_client() -> tuple[TestClient, FakeGraph]:
-    graph = FakeGraph()
+def build_test_client() -> tuple[TestClient, FakeAgentRuntime]:
+    agent_runtime = FakeAgentRuntime()
     app = create_app()
-    app.dependency_overrides[get_graph] = lambda: graph
+    app.dependency_overrides[get_agent_runtime] = lambda: agent_runtime
     app.dependency_overrides[get_session_store] = lambda: ConversationStateStore(
         redis_client=FakeRedis(),
         ttl_seconds=600,
     )
     app.dependency_overrides[get_tool_registry] = lambda: object()
     app.dependency_overrides[get_llm] = lambda: object()
-    return TestClient(app), graph
+    return TestClient(app), agent_runtime
 
 
 def test_agent_chat_contract_returns_completed_and_handoff_status():
-    client, graph = build_test_client()
+    client, agent_runtime = build_test_client()
 
     completed = client.post(
         "/agent/chat",
@@ -78,12 +78,12 @@ def test_agent_chat_contract_returns_completed_and_handoff_status():
 
     assert completed.json()["status"] == "completed"
     assert handoff.json()["status"] == "handoff"
-    assert graph.calls[0]["context"]["current_user_id"] == "3001"
-    assert graph.calls[1]["context"]["current_user_id"] == "3001"
+    assert agent_runtime.calls[0]["context"]["current_user_id"] == "3001"
+    assert agent_runtime.calls[1]["context"]["current_user_id"] == "3001"
 
 
 def test_agent_chat_contract_supports_multi_turn_conversation():
-    client, graph = build_test_client()
+    client, agent_runtime = build_test_client()
 
     first = client.post(
         "/agent/chat",
@@ -106,7 +106,7 @@ def test_agent_chat_contract_supports_multi_turn_conversation():
     assert second.status_code == 200
     assert second_body["conversationId"] == first_body["conversationId"]
     assert second_body["status"] == "completed"
-    assert graph.calls[0]["config"]["configurable"]["thread_id"] == first_body["conversationId"]
-    assert graph.calls[1]["config"]["configurable"]["thread_id"] == first_body["conversationId"]
-    assert graph.calls[0]["state"]["messages"] == [{"role": "user", "content": "帮我查一下订单"}]
-    assert graph.calls[1]["state"]["messages"] == [{"role": "user", "content": "订单 93001 可以退款吗"}]
+    assert agent_runtime.calls[0]["config"]["configurable"]["thread_id"] == first_body["conversationId"]
+    assert agent_runtime.calls[1]["config"]["configurable"]["thread_id"] == first_body["conversationId"]
+    assert agent_runtime.calls[0]["state"]["messages"] == [{"role": "user", "content": "帮我查一下订单"}]
+    assert agent_runtime.calls[1]["state"]["messages"] == [{"role": "user", "content": "订单 93001 可以退款吗"}]

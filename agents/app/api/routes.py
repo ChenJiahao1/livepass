@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Any
 
 import redis
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.api.schemas import ChatRequest, ChatResponse
 from app.config import get_settings
-from app.graph import build_graph_app
 from app.llm.client import build_chat_model
 from app.mcp_client.registry import MCPToolRegistry
-from app.session.checkpointer import RedisCheckpointSaver
+from app.observability.audit import build_audit_record
+from app.observability.tracing import build_trace_record
+from app.orchestrator.parent_agent import ParentAgent
 from app.session.store import ConversationStateStore, SessionOwnershipError
 
 router = APIRouter()
@@ -35,18 +35,8 @@ def get_session_store() -> ConversationStateStore:
 
 
 @lru_cache(maxsize=1)
-def get_checkpointer() -> RedisCheckpointSaver:
-    settings = get_settings()
-    return RedisCheckpointSaver.from_url(
-        settings.redis_url,
-        ttl_seconds=settings.session_ttl_seconds,
-        key_prefix=f"{settings.session_key_prefix}:langgraph",
-    )
-
-
-@lru_cache(maxsize=1)
-def get_graph():
-    return build_graph_app(checkpointer=get_checkpointer())
+def get_agent_runtime():
+    return ParentAgent()
 
 
 @lru_cache(maxsize=1)
@@ -65,7 +55,7 @@ def get_llm():
 @router.post("/agent/chat", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    graph=Depends(get_graph),
+    agent_runtime=Depends(get_agent_runtime),
     session_store: ConversationStateStore = Depends(get_session_store),
     registry: MCPToolRegistry = Depends(get_tool_registry),
     llm=Depends(get_llm),
@@ -84,14 +74,30 @@ async def chat(
     except SessionOwnershipError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
-    result = await graph.ainvoke(
+    result = await agent_runtime.ainvoke(
         {"messages": [{"role": "user", "content": request.message}]},
         config={"configurable": {"thread_id": session.conversation_id}},
-        context={"registry": registry, "llm": llm, "current_user_id": str(user_id)},
+        context={
+            "registry": registry,
+            "llm": llm,
+            "current_user_id": str(user_id),
+            "session_state": session.model_dump(),
+        },
     )
 
+    session_payload = result.get("session_state", {})
+    session.selected_order_id = session_payload.get("selected_order_id")
+    session.recent_order_candidates = session_payload.get("recent_order_candidates", [])
+    session.last_task_summary = session_payload.get("last_task_summary")
+    session.last_handoff_ticket_id = session_payload.get("last_handoff_ticket_id")
     final_reply = result.get("final_reply") or result.get("reply") or ""
     session_store.save(session)
+    _ = build_trace_record(
+        route_source=result.get("route_source", "rule"),
+        result=result,
+        session=session,
+    )
+    _ = build_audit_record(result=result)
 
     return ChatResponse(
         conversationId=session.conversation_id,

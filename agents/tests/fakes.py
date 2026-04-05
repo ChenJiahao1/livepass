@@ -110,6 +110,29 @@ class StubRegistry:
     async def get_tools(self, toolset: str) -> list:
         return list(self.tools_by_toolset.get(toolset, []))
 
+    async def get_provider_tools(self, server_name: str) -> list:
+        if server_name == "order":
+            combined = [
+                *self.tools_by_toolset.get("order", []),
+                *self.tools_by_toolset.get("refund", []),
+            ]
+            deduped: dict[str, Any] = {}
+            for tool in combined:
+                deduped[getattr(tool, "name", str(tool))] = tool
+            return list(deduped.values())
+        return list(self.tools_by_toolset.get(server_name, []))
+
+    async def invoke(self, *, server_name: str, tool_name: str, payload: dict[str, Any]):
+        tools = await self.get_provider_tools(server_name)
+        tool_by_name = {getattr(tool, "name", ""): tool for tool in tools}
+        tool = tool_by_name[tool_name]
+        allowed_args = payload
+        args_schema = getattr(tool, "args_schema", None)
+        if args_schema is not None and hasattr(args_schema, "model_fields"):
+            allowed_keys = set(args_schema.model_fields.keys())
+            allowed_args = {key: value for key, value in payload.items() if key in allowed_keys}
+        return await tool.ainvoke(allowed_args)
+
 
 def build_async_tool(*, name: str, description: str, coroutine):
     @wraps(coroutine)
