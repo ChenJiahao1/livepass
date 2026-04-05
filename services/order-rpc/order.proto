@@ -8,7 +8,7 @@ message BoolResp {
   bool success = 1;
 }
 
-message CreateOrderReq {
+message CreatePurchaseTokenReq {
   int64 userId = 1;
   int64 programId = 2;
   int64 ticketCategoryId = 3;
@@ -17,8 +17,28 @@ message CreateOrderReq {
   string takeTicketMode = 6;
 }
 
+message CreatePurchaseTokenResp {
+  string purchaseToken = 1;
+}
+
+message CreateOrderReq {
+  int64 userId = 1;
+  string purchaseToken = 2;
+}
+
 message CreateOrderResp {
   int64 orderNumber = 1;
+}
+
+message PollOrderProgressReq {
+  int64 userId = 1;
+  int64 orderNumber = 2;
+}
+
+message PollOrderProgressResp {
+  int64 orderNumber = 1;
+  int64 orderStatus = 2;
+  bool done = 3;
 }
 
 message ListOrdersReq {
@@ -190,6 +210,19 @@ message CloseExpiredOrdersResp {
   int64 closedCount = 1;
 }
 
+message VerifyAttemptDueReq {
+  int64 orderNumber = 1;
+  int64 dueAtUnix = 2;
+}
+
+message ReconcileRushAttemptsReq {
+  int64 limit = 1;
+}
+
+message ReconcileRushAttemptsResp {
+  int64 reconciledCount = 1;
+}
+
 message CountActiveTicketsByUserProgramReq {
   int64 userId = 1;
   int64 programId = 2;
@@ -200,7 +233,9 @@ message CountActiveTicketsByUserProgramResp {
 }
 
 service OrderRpc {
+  rpc CreatePurchaseToken(CreatePurchaseTokenReq) returns (CreatePurchaseTokenResp);
   rpc CreateOrder(CreateOrderReq) returns (CreateOrderResp);
+  rpc PollOrderProgress(PollOrderProgressReq) returns (PollOrderProgressResp);
   rpc ListOrders(ListOrdersReq) returns (ListOrdersResp);
   rpc GetOrder(GetOrderReq) returns (OrderDetailInfo);
   rpc GetOrderCache(GetOrderCacheReq) returns (GetOrderCacheResp);
@@ -212,5 +247,7 @@ service OrderRpc {
   rpc RefundOrder(RefundOrderReq) returns (RefundOrderResp);
   rpc CloseExpiredOrder(CloseExpiredOrderReq) returns (BoolResp);
   rpc CloseExpiredOrders(CloseExpiredOrdersReq) returns (CloseExpiredOrdersResp);
+  rpc VerifyAttemptDue(VerifyAttemptDueReq) returns (BoolResp);
+  rpc ReconcileRushAttempts(ReconcileRushAttemptsReq) returns (ReconcileRushAttemptsResp);
   rpc CountActiveTicketsByUserProgram(CountActiveTicketsByUserProgramReq) returns (CountActiveTicketsByUserProgramResp);
 }

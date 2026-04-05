@@ -9,9 +9,17 @@ import (
 )
 
 type fakeOrderRPC struct {
+	createPurchaseTokenResp    *orderrpc.CreatePurchaseTokenResp
+	createPurchaseTokenErr     error
+	lastCreatePurchaseTokenReq *orderrpc.CreatePurchaseTokenReq
+
 	createOrderResp    *orderrpc.CreateOrderResp
 	createOrderErr     error
 	lastCreateOrderReq *orderrpc.CreateOrderReq
+
+	pollOrderProgressResp    *orderrpc.PollOrderProgressResp
+	pollOrderProgressErr     error
+	lastPollOrderProgressReq *orderrpc.PollOrderProgressReq
 
 	listOrdersResp    *orderrpc.ListOrdersResp
 	listOrdersErr     error
@@ -54,9 +62,19 @@ type fakeOrderRPC struct {
 	lastGetOrderCacheReq *orderrpc.GetOrderCacheReq
 }
 
+func (f *fakeOrderRPC) CreatePurchaseToken(ctx context.Context, in *orderrpc.CreatePurchaseTokenReq, opts ...grpc.CallOption) (*orderrpc.CreatePurchaseTokenResp, error) {
+	f.lastCreatePurchaseTokenReq = in
+	return f.createPurchaseTokenResp, f.createPurchaseTokenErr
+}
+
 func (f *fakeOrderRPC) CreateOrder(ctx context.Context, in *orderrpc.CreateOrderReq, opts ...grpc.CallOption) (*orderrpc.CreateOrderResp, error) {
 	f.lastCreateOrderReq = in
 	return f.createOrderResp, f.createOrderErr
+}
+
+func (f *fakeOrderRPC) PollOrderProgress(ctx context.Context, in *orderrpc.PollOrderProgressReq, opts ...grpc.CallOption) (*orderrpc.PollOrderProgressResp, error) {
+	f.lastPollOrderProgressReq = in
+	return f.pollOrderProgressResp, f.pollOrderProgressErr
 }
 
 func (f *fakeOrderRPC) ListOrders(ctx context.Context, in *orderrpc.ListOrdersReq, opts ...grpc.CallOption) (*orderrpc.ListOrdersResp, error) {
@@ -97,6 +115,18 @@ func (f *fakeOrderRPC) PreviewRefundOrder(ctx context.Context, in *orderrpc.Prev
 func (f *fakeOrderRPC) RefundOrder(ctx context.Context, in *orderrpc.RefundOrderReq, opts ...grpc.CallOption) (*orderrpc.RefundOrderResp, error) {
 	f.lastRefundOrderReq = in
 	return f.refundOrderResp, f.refundOrderErr
+}
+
+func (f *fakeOrderRPC) VerifyAttemptDue(ctx context.Context, in *orderrpc.VerifyAttemptDueReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderRPC) ReconcileRushAttempts(ctx context.Context, in *orderrpc.ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*orderrpc.ReconcileRushAttemptsResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderRPC) CloseExpiredOrder(ctx context.Context, in *orderrpc.CloseExpiredOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+	return nil, nil
 }
 
 func (f *fakeOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {

@@ -19,7 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	OrderRpc_CreatePurchaseToken_FullMethodName             = "/order.OrderRpc/CreatePurchaseToken"
 	OrderRpc_CreateOrder_FullMethodName                     = "/order.OrderRpc/CreateOrder"
+	OrderRpc_PollOrderProgress_FullMethodName               = "/order.OrderRpc/PollOrderProgress"
 	OrderRpc_ListOrders_FullMethodName                      = "/order.OrderRpc/ListOrders"
 	OrderRpc_GetOrder_FullMethodName                        = "/order.OrderRpc/GetOrder"
 	OrderRpc_GetOrderCache_FullMethodName                   = "/order.OrderRpc/GetOrderCache"
@@ -31,6 +33,8 @@ const (
 	OrderRpc_RefundOrder_FullMethodName                     = "/order.OrderRpc/RefundOrder"
 	OrderRpc_CloseExpiredOrder_FullMethodName               = "/order.OrderRpc/CloseExpiredOrder"
 	OrderRpc_CloseExpiredOrders_FullMethodName              = "/order.OrderRpc/CloseExpiredOrders"
+	OrderRpc_VerifyAttemptDue_FullMethodName                = "/order.OrderRpc/VerifyAttemptDue"
+	OrderRpc_ReconcileRushAttempts_FullMethodName           = "/order.OrderRpc/ReconcileRushAttempts"
 	OrderRpc_CountActiveTicketsByUserProgram_FullMethodName = "/order.OrderRpc/CountActiveTicketsByUserProgram"
 )
 
@@ -38,7 +42,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OrderRpcClient interface {
+	CreatePurchaseToken(ctx context.Context, in *CreatePurchaseTokenReq, opts ...grpc.CallOption) (*CreatePurchaseTokenResp, error)
 	CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
+	PollOrderProgress(ctx context.Context, in *PollOrderProgressReq, opts ...grpc.CallOption) (*PollOrderProgressResp, error)
 	ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 	GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
 	GetOrderCache(ctx context.Context, in *GetOrderCacheReq, opts ...grpc.CallOption) (*GetOrderCacheResp, error)
@@ -50,6 +56,8 @@ type OrderRpcClient interface {
 	RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error)
 	CloseExpiredOrder(ctx context.Context, in *CloseExpiredOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 	CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
+	VerifyAttemptDue(ctx context.Context, in *VerifyAttemptDueReq, opts ...grpc.CallOption) (*BoolResp, error)
+	ReconcileRushAttempts(ctx context.Context, in *ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*ReconcileRushAttemptsResp, error)
 	CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
 }
 
@@ -61,10 +69,30 @@ func NewOrderRpcClient(cc grpc.ClientConnInterface) OrderRpcClient {
 	return &orderRpcClient{cc}
 }
 
+func (c *orderRpcClient) CreatePurchaseToken(ctx context.Context, in *CreatePurchaseTokenReq, opts ...grpc.CallOption) (*CreatePurchaseTokenResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreatePurchaseTokenResp)
+	err := c.cc.Invoke(ctx, OrderRpc_CreatePurchaseToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *orderRpcClient) CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateOrderResp)
 	err := c.cc.Invoke(ctx, OrderRpc_CreateOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderRpcClient) PollOrderProgress(ctx context.Context, in *PollOrderProgressReq, opts ...grpc.CallOption) (*PollOrderProgressResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PollOrderProgressResp)
+	err := c.cc.Invoke(ctx, OrderRpc_PollOrderProgress_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -181,6 +209,26 @@ func (c *orderRpcClient) CloseExpiredOrders(ctx context.Context, in *CloseExpire
 	return out, nil
 }
 
+func (c *orderRpcClient) VerifyAttemptDue(ctx context.Context, in *VerifyAttemptDueReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, OrderRpc_VerifyAttemptDue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderRpcClient) ReconcileRushAttempts(ctx context.Context, in *ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*ReconcileRushAttemptsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReconcileRushAttemptsResp)
+	err := c.cc.Invoke(ctx, OrderRpc_ReconcileRushAttempts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *orderRpcClient) CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CountActiveTicketsByUserProgramResp)
@@ -195,7 +243,9 @@ func (c *orderRpcClient) CountActiveTicketsByUserProgram(ctx context.Context, in
 // All implementations must embed UnimplementedOrderRpcServer
 // for forward compatibility.
 type OrderRpcServer interface {
+	CreatePurchaseToken(context.Context, *CreatePurchaseTokenReq) (*CreatePurchaseTokenResp, error)
 	CreateOrder(context.Context, *CreateOrderReq) (*CreateOrderResp, error)
+	PollOrderProgress(context.Context, *PollOrderProgressReq) (*PollOrderProgressResp, error)
 	ListOrders(context.Context, *ListOrdersReq) (*ListOrdersResp, error)
 	GetOrder(context.Context, *GetOrderReq) (*OrderDetailInfo, error)
 	GetOrderCache(context.Context, *GetOrderCacheReq) (*GetOrderCacheResp, error)
@@ -207,6 +257,8 @@ type OrderRpcServer interface {
 	RefundOrder(context.Context, *RefundOrderReq) (*RefundOrderResp, error)
 	CloseExpiredOrder(context.Context, *CloseExpiredOrderReq) (*BoolResp, error)
 	CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error)
+	VerifyAttemptDue(context.Context, *VerifyAttemptDueReq) (*BoolResp, error)
+	ReconcileRushAttempts(context.Context, *ReconcileRushAttemptsReq) (*ReconcileRushAttemptsResp, error)
 	CountActiveTicketsByUserProgram(context.Context, *CountActiveTicketsByUserProgramReq) (*CountActiveTicketsByUserProgramResp, error)
 	mustEmbedUnimplementedOrderRpcServer()
 }
@@ -218,8 +270,14 @@ type OrderRpcServer interface {
 // pointer dereference when methods are called.
 type UnimplementedOrderRpcServer struct{}
 
+func (UnimplementedOrderRpcServer) CreatePurchaseToken(context.Context, *CreatePurchaseTokenReq) (*CreatePurchaseTokenResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreatePurchaseToken not implemented")
+}
 func (UnimplementedOrderRpcServer) CreateOrder(context.Context, *CreateOrderReq) (*CreateOrderResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateOrder not implemented")
+}
+func (UnimplementedOrderRpcServer) PollOrderProgress(context.Context, *PollOrderProgressReq) (*PollOrderProgressResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method PollOrderProgress not implemented")
 }
 func (UnimplementedOrderRpcServer) ListOrders(context.Context, *ListOrdersReq) (*ListOrdersResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListOrders not implemented")
@@ -254,6 +312,12 @@ func (UnimplementedOrderRpcServer) CloseExpiredOrder(context.Context, *CloseExpi
 func (UnimplementedOrderRpcServer) CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CloseExpiredOrders not implemented")
 }
+func (UnimplementedOrderRpcServer) VerifyAttemptDue(context.Context, *VerifyAttemptDueReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyAttemptDue not implemented")
+}
+func (UnimplementedOrderRpcServer) ReconcileRushAttempts(context.Context, *ReconcileRushAttemptsReq) (*ReconcileRushAttemptsResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReconcileRushAttempts not implemented")
+}
 func (UnimplementedOrderRpcServer) CountActiveTicketsByUserProgram(context.Context, *CountActiveTicketsByUserProgramReq) (*CountActiveTicketsByUserProgramResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CountActiveTicketsByUserProgram not implemented")
 }
@@ -278,6 +342,24 @@ func RegisterOrderRpcServer(s grpc.ServiceRegistrar, srv OrderRpcServer) {
 	s.RegisterService(&OrderRpc_ServiceDesc, srv)
 }
 
+func _OrderRpc_CreatePurchaseToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePurchaseTokenReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).CreatePurchaseToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_CreatePurchaseToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).CreatePurchaseToken(ctx, req.(*CreatePurchaseTokenReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OrderRpc_CreateOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateOrderReq)
 	if err := dec(in); err != nil {
@@ -292,6 +374,24 @@ func _OrderRpc_CreateOrder_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OrderRpcServer).CreateOrder(ctx, req.(*CreateOrderReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderRpc_PollOrderProgress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PollOrderProgressReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).PollOrderProgress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_PollOrderProgress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).PollOrderProgress(ctx, req.(*PollOrderProgressReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -494,6 +594,42 @@ func _OrderRpc_CloseExpiredOrders_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrderRpc_VerifyAttemptDue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyAttemptDueReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).VerifyAttemptDue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_VerifyAttemptDue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).VerifyAttemptDue(ctx, req.(*VerifyAttemptDueReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderRpc_ReconcileRushAttempts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReconcileRushAttemptsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).ReconcileRushAttempts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_ReconcileRushAttempts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).ReconcileRushAttempts(ctx, req.(*ReconcileRushAttemptsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OrderRpc_CountActiveTicketsByUserProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CountActiveTicketsByUserProgramReq)
 	if err := dec(in); err != nil {
@@ -520,8 +656,16 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*OrderRpcServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "CreatePurchaseToken",
+			Handler:    _OrderRpc_CreatePurchaseToken_Handler,
+		},
+		{
 			MethodName: "CreateOrder",
 			Handler:    _OrderRpc_CreateOrder_Handler,
+		},
+		{
+			MethodName: "PollOrderProgress",
+			Handler:    _OrderRpc_PollOrderProgress_Handler,
 		},
 		{
 			MethodName: "ListOrders",
@@ -566,6 +710,14 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CloseExpiredOrders",
 			Handler:    _OrderRpc_CloseExpiredOrders_Handler,
+		},
+		{
+			MethodName: "VerifyAttemptDue",
+			Handler:    _OrderRpc_VerifyAttemptDue_Handler,
+		},
+		{
+			MethodName: "ReconcileRushAttempts",
+			Handler:    _OrderRpc_ReconcileRushAttempts_Handler,
 		},
 		{
 			MethodName: "CountActiveTicketsByUserProgram",

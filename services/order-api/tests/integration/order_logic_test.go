@@ -25,7 +25,7 @@ func newOrderAPIServiceContext(fakeRPC *fakeOrderRPC) *svc.ServiceContext {
 	}
 }
 
-func TestCreateOrderUsesUserIDFromContext(t *testing.T) {
+func TestCreateOrderReturnsPreAllocatedOrderNumber(t *testing.T) {
 	fakeRPC := &fakeOrderRPC{
 		createOrderResp: &orderrpc.CreateOrderResp{OrderNumber: 91001},
 	}
@@ -33,11 +33,7 @@ func TestCreateOrderUsesUserIDFromContext(t *testing.T) {
 
 	l := logicpkg.NewCreateOrderLogic(ctx, newOrderAPIServiceContext(fakeRPC))
 	resp, err := l.CreateOrder(&types.CreateOrderReq{
-		ProgramID:        10001,
-		TicketCategoryID: 40001,
-		TicketUserIds:    []int64{701, 702},
-		DistributionMode: "express",
-		TakeTicketMode:   "paper",
+		PurchaseToken: "pt_91001",
 	})
 	if err != nil {
 		t.Fatalf("CreateOrder returned error: %v", err)
@@ -45,7 +41,7 @@ func TestCreateOrderUsesUserIDFromContext(t *testing.T) {
 	if resp.OrderNumber != 91001 {
 		t.Fatalf("unexpected order number: %+v", resp)
 	}
-	if fakeRPC.lastCreateOrderReq == nil || fakeRPC.lastCreateOrderReq.UserId != 3001 {
+	if fakeRPC.lastCreateOrderReq == nil || fakeRPC.lastCreateOrderReq.UserId != 3001 || fakeRPC.lastCreateOrderReq.PurchaseToken != "pt_91001" {
 		t.Fatalf("expected user id from context, got %+v", fakeRPC.lastCreateOrderReq)
 	}
 }
@@ -60,11 +56,7 @@ func TestCreateOrderMayNotBeImmediatelyVisible(t *testing.T) {
 
 	createLogic := logicpkg.NewCreateOrderLogic(ctx, serviceCtx)
 	createResp, err := createLogic.CreateOrder(&types.CreateOrderReq{
-		ProgramID:        10001,
-		TicketCategoryID: 40001,
-		TicketUserIds:    []int64{701, 702},
-		DistributionMode: "express",
-		TakeTicketMode:   "paper",
+		PurchaseToken: "pt_91001",
 	})
 	if err != nil {
 		t.Fatalf("CreateOrder returned error: %v", err)
@@ -83,12 +75,35 @@ func TestCreateOrderMayNotBeImmediatelyVisible(t *testing.T) {
 	}
 }
 
+func TestPollOrderProgressPassesThroughRpcResult(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		pollOrderProgressResp: &orderrpc.PollOrderProgressResp{
+			OrderNumber: 91001,
+			OrderStatus: 2,
+			Done:        true,
+		},
+	}
+	ctx := xmiddleware.WithUserID(context.Background(), 3001)
+
+	l := logicpkg.NewPollOrderLogic(ctx, newOrderAPIServiceContext(fakeRPC))
+	resp, err := l.PollOrder(&types.PollOrderReq{OrderNumber: 91001})
+	if err != nil {
+		t.Fatalf("PollOrder returned error: %v", err)
+	}
+	if resp.OrderNumber != 91001 || resp.OrderStatus != 2 || !resp.Done {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if fakeRPC.lastPollOrderProgressReq == nil || fakeRPC.lastPollOrderProgressReq.UserId != 3001 || fakeRPC.lastPollOrderProgressReq.OrderNumber != 91001 {
+		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastPollOrderProgressReq)
+	}
+}
+
 func TestCreateOrderPropagatesLedgerNotReady(t *testing.T) {
 	fakeRPC := &fakeOrderRPC{
 		createOrderErr: status.Error(codes.FailedPrecondition, xerr.ErrOrderLimitLedgerNotReady.Error()),
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/order/create", strings.NewReader(`{"programId":10001,"ticketCategoryId":40001,"ticketUserIds":[701],"distributionMode":"express","takeTicketMode":"paper"}`))
+	req := httptest.NewRequest(http.MethodPost, "/order/create", strings.NewReader(`{"purchaseToken":"pt_91001"}`))
 	req = req.WithContext(xmiddleware.WithUserID(req.Context(), 3001))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -225,9 +240,7 @@ func TestPayCheckForwardsUserIDAndOrderNumber(t *testing.T) {
 func TestCreateOrderReturnsUnauthorizedWhenUserIDMissing(t *testing.T) {
 	l := logicpkg.NewCreateOrderLogic(context.Background(), newOrderAPIServiceContext(&fakeOrderRPC{}))
 	_, err := l.CreateOrder(&types.CreateOrderReq{
-		ProgramID:        10001,
-		TicketCategoryID: 40001,
-		TicketUserIds:    []int64{701},
+		PurchaseToken: "pt_91001",
 	})
 	if err == nil {
 		t.Fatalf("expected unauthorized error")

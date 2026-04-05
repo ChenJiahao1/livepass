@@ -21,6 +21,14 @@ type CancelOrderReq struct {
 }
 
 type CreateOrderReq struct {
+	PurchaseToken string `json:"purchaseToken"`
+}
+
+type CreateOrderResp struct {
+	OrderNumber int64 `json:"orderNumber"`
+}
+
+type CreatePurchaseTokenReq struct {
 	ProgramID        int64   `json:"programId"`
 	TicketCategoryID int64   `json:"ticketCategoryId"`
 	TicketUserIds    []int64 `json:"ticketUserIds"`
@@ -28,8 +36,8 @@ type CreateOrderReq struct {
 	TakeTicketMode   string  `json:"takeTicketMode,optional"`
 }
 
-type CreateOrderResp struct {
-	OrderNumber int64 `json:"orderNumber"`
+type CreatePurchaseTokenResp struct {
+	PurchaseToken string `json:"purchaseToken"`
 }
 
 type GetOrderReq struct {
@@ -130,6 +138,16 @@ type PayOrderResp struct {
 	PayBillNo   int64  `json:"payBillNo"`
 	PayStatus   int64  `json:"payStatus"`
 	PayTime     string `json:"payTime,optional"`
+}
+
+type PollOrderReq struct {
+	OrderNumber int64 `json:"orderNumber"`
+}
+
+type PollOrderResp struct {
+	OrderNumber int64 `json:"orderNumber"`
+	OrderStatus int64 `json:"orderStatus"`
+	Done        bool  `json:"done"`
 }
 
 type RefundOrderReq struct {

@@ -17,33 +17,33 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type CreateOrderLogic struct {
+type PollOrderLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewCreateOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateOrderLogic {
-	return &CreateOrderLogic{
+func NewPollOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PollOrderLogic {
+	return &PollOrderLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *CreateOrderLogic) CreateOrder(req *types.CreateOrderReq) (resp *types.CreateOrderResp, err error) {
+func (l *PollOrderLogic) PollOrder(req *types.PollOrderReq) (resp *types.PollOrderResp, err error) {
 	userID, ok := xmiddleware.UserIDFromContext(l.ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, xerr.ErrUnauthorized.Error())
 	}
 
-	rpcResp, err := l.svcCtx.OrderRpc.CreateOrder(l.ctx, &orderrpc.CreateOrderReq{
-		UserId:        userID,
-		PurchaseToken: req.PurchaseToken,
+	rpcResp, err := l.svcCtx.OrderRpc.PollOrderProgress(l.ctx, &orderrpc.PollOrderProgressReq{
+		UserId:      userID,
+		OrderNumber: req.OrderNumber,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return mapCreateOrderResp(rpcResp), nil
+	return mapPollOrderResp(rpcResp), nil
 }

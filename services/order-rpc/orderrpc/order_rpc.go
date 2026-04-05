@@ -23,6 +23,8 @@ type (
 	CountActiveTicketsByUserProgramResp = pb.CountActiveTicketsByUserProgramResp
 	CreateOrderReq                      = pb.CreateOrderReq
 	CreateOrderResp                     = pb.CreateOrderResp
+	CreatePurchaseTokenReq              = pb.CreatePurchaseTokenReq
+	CreatePurchaseTokenResp             = pb.CreatePurchaseTokenResp
 	GetOrderCacheReq                    = pb.GetOrderCacheReq
 	GetOrderCacheResp                   = pb.GetOrderCacheResp
 	GetOrderReq                         = pb.GetOrderReq
@@ -37,13 +39,20 @@ type (
 	PayCheckResp                        = pb.PayCheckResp
 	PayOrderReq                         = pb.PayOrderReq
 	PayOrderResp                        = pb.PayOrderResp
+	PollOrderProgressReq                = pb.PollOrderProgressReq
+	PollOrderProgressResp               = pb.PollOrderProgressResp
 	PreviewRefundOrderReq               = pb.PreviewRefundOrderReq
 	PreviewRefundOrderResp              = pb.PreviewRefundOrderResp
+	ReconcileRushAttemptsReq            = pb.ReconcileRushAttemptsReq
+	ReconcileRushAttemptsResp           = pb.ReconcileRushAttemptsResp
 	RefundOrderReq                      = pb.RefundOrderReq
 	RefundOrderResp                     = pb.RefundOrderResp
+	VerifyAttemptDueReq                 = pb.VerifyAttemptDueReq
 
 	OrderRpc interface {
+		CreatePurchaseToken(ctx context.Context, in *CreatePurchaseTokenReq, opts ...grpc.CallOption) (*CreatePurchaseTokenResp, error)
 		CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
+		PollOrderProgress(ctx context.Context, in *PollOrderProgressReq, opts ...grpc.CallOption) (*PollOrderProgressResp, error)
 		ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 		GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
 		GetOrderCache(ctx context.Context, in *GetOrderCacheReq, opts ...grpc.CallOption) (*GetOrderCacheResp, error)
@@ -55,6 +64,8 @@ type (
 		RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error)
 		CloseExpiredOrder(ctx context.Context, in *CloseExpiredOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 		CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
+		VerifyAttemptDue(ctx context.Context, in *VerifyAttemptDueReq, opts ...grpc.CallOption) (*BoolResp, error)
+		ReconcileRushAttempts(ctx context.Context, in *ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*ReconcileRushAttemptsResp, error)
 		CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
 	}
 
@@ -69,9 +80,19 @@ func NewOrderRpc(cli zrpc.Client) OrderRpc {
 	}
 }
 
+func (m *defaultOrderRpc) CreatePurchaseToken(ctx context.Context, in *CreatePurchaseTokenReq, opts ...grpc.CallOption) (*CreatePurchaseTokenResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.CreatePurchaseToken(ctx, in, opts...)
+}
+
 func (m *defaultOrderRpc) CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.CreateOrder(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) PollOrderProgress(ctx context.Context, in *PollOrderProgressReq, opts ...grpc.CallOption) (*PollOrderProgressResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.PollOrderProgress(ctx, in, opts...)
 }
 
 func (m *defaultOrderRpc) ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error) {
@@ -127,6 +148,16 @@ func (m *defaultOrderRpc) CloseExpiredOrder(ctx context.Context, in *CloseExpire
 func (m *defaultOrderRpc) CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.CloseExpiredOrders(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) VerifyAttemptDue(ctx context.Context, in *VerifyAttemptDueReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.VerifyAttemptDue(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) ReconcileRushAttempts(ctx context.Context, in *ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*ReconcileRushAttemptsResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.ReconcileRushAttempts(ctx, in, opts...)
 }
 
 func (m *defaultOrderRpc) CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error) {

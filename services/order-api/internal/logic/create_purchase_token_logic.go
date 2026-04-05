@@ -17,33 +17,37 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type CreateOrderLogic struct {
+type CreatePurchaseTokenLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewCreateOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateOrderLogic {
-	return &CreateOrderLogic{
+func NewCreatePurchaseTokenLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreatePurchaseTokenLogic {
+	return &CreatePurchaseTokenLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *CreateOrderLogic) CreateOrder(req *types.CreateOrderReq) (resp *types.CreateOrderResp, err error) {
+func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(req *types.CreatePurchaseTokenReq) (resp *types.CreatePurchaseTokenResp, err error) {
 	userID, ok := xmiddleware.UserIDFromContext(l.ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, xerr.ErrUnauthorized.Error())
 	}
 
-	rpcResp, err := l.svcCtx.OrderRpc.CreateOrder(l.ctx, &orderrpc.CreateOrderReq{
-		UserId:        userID,
-		PurchaseToken: req.PurchaseToken,
+	rpcResp, err := l.svcCtx.OrderRpc.CreatePurchaseToken(l.ctx, &orderrpc.CreatePurchaseTokenReq{
+		UserId:           userID,
+		ProgramId:        req.ProgramID,
+		TicketCategoryId: req.TicketCategoryID,
+		TicketUserIds:    req.TicketUserIds,
+		DistributionMode: req.DistributionMode,
+		TakeTicketMode:   req.TakeTicketMode,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return mapCreateOrderResp(rpcResp), nil
+	return mapCreatePurchaseTokenResp(rpcResp), nil
 }
