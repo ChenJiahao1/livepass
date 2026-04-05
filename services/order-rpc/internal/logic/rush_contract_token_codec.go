@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 
-	"damai-go/services/order-rpc/sharding"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 const rushContractPurchaseTokenVersion = "v1"
 
-var rushContractSequence int64
+var rushContractNow = func() time.Time {
+	return time.Now()
+}
 
 func encodeRushContractPurchaseToken(userID, orderNumber int64) (string, error) {
 	if userID <= 0 || orderNumber <= 0 {
@@ -53,6 +53,5 @@ func decodeRushContractPurchaseToken(token string) (int64, int64, error) {
 }
 
 func allocateRushContractOrderNumber(userID int64) int64 {
-	seq := atomic.AddInt64(&rushContractSequence, 1) & maxOrderNumberSequence
-	return sharding.BuildOrderNumber(userID, time.Now(), 0, seq)
+	return defaultOrderNumberGenerator.Next(userID, rushContractNow())
 }

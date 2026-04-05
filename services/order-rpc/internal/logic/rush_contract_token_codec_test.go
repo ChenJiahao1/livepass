@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"testing"
+	"time"
 
 	"damai-go/services/order-rpc/pb"
 
@@ -108,5 +109,32 @@ func TestReconcileRushAttemptsReturnsUnimplemented(t *testing.T) {
 	})
 	if status.Code(err) != codes.Unimplemented {
 		t.Fatalf("expected unimplemented, got %v", err)
+	}
+}
+
+func TestRushContractOrderNumberDoesNotReuseAfterSequenceExhausted(t *testing.T) {
+	originalGenerator := defaultOrderNumberGenerator
+	originalNow := rushContractNow
+	defer func() {
+		defaultOrderNumberGenerator = originalGenerator
+		rushContractNow = originalNow
+	}()
+
+	base := time.Date(2026, time.March, 25, 10, 30, 15, 0, time.UTC)
+	current := base
+
+	gen := newOrderNumberGenerator(func() int64 { return 0 })
+	gen.now = func() time.Time { return current }
+	gen.sleep = func(d time.Duration) { current = current.Add(d) }
+	gen.lastUnixSecond = base.Unix()
+	gen.sequence = maxOrderNumberSequence - 1
+
+	defaultOrderNumberGenerator = gen
+	rushContractNow = func() time.Time { return base }
+
+	first := allocateRushContractOrderNumber(3001)
+	second := allocateRushContractOrderNumber(3001)
+	if first == second {
+		t.Fatalf("expected unique order numbers across sequence exhaustion, got duplicated %d", first)
 	}
 }
