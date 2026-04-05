@@ -99,6 +99,10 @@ func (f *fakeOrderRPC) RefundOrder(ctx context.Context, in *orderrpc.RefundOrder
 	return f.refundOrderResp, f.refundOrderErr
 }
 
+func (f *fakeOrderRPC) CloseExpiredOrder(ctx context.Context, in *orderrpc.CloseExpiredOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+	return nil, nil
+}
+
 func (f *fakeOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {
 	return nil, nil
 }
