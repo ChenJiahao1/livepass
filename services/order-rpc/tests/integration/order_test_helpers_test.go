@@ -96,6 +96,7 @@ type fakeOrderProgramRPC struct {
 	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
 	autoAssignAndFreezeSeatsErr     error
 	lastAutoAssignAndFreezeSeatsReq *programrpc.AutoAssignAndFreezeSeatsReq
+	autoAssignAndFreezeSeatsCalls   int
 
 	releaseSeatFreezeResp    *programrpc.ReleaseSeatFreezeResp
 	releaseSeatFreezeErr     error
@@ -1159,6 +1160,7 @@ func (f *fakeOrderProgramRPC) GetSeatRelateInfo(ctx context.Context, in *program
 
 func (f *fakeOrderProgramRPC) AutoAssignAndFreezeSeats(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
 	f.lastAutoAssignAndFreezeSeatsReq = in
+	f.autoAssignAndFreezeSeatsCalls++
 	if f.autoAssignAndFreezeSeatsFunc != nil {
 		return f.autoAssignAndFreezeSeatsFunc(ctx, in)
 	}

@@ -273,6 +273,140 @@ func (s *AttemptStore) MarkQueued(ctx context.Context, orderNumber int64, now ti
 	return nil
 }
 
+func (s *AttemptStore) ClaimProcessing(ctx context.Context, orderNumber int64, now time.Time) (claimed bool, epoch int64, err error) {
+	if s == nil || s.redis == nil {
+		return false, 0, xerr.ErrInternal
+	}
+	if orderNumber <= 0 {
+		return false, 0, xerr.ErrInvalidParam
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	result, err := s.redis.EvalCtx(
+		ctx,
+		claimProcessingScript,
+		[]string{attemptRecordKey(s.prefix, orderNumber)},
+		now.UnixMilli(),
+	)
+	if err != nil {
+		return false, 0, err
+	}
+
+	values, err := parseEvalArray(result)
+	if err != nil {
+		return false, 0, err
+	}
+	if len(values) < 2 {
+		return false, 0, fmt.Errorf("unexpected claim processing result length: %d", len(values))
+	}
+
+	statusCode, err := parseEvalInt64(values[0])
+	if err != nil {
+		return false, 0, err
+	}
+	epoch, err = parseEvalInt64(values[1])
+	if err != nil {
+		return false, 0, err
+	}
+	if statusCode < 0 {
+		return false, 0, xerr.ErrOrderNotFound
+	}
+
+	return statusCode == 1, epoch, nil
+}
+
+func (s *AttemptStore) CommitProjection(ctx context.Context, record *AttemptRecord, now time.Time) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 {
+		return xerr.ErrInvalidParam
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	keys := []string{
+		attemptRecordKey(s.prefix, record.OrderNumber),
+		userInflightKey(s.prefix, record.ProgramID, record.UserID),
+		userFingerprintIndexKey(s.prefix, record.UserID),
+	}
+	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
+		keys = append(keys, viewerInflightKey(s.prefix, record.ProgramID, viewerID))
+	}
+
+	result, err := s.redis.EvalCtx(
+		ctx,
+		commitAttemptProjectionScript,
+		keys,
+		now.UnixMilli(),
+		record.TokenFingerprint,
+	)
+	if err != nil {
+		return err
+	}
+
+	statusCode, err := parseEvalInt64(result)
+	if err != nil {
+		return err
+	}
+	if statusCode < 0 {
+		return xerr.ErrOrderNotFound
+	}
+
+	return nil
+}
+
+func (s *AttemptStore) Release(ctx context.Context, record *AttemptRecord, reason string, now time.Time) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 || record.TicketCategoryID <= 0 {
+		return xerr.ErrInvalidParam
+	}
+	if reason == "" {
+		return xerr.ErrInvalidParam
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	keys := []string{
+		attemptRecordKey(s.prefix, record.OrderNumber),
+		userInflightKey(s.prefix, record.ProgramID, record.UserID),
+		quotaAvailableKey(s.prefix, record.ProgramID, record.TicketCategoryID),
+		userFingerprintIndexKey(s.prefix, record.UserID),
+	}
+	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
+		keys = append(keys, viewerInflightKey(s.prefix, record.ProgramID, viewerID))
+	}
+
+	result, err := s.redis.EvalCtx(
+		ctx,
+		releaseAttemptScript,
+		keys,
+		reason,
+		record.TicketCount,
+		now.UnixMilli(),
+		record.TokenFingerprint,
+	)
+	if err != nil {
+		return err
+	}
+
+	statusCode, err := parseEvalInt64(result)
+	if err != nil {
+		return err
+	}
+	if statusCode < 0 {
+		return xerr.ErrOrderNotFound
+	}
+
+	return nil
+}
+
 func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 	record := &AttemptRecord{
 		State:      fields[attemptFieldState],
