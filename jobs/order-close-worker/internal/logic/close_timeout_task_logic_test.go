@@ -14,9 +14,9 @@ import (
 )
 
 type fakeOrderCloseRPC struct {
-	closeExpiredOrderResp  *orderrpc.BoolResp
-	closeExpiredOrderErr   error
-	closeExpiredOrderCalls int
+	closeExpiredOrderResp    *orderrpc.BoolResp
+	closeExpiredOrderErr     error
+	closeExpiredOrderCalls   int
 	lastCloseExpiredOrderReq *orderrpc.CloseExpiredOrderReq
 }
 
@@ -27,6 +27,10 @@ func (f *fakeOrderCloseRPC) CloseExpiredOrder(ctx context.Context, in *orderrpc.
 		f.closeExpiredOrderResp = &orderrpc.BoolResp{Success: true}
 	}
 	return f.closeExpiredOrderResp, f.closeExpiredOrderErr
+}
+
+func (f *fakeOrderCloseRPC) VerifyAttemptDue(ctx context.Context, in *orderrpc.VerifyAttemptDueReq) (*orderrpc.BoolResp, error) {
+	return &orderrpc.BoolResp{Success: true}, nil
 }
 
 func TestCloseTimeoutTaskLogicHandleCallsOrderRPC(t *testing.T) {

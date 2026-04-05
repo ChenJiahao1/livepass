@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestCreateOrderReturnsOrderNumberFromPurchaseToken(t *testing.T) {
+func TestCreateOrderReturnsInternalWithoutRushDependencies(t *testing.T) {
 	codec := rush.MustNewPurchaseTokenCodec("test-secret", 2*time.Minute)
 	token, err := codec.Issue(rush.PurchaseTokenClaims{
 		OrderNumber:      987654321001,
@@ -33,11 +33,11 @@ func TestCreateOrderReturnsOrderNumberFromPurchaseToken(t *testing.T) {
 		UserId:        3001,
 		PurchaseToken: token,
 	})
-	if err != nil {
-		t.Fatalf("CreateOrder returned error: %v", err)
+	if resp != nil {
+		t.Fatalf("expected nil response when rush dependencies are missing, got %+v", resp)
 	}
-	if resp.GetOrderNumber() != 987654321001 {
-		t.Fatalf("expected order number 987654321001, got %d", resp.GetOrderNumber())
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected internal, got %v", err)
 	}
 }
 
@@ -92,13 +92,13 @@ func TestCreateOrderRejectsExpiredPurchaseToken(t *testing.T) {
 	}
 }
 
-func TestPollOrderProgressReturnsUnimplemented(t *testing.T) {
+func TestPollOrderProgressReturnsInternalWithoutAttemptStore(t *testing.T) {
 	_, err := NewPollOrderProgressLogic(context.Background(), nil).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      3001,
 		OrderNumber: 9001,
 	})
-	if status.Code(err) != codes.Unimplemented {
-		t.Fatalf("expected unimplemented, got %v", err)
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected internal, got %v", err)
 	}
 }
 
