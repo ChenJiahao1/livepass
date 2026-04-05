@@ -102,22 +102,17 @@ func TestPollOrderProgressReturnsUnimplemented(t *testing.T) {
 	}
 }
 
-func TestVerifyAttemptDueReturnsUnimplemented(t *testing.T) {
-	_, err := NewVerifyAttemptDueLogic(context.Background(), nil).VerifyAttemptDue(&pb.VerifyAttemptDueReq{
-		OrderNumber: 9001,
-		DueAtUnix:   1,
-	})
-	if status.Code(err) != codes.Unimplemented {
-		t.Fatalf("expected unimplemented, got %v", err)
+func TestVerifyAttemptDueReturnsInternalWithoutDependencies(t *testing.T) {
+	_, err := NewVerifyAttemptDueLogic(context.Background(), nil).VerifyAttemptDue(&pb.VerifyAttemptDueReq{OrderNumber: 9001})
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected internal, got %v", err)
 	}
 }
 
-func TestReconcileRushAttemptsReturnsUnimplemented(t *testing.T) {
-	_, err := NewReconcileRushAttemptsLogic(context.Background(), nil).ReconcileRushAttempts(&pb.ReconcileRushAttemptsReq{
-		Limit: 10,
-	})
-	if status.Code(err) != codes.Unimplemented {
-		t.Fatalf("expected unimplemented, got %v", err)
+func TestReconcileRushAttemptsReturnsInternalWithoutDependencies(t *testing.T) {
+	_, err := NewReconcileRushAttemptsLogic(context.Background(), nil).ReconcileRushAttempts(&pb.ReconcileRushAttemptsReq{Limit: 10})
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected internal, got %v", err)
 	}
 }
 

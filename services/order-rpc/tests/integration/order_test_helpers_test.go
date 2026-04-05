@@ -312,6 +312,28 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	return svcCtx, programRPC, userRPC, payRPC
 }
 
+func rebindOrderTestAttemptStore(t *testing.T, svcCtx *svc.ServiceContext) *rush.AttemptStore {
+	t.Helper()
+
+	if svcCtx == nil || svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	prefix := fmt.Sprintf(
+		"damai-go:test:order:rush:%s:%d",
+		strings.ReplaceAll(strings.ToLower(t.Name()), "/", "-"),
+		time.Now().UnixNano(),
+	)
+	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
+	svcCtx.AttemptStore = store
+
+	return store
+}
+
 func (f *fakeAsyncCloseClient) EnqueueCloseTimeout(_ context.Context, orderNumber int64, expireAt time.Time) error {
 	f.enqueueCalls++
 	f.lastOrderNumber = orderNumber

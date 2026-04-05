@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"damai-go/pkg/xerr"
@@ -273,6 +274,42 @@ func (s *AttemptStore) MarkQueued(ctx context.Context, orderNumber int64, now ti
 	return nil
 }
 
+func (s *AttemptStore) MarkVerifying(ctx context.Context, orderNumber int64, now, nextProbeAt time.Time) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if orderNumber <= 0 {
+		return xerr.ErrInvalidParam
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+	if nextProbeAt.IsZero() {
+		nextProbeAt = now
+	}
+
+	result, err := s.redis.EvalCtx(
+		ctx,
+		markAttemptVerifyingScript,
+		[]string{attemptRecordKey(s.prefix, orderNumber)},
+		now.UnixMilli(),
+		nextProbeAt.UnixMilli(),
+	)
+	if err != nil {
+		return err
+	}
+
+	statusCode, err := parseEvalInt64(result)
+	if err != nil {
+		return err
+	}
+	if statusCode < 0 {
+		return xerr.ErrOrderNotFound
+	}
+
+	return nil
+}
+
 func (s *AttemptStore) ClaimProcessing(ctx context.Context, orderNumber int64, now time.Time) (claimed bool, epoch int64, err error) {
 	if s == nil || s.redis == nil {
 		return false, 0, xerr.ErrInternal
@@ -405,6 +442,103 @@ func (s *AttemptStore) Release(ctx context.Context, record *AttemptRecord, reaso
 	}
 
 	return nil
+}
+
+func (s *AttemptStore) ReleaseClosedOrderProjection(ctx context.Context, record *AttemptRecord, now time.Time) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 || record.TicketCategoryID <= 0 {
+		return xerr.ErrInvalidParam
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	keys := []string{
+		attemptRecordKey(s.prefix, record.OrderNumber),
+		userInflightKey(s.prefix, record.ProgramID, record.UserID),
+		quotaAvailableKey(s.prefix, record.ProgramID, record.TicketCategoryID),
+		userFingerprintIndexKey(s.prefix, record.UserID),
+	}
+	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
+		keys = append(keys, viewerInflightKey(s.prefix, record.ProgramID, viewerID))
+	}
+
+	result, err := s.redis.EvalCtx(
+		ctx,
+		releaseClosedOrderProjectionScript,
+		keys,
+		now.UnixMilli(),
+		record.TicketCount,
+		record.TokenFingerprint,
+	)
+	if err != nil {
+		return err
+	}
+
+	statusCode, err := parseEvalInt64(result)
+	if err != nil {
+		return err
+	}
+	if statusCode < 0 {
+		return xerr.ErrOrderNotFound
+	}
+
+	return nil
+}
+
+func (s *AttemptStore) ScanOrderNumbers(ctx context.Context, limit int64) ([]int64, error) {
+	if s == nil || s.redis == nil {
+		return nil, xerr.ErrInternal
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+
+	pattern := fmt.Sprintf("%s:attempt:*", s.prefix)
+	var (
+		cursor uint64
+		keys   []string
+	)
+	for {
+		batch, nextCursor, err := s.redis.ScanCtx(ctx, cursor, pattern, limit)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, batch...)
+		if int64(len(keys)) >= limit || nextCursor == 0 {
+			break
+		}
+		cursor = nextCursor
+	}
+	if int64(len(keys)) > limit {
+		keys = keys[:limit]
+	}
+
+	orderNumbers := make([]int64, 0, len(keys))
+	seen := make(map[int64]struct{}, len(keys))
+	for _, key := range keys {
+		idx := strings.LastIndexByte(key, ':')
+		if idx < 0 || idx == len(key)-1 {
+			continue
+		}
+		orderNumber, err := strconv.ParseInt(key[idx+1:], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := seen[orderNumber]; ok {
+			continue
+		}
+		seen[orderNumber] = struct{}{}
+		orderNumbers = append(orderNumbers, orderNumber)
+	}
+
+	sort.Slice(orderNumbers, func(i, j int) bool {
+		return orderNumbers[i] < orderNumbers[j]
+	})
+
+	return orderNumbers, nil
 }
 
 func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {

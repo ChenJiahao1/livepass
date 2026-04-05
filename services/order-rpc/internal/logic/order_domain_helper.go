@@ -17,6 +17,7 @@ import (
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
+	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -219,6 +220,8 @@ func mapOrderError(err error) error {
 		return err
 	case errors.Is(err, xerr.ErrInvalidParam):
 		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, xerr.ErrInternal):
+		return status.Error(codes.Internal, err.Error())
 	case errors.Is(err, xerr.ErrOrderNotFound), errors.Is(err, xerr.ErrPayBillNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, xerr.ErrOrderSubmitTooFrequent), errors.Is(err, xerr.ErrOrderOperateTooFrequent):
@@ -253,6 +256,9 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		return false, xerr.ErrOrderNotFound
 	}
 	if order.OrderStatus == orderStatusCancelled {
+		if err := syncClosedRushAttemptProjection(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
+			logx.WithContext(ctx).Errorf("sync closed rush attempt projection failed, orderNumber=%d err=%v", order.OrderNumber, err)
+		}
 		return false, nil
 	}
 	if order.OrderStatus != orderStatusUnpaid {
@@ -269,6 +275,11 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 	changed, err := finalizeOrderCancel(ctx, svcCtx, order.OrderNumber)
 	if err != nil {
 		return false, err
+	}
+	if changed {
+		if err := syncClosedRushAttemptProjection(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
+			logx.WithContext(ctx).Errorf("sync closed rush attempt projection failed, orderNumber=%d err=%v", order.OrderNumber, err)
+		}
 	}
 
 	return changed, nil
