@@ -19,6 +19,7 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 	"damai-go/services/order-rpc/repository"
@@ -219,6 +220,15 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		Order: config.OrderConfig{
 			CloseAfter: 15 * time.Minute,
 		},
+		RushOrder: config.RushOrderConfig{
+			Enabled:       true,
+			TokenSecret:   "order-rpc-test-secret",
+			TokenTTL:      2 * time.Minute,
+			CommitCutoff:  10 * time.Second,
+			UserDeadline:  15 * time.Second,
+			InFlightTTL:   30 * time.Second,
+			FinalStateTTL: 30 * time.Minute,
+		},
 		RepeatGuard: config.RepeatGuardConfig{
 			Prefix:             "/damai-go/tests/repeat-guard/order-create/",
 			SessionTTL:         10,
@@ -265,6 +275,7 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		LedgerTTL:       time.Hour,
 		LoadingCooldown: 200 * time.Millisecond,
 	})
+	purchaseTokenCodec := rush.MustNewPurchaseTokenCodec(cfg.RushOrder.TokenSecret, cfg.RushOrder.TokenTTL)
 	svcCtx := &svc.ServiceContext{
 		Config:  cfg,
 		SqlConn: conn,
@@ -277,6 +288,7 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,
+		PurchaseTokenCodec:         purchaseTokenCodec,
 		ProgramRpc:                 programRPC,
 		UserRpc:                    userRPC,
 		PayRpc:                     payRPC,

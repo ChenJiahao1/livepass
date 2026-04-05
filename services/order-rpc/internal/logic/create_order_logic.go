@@ -29,14 +29,17 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	if err := validateCreateOrderReq(in); err != nil {
 		return nil, err
 	}
+	if l.svcCtx == nil || l.svcCtx.PurchaseTokenCodec == nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
 
-	tokenUserID, orderNumber, err := decodeRushContractPurchaseToken(in.GetPurchaseToken())
+	claims, err := l.svcCtx.PurchaseTokenCodec.Verify(in.GetPurchaseToken())
 	if err != nil {
-		return nil, err
+		return nil, mapOrderError(xerr.ErrInvalidParam)
 	}
-	if tokenUserID != in.GetUserId() {
-		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	if claims.UserID != in.GetUserId() {
+		return nil, mapOrderError(xerr.ErrInvalidParam)
 	}
 
-	return &pb.CreateOrderResp{OrderNumber: orderNumber}, nil
+	return &pb.CreateOrderResp{OrderNumber: claims.OrderNumber}, nil
 }

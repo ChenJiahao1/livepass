@@ -10,6 +10,7 @@ import (
 	"damai-go/services/order-rpc/internal/limitcache"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/repository"
 	"damai-go/services/order-rpc/sharding"
 	payrpc "damai-go/services/pay-rpc/payrpc"
@@ -35,6 +36,7 @@ type ServiceContext struct {
 	OrderRouteMap              *sharding.RouteMap
 	OrderRouter                sharding.Router
 	OrderRepository            repository.OrderRepository
+	PurchaseTokenCodec         *rush.PurchaseTokenCodec
 	RepeatGuard                repeatguard.Guard
 	ProgramRpc                 programrpc.ProgramRpc
 	PayRpc                     payrpc.PayRpc
@@ -101,6 +103,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		panic(err)
 	}
+	var purchaseTokenCodec *rush.PurchaseTokenCodec
+	if c.RushOrder.Enabled && c.RushOrder.TokenSecret != "" {
+		purchaseTokenCodec, err = rush.NewPurchaseTokenCodec(c.RushOrder.TokenSecret, c.RushOrder.TokenTTL)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	return &ServiceContext{
 		Config:                     c,
@@ -111,6 +120,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,
+		PurchaseTokenCodec:         purchaseTokenCodec,
 		RepeatGuard:                repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
 		ProgramRpc:                 newProgramRPC(c.ProgramRpc),
 		PayRpc:                     newPayRPC(c.PayRpc),

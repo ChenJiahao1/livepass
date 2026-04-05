@@ -5,89 +5,86 @@ import (
 	"testing"
 	"time"
 
+	"damai-go/services/order-rpc/internal/rush"
+	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func TestRushContractPurchaseTokenCodecRoundTrip(t *testing.T) {
-	token, err := encodeRushContractPurchaseToken(3001, 987654321001)
-	if err != nil {
-		t.Fatalf("encodeRushContractPurchaseToken returned error: %v", err)
-	}
-	if token == "" {
-		t.Fatalf("expected non-empty token")
-	}
-
-	decodedUserID, decodedOrderNumber, err := decodeRushContractPurchaseToken(token)
-	if err != nil {
-		t.Fatalf("decodeRushContractPurchaseToken returned error: %v", err)
-	}
-	if decodedUserID != 3001 || decodedOrderNumber != 987654321001 {
-		t.Fatalf("unexpected decoded values: userID=%d orderNumber=%d", decodedUserID, decodedOrderNumber)
-	}
-}
-
-func TestCreatePurchaseTokenAndCreateOrderAreConsistentAndIdempotent(t *testing.T) {
-	originalGenerator := defaultOrderNumberGenerator
-	originalNow := rushContractNow
-	defer func() {
-		defaultOrderNumberGenerator = originalGenerator
-		rushContractNow = originalNow
-	}()
-
-	base := time.Date(2026, time.March, 25, 10, 30, 15, 0, time.UTC)
-	gen := newOrderNumberGenerator(func() int64 { return 0 })
-	defaultOrderNumberGenerator = gen
-	rushContractNow = func() time.Time { return base }
-
-	createPurchaseTokenLogic := NewCreatePurchaseTokenLogic(context.Background(), nil)
-	createOrderLogic := NewCreateOrderLogic(context.Background(), nil)
-
-	tokenResp, err := createPurchaseTokenLogic.CreatePurchaseToken(&pb.CreatePurchaseTokenReq{
-		UserId:           3001,
-		ProgramId:        10001,
-		TicketCategoryId: 40001,
-		TicketUserIds:    []int64{701},
+func TestCreateOrderReturnsOrderNumberFromPurchaseToken(t *testing.T) {
+	codec := rush.MustNewPurchaseTokenCodec("test-secret", 2*time.Minute)
+	token, err := codec.Issue(rush.PurchaseTokenClaims{
+		OrderNumber:      987654321001,
+		UserID:           3001,
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		TicketUserIDs:    []int64{701},
+		TicketCount:      1,
 	})
 	if err != nil {
-		t.Fatalf("CreatePurchaseToken returned error: %v", err)
-	}
-	if tokenResp.GetPurchaseToken() == "" {
-		t.Fatalf("expected non-empty purchase token")
+		t.Fatalf("Issue returned error: %v", err)
 	}
 
-	firstResp, err := createOrderLogic.CreateOrder(&pb.CreateOrderReq{
+	resp, err := NewCreateOrderLogic(context.Background(), &svc.ServiceContext{
+		PurchaseTokenCodec: codec,
+	}).CreateOrder(&pb.CreateOrderReq{
 		UserId:        3001,
-		PurchaseToken: tokenResp.GetPurchaseToken(),
+		PurchaseToken: token,
 	})
 	if err != nil {
-		t.Fatalf("CreateOrder first call returned error: %v", err)
+		t.Fatalf("CreateOrder returned error: %v", err)
 	}
-	secondResp, err := createOrderLogic.CreateOrder(&pb.CreateOrderReq{
-		UserId:        3001,
-		PurchaseToken: tokenResp.GetPurchaseToken(),
-	})
-	if err != nil {
-		t.Fatalf("CreateOrder second call returned error: %v", err)
-	}
-	if firstResp.GetOrderNumber() <= 0 {
-		t.Fatalf("expected positive order number, got %d", firstResp.GetOrderNumber())
-	}
-	if firstResp.GetOrderNumber() != secondResp.GetOrderNumber() {
-		t.Fatalf("expected idempotent order number, got %d and %d", firstResp.GetOrderNumber(), secondResp.GetOrderNumber())
+	if resp.GetOrderNumber() != 987654321001 {
+		t.Fatalf("expected order number 987654321001, got %d", resp.GetOrderNumber())
 	}
 }
 
 func TestCreateOrderRejectsPurchaseTokenForDifferentUser(t *testing.T) {
-	token, err := encodeRushContractPurchaseToken(3001, 9001)
+	codec := rush.MustNewPurchaseTokenCodec("test-secret", 2*time.Minute)
+	token, err := codec.Issue(rush.PurchaseTokenClaims{
+		OrderNumber:      9001,
+		UserID:           3001,
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		TicketUserIDs:    []int64{701},
+		TicketCount:      1,
+	})
 	if err != nil {
-		t.Fatalf("encodeRushContractPurchaseToken returned error: %v", err)
+		t.Fatalf("Issue returned error: %v", err)
 	}
 
-	_, err = NewCreateOrderLogic(context.Background(), nil).CreateOrder(&pb.CreateOrderReq{
+	_, err = NewCreateOrderLogic(context.Background(), &svc.ServiceContext{
+		PurchaseTokenCodec: codec,
+	}).CreateOrder(&pb.CreateOrderReq{
 		UserId:        3002,
+		PurchaseToken: token,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", err)
+	}
+}
+
+func TestCreateOrderRejectsExpiredPurchaseToken(t *testing.T) {
+	codec := rush.MustNewPurchaseTokenCodec("test-secret", 2*time.Minute)
+	token, err := codec.Issue(rush.PurchaseTokenClaims{
+		OrderNumber:      9001,
+		UserID:           3001,
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		TicketUserIDs:    []int64{701},
+		TicketCount:      1,
+		ExpireAt:         time.Now().Add(-time.Minute).Unix(),
+	})
+	if err != nil {
+		t.Fatalf("Issue returned error: %v", err)
+	}
+
+	_, err = NewCreateOrderLogic(context.Background(), &svc.ServiceContext{
+		PurchaseTokenCodec: codec,
+	}).CreateOrder(&pb.CreateOrderReq{
+		UserId:        3001,
 		PurchaseToken: token,
 	})
 	if status.Code(err) != codes.InvalidArgument {

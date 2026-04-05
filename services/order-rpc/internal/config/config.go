@@ -15,6 +15,16 @@ type OrderConfig struct {
 	CloseAfter time.Duration `json:",default=15m"`
 }
 
+type RushOrderConfig struct {
+	Enabled       bool          `json:",default=false"`
+	TokenSecret   string        `json:",optional"`
+	TokenTTL      time.Duration `json:",default=2m"`
+	CommitCutoff  time.Duration `json:",default=10s"`
+	UserDeadline  time.Duration `json:",default=15s"`
+	InFlightTTL   time.Duration `json:",default=30s"`
+	FinalStateTTL time.Duration `json:",default=30m"`
+}
+
 type RepeatGuardConfig struct {
 	Prefix             string        `json:",default=/damai-go/repeat-guard/order-create/"`
 	SessionTTL         int           `json:",default=10"`
@@ -60,9 +70,9 @@ type RouteMapConfig struct {
 }
 
 type ShardingConfig struct {
-	Mode        string                   `json:",default=shard_only"`
-	Shards      map[string]xmysql.Config `json:",optional"`
-	RouteMap    RouteMapConfig           `json:"RouteMap,optional"`
+	Mode     string                   `json:",default=shard_only"`
+	Shards   map[string]xmysql.Config `json:",optional"`
+	RouteMap RouteMapConfig           `json:"RouteMap,optional"`
 }
 
 func (c ShardingConfig) Normalize() ShardingConfig {
@@ -87,10 +97,11 @@ type Config struct {
 	PayRpc      zrpc.RpcClientConf
 	UserRpc     zrpc.RpcClientConf
 	Order       OrderConfig
+	RushOrder   RushOrderConfig `json:"RushOrder,optional"`
 	RepeatGuard RepeatGuardConfig
 	Kafka       KafkaConfig
 	AsyncClose  AsyncCloseConfig `json:"AsyncClose,optional"`
-	Sharding    ShardingConfig `json:"Sharding,optional"`
+	Sharding    ShardingConfig   `json:"Sharding,optional"`
 }
 
 func Load(configFile string) (Config, error) {
