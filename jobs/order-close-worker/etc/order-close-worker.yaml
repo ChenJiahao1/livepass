@@ -1,6 +1,6 @@
 Asynq:
   Queue: order_close
-  Concurrency: 4
+  Concurrency: 16
   ShutdownTimeout: 10s
   Redis:
     Host: 127.0.0.1:6379

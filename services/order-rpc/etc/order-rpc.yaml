@@ -54,6 +54,14 @@ UserRpc:
     Key: user.rpc
 Order:
   CloseAfter: 15m
+RushOrder:
+  Enabled: true
+  TokenSecret: rush-order-local-secret
+  TokenTTL: 2m
+  CommitCutoff: 10s
+  UserDeadline: 15s
+  InFlightTTL: 30s
+  FinalStateTTL: 30m
 AsyncClose:
   Enable: true
   Queue: order_close
