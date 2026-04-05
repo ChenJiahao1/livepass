@@ -65,3 +65,25 @@ func (c *asynqAsyncCloseClient) EnqueueCloseTimeout(ctx context.Context, orderNu
 	_, err = c.enqueuer.EnqueueContext(ctx, asynq.NewTask(closequeue.TaskTypeCloseTimeout, body), opts...)
 	return err
 }
+
+func (c *asynqAsyncCloseClient) EnqueueVerifyAttemptDue(ctx context.Context, orderNumber, programID int64, dueAt time.Time) error {
+	body, err := closequeue.MarshalVerifyAttemptPayload(orderNumber, programID, dueAt)
+	if err != nil {
+		return err
+	}
+
+	opts := []asynq.Option{
+		asynq.Queue(c.queue),
+		asynq.ProcessAt(dueAt),
+		asynq.TaskID(closequeue.VerifyAttemptTaskID(orderNumber)),
+	}
+	if c.maxRetry > 0 {
+		opts = append(opts, asynq.MaxRetry(c.maxRetry))
+	}
+	if c.uniqueTTL > 0 {
+		opts = append(opts, asynq.Unique(c.uniqueTTL))
+	}
+
+	_, err = c.enqueuer.EnqueueContext(ctx, asynq.NewTask(closequeue.TaskTypeVerifyAttemptDue, body), opts...)
+	return err
+}

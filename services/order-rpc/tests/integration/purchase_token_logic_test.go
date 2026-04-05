@@ -16,18 +16,20 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
-	programRPC.getProgramPreorderResp = buildTestProgramPreorder(10001, 40001, 2, 4, 299)
+	userID, programID, ticketCategoryID, viewerIDs, _ := nextRushTestIDs()
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(programID, ticketCategoryID, 2, 4, 299)
 	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
-		3001,
-		&userrpc.TicketUserInfo{Id: 701, UserId: 3999, RelName: "非本人", IdType: 1, IdNumber: "110101199001011111"},
+		userID,
+		&userrpc.TicketUserInfo{Id: viewerIDs[0], UserId: userID + 1, RelName: "非本人", IdType: 1, IdNumber: "110101199001011111"},
 	)
 
 	createPurchaseTokenLogic := logicpkg.NewCreatePurchaseTokenLogic(context.Background(), svcCtx)
 	_, err := createPurchaseTokenLogic.CreatePurchaseToken(&pb.CreatePurchaseTokenReq{
-		UserId:           3001,
-		ProgramId:        10001,
-		TicketCategoryId: 40001,
-		TicketUserIds:    []int64{701},
+		UserId:           userID,
+		ProgramId:        programID,
+		TicketCategoryId: ticketCategoryID,
+		TicketUserIds:    []int64{viewerIDs[0]},
 		DistributionMode: "express",
 		TakeTicketMode:   "paper",
 	})
@@ -36,14 +38,14 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 	}
 
 	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
-		3001,
-		&userrpc.TicketUserInfo{Id: 701, UserId: 3001, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+		userID,
+		&userrpc.TicketUserInfo{Id: viewerIDs[0], UserId: userID, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 	)
 	tokenResp, err := createPurchaseTokenLogic.CreatePurchaseToken(&pb.CreatePurchaseTokenReq{
-		UserId:           3001,
-		ProgramId:        10001,
-		TicketCategoryId: 40001,
-		TicketUserIds:    []int64{701},
+		UserId:           userID,
+		ProgramId:        programID,
+		TicketCategoryId: ticketCategoryID,
+		TicketUserIds:    []int64{viewerIDs[0]},
 		DistributionMode: "express",
 		TakeTicketMode:   "paper",
 	})
@@ -57,11 +59,14 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Verify() error = %v", err)
 	}
-	if claims.UserID != 3001 || claims.ProgramID != 10001 || claims.TicketCategoryID != 40001 {
+	if claims.UserID != userID || claims.ProgramID != programID || claims.TicketCategoryID != ticketCategoryID {
 		t.Fatalf("unexpected claims: %+v", claims)
 	}
 	if claims.DistributionMode != "express" || claims.TakeTicketMode != "paper" {
 		t.Fatalf("unexpected transport claims: %+v", claims)
+	}
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(context.Background(), programID, ticketCategoryID, 4); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
 	}
 
 	programRPC.getProgramPreorderErr = status.Error(codes.Unavailable, "program rpc unavailable")
@@ -71,7 +76,7 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 
 	createOrderLogic := logicpkg.NewCreateOrderLogic(context.Background(), svcCtx)
 	orderResp, err := createOrderLogic.CreateOrder(&pb.CreateOrderReq{
-		UserId:        3001,
+		UserId:        userID,
 		PurchaseToken: tokenResp.GetPurchaseToken(),
 	})
 	if err != nil {

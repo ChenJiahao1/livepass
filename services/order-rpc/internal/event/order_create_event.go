@@ -1,6 +1,9 @@
 package event
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"strconv"
+)
 
 const OrderCreateEventVersion = "v1"
 
@@ -14,8 +17,11 @@ type OrderCreateEvent struct {
 	ProgramID              int64                  `json:"programId"`
 	TicketCategoryID       int64                  `json:"ticketCategoryId"`
 	TicketUserIDs          []int64                `json:"ticketUserIds"`
+	TicketCount            int64                  `json:"ticketCount"`
 	DistributionMode       string                 `json:"distributionMode"`
 	TakeTicketMode         string                 `json:"takeTicketMode"`
+	CommitCutoffAt         string                 `json:"commitCutoffAt"`
+	UserDeadlineAt         string                 `json:"userDeadlineAt"`
 	FreezeToken            string                 `json:"freezeToken"`
 	FreezeExpireTime       string                 `json:"freezeExpireTime"`
 	ProgramSnapshot        ProgramSnapshot        `json:"programSnapshot"`
@@ -53,6 +59,14 @@ type SeatSnapshot struct {
 
 func (e *OrderCreateEvent) Marshal() ([]byte, error) {
 	return json.Marshal(e)
+}
+
+func (e *OrderCreateEvent) PartitionKey() string {
+	if e == nil {
+		return ""
+	}
+
+	return strconv.FormatInt(e.OrderNumber, 10)
 }
 
 func UnmarshalOrderCreateEvent(body []byte) (*OrderCreateEvent, error) {

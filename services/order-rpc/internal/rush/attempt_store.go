@@ -1,0 +1,457 @@
+package rush
+
+import (
+	"context"
+	"fmt"
+	"sort"
+	"strconv"
+	"time"
+
+	"damai-go/pkg/xerr"
+	"damai-go/pkg/xredis"
+)
+
+const (
+	defaultAttemptInFlightTTL = 30 * time.Second
+	defaultAttemptFinalTTL    = 30 * time.Minute
+)
+
+type AttemptStoreConfig struct {
+	Prefix        string
+	InFlightTTL   time.Duration
+	FinalStateTTL time.Duration
+}
+
+type AdmitAttemptRequest struct {
+	OrderNumber      int64
+	UserID           int64
+	ProgramID        int64
+	TicketCategoryID int64
+	ViewerIDs        []int64
+	TicketCount      int64
+	TokenFingerprint string
+	CommitCutoffAt   time.Time
+	UserDeadlineAt   time.Time
+	Now              time.Time
+}
+
+type AdmitAttemptResult struct {
+	OrderNumber int64
+	Decision    int64
+	RejectCode  int64
+}
+
+type AttemptStore struct {
+	redis                *xredis.Client
+	prefix               string
+	inFlightTTLSeconds   int
+	finalStateTTLSeconds int
+	attemptTTLSeconds    int
+}
+
+func NewAttemptStore(redis *xredis.Client, cfg AttemptStoreConfig) *AttemptStore {
+	if redis == nil {
+		return nil
+	}
+
+	prefix := cfg.Prefix
+	if prefix == "" {
+		prefix = defaultAttemptPrefix
+	}
+
+	inFlightTTLSeconds := durationToSeconds(cfg.InFlightTTL, defaultAttemptInFlightTTL)
+	finalStateTTLSeconds := durationToSeconds(cfg.FinalStateTTL, defaultAttemptFinalTTL)
+	attemptTTLSeconds := inFlightTTLSeconds
+	if finalStateTTLSeconds > attemptTTLSeconds {
+		attemptTTLSeconds = finalStateTTLSeconds
+	}
+
+	return &AttemptStore{
+		redis:                redis,
+		prefix:               prefix,
+		inFlightTTLSeconds:   inFlightTTLSeconds,
+		finalStateTTLSeconds: finalStateTTLSeconds,
+		attemptTTLSeconds:    attemptTTLSeconds,
+	}
+}
+
+func (s *AttemptStore) SetQuotaAvailable(ctx context.Context, programID, ticketCategoryID, available int64) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if programID <= 0 || ticketCategoryID <= 0 || available < 0 {
+		return xerr.ErrInvalidParam
+	}
+
+	return s.redis.SetCtx(ctx, quotaAvailableKey(s.prefix, programID, ticketCategoryID), strconv.FormatInt(available, 10))
+}
+
+func (s *AttemptStore) GetQuotaAvailable(ctx context.Context, programID, ticketCategoryID int64) (available int64, ok bool, err error) {
+	if s == nil || s.redis == nil {
+		return 0, false, xerr.ErrInternal
+	}
+	if programID <= 0 || ticketCategoryID <= 0 {
+		return 0, false, xerr.ErrInvalidParam
+	}
+
+	raw, err := s.redis.GetCtx(ctx, quotaAvailableKey(s.prefix, programID, ticketCategoryID))
+	if err != nil {
+		return 0, false, err
+	}
+	if raw == "" {
+		return 0, false, nil
+	}
+
+	value, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, false, err
+	}
+
+	return value, true, nil
+}
+
+func (s *AttemptStore) Admit(ctx context.Context, req AdmitAttemptRequest) (*AdmitAttemptResult, error) {
+	if s == nil || s.redis == nil {
+		return nil, xerr.ErrInternal
+	}
+	if req.OrderNumber <= 0 || req.UserID <= 0 || req.ProgramID <= 0 || req.TicketCategoryID <= 0 {
+		return nil, xerr.ErrInvalidParam
+	}
+
+	viewerIDs := normalizedInt64s(req.ViewerIDs)
+	if len(viewerIDs) == 0 {
+		return nil, xerr.ErrInvalidParam
+	}
+	if req.TicketCount <= 0 {
+		req.TicketCount = int64(len(viewerIDs))
+	}
+	if req.TicketCount <= 0 || req.TicketCount != int64(len(viewerIDs)) {
+		return nil, xerr.ErrInvalidParam
+	}
+
+	tokenFingerprint := req.TokenFingerprint
+	if tokenFingerprint == "" {
+		tokenFingerprint = BuildTokenFingerprint(
+			req.UserID,
+			req.ProgramID,
+			req.TicketCategoryID,
+			viewerIDs,
+			"",
+			"",
+		)
+	}
+
+	now := req.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+	commitCutoffAt := req.CommitCutoffAt
+	if commitCutoffAt.IsZero() {
+		commitCutoffAt = now
+	}
+	userDeadlineAt := req.UserDeadlineAt
+	if userDeadlineAt.IsZero() {
+		userDeadlineAt = now.Add(time.Duration(s.inFlightTTLSeconds) * time.Second)
+	}
+
+	keys := []string{
+		attemptRecordKey(s.prefix, req.OrderNumber),
+		userInflightKey(s.prefix, req.ProgramID, req.UserID),
+		quotaAvailableKey(s.prefix, req.ProgramID, req.TicketCategoryID),
+		orderProgressIndexKey(s.prefix, req.ProgramID),
+		userFingerprintIndexKey(s.prefix, req.UserID),
+	}
+	for _, viewerID := range viewerIDs {
+		keys = append(keys, viewerInflightKey(s.prefix, req.ProgramID, viewerID))
+	}
+
+	result, err := s.redis.EvalCtx(
+		ctx,
+		admitAttemptScript,
+		keys,
+		req.OrderNumber,
+		req.UserID,
+		req.ProgramID,
+		req.TicketCategoryID,
+		req.TicketCount,
+		tokenFingerprint,
+		commitCutoffAt.UnixMilli(),
+		userDeadlineAt.UnixMilli(),
+		now.UnixMilli(),
+		s.inFlightTTLSeconds,
+		s.attemptTTLSeconds,
+		formatInt64CSV(viewerIDs),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := parseEvalArray(result)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) < 3 {
+		return nil, fmt.Errorf("unexpected admit result length: %d", len(values))
+	}
+
+	decision, err := parseEvalInt64(values[0])
+	if err != nil {
+		return nil, err
+	}
+	orderNumber, err := parseEvalInt64AllowBlank(values[1])
+	if err != nil {
+		return nil, err
+	}
+	rejectCode, err := parseEvalInt64(values[2])
+	if err != nil {
+		return nil, err
+	}
+
+	return &AdmitAttemptResult{
+		OrderNumber: orderNumber,
+		Decision:    decision,
+		RejectCode:  rejectCode,
+	}, nil
+}
+
+func (s *AttemptStore) Get(ctx context.Context, orderNumber int64) (*AttemptRecord, error) {
+	if s == nil || s.redis == nil {
+		return nil, xerr.ErrInternal
+	}
+	if orderNumber <= 0 {
+		return nil, xerr.ErrInvalidParam
+	}
+
+	fields, err := s.redis.HgetallCtx(ctx, attemptRecordKey(s.prefix, orderNumber))
+	if err != nil {
+		return nil, err
+	}
+	if len(fields) == 0 {
+		return nil, xerr.ErrOrderNotFound
+	}
+
+	record, err := mapAttemptRecord(fields)
+	if err != nil {
+		return nil, err
+	}
+	if record.OrderNumber == 0 {
+		record.OrderNumber = orderNumber
+	}
+
+	return record, nil
+}
+
+func (s *AttemptStore) MarkQueued(ctx context.Context, orderNumber int64, now time.Time) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if orderNumber <= 0 {
+		return xerr.ErrInvalidParam
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	result, err := s.redis.EvalCtx(
+		ctx,
+		markAttemptQueuedScript,
+		[]string{attemptRecordKey(s.prefix, orderNumber)},
+		now.UnixMilli(),
+	)
+	if err != nil {
+		return err
+	}
+
+	statusCode, err := parseEvalInt64(result)
+	if err != nil {
+		return err
+	}
+	if statusCode < 0 {
+		return xerr.ErrOrderNotFound
+	}
+
+	return nil
+}
+
+func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
+	record := &AttemptRecord{
+		State:      fields[attemptFieldState],
+		ReasonCode: fields[attemptFieldReasonCode],
+	}
+
+	var err error
+	record.OrderNumber, err = parseFieldInt64(fields, attemptFieldOrderNumber)
+	if err != nil {
+		return nil, err
+	}
+	record.UserID, err = parseFieldInt64(fields, attemptFieldUserID)
+	if err != nil {
+		return nil, err
+	}
+	record.ProgramID, err = parseFieldInt64(fields, attemptFieldProgramID)
+	if err != nil {
+		return nil, err
+	}
+	record.TicketCategoryID, err = parseFieldInt64(fields, attemptFieldTicketCategoryID)
+	if err != nil {
+		return nil, err
+	}
+	record.TicketCount, err = parseFieldInt64(fields, attemptFieldTicketCount)
+	if err != nil {
+		return nil, err
+	}
+	record.ProcessingEpoch, err = parseFieldInt64(fields, attemptFieldProcessingEpoch)
+	if err != nil {
+		return nil, err
+	}
+	record.DBProbeAttempts, err = parseFieldInt64(fields, attemptFieldDBProbeAttempts)
+	if err != nil {
+		return nil, err
+	}
+	record.TokenFingerprint = fields[attemptFieldTokenFingerprint]
+	record.ViewerIDs, err = parseInt64CSV(fields[attemptFieldViewerIDs])
+	if err != nil {
+		return nil, err
+	}
+	record.CommitCutoffAt, err = parseFieldTime(fields, attemptFieldCommitCutoffAt)
+	if err != nil {
+		return nil, err
+	}
+	record.UserDeadlineAt, err = parseFieldTime(fields, attemptFieldUserDeadlineAt)
+	if err != nil {
+		return nil, err
+	}
+	record.ProcessingStartedAt, err = parseFieldTime(fields, attemptFieldProcessingStartAt)
+	if err != nil {
+		return nil, err
+	}
+	record.VerifyStartedAt, err = parseFieldTime(fields, attemptFieldVerifyStartedAt)
+	if err != nil {
+		return nil, err
+	}
+	record.LastDBProbeAt, err = parseFieldTime(fields, attemptFieldLastDBProbeAt)
+	if err != nil {
+		return nil, err
+	}
+	record.NextDBProbeAt, err = parseFieldTime(fields, attemptFieldNextDBProbeAt)
+	if err != nil {
+		return nil, err
+	}
+	record.CreatedAt, err = parseFieldTime(fields, attemptFieldCreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	record.LastTransitionAt, err = parseFieldTime(fields, attemptFieldTransitionAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return record, nil
+}
+
+func parseFieldInt64(fields map[string]string, key string) (int64, error) {
+	raw, ok := fields[key]
+	if !ok || raw == "" {
+		return 0, nil
+	}
+
+	return strconv.ParseInt(raw, 10, 64)
+}
+
+func parseFieldTime(fields map[string]string, key string) (time.Time, error) {
+	raw, ok := fields[key]
+	if !ok || raw == "" {
+		return time.Time{}, nil
+	}
+
+	ms, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if ms <= 0 {
+		return time.Time{}, nil
+	}
+
+	return time.UnixMilli(ms), nil
+}
+
+func parseEvalInt64(value any) (int64, error) {
+	switch v := value.(type) {
+	case int64:
+		return v, nil
+	case int:
+		return int64(v), nil
+	case float64:
+		return int64(v), nil
+	case string:
+		return strconv.ParseInt(v, 10, 64)
+	case []byte:
+		return strconv.ParseInt(string(v), 10, 64)
+	default:
+		return 0, fmt.Errorf("unsupported eval result type %T", value)
+	}
+}
+
+func parseEvalInt64AllowBlank(value any) (int64, error) {
+	switch v := value.(type) {
+	case string:
+		if v == "" {
+			return 0, nil
+		}
+	case []byte:
+		if len(v) == 0 {
+			return 0, nil
+		}
+	}
+
+	return parseEvalInt64(value)
+}
+
+func parseEvalArray(value any) ([]any, error) {
+	switch v := value.(type) {
+	case []any:
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unexpected eval array type %T", value)
+	}
+}
+
+func durationToSeconds(value, defaultValue time.Duration) int {
+	if value <= 0 {
+		value = defaultValue
+	}
+
+	seconds := int(value / time.Second)
+	if value%time.Second != 0 {
+		seconds++
+	}
+	if seconds <= 0 {
+		return 1
+	}
+
+	return seconds
+}
+
+func normalizedInt64s(values []int64) []int64 {
+	if len(values) == 0 {
+		return nil
+	}
+
+	unique := make(map[int64]struct{}, len(values))
+	result := make([]int64, 0, len(values))
+	for _, value := range values {
+		if value <= 0 {
+			continue
+		}
+		if _, ok := unique[value]; ok {
+			continue
+		}
+		unique[value] = struct{}{}
+		result = append(result, value)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i] < result[j]
+	})
+
+	return result
+}

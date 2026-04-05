@@ -25,6 +25,7 @@ import (
 
 type AsyncCloseClient interface {
 	EnqueueCloseTimeout(ctx context.Context, orderNumber int64, expireAt time.Time) error
+	EnqueueVerifyAttemptDue(ctx context.Context, orderNumber, programID int64, dueAt time.Time) error
 }
 
 type ServiceContext struct {
@@ -32,6 +33,7 @@ type ServiceContext struct {
 	SqlConn                    sqlx.SqlConn
 	ShardSqlConns              map[string]sqlx.SqlConn
 	Redis                      *xredis.Client
+	AttemptStore               *rush.AttemptStore
 	PurchaseLimitStore         *limitcache.PurchaseLimitStore
 	OrderRouteMap              *sharding.RouteMap
 	OrderRouter                sharding.Router
@@ -69,6 +71,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var rds *xredis.Client
 	if c.StoreRedis.Host != "" {
 		rds = xredis.MustNew(c.StoreRedis)
+	}
+	var attemptStore *rush.AttemptStore
+	if c.RushOrder.Enabled && rds != nil {
+		attemptStore = rush.NewAttemptStore(rds, rush.AttemptStoreConfig{
+			InFlightTTL:   c.RushOrder.InFlightTTL,
+			FinalStateTTL: c.RushOrder.FinalStateTTL,
+		})
 	}
 	etcdClient, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Etcd.Hosts,
@@ -116,6 +125,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		SqlConn:                    sqlConn,
 		ShardSqlConns:              shardConns,
 		Redis:                      rds,
+		AttemptStore:               attemptStore,
 		PurchaseLimitStore:         limitcache.NewPurchaseLimitStore(rds, orderRepository, limitcache.Config{}),
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,

@@ -2,7 +2,10 @@ package logic
 
 import (
 	"context"
+	"time"
+
 	"damai-go/pkg/xerr"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 
@@ -41,5 +44,73 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, mapOrderError(xerr.ErrInvalidParam)
 	}
 
-	return &pb.CreateOrderResp{OrderNumber: claims.OrderNumber}, nil
+	if l.svcCtx.AttemptStore == nil || l.svcCtx.OrderCreateProducer == nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+
+	now := time.Now()
+	admission, err := l.svcCtx.AttemptStore.Admit(l.ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      claims.OrderNumber,
+		UserID:           claims.UserID,
+		ProgramID:        claims.ProgramID,
+		TicketCategoryID: claims.TicketCategoryID,
+		ViewerIDs:        append([]int64(nil), claims.TicketUserIDs...),
+		TicketCount:      claims.TicketCount,
+		TokenFingerprint: claims.TokenFingerprint,
+		CommitCutoffAt:   now.Add(l.svcCtx.Config.RushOrder.CommitCutoff),
+		UserDeadlineAt:   now.Add(l.svcCtx.Config.RushOrder.UserDeadline),
+		Now:              now,
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	if admission.Decision == rush.AdmitDecisionRejected {
+		return nil, mapOrderError(mapAdmissionRejectCode(admission.RejectCode))
+	}
+	if admission.OrderNumber <= 0 {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+
+	attempt, err := l.svcCtx.AttemptStore.Get(l.ctx, admission.OrderNumber)
+	if err != nil {
+		return nil, mapOrderError(err)
+	}
+
+	if l.svcCtx.AsyncCloseClient != nil {
+		if err := l.svcCtx.AsyncCloseClient.EnqueueVerifyAttemptDue(l.ctx, attempt.OrderNumber, attempt.ProgramID, attempt.UserDeadlineAt); err != nil {
+			l.Errorf("enqueue verify attempt failed, orderNumber=%d err=%v", attempt.OrderNumber, err)
+		}
+	}
+
+	if admission.Decision == rush.AdmitDecisionReused {
+		return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber}, nil
+	}
+
+	event, err := buildAttemptCreateEvent(attempt, claims)
+	if err != nil {
+		return nil, mapOrderError(err)
+	}
+	body, err := event.Marshal()
+	if err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	if err := l.svcCtx.OrderCreateProducer.Send(l.ctx, event.PartitionKey(), body); err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	if err := l.svcCtx.AttemptStore.MarkQueued(l.ctx, attempt.OrderNumber, time.Now()); err != nil {
+		l.Errorf("mark rush attempt queued failed, orderNumber=%d err=%v", attempt.OrderNumber, err)
+	}
+
+	return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber}, nil
+}
+
+func mapAdmissionRejectCode(code int64) error {
+	switch code {
+	case rush.AdmitRejectUserInflightConflict, rush.AdmitRejectViewerInflightConflict:
+		return xerr.ErrOrderOperateTooFrequent
+	case rush.AdmitRejectQuotaExhausted:
+		return xerr.ErrSeatInventoryInsufficient
+	default:
+		return xerr.ErrInternal
+	}
 }

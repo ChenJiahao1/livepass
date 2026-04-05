@@ -181,6 +181,12 @@ type fakeAsyncCloseClient struct {
 	enqueueCalls    int
 	lastOrderNumber int64
 	lastExpireAt    time.Time
+
+	verifyEnqueueErr      error
+	verifyEnqueueCalls    int
+	verifyLastOrderNumber int64
+	verifyLastProgramID   int64
+	verifyLastDueAt       time.Time
 }
 
 type tracingOrderRepository struct {
@@ -275,6 +281,10 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		LedgerTTL:       time.Hour,
 		LoadingCooldown: 200 * time.Millisecond,
 	})
+	attemptStore := rush.NewAttemptStore(redisClient, rush.AttemptStoreConfig{
+		InFlightTTL:   cfg.RushOrder.InFlightTTL,
+		FinalStateTTL: cfg.RushOrder.FinalStateTTL,
+	})
 	purchaseTokenCodec := rush.MustNewPurchaseTokenCodec(cfg.RushOrder.TokenSecret, cfg.RushOrder.TokenTTL)
 	svcCtx := &svc.ServiceContext{
 		Config:  cfg,
@@ -284,6 +294,7 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 			"order-db-1": shardConn1,
 		},
 		Redis:                      redisClient,
+		AttemptStore:               attemptStore,
 		PurchaseLimitStore:         purchaseLimitStore,
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
@@ -305,6 +316,14 @@ func (f *fakeAsyncCloseClient) EnqueueCloseTimeout(_ context.Context, orderNumbe
 	f.lastOrderNumber = orderNumber
 	f.lastExpireAt = expireAt
 	return f.enqueueErr
+}
+
+func (f *fakeAsyncCloseClient) EnqueueVerifyAttemptDue(_ context.Context, orderNumber, programID int64, dueAt time.Time) error {
+	f.verifyEnqueueCalls++
+	f.verifyLastOrderNumber = orderNumber
+	f.verifyLastProgramID = programID
+	f.verifyLastDueAt = dueAt
+	return f.verifyEnqueueErr
 }
 
 func buildOrderTestShardingConfig() config.ShardingConfig {
