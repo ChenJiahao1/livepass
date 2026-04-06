@@ -53,13 +53,16 @@ func (l *ReleaseSeatFreezeLogic) ReleaseSeatFreeze(in *pb.ReleaseSeatFreezeReq) 
 	if freeze.FreezeStatus == seatcache.SeatFreezeStatusConfirmed {
 		return nil, mapReleaseSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
 	}
+	if hasSeatFreezeOwner(in.GetOwnerOrderNumber(), in.GetOwnerEpoch()) && !freeze.MatchesOwner(in.GetOwnerOrderNumber(), in.GetOwnerEpoch()) {
+		return nil, mapReleaseSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
+	}
 
 	if freeze.FreezeStatus == seatcache.SeatFreezeStatusReleased ||
 		freeze.FreezeStatus == seatcache.SeatFreezeStatusExpired {
 		return &pb.ReleaseSeatFreezeResp{Success: true}, nil
 	}
 
-	if err := seatStore.ReleaseFrozenSeats(l.ctx, freeze.ProgramID, freeze.TicketCategoryID, freeze.FreezeToken); err != nil {
+	if err := seatStore.ReleaseFrozenSeats(l.ctx, freeze.ProgramID, freeze.TicketCategoryID, freeze.FreezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch()); err != nil {
 		return nil, mapReleaseSeatFreezeError(err)
 	}
 

@@ -36,3 +36,24 @@ func TestCompensateOrderCreateSendFailureDoesNotReleaseSeatFreeze(t *testing.T) 
 		t.Fatalf("expected no release request, got %+v", programRPC.lastReleaseReq)
 	}
 }
+
+func TestReleaseOrderCreateFreezeWithOwnerCarriesFencingFields(t *testing.T) {
+	programRPC := &noopOrderCreateProgramRPC{}
+
+	releaseOrderCreateFreezeWithOwner(context.Background(), &svc.ServiceContext{
+		ProgramRpc: programRPC,
+	}, "freeze-owner-release", "worker_release", 91001, 3)
+
+	if programRPC.releaseSeatFreezeCalls != 1 {
+		t.Fatalf("expected one release request, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+	if programRPC.lastReleaseReq == nil {
+		t.Fatalf("expected release request to be captured")
+	}
+	if programRPC.lastReleaseReq.GetOwnerOrderNumber() != 91001 {
+		t.Fatalf("expected ownerOrderNumber 91001, got %+v", programRPC.lastReleaseReq)
+	}
+	if programRPC.lastReleaseReq.GetOwnerEpoch() != 3 {
+		t.Fatalf("expected ownerEpoch 3, got %+v", programRPC.lastReleaseReq)
+	}
+}

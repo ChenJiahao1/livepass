@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -105,6 +106,9 @@ func TestCreateOrderConsumerPersistsOrderFromRushEvent(t *testing.T) {
 	if programRPC.lastAutoAssignAndFreezeSeatsReq == nil {
 		t.Fatalf("expected consumer to freeze seats")
 	}
+	if programRPC.lastAutoAssignAndFreezeSeatsReq.GetOwnerOrderNumber() != resp.GetOrderNumber() {
+		t.Fatalf("expected freeze request ownerOrderNumber %d, got %+v", resp.GetOrderNumber(), programRPC.lastAutoAssignAndFreezeSeatsReq)
+	}
 
 	record, err := svcCtx.AttemptStore.Get(ctx, resp.GetOrderNumber())
 	if err != nil {
@@ -112,6 +116,13 @@ func TestCreateOrderConsumerPersistsOrderFromRushEvent(t *testing.T) {
 	}
 	if record.State != rush.AttemptStateCommitted {
 		t.Fatalf("expected attempt state committed, got %+v", record)
+	}
+	if programRPC.lastAutoAssignAndFreezeSeatsReq.GetOwnerEpoch() != record.ProcessingEpoch {
+		t.Fatalf("expected freeze request ownerEpoch %d, got %+v", record.ProcessingEpoch, programRPC.lastAutoAssignAndFreezeSeatsReq)
+	}
+	expectedRequestNo := fmt.Sprintf("%d-%d", resp.GetOrderNumber(), record.ProcessingEpoch)
+	if programRPC.lastAutoAssignAndFreezeSeatsReq.GetRequestNo() != expectedRequestNo {
+		t.Fatalf("expected freeze requestNo %s, got %+v", expectedRequestNo, programRPC.lastAutoAssignAndFreezeSeatsReq)
 	}
 }
 

@@ -21,6 +21,8 @@ type SeatFreezeMetadata struct {
 	RequestNo        string `json:"requestNo"`
 	ProgramID        int64  `json:"programId"`
 	TicketCategoryID int64  `json:"ticketCategoryId"`
+	OwnerOrderNumber int64  `json:"ownerOrderNumber,omitempty"`
+	OwnerEpoch       int64  `json:"ownerEpoch,omitempty"`
 	SeatCount        int64  `json:"seatCount"`
 	FreezeStatus     int64  `json:"freezeStatus"`
 	ExpireAt         int64  `json:"expireAt"`
@@ -35,6 +37,28 @@ func (m *SeatFreezeMetadata) ExpireTime() time.Time {
 	}
 
 	return time.Unix(m.ExpireAt, 0)
+}
+
+func (m *SeatFreezeMetadata) HasOwnerFencing() bool {
+	if m == nil {
+		return false
+	}
+
+	return m.OwnerOrderNumber > 0 && m.OwnerEpoch > 0
+}
+
+func (m *SeatFreezeMetadata) MatchesOwner(orderNumber, epoch int64) bool {
+	if m == nil {
+		return false
+	}
+	if !m.HasOwnerFencing() {
+		return true
+	}
+	if orderNumber <= 0 || epoch <= 0 {
+		return false
+	}
+
+	return m.OwnerOrderNumber == orderNumber && m.OwnerEpoch == epoch
 }
 
 func (s *SeatStockStore) SaveFreezeMetadata(ctx context.Context, meta *SeatFreezeMetadata) error {

@@ -54,6 +54,8 @@ type seatFreezeFixture struct {
 	RequestNo        string
 	ProgramID        int64
 	TicketCategoryID int64
+	OwnerOrderNumber int64
+	OwnerEpoch       int64
 	SeatCount        int
 	FreezeStatus     int
 	ExpireTime       string
@@ -312,6 +314,8 @@ func seedRedisSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixtur
 		RequestNo:        fixture.RequestNo,
 		ProgramID:        fixture.ProgramID,
 		TicketCategoryID: fixture.TicketCategoryID,
+		OwnerOrderNumber: fixture.OwnerOrderNumber,
+		OwnerEpoch:       fixture.OwnerEpoch,
 		SeatCount:        int64(fixture.SeatCount),
 		FreezeStatus:     int64(fixture.FreezeStatus),
 		ExpireAt:         expireTime.Unix(),

@@ -91,7 +91,7 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		return nil
 	}
 
-	enrichedEvent, freezeResp, err := l.buildConsumerOrderEvent(orderEvent, occurredAt)
+	enrichedEvent, freezeResp, err := l.buildConsumerOrderEvent(orderEvent, attempt, occurredAt)
 	if err != nil {
 		var freezeErr *seatFreezeError
 		if errors.As(err, &freezeErr) && isTerminalSeatFreezeError(freezeErr.err) {
@@ -218,7 +218,7 @@ func (l *CreateOrderConsumerLogic) prepareAttemptForConsume(orderNumber int64, n
 	}
 }
 
-func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *orderevent.OrderCreateEvent, occurredAt time.Time) (*orderevent.OrderCreateEvent, *programrpc.AutoAssignAndFreezeSeatsResp, error) {
+func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *orderevent.OrderCreateEvent, attempt *rush.AttemptRecord, occurredAt time.Time) (*orderevent.OrderCreateEvent, *programrpc.AutoAssignAndFreezeSeatsResp, error) {
 	if hasEmbeddedOrderCreateSnapshots(orderEvent) {
 		return orderEvent, nil, nil
 	}
@@ -241,6 +241,13 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		Count:            orderEvent.TicketCount,
 		RequestNo:        orderEvent.RequestNo,
 		FreezeSeconds:    durationToFreezeSeconds(l.svcCtx.Config.Order.CloseAfter),
+	}
+	if attempt != nil {
+		freezeReq.OwnerOrderNumber = attempt.OrderNumber
+		freezeReq.OwnerEpoch = attempt.ProcessingEpoch
+		if attempt.ProcessingEpoch > 0 {
+			freezeReq.RequestNo = fmt.Sprintf("%d-%d", attempt.OrderNumber, attempt.ProcessingEpoch)
+		}
 	}
 	if freezeReq.RequestNo == "" {
 		freezeReq.RequestNo = fmt.Sprintf("order-create-%d", orderEvent.OrderNumber)
@@ -299,7 +306,7 @@ func (l *CreateOrderConsumerLogic) releaseAttemptProjection(attempt *rush.Attemp
 		return err
 	}
 	if freezeToken != "" {
-		releaseOrderCreateFreeze(l.ctx, l.svcCtx, freezeToken, releaseReason)
+		releaseOrderCreateFreezeWithOwner(l.ctx, l.svcCtx, freezeToken, releaseReason, attempt.OrderNumber, attempt.ProcessingEpoch)
 	}
 
 	return nil
