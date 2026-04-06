@@ -404,7 +404,7 @@ create_order:{userId}:{programId}
 - `seat ledger` 解决“有没有座位可冻”
 - `order limit ledger` 解决“用户还能不能继续下单”
 
-只预热其中一个都不够。
+只保证其中一个 ready 还不够。
 
 ### 7.2 创建订单阶段的冻结判断口径看 Redis
 
@@ -438,4 +438,3 @@ create_order:{userId}:{programId}
 - `services/program-rpc/internal/seatcache/freeze_auto_assigned_seats.lua`
 - `services/program-rpc/internal/seatcache/release_frozen_seats.lua`
 - `services/program-rpc/internal/seatcache/seat_freeze_metadata.go`
-- `docs/architecture/order-pressure-preflight.md`
