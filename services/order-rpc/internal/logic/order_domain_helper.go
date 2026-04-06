@@ -99,7 +99,13 @@ func validateRequestedTicketUsers(userResp *userrpc.GetUserAndTicketUserListResp
 		ticketUsers[ticketUser.GetId()] = ticketUser
 	}
 
+	requestedSet := make(map[int64]struct{}, len(requestedIDs))
 	for _, requestedID := range requestedIDs {
+		if _, exists := requestedSet[requestedID]; exists {
+			return xerr.ErrOrderTicketUserInvalid
+		}
+		requestedSet[requestedID] = struct{}{}
+
 		ticketUser, ok := ticketUsers[requestedID]
 		if !ok || ticketUser.GetUserId() != userID {
 			return xerr.ErrOrderTicketUserInvalid

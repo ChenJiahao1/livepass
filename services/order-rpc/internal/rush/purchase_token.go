@@ -110,14 +110,15 @@ func (c *PurchaseTokenCodec) Verify(token string) (*PurchaseTokenClaims, error) 
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return nil, ErrInvalidPurchaseToken
 	}
-	if _, err := c.normalizeClaims(claims); err != nil {
+	normalized, err := c.normalizeClaims(claims)
+	if err != nil {
 		return nil, ErrInvalidPurchaseToken
 	}
-	if claims.ExpireAt <= c.now().UTC().Unix() {
+	if normalized.ExpireAt <= c.now().UTC().Unix() {
 		return nil, ErrExpiredPurchaseToken
 	}
 
-	return &claims, nil
+	return &normalized, nil
 }
 
 func (c *PurchaseTokenCodec) normalizeClaims(claims PurchaseTokenClaims) (PurchaseTokenClaims, error) {

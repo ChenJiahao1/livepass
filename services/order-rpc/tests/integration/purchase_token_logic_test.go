@@ -92,3 +92,32 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 		t.Fatalf("expected CreateOrder to skip ProgramRpc/UserRpc, got programReq=%+v userReq=%+v", programRPC.lastGetProgramPreorderReq, userRPC.lastGetUserAndTicketUserListReq)
 	}
 }
+
+func TestCreatePurchaseTokenRejectsDuplicateTicketUserIDs(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	userID, programID, ticketCategoryID, viewerIDs, _ := nextRushTestIDs()
+
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(programID, ticketCategoryID, 2, 4, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		userID,
+		&userrpc.TicketUserInfo{Id: viewerIDs[0], UserId: userID, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+
+	createPurchaseTokenLogic := logicpkg.NewCreatePurchaseTokenLogic(context.Background(), svcCtx)
+	_, err := createPurchaseTokenLogic.CreatePurchaseToken(&pb.CreatePurchaseTokenReq{
+		UserId:           userID,
+		ProgramId:        programID,
+		TicketCategoryId: ticketCategoryID,
+		TicketUserIds:    []int64{viewerIDs[0], viewerIDs[0]},
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument for duplicate ticket users, got err=%v", err)
+	}
+	if status.Convert(err).Message() != "order ticket user invalid" {
+		t.Fatalf("expected duplicate ticket users to be rejected as order ticket user invalid, got %q", status.Convert(err).Message())
+	}
+}

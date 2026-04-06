@@ -1,6 +1,9 @@
 package rush
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -83,5 +86,44 @@ func TestPurchaseTokenRejectsExpiredToken(t *testing.T) {
 	codec.now = func() time.Time { return base.Add(2 * time.Minute) }
 	if _, err := codec.Verify(token); err != ErrExpiredPurchaseToken {
 		t.Fatalf("expected ErrExpiredPurchaseToken, got %v", err)
+	}
+}
+
+func TestPurchaseTokenVerifyReturnsNormalizedClaims(t *testing.T) {
+	codec, err := NewPurchaseTokenCodec("test-secret", 2*time.Minute)
+	if err != nil {
+		t.Fatalf("NewPurchaseTokenCodec returned error: %v", err)
+	}
+	base := time.Date(2026, time.April, 5, 18, 0, 0, 0, time.UTC)
+	codec.now = func() time.Time { return base }
+
+	payload, err := json.Marshal(PurchaseTokenClaims{
+		OrderNumber:      91001,
+		UserID:           3001,
+		ProgramID:        10001,
+		TicketCategoryID: 40001,
+		TicketUserIDs:    []int64{701, 702},
+		ExpireAt:         base.Add(time.Minute).Unix(),
+	})
+	if err != nil {
+		t.Fatalf("Marshal returned error: %v", err)
+	}
+
+	token := fmt.Sprintf(
+		"%s.%s.%s",
+		purchaseTokenVersion,
+		base64.RawURLEncoding.EncodeToString(payload),
+		base64.RawURLEncoding.EncodeToString(codec.sign(payload)),
+	)
+
+	claims, err := codec.Verify(token)
+	if err != nil {
+		t.Fatalf("Verify returned error: %v", err)
+	}
+	if claims.TicketCount != 2 {
+		t.Fatalf("expected normalized ticket count 2, got %d", claims.TicketCount)
+	}
+	if claims.TokenFingerprint == "" {
+		t.Fatalf("expected normalized token fingerprint, got empty")
 	}
 }
