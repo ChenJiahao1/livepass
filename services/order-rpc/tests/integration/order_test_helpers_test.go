@@ -35,7 +35,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order_integration?parseTime=true"
+var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
 
 const testPurchaseLimitLedgerPrefix = "damai-go:test:order:purchase-limit"
 
