@@ -1,15 +1,29 @@
 syntax = "v1"
 
 type (
-	CreateOrderReq {
+	CreatePurchaseTokenReq {
 		ProgramID        int64   `json:"programId"`
 		TicketCategoryID int64   `json:"ticketCategoryId"`
 		TicketUserIds    []int64 `json:"ticketUserIds"`
 		DistributionMode string  `json:"distributionMode,optional"`
 		TakeTicketMode   string  `json:"takeTicketMode,optional"`
 	}
+	CreatePurchaseTokenResp {
+		PurchaseToken string `json:"purchaseToken"`
+	}
+	CreateOrderReq {
+		PurchaseToken string `json:"purchaseToken"`
+	}
 	CreateOrderResp {
 		OrderNumber int64 `json:"orderNumber"`
+	}
+	PollOrderReq {
+		OrderNumber int64 `json:"orderNumber"`
+	}
+	PollOrderResp {
+		OrderNumber int64 `json:"orderNumber"`
+		OrderStatus int64 `json:"orderStatus"`
+		Done        bool  `json:"done"`
 	}
 	ListOrdersReq {
 		PageNumber  int64 `json:"pageNumber,optional"`
@@ -130,8 +144,14 @@ type (
 	middleware: Auth
 )
 service order-api {
+	@handler CreatePurchaseToken
+	post /order/purchase/token (CreatePurchaseTokenReq) returns (CreatePurchaseTokenResp)
+
 	@handler CreateOrder
 	post /order/create (CreateOrderReq) returns (CreateOrderResp)
+
+	@handler PollOrder
+	post /order/poll (PollOrderReq) returns (PollOrderResp)
 
 	@handler ListOrders
 	post /order/select/list (ListOrdersReq) returns (ListOrdersResp)

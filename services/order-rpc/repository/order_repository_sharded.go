@@ -221,15 +221,28 @@ func (r *shardedOrderRepository) transactByRoute(ctx context.Context, route shar
 		return err
 	}
 	return target.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		tx := newSingleOrderTx(route, session, target.orderModel, target.ticketModel)
+		tx := newSingleOrderTx(
+			route,
+			session,
+			target.orderModel,
+			target.ticketModel,
+			target.userGuardModel,
+			target.viewerGuardModel,
+			target.seatGuardModel,
+			target.outboxModel,
+		)
 		return fn(ctx, tx)
 	})
 }
 
 type routeStore struct {
-	conn        sqlx.SqlConn
-	orderModel  model.DOrderModel
-	ticketModel model.DOrderTicketUserModel
+	conn             sqlx.SqlConn
+	orderModel       model.DOrderModel
+	ticketModel      model.DOrderTicketUserModel
+	userGuardModel   model.DOrderUserGuardModel
+	viewerGuardModel model.DOrderViewerGuardModel
+	seatGuardModel   model.DOrderSeatGuardModel
+	outboxModel      model.DOrderOutboxModel
 }
 
 func (r *shardedOrderRepository) storeForRoute(route sharding.Route) (*routeStore, error) {
@@ -239,9 +252,13 @@ func (r *shardedOrderRepository) storeForRoute(route sharding.Route) (*routeStor
 	}
 
 	return &routeStore{
-		conn:        conn,
-		orderModel:  model.NewDOrderModelWithTable(conn, shardOrderTable(route.TableSuffix)),
-		ticketModel: model.NewDOrderTicketUserModelWithTable(conn, shardOrderTicketTable(route.TableSuffix)),
+		conn:             conn,
+		orderModel:       model.NewDOrderModelWithTable(conn, shardOrderTable(route.TableSuffix)),
+		ticketModel:      model.NewDOrderTicketUserModelWithTable(conn, shardOrderTicketTable(route.TableSuffix)),
+		userGuardModel:   model.NewDOrderUserGuardModelWithTable(conn, shardOrderUserGuardTable(route.TableSuffix)),
+		viewerGuardModel: model.NewDOrderViewerGuardModelWithTable(conn, shardOrderViewerGuardTable(route.TableSuffix)),
+		seatGuardModel:   model.NewDOrderSeatGuardModelWithTable(conn, shardOrderSeatGuardTable(route.TableSuffix)),
+		outboxModel:      model.NewDOrderOutboxModelWithTable(conn, shardOrderOutboxTable(route.TableSuffix)),
 	}, nil
 }
 
@@ -251,6 +268,26 @@ func shardOrderTable(suffix string) string {
 
 func shardOrderTicketTable(suffix string) string {
 	return "d_order_ticket_user_" + suffix
+}
+
+func shardOrderUserGuardTable(suffix string) string {
+	_ = suffix
+	return "d_order_user_guard"
+}
+
+func shardOrderViewerGuardTable(suffix string) string {
+	_ = suffix
+	return "d_order_viewer_guard"
+}
+
+func shardOrderSeatGuardTable(suffix string) string {
+	_ = suffix
+	return "d_order_seat_guard"
+}
+
+func shardOrderOutboxTable(suffix string) string {
+	_ = suffix
+	return "d_order_outbox"
 }
 
 func orderMatchesLogicSlot(order *model.DOrder, logicSlot int) bool {

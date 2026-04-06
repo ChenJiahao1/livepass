@@ -19,6 +19,7 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 	"damai-go/services/order-rpc/repository"
@@ -34,7 +35,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order_integration?parseTime=true"
+var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
 
 const testPurchaseLimitLedgerPrefix = "damai-go:test:order:purchase-limit"
 
@@ -95,6 +96,7 @@ type fakeOrderProgramRPC struct {
 	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
 	autoAssignAndFreezeSeatsErr     error
 	lastAutoAssignAndFreezeSeatsReq *programrpc.AutoAssignAndFreezeSeatsReq
+	autoAssignAndFreezeSeatsCalls   int
 
 	releaseSeatFreezeResp    *programrpc.ReleaseSeatFreezeResp
 	releaseSeatFreezeErr     error
@@ -180,6 +182,12 @@ type fakeAsyncCloseClient struct {
 	enqueueCalls    int
 	lastOrderNumber int64
 	lastExpireAt    time.Time
+
+	verifyEnqueueErr      error
+	verifyEnqueueCalls    int
+	verifyLastOrderNumber int64
+	verifyLastProgramID   int64
+	verifyLastDueAt       time.Time
 }
 
 type tracingOrderRepository struct {
@@ -218,6 +226,15 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		},
 		Order: config.OrderConfig{
 			CloseAfter: 15 * time.Minute,
+		},
+		RushOrder: config.RushOrderConfig{
+			Enabled:       true,
+			TokenSecret:   "order-rpc-test-secret",
+			TokenTTL:      2 * time.Minute,
+			CommitCutoff:  10 * time.Second,
+			UserDeadline:  15 * time.Second,
+			InFlightTTL:   30 * time.Second,
+			FinalStateTTL: 30 * time.Minute,
 		},
 		RepeatGuard: config.RepeatGuardConfig{
 			Prefix:             "/damai-go/tests/repeat-guard/order-create/",
@@ -265,6 +282,11 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		LedgerTTL:       time.Hour,
 		LoadingCooldown: 200 * time.Millisecond,
 	})
+	attemptStore := rush.NewAttemptStore(redisClient, rush.AttemptStoreConfig{
+		InFlightTTL:   cfg.RushOrder.InFlightTTL,
+		FinalStateTTL: cfg.RushOrder.FinalStateTTL,
+	})
+	purchaseTokenCodec := rush.MustNewPurchaseTokenCodec(cfg.RushOrder.TokenSecret, cfg.RushOrder.TokenTTL)
 	svcCtx := &svc.ServiceContext{
 		Config:  cfg,
 		SqlConn: conn,
@@ -272,14 +294,16 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 			"order-db-0": shardConn0,
 			"order-db-1": shardConn1,
 		},
-		Redis:              redisClient,
-		PurchaseLimitStore: purchaseLimitStore,
-		OrderRouteMap:      routeMap,
-		OrderRouter:        orderRouter,
-		OrderRepository:    orderRepository,
-		ProgramRpc:         programRPC,
-		UserRpc:            userRPC,
-		PayRpc:             payRPC,
+		Redis:                      redisClient,
+		AttemptStore:               attemptStore,
+		PurchaseLimitStore:         purchaseLimitStore,
+		OrderRouteMap:              routeMap,
+		OrderRouter:                orderRouter,
+		OrderRepository:            orderRepository,
+		PurchaseTokenCodec:         purchaseTokenCodec,
+		ProgramRpc:                 programRPC,
+		UserRpc:                    userRPC,
+		PayRpc:                     payRPC,
 		OrderCreateProducer:        orderCreateProducer,
 		OrderCreateConsumerFactory: orderCreateConsumerFactory,
 		AsyncCloseClient:           asyncCloseClient,
@@ -288,11 +312,41 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	return svcCtx, programRPC, userRPC, payRPC
 }
 
+func rebindOrderTestAttemptStore(t *testing.T, svcCtx *svc.ServiceContext) *rush.AttemptStore {
+	t.Helper()
+
+	if svcCtx == nil || svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	prefix := fmt.Sprintf(
+		"damai-go:test:order:rush:%s:%d",
+		strings.ReplaceAll(strings.ToLower(t.Name()), "/", "-"),
+		time.Now().UnixNano(),
+	)
+	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
+	svcCtx.AttemptStore = store
+
+	return store
+}
+
 func (f *fakeAsyncCloseClient) EnqueueCloseTimeout(_ context.Context, orderNumber int64, expireAt time.Time) error {
 	f.enqueueCalls++
 	f.lastOrderNumber = orderNumber
 	f.lastExpireAt = expireAt
 	return f.enqueueErr
+}
+
+func (f *fakeAsyncCloseClient) EnqueueVerifyAttemptDue(_ context.Context, orderNumber, programID int64, dueAt time.Time) error {
+	f.verifyEnqueueCalls++
+	f.verifyLastOrderNumber = orderNumber
+	f.verifyLastProgramID = programID
+	f.verifyLastDueAt = dueAt
+	return f.verifyEnqueueErr
 }
 
 func buildOrderTestShardingConfig() config.ShardingConfig {
@@ -535,6 +589,10 @@ func resetOrderDomainState(t *testing.T) {
 	for _, relativePath := range []string{
 		"sql/order/sharding/d_order_shards.sql",
 		"sql/order/sharding/d_order_ticket_user_shards.sql",
+		"sql/order/sharding/d_order_user_guard.sql",
+		"sql/order/sharding/d_order_viewer_guard.sql",
+		"sql/order/sharding/d_order_seat_guard.sql",
+		"sql/order/sharding/d_order_outbox.sql",
 	} {
 		execOrderSQLFile(t, db, relativePath)
 	}
@@ -1124,6 +1182,7 @@ func (f *fakeOrderProgramRPC) GetSeatRelateInfo(ctx context.Context, in *program
 
 func (f *fakeOrderProgramRPC) AutoAssignAndFreezeSeats(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
 	f.lastAutoAssignAndFreezeSeatsReq = in
+	f.autoAssignAndFreezeSeatsCalls++
 	if f.autoAssignAndFreezeSeatsFunc != nil {
 		return f.autoAssignAndFreezeSeatsFunc(ctx, in)
 	}

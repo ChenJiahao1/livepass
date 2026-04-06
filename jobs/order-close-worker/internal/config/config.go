@@ -10,7 +10,7 @@ import (
 
 type AsynqConfig struct {
 	Queue           string        `json:",default=order_close"`
-	Concurrency     int           `json:",default=4"`
+	Concurrency     int           `json:",default=16"`
 	ShutdownTimeout time.Duration `json:",default=10s"`
 	Redis           xredis.Config `json:"Redis,optional"`
 }

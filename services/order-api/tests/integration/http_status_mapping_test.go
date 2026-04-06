@@ -19,7 +19,7 @@ func TestCreateOrderHandlerMapsResourceExhaustedToTooManyRequests(t *testing.T) 
 		createOrderErr: status.Error(codes.ResourceExhausted, xerr.ErrOrderSubmitTooFrequent.Error()),
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/order/create", strings.NewReader(`{"programId":10001,"ticketCategoryId":40001,"ticketUserIds":[701]}`))
+	req := httptest.NewRequest(http.MethodPost, "/order/create", strings.NewReader(`{"purchaseToken":"pt_91001"}`))
 	req = req.WithContext(xmiddleware.WithUserID(req.Context(), 3001))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -36,7 +36,7 @@ func TestCreateOrderHandlerMapsUnavailableToServiceUnavailable(t *testing.T) {
 		createOrderErr: status.Error(codes.Unavailable, "repeat guard unavailable"),
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/order/create", strings.NewReader(`{"programId":10001,"ticketCategoryId":40001,"ticketUserIds":[701]}`))
+	req := httptest.NewRequest(http.MethodPost, "/order/create", strings.NewReader(`{"purchaseToken":"pt_91001"}`))
 	req = req.WithContext(xmiddleware.WithUserID(req.Context(), 3001))
 	req.Header.Set("Content-Type", "application/json")
 

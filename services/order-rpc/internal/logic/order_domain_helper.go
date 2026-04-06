@@ -17,6 +17,7 @@ import (
 	payrpc "damai-go/services/pay-rpc/payrpc"
 	programrpc "damai-go/services/program-rpc/programrpc"
 	userrpc "damai-go/services/user-rpc/userrpc"
+	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -39,7 +40,7 @@ type orderSnapshotBundle struct {
 }
 
 func validateCreateOrderReq(in *pb.CreateOrderReq) error {
-	if in.GetUserId() <= 0 || in.GetProgramId() <= 0 || in.GetTicketCategoryId() <= 0 || len(in.GetTicketUserIds()) == 0 {
+	if in.GetUserId() <= 0 || in.GetPurchaseToken() == "" {
 		return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
@@ -219,11 +220,13 @@ func mapOrderError(err error) error {
 		return err
 	case errors.Is(err, xerr.ErrInvalidParam):
 		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, xerr.ErrInternal):
+		return status.Error(codes.Internal, err.Error())
 	case errors.Is(err, xerr.ErrOrderNotFound), errors.Is(err, xerr.ErrPayBillNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, xerr.ErrOrderSubmitTooFrequent), errors.Is(err, xerr.ErrOrderOperateTooFrequent):
 		return status.Error(codes.ResourceExhausted, err.Error())
-	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderLimitLedgerNotReady), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid), errors.Is(err, xerr.ErrOrderRefundNotAllowed), errors.Is(err, xerr.ErrOrderRefundWindowClosed):
+	case errors.Is(err, xerr.ErrOrderStatusInvalid), errors.Is(err, xerr.ErrOrderTicketUserInvalid), errors.Is(err, xerr.ErrOrderPurchaseLimitExceeded), errors.Is(err, xerr.ErrOrderLimitLedgerNotReady), errors.Is(err, xerr.ErrOrderExpired), errors.Is(err, xerr.ErrOrderAlreadyPaid), errors.Is(err, xerr.ErrOrderRefundNotAllowed), errors.Is(err, xerr.ErrOrderRefundWindowClosed), errors.Is(err, xerr.ErrSeatInventoryInsufficient):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, xerr.ErrOrderRefundRuleInvalid):
 		return status.Error(codes.Internal, err.Error())
@@ -253,6 +256,9 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		return false, xerr.ErrOrderNotFound
 	}
 	if order.OrderStatus == orderStatusCancelled {
+		if err := syncClosedRushAttemptProjection(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
+			logx.WithContext(ctx).Errorf("sync closed rush attempt projection failed, orderNumber=%d err=%v", order.OrderNumber, err)
+		}
 		return false, nil
 	}
 	if order.OrderStatus != orderStatusUnpaid {
@@ -269,6 +275,11 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 	changed, err := finalizeOrderCancel(ctx, svcCtx, order.OrderNumber)
 	if err != nil {
 		return false, err
+	}
+	if changed {
+		if err := syncClosedRushAttemptProjection(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
+			logx.WithContext(ctx).Errorf("sync closed rush attempt projection failed, orderNumber=%d err=%v", order.OrderNumber, err)
+		}
 	}
 
 	return changed, nil
@@ -317,6 +328,16 @@ func finalizeOrderCancel(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 
 		cancelTime := time.Now()
 		if err := tx.UpdateCancelStatus(txCtx, order.OrderNumber, cancelTime); err != nil {
+			return err
+		}
+		if err := tx.DeleteGuardsByOrderNumber(txCtx, order.OrderNumber); err != nil {
+			return err
+		}
+		closedOutbox, err := newOrderOutboxRow(cancelTime, order.OrderNumber, order.ProgramId, order.UserId, "order.closed")
+		if err != nil {
+			return err
+		}
+		if err := tx.InsertOutbox(txCtx, []*model.DOrderOutbox{closedOutbox}); err != nil {
 			return err
 		}
 		changed = true
@@ -528,6 +549,16 @@ func convergeOrderRefunded(ctx context.Context, svcCtx *svc.ServiceContext, orde
 
 		refundTime := time.Now()
 		if err := tx.UpdateRefundStatus(txCtx, orderNumber, refundTime); err != nil {
+			return err
+		}
+		if err := tx.DeleteGuardsByOrderNumber(txCtx, order.OrderNumber); err != nil {
+			return err
+		}
+		refundedOutbox, err := newOrderOutboxRow(refundTime, order.OrderNumber, order.ProgramId, order.UserId, "order.refunded")
+		if err != nil {
+			return err
+		}
+		if err := tx.InsertOutbox(txCtx, []*model.DOrderOutbox{refundedOutbox}); err != nil {
 			return err
 		}
 

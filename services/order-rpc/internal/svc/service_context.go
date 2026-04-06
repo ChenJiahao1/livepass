@@ -10,6 +10,7 @@ import (
 	"damai-go/services/order-rpc/internal/limitcache"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/repository"
 	"damai-go/services/order-rpc/sharding"
 	payrpc "damai-go/services/pay-rpc/payrpc"
@@ -24,6 +25,7 @@ import (
 
 type AsyncCloseClient interface {
 	EnqueueCloseTimeout(ctx context.Context, orderNumber int64, expireAt time.Time) error
+	EnqueueVerifyAttemptDue(ctx context.Context, orderNumber, programID int64, dueAt time.Time) error
 }
 
 type ServiceContext struct {
@@ -31,10 +33,12 @@ type ServiceContext struct {
 	SqlConn                    sqlx.SqlConn
 	ShardSqlConns              map[string]sqlx.SqlConn
 	Redis                      *xredis.Client
+	AttemptStore               *rush.AttemptStore
 	PurchaseLimitStore         *limitcache.PurchaseLimitStore
 	OrderRouteMap              *sharding.RouteMap
 	OrderRouter                sharding.Router
 	OrderRepository            repository.OrderRepository
+	PurchaseTokenCodec         *rush.PurchaseTokenCodec
 	RepeatGuard                repeatguard.Guard
 	ProgramRpc                 programrpc.ProgramRpc
 	PayRpc                     payrpc.PayRpc
@@ -67,6 +71,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var rds *xredis.Client
 	if c.StoreRedis.Host != "" {
 		rds = xredis.MustNew(c.StoreRedis)
+	}
+	var attemptStore *rush.AttemptStore
+	if c.RushOrder.Enabled && rds != nil {
+		attemptStore = rush.NewAttemptStore(rds, rush.AttemptStoreConfig{
+			InFlightTTL:   c.RushOrder.InFlightTTL,
+			FinalStateTTL: c.RushOrder.FinalStateTTL,
+		})
 	}
 	etcdClient, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Etcd.Hosts,
@@ -101,16 +112,25 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		panic(err)
 	}
+	var purchaseTokenCodec *rush.PurchaseTokenCodec
+	if c.RushOrder.Enabled && c.RushOrder.TokenSecret != "" {
+		purchaseTokenCodec, err = rush.NewPurchaseTokenCodec(c.RushOrder.TokenSecret, c.RushOrder.TokenTTL)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	return &ServiceContext{
 		Config:                     c,
 		SqlConn:                    sqlConn,
 		ShardSqlConns:              shardConns,
 		Redis:                      rds,
+		AttemptStore:               attemptStore,
 		PurchaseLimitStore:         limitcache.NewPurchaseLimitStore(rds, orderRepository, limitcache.Config{}),
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,
+		PurchaseTokenCodec:         purchaseTokenCodec,
 		RepeatGuard:                repeatguard.NewEtcdGuard(etcdClient, c.RepeatGuard),
 		ProgramRpc:                 newProgramRPC(c.ProgramRpc),
 		PayRpc:                     newPayRPC(c.PayRpc),

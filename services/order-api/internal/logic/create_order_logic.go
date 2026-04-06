@@ -38,12 +38,8 @@ func (l *CreateOrderLogic) CreateOrder(req *types.CreateOrderReq) (resp *types.C
 	}
 
 	rpcResp, err := l.svcCtx.OrderRpc.CreateOrder(l.ctx, &orderrpc.CreateOrderReq{
-		UserId:           userID,
-		ProgramId:        req.ProgramID,
-		TicketCategoryId: req.TicketCategoryID,
-		TicketUserIds:    req.TicketUserIds,
-		DistributionMode: req.DistributionMode,
-		TakeTicketMode:   req.TakeTicketMode,
+		UserId:        userID,
+		PurchaseToken: req.PurchaseToken,
 	})
 	if err != nil {
 		return nil, err

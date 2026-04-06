@@ -12,19 +12,29 @@ import (
 )
 
 type singleOrderTx struct {
-	route       sharding.Route
-	session     sqlx.Session
-	orderModel  model.DOrderModel
-	ticketModel model.DOrderTicketUserModel
+	route            sharding.Route
+	session          sqlx.Session
+	orderModel       model.DOrderModel
+	ticketModel      model.DOrderTicketUserModel
+	userGuardModel   model.DOrderUserGuardModel
+	viewerGuardModel model.DOrderViewerGuardModel
+	seatGuardModel   model.DOrderSeatGuardModel
+	outboxModel      model.DOrderOutboxModel
 }
 
 func newSingleOrderTx(route sharding.Route, session sqlx.Session, orderModel model.DOrderModel,
-	ticketModel model.DOrderTicketUserModel) *singleOrderTx {
+	ticketModel model.DOrderTicketUserModel, userGuardModel model.DOrderUserGuardModel,
+	viewerGuardModel model.DOrderViewerGuardModel, seatGuardModel model.DOrderSeatGuardModel,
+	outboxModel model.DOrderOutboxModel) *singleOrderTx {
 	return &singleOrderTx{
-		route:       route,
-		session:     session,
-		orderModel:  orderModel,
-		ticketModel: ticketModel,
+		route:            route,
+		session:          session,
+		orderModel:       orderModel,
+		ticketModel:      ticketModel,
+		userGuardModel:   userGuardModel,
+		viewerGuardModel: viewerGuardModel,
+		seatGuardModel:   seatGuardModel,
+		outboxModel:      outboxModel,
 	}
 }
 
@@ -39,6 +49,39 @@ func (t *singleOrderTx) InsertOrder(ctx context.Context, order *model.DOrder) er
 
 func (t *singleOrderTx) InsertOrderTickets(ctx context.Context, tickets []*model.DOrderTicketUser) error {
 	return t.ticketModel.InsertBatch(ctx, t.session, tickets)
+}
+
+func (t *singleOrderTx) InsertUserGuard(ctx context.Context, guard *model.DOrderUserGuard) error {
+	if guard == nil {
+		return nil
+	}
+	_, err := t.userGuardModel.InsertWithSession(ctx, t.session, guard)
+	return err
+}
+
+func (t *singleOrderTx) InsertViewerGuards(ctx context.Context, guards []*model.DOrderViewerGuard) error {
+	return t.viewerGuardModel.InsertBatch(ctx, t.session, guards)
+}
+
+func (t *singleOrderTx) InsertSeatGuards(ctx context.Context, guards []*model.DOrderSeatGuard) error {
+	return t.seatGuardModel.InsertBatch(ctx, t.session, guards)
+}
+
+func (t *singleOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrderOutbox) error {
+	return t.outboxModel.InsertBatch(ctx, t.session, rows)
+}
+
+func (t *singleOrderTx) DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error {
+	if err := t.userGuardModel.DeleteByOrderNumber(ctx, t.session, orderNumber); err != nil {
+		return err
+	}
+	if err := t.viewerGuardModel.DeleteByOrderNumber(ctx, t.session, orderNumber); err != nil {
+		return err
+	}
+	if err := t.seatGuardModel.DeleteByOrderNumber(ctx, t.session, orderNumber); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (t *singleOrderTx) FindOrderByNumberForUpdate(ctx context.Context, orderNumber int64) (*model.DOrder, error) {
@@ -126,6 +169,56 @@ func (t *dualWriteOrderTx) InsertOrderTickets(ctx context.Context, tickets []*mo
 	}
 	t.captureShadowError(func() error {
 		return t.shadow.InsertOrderTickets(ctx, tickets)
+	})
+	return nil
+}
+
+func (t *dualWriteOrderTx) InsertUserGuard(ctx context.Context, guard *model.DOrderUserGuard) error {
+	if err := t.primary.InsertUserGuard(ctx, guard); err != nil {
+		return err
+	}
+	t.captureShadowError(func() error {
+		return t.shadow.InsertUserGuard(ctx, guard)
+	})
+	return nil
+}
+
+func (t *dualWriteOrderTx) InsertViewerGuards(ctx context.Context, guards []*model.DOrderViewerGuard) error {
+	if err := t.primary.InsertViewerGuards(ctx, guards); err != nil {
+		return err
+	}
+	t.captureShadowError(func() error {
+		return t.shadow.InsertViewerGuards(ctx, guards)
+	})
+	return nil
+}
+
+func (t *dualWriteOrderTx) InsertSeatGuards(ctx context.Context, guards []*model.DOrderSeatGuard) error {
+	if err := t.primary.InsertSeatGuards(ctx, guards); err != nil {
+		return err
+	}
+	t.captureShadowError(func() error {
+		return t.shadow.InsertSeatGuards(ctx, guards)
+	})
+	return nil
+}
+
+func (t *dualWriteOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrderOutbox) error {
+	if err := t.primary.InsertOutbox(ctx, rows); err != nil {
+		return err
+	}
+	t.captureShadowError(func() error {
+		return t.shadow.InsertOutbox(ctx, rows)
+	})
+	return nil
+}
+
+func (t *dualWriteOrderTx) DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error {
+	if err := t.primary.DeleteGuardsByOrderNumber(ctx, orderNumber); err != nil {
+		return err
+	}
+	t.captureShadowError(func() error {
+		return t.shadow.DeleteGuardsByOrderNumber(ctx, orderNumber)
 	})
 	return nil
 }

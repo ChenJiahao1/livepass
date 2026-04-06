@@ -43,6 +43,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 				{
 					Method:  http.MethodPost,
+					Path:    "/order/poll",
+					Handler: PollOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/order/purchase/token",
+					Handler: CreatePurchaseTokenHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
 					Path:    "/order/refund",
 					Handler: RefundOrderHandler(serverCtx),
 				},

@@ -24,6 +24,14 @@ func (f *fakeJobOrderRPC) CreateOrder(ctx context.Context, in *orderrpc.CreateOr
 	return nil, nil
 }
 
+func (f *fakeJobOrderRPC) CreatePurchaseToken(ctx context.Context, in *orderrpc.CreatePurchaseTokenReq, opts ...grpc.CallOption) (*orderrpc.CreatePurchaseTokenResp, error) {
+	return nil, nil
+}
+
+func (f *fakeJobOrderRPC) PollOrderProgress(ctx context.Context, in *orderrpc.PollOrderProgressReq, opts ...grpc.CallOption) (*orderrpc.PollOrderProgressResp, error) {
+	return nil, nil
+}
+
 func (f *fakeJobOrderRPC) ListOrders(ctx context.Context, in *orderrpc.ListOrdersReq, opts ...grpc.CallOption) (*orderrpc.ListOrdersResp, error) {
 	return nil, nil
 }
@@ -67,6 +75,14 @@ func (f *fakeJobOrderRPC) CloseExpiredOrder(ctx context.Context, in *orderrpc.Cl
 func (f *fakeJobOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {
 	f.closeExpiredOrdersReqs = append(f.closeExpiredOrdersReqs, in)
 	return f.closeExpiredOrdersResp, f.closeExpiredOrdersErr
+}
+
+func (f *fakeJobOrderRPC) VerifyAttemptDue(ctx context.Context, in *orderrpc.VerifyAttemptDueReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+	return nil, nil
+}
+
+func (f *fakeJobOrderRPC) ReconcileRushAttempts(ctx context.Context, in *orderrpc.ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*orderrpc.ReconcileRushAttemptsResp, error) {
+	return nil, nil
 }
 
 func (f *fakeJobOrderRPC) CountActiveTicketsByUserProgram(ctx context.Context, in *orderrpc.CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*orderrpc.CountActiveTicketsByUserProgramResp, error) {

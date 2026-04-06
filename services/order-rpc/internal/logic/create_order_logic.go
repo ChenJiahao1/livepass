@@ -2,18 +2,16 @@ package logic
 
 import (
 	"context"
-	"errors"
-	"strconv"
 	"time"
 
 	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/repeatguard"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
-	programrpc "damai-go/services/program-rpc/programrpc"
-	userrpc "damai-go/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type CreateOrderLogic struct {
@@ -34,96 +32,85 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	if err := validateCreateOrderReq(in); err != nil {
 		return nil, err
 	}
-
-	if l.svcCtx.RepeatGuard != nil {
-		unlock, err := l.svcCtx.RepeatGuard.Lock(l.ctx, repeatguard.OrderCreateKey(in.GetUserId(), in.GetProgramId()))
-		if err != nil {
-			if errors.Is(err, repeatguard.ErrLocked) {
-				return nil, mapOrderError(xerr.ErrOrderSubmitTooFrequent)
-			}
-			return nil, mapOrderError(err)
-		}
-		if unlock != nil {
-			defer unlock()
-		}
+	if l.svcCtx == nil || l.svcCtx.PurchaseTokenCodec == nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 
-	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramDetailReq{
-		Id: in.GetProgramId(),
-	})
+	claims, err := l.svcCtx.PurchaseTokenCodec.Verify(in.GetPurchaseToken())
 	if err != nil {
-		return nil, err
+		return nil, mapOrderError(xerr.ErrInvalidParam)
+	}
+	if claims.UserID != in.GetUserId() {
+		return nil, mapOrderError(xerr.ErrInvalidParam)
 	}
 
-	userResp, err := l.svcCtx.UserRpc.GetUserAndTicketUserList(l.ctx, &userrpc.GetUserAndTicketUserListReq{
-		UserId: in.GetUserId(),
-	})
-	if err != nil {
-		return nil, err
-	}
-	if err := validateRequestedTicketUsers(userResp, in.GetUserId(), in.GetTicketUserIds()); err != nil {
-		return nil, mapOrderError(err)
-	}
-
-	if preorder.GetPerOrderLimitPurchaseCount() > 0 && int64(len(in.GetTicketUserIds())) > preorder.GetPerOrderLimitPurchaseCount() {
-		return nil, mapOrderError(xerr.ErrOrderPurchaseLimitExceeded)
+	if l.svcCtx.AttemptStore == nil || l.svcCtx.OrderCreateProducer == nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 
 	now := time.Now()
-	orderNumber := generateOrderNumberForUser(in.GetUserId(), now)
-	if preorder.GetPerAccountLimitPurchaseCount() > 0 {
-		if err := l.svcCtx.PurchaseLimitStore.Reserve(
-			l.ctx,
-			in.GetUserId(),
-			in.GetProgramId(),
-			orderNumber,
-			int64(len(in.GetTicketUserIds())),
-			preorder.GetPerAccountLimitPurchaseCount(),
-		); err != nil {
-			return nil, mapOrderError(err)
-		}
-	}
-	closeAfter := l.svcCtx.Config.Order.CloseAfter
-	if closeAfter <= 0 {
-		closeAfter = 15 * time.Minute
-	}
-	freezeReq := &programrpc.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        in.GetProgramId(),
-		TicketCategoryId: in.GetTicketCategoryId(),
-		Count:            int64(len(in.GetTicketUserIds())),
-		RequestNo:        buildFreezeRequestNo(),
-		FreezeSeconds:    int64(closeAfter / time.Second),
-	}
-	freezeResp, err := l.svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(l.ctx, freezeReq)
+	admission, err := l.svcCtx.AttemptStore.Admit(l.ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      claims.OrderNumber,
+		UserID:           claims.UserID,
+		ProgramID:        claims.ProgramID,
+		TicketCategoryID: claims.TicketCategoryID,
+		ViewerIDs:        append([]int64(nil), claims.TicketUserIDs...),
+		TicketCount:      claims.TicketCount,
+		TokenFingerprint: claims.TokenFingerprint,
+		CommitCutoffAt:   now.Add(l.svcCtx.Config.RushOrder.CommitCutoff),
+		UserDeadlineAt:   now.Add(l.svcCtx.Config.RushOrder.UserDeadline),
+		Now:              now,
+	})
 	if err != nil {
-		compensateOrderCreateSeatFreezeFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeReq)
-		return nil, err
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	if admission.Decision == rush.AdmitDecisionRejected {
+		return nil, mapOrderError(mapAdmissionRejectCode(admission.RejectCode))
+	}
+	if admission.OrderNumber <= 0 {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 
-	orderEvent, err := buildOrderCreateEvent(orderNumber, in, preorder, userResp, freezeResp, now, closeAfter)
+	attempt, err := l.svcCtx.AttemptStore.Get(l.ctx, admission.OrderNumber)
 	if err != nil {
-		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
 		return nil, mapOrderError(err)
 	}
 
-	if l.svcCtx.OrderCreateProducer == nil {
-		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
-		return nil, mapOrderError(xerr.ErrInternal)
+	if l.svcCtx.AsyncCloseClient != nil {
+		if err := l.svcCtx.AsyncCloseClient.EnqueueVerifyAttemptDue(l.ctx, attempt.OrderNumber, attempt.ProgramID, attempt.UserDeadlineAt); err != nil {
+			l.Errorf("enqueue verify attempt failed, orderNumber=%d err=%v", attempt.OrderNumber, err)
+		}
 	}
 
-	body, err := orderEvent.Marshal()
+	if admission.Decision == rush.AdmitDecisionReused {
+		return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber}, nil
+	}
+
+	event, err := buildAttemptCreateEvent(attempt, claims)
 	if err != nil {
-		compensateOrderCreateBeforeSendFailure(l.ctx, l.svcCtx, in.GetUserId(), in.GetProgramId(), orderNumber, freezeResp.GetFreezeToken())
-		return nil, mapOrderError(xerr.ErrInternal)
+		return nil, mapOrderError(err)
 	}
-	if err := l.svcCtx.OrderCreateProducer.Send(l.ctx, strconv.FormatInt(orderEvent.OrderNumber, 10), body); err != nil {
-		l.Errorf("send order create event failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-		return nil, mapOrderError(xerr.ErrInternal)
+	body, err := event.Marshal()
+	if err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	if err := l.svcCtx.OrderCreateProducer.Send(l.ctx, event.PartitionKey(), body); err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	if err := l.svcCtx.AttemptStore.MarkQueued(l.ctx, attempt.OrderNumber, time.Now()); err != nil {
+		l.Errorf("mark rush attempt queued failed, orderNumber=%d err=%v", attempt.OrderNumber, err)
 	}
 
-	if err := SetOrderCreateMarker(l.ctx, l.svcCtx.Redis, orderEvent.OrderNumber); err != nil {
-		l.Errorf("set order create marker failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-	}
+	return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber}, nil
+}
 
-	return &pb.CreateOrderResp{OrderNumber: orderEvent.OrderNumber}, nil
+func mapAdmissionRejectCode(code int64) error {
+	switch code {
+	case rush.AdmitRejectUserInflightConflict, rush.AdmitRejectViewerInflightConflict:
+		return xerr.ErrOrderOperateTooFrequent
+	case rush.AdmitRejectQuotaExhausted:
+		return xerr.ErrSeatInventoryInsufficient
+	default:
+		return xerr.ErrInternal
+	}
 }

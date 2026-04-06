@@ -13,6 +13,10 @@ import (
 type orderWriteModels struct {
 	order        *model.DOrder
 	orderTickets []*model.DOrderTicketUser
+	userGuard    *model.DOrderUserGuard
+	viewerGuards []*model.DOrderViewerGuard
+	seatGuards   []*model.DOrderSeatGuard
+	outboxRows   []*model.DOrderOutbox
 }
 
 func MapEventToOrderModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*model.DOrder, []*model.DOrderTicketUser, error) {
@@ -75,6 +79,8 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 	}
 
 	orderTickets := make([]*model.DOrderTicketUser, 0, len(orderEvent.TicketUserSnapshot))
+	viewerGuards := make([]*model.DOrderViewerGuard, 0, len(orderEvent.TicketUserSnapshot))
+	seatGuards := make([]*model.DOrderSeatGuard, 0, len(orderEvent.TicketUserSnapshot))
 	for idx, ticketUser := range orderEvent.TicketUserSnapshot {
 		seat := orderEvent.SeatSnapshot[idx]
 		orderTickets = append(orderTickets, &model.DOrderTicketUser{
@@ -97,10 +103,45 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 			EditTime:           now,
 			Status:             1,
 		})
+		viewerGuards = append(viewerGuards, &model.DOrderViewerGuard{
+			Id:          xid.New(),
+			OrderNumber: orderEvent.OrderNumber,
+			ProgramId:   orderEvent.ProgramID,
+			ViewerId:    ticketUser.TicketUserID,
+			CreateTime:  now,
+			EditTime:    now,
+			Status:      1,
+		})
+		seatGuards = append(seatGuards, &model.DOrderSeatGuard{
+			Id:          xid.New(),
+			OrderNumber: orderEvent.OrderNumber,
+			ProgramId:   orderEvent.ProgramID,
+			SeatId:      seat.SeatID,
+			CreateTime:  now,
+			EditTime:    now,
+			Status:      1,
+		})
+	}
+
+	createdOutbox, err := newOrderOutboxRow(now, orderEvent.OrderNumber, orderEvent.ProgramID, orderEvent.UserID, "order.created")
+	if err != nil {
+		return nil, err
 	}
 
 	return &orderWriteModels{
 		order:        order,
 		orderTickets: orderTickets,
+		userGuard: &model.DOrderUserGuard{
+			Id:          xid.New(),
+			OrderNumber: orderEvent.OrderNumber,
+			ProgramId:   orderEvent.ProgramID,
+			UserId:      orderEvent.UserID,
+			CreateTime:  now,
+			EditTime:    now,
+			Status:      1,
+		},
+		viewerGuards: viewerGuards,
+		seatGuards:   seatGuards,
+		outboxRows:   []*model.DOrderOutbox{createdOutbox},
 	}, nil
 }

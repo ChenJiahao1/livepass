@@ -5,6 +5,16 @@ import (
 	"damai-go/services/order-rpc/orderrpc"
 )
 
+func mapCreatePurchaseTokenResp(resp *orderrpc.CreatePurchaseTokenResp) *types.CreatePurchaseTokenResp {
+	if resp == nil {
+		return &types.CreatePurchaseTokenResp{}
+	}
+
+	return &types.CreatePurchaseTokenResp{
+		PurchaseToken: resp.PurchaseToken,
+	}
+}
+
 func mapCreateOrderResp(resp *orderrpc.CreateOrderResp) *types.CreateOrderResp {
 	if resp == nil {
 		return &types.CreateOrderResp{}
@@ -12,6 +22,18 @@ func mapCreateOrderResp(resp *orderrpc.CreateOrderResp) *types.CreateOrderResp {
 
 	return &types.CreateOrderResp{
 		OrderNumber: resp.OrderNumber,
+	}
+}
+
+func mapPollOrderResp(resp *orderrpc.PollOrderProgressResp) *types.PollOrderResp {
+	if resp == nil {
+		return &types.PollOrderResp{}
+	}
+
+	return &types.PollOrderResp{
+		OrderNumber: resp.OrderNumber,
+		OrderStatus: resp.OrderStatus,
+		Done:        resp.Done,
 	}
 }
 

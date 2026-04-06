@@ -27,7 +27,11 @@ type fakeMCPOrderTx struct {
 	repo *fakeMCPOrderRepository
 }
 
-func newMCPServiceContext(repo repository.OrderRepository) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderPayRPC) {
+func newMCPServiceContext(t *testing.T, repo repository.OrderRepository) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderPayRPC) {
+	t.Helper()
+
+	mustInitOrderTestXid(t)
+
 	programRPC := &fakeOrderProgramRPC{
 		releaseSoldSeatsResp: &programrpc.ReleaseSoldSeatsResp{Success: true},
 	}
@@ -44,7 +48,7 @@ func TestOrderMCPServer_ListsTools(t *testing.T) {
 		orders:  map[int64]*model.DOrder{},
 		tickets: map[int64][]*model.DOrderTicketUser{},
 	}
-	svcCtx, _, _ := newMCPServiceContext(repo)
+	svcCtx, _, _ := newMCPServiceContext(t, repo)
 	server := ordermcp.NewServer(gomcp.McpConf{}, svcCtx)
 
 	toolNames := server.ToolNames()
@@ -90,7 +94,7 @@ func TestListUserOrdersTool_ReturnsStableRecentOrderList(t *testing.T) {
 		},
 		tickets: map[int64][]*model.DOrderTicketUser{},
 	}
-	svcCtx, _, _ := newMCPServiceContext(repo)
+	svcCtx, _, _ := newMCPServiceContext(t, repo)
 	server := ordermcp.NewServer(gomcp.McpConf{}, svcCtx)
 
 	result, err := server.ListUserOrders(context.Background(), ordermcp.ListUserOrdersArgs{
@@ -134,7 +138,7 @@ func TestGetOrderDetailTool_NormalizesServiceView(t *testing.T) {
 			},
 		},
 	}
-	svcCtx, programRPC, payRPC := newMCPServiceContext(repo)
+	svcCtx, programRPC, payRPC := newMCPServiceContext(t, repo)
 	payRPC.getPayBillResp = &payrpc.GetPayBillResp{
 		OrderNumber: 10001,
 		UserId:      3001,
@@ -231,6 +235,26 @@ func (tx *fakeMCPOrderTx) InsertOrder(ctx context.Context, order *model.DOrder) 
 }
 
 func (tx *fakeMCPOrderTx) InsertOrderTickets(ctx context.Context, tickets []*model.DOrderTicketUser) error {
+	return nil
+}
+
+func (tx *fakeMCPOrderTx) InsertUserGuard(ctx context.Context, guard *model.DOrderUserGuard) error {
+	return nil
+}
+
+func (tx *fakeMCPOrderTx) InsertViewerGuards(ctx context.Context, guards []*model.DOrderViewerGuard) error {
+	return nil
+}
+
+func (tx *fakeMCPOrderTx) InsertSeatGuards(ctx context.Context, guards []*model.DOrderSeatGuard) error {
+	return nil
+}
+
+func (tx *fakeMCPOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrderOutbox) error {
+	return nil
+}
+
+func (tx *fakeMCPOrderTx) DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error {
 	return nil
 }
 

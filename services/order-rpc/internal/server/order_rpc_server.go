@@ -23,9 +23,19 @@ func NewOrderRpcServer(svcCtx *svc.ServiceContext) *OrderRpcServer {
 	}
 }
 
+func (s *OrderRpcServer) CreatePurchaseToken(ctx context.Context, in *pb.CreatePurchaseTokenReq) (*pb.CreatePurchaseTokenResp, error) {
+	l := logic.NewCreatePurchaseTokenLogic(ctx, s.svcCtx)
+	return l.CreatePurchaseToken(in)
+}
+
 func (s *OrderRpcServer) CreateOrder(ctx context.Context, in *pb.CreateOrderReq) (*pb.CreateOrderResp, error) {
 	l := logic.NewCreateOrderLogic(ctx, s.svcCtx)
 	return l.CreateOrder(in)
+}
+
+func (s *OrderRpcServer) PollOrderProgress(ctx context.Context, in *pb.PollOrderProgressReq) (*pb.PollOrderProgressResp, error) {
+	l := logic.NewPollOrderProgressLogic(ctx, s.svcCtx)
+	return l.PollOrderProgress(in)
 }
 
 func (s *OrderRpcServer) ListOrders(ctx context.Context, in *pb.ListOrdersReq) (*pb.ListOrdersResp, error) {
@@ -81,6 +91,16 @@ func (s *OrderRpcServer) CloseExpiredOrder(ctx context.Context, in *pb.CloseExpi
 func (s *OrderRpcServer) CloseExpiredOrders(ctx context.Context, in *pb.CloseExpiredOrdersReq) (*pb.CloseExpiredOrdersResp, error) {
 	l := logic.NewCloseExpiredOrdersLogic(ctx, s.svcCtx)
 	return l.CloseExpiredOrders(in)
+}
+
+func (s *OrderRpcServer) VerifyAttemptDue(ctx context.Context, in *pb.VerifyAttemptDueReq) (*pb.BoolResp, error) {
+	l := logic.NewVerifyAttemptDueLogic(ctx, s.svcCtx)
+	return l.VerifyAttemptDue(in)
+}
+
+func (s *OrderRpcServer) ReconcileRushAttempts(ctx context.Context, in *pb.ReconcileRushAttemptsReq) (*pb.ReconcileRushAttemptsResp, error) {
+	l := logic.NewReconcileRushAttemptsLogic(ctx, s.svcCtx)
+	return l.ReconcileRushAttempts(in)
 }
 
 func (s *OrderRpcServer) CountActiveTicketsByUserProgram(ctx context.Context, in *pb.CountActiveTicketsByUserProgramReq) (*pb.CountActiveTicketsByUserProgramResp, error) {

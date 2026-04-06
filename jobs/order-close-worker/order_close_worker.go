@@ -7,11 +7,9 @@ import (
 	"syscall"
 
 	"damai-go/jobs/order-close-worker/internal/config"
-	"damai-go/jobs/order-close-worker/internal/logic"
 	"damai-go/jobs/order-close-worker/internal/svc"
-	"damai-go/services/order-rpc/closequeue"
+	"damai-go/jobs/order-close-worker/internal/worker"
 
-	"github.com/hibiken/asynq"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -28,9 +26,7 @@ func main() {
 	defer stop()
 
 	serviceContext := svc.NewServiceContext(c)
-	handler := logic.NewCloseTimeoutTaskLogic(serviceContext)
-	mux := asynq.NewServeMux()
-	mux.HandleFunc(closequeue.TaskTypeCloseTimeout, handler.Handle)
+	mux := worker.NewServeMux(serviceContext)
 
 	if err := serviceContext.Server.Start(mux); err != nil {
 		logx.WithContext(ctx).Errorf("start order-close-worker failed: %v", err)

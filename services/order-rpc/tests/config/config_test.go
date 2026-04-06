@@ -57,6 +57,27 @@ func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T
 	if c.AsyncClose.UniqueTTL != 30*time.Minute {
 		t.Fatalf("expected async close unique ttl 30m, got %s", c.AsyncClose.UniqueTTL)
 	}
+	if !c.RushOrder.Enabled {
+		t.Fatalf("expected rush order to be enabled in runtime config")
+	}
+	if c.RushOrder.TokenSecret != "rush-order-local-secret" {
+		t.Fatalf("expected rush order token secret rush-order-local-secret, got %q", c.RushOrder.TokenSecret)
+	}
+	if c.RushOrder.TokenTTL != 2*time.Minute {
+		t.Fatalf("expected rush order token ttl 2m, got %s", c.RushOrder.TokenTTL)
+	}
+	if c.RushOrder.CommitCutoff != 10*time.Second {
+		t.Fatalf("expected rush order commit cutoff 10s, got %s", c.RushOrder.CommitCutoff)
+	}
+	if c.RushOrder.UserDeadline != 15*time.Second {
+		t.Fatalf("expected rush order user deadline 15s, got %s", c.RushOrder.UserDeadline)
+	}
+	if c.RushOrder.InFlightTTL != 30*time.Second {
+		t.Fatalf("expected rush order inflight ttl 30s, got %s", c.RushOrder.InFlightTTL)
+	}
+	if c.RushOrder.FinalStateTTL != 30*time.Minute {
+		t.Fatalf("expected rush order final state ttl 30m, got %s", c.RushOrder.FinalStateTTL)
+	}
 	if c.Sharding.Mode != "shard_only" {
 		t.Fatalf("expected sharding mode shard_only, got %s", c.Sharding.Mode)
 	}
@@ -134,6 +155,27 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	}
 	if c.AsyncClose.UniqueTTL != 30*time.Minute {
 		t.Fatalf("expected perf async close unique ttl 30m, got %s", c.AsyncClose.UniqueTTL)
+	}
+	if !c.RushOrder.Enabled {
+		t.Fatalf("expected rush order to be enabled in perf config")
+	}
+	if c.RushOrder.TokenSecret != "rush-order-local-secret" {
+		t.Fatalf("expected rush order token secret rush-order-local-secret, got %q", c.RushOrder.TokenSecret)
+	}
+	if c.RushOrder.TokenTTL != 2*time.Minute {
+		t.Fatalf("expected rush order token ttl 2m, got %s", c.RushOrder.TokenTTL)
+	}
+	if c.RushOrder.CommitCutoff != 10*time.Second {
+		t.Fatalf("expected rush order commit cutoff 10s, got %s", c.RushOrder.CommitCutoff)
+	}
+	if c.RushOrder.UserDeadline != 15*time.Second {
+		t.Fatalf("expected rush order user deadline 15s, got %s", c.RushOrder.UserDeadline)
+	}
+	if c.RushOrder.InFlightTTL != 30*time.Second {
+		t.Fatalf("expected rush order inflight ttl 30s, got %s", c.RushOrder.InFlightTTL)
+	}
+	if c.RushOrder.FinalStateTTL != 30*time.Minute {
+		t.Fatalf("expected rush order final state ttl 30m, got %s", c.RushOrder.FinalStateTTL)
 	}
 	if c.Sharding.Mode != "shard_only" {
 		t.Fatalf("expected perf sharding mode shard_only, got %s", c.Sharding.Mode)

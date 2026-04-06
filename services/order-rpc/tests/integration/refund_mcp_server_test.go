@@ -30,7 +30,7 @@ func TestPreviewRefundTool_ReturnsRefundProjection(t *testing.T) {
 		},
 		tickets: map[int64][]*model.DOrderTicketUser{},
 	}
-	svcCtx, programRPC, payRPC := newMCPServiceContext(repo)
+	svcCtx, programRPC, payRPC := newMCPServiceContext(t, repo)
 	payRPC.getPayBillResp = &payrpc.GetPayBillResp{
 		OrderNumber: 10001,
 		UserId:      3001,
@@ -76,7 +76,7 @@ func TestRefundTool_SubmitsRefundResult(t *testing.T) {
 			},
 		},
 	}
-	svcCtx, programRPC, payRPC := newMCPServiceContext(repo)
+	svcCtx, programRPC, payRPC := newMCPServiceContext(t, repo)
 	payRPC.getPayBillResp = &payrpc.GetPayBillResp{
 		OrderNumber: 10001,
 		UserId:      3001,
@@ -117,7 +117,7 @@ func TestOrderMCPTool_RejectsInvalidOrderID(t *testing.T) {
 		orders:  map[int64]*model.DOrder{},
 		tickets: map[int64][]*model.DOrderTicketUser{},
 	}
-	svcCtx, _, _ := newMCPServiceContext(repo)
+	svcCtx, _, _ := newMCPServiceContext(t, repo)
 	server := ordermcp.NewServer(gomcp.McpConf{}, svcCtx)
 
 	_, err := server.PreviewRefundOrder(context.Background(), ordermcp.PreviewRefundOrderArgs{

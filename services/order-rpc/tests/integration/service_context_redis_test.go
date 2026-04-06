@@ -68,9 +68,21 @@ func TestOrderServiceContextRedis(t *testing.T) {
 			Host: "127.0.0.1:6379",
 			Type: "node",
 		}
+		cfg.RushOrder = config.RushOrderConfig{
+			Enabled:       true,
+			TokenSecret:   "order-rpc-test-secret",
+			TokenTTL:      2 * time.Minute,
+			CommitCutoff:  10 * time.Second,
+			UserDeadline:  15 * time.Second,
+			InFlightTTL:   30 * time.Second,
+			FinalStateTTL: 30 * time.Minute,
+		}
 		svcCtx := svc.NewServiceContext(cfg)
 		if svcCtx.Redis == nil {
 			t.Fatalf("expected redis client to be wired when host is configured")
+		}
+		if svcCtx.AttemptStore == nil {
+			t.Fatalf("expected attempt store to be wired when rush order and redis are configured")
 		}
 	})
 }

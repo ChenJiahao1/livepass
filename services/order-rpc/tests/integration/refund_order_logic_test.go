@@ -106,6 +106,7 @@ func TestRefundOrder(t *testing.T) {
 			orderTicketUserFixture{ID: 99101, OrderNumber: 93001, UserID: 3001, TicketUserID: 701, SeatID: 50101, OrderStatus: testOrderStatusPaid},
 			orderTicketUserFixture{ID: 99102, OrderNumber: 93001, UserID: 3001, TicketUserID: 702, SeatID: 50102, OrderStatus: testOrderStatusPaid},
 		)
+		seedRefundGuardFixtures(t, svcCtx.Config.MySQL.DataSource, 93001, 10001, 3001, []int64{701, 702}, []int64{50101, 50102})
 		payRPC.getPayBillResp = &payrpc.GetPayBillResp{
 			PayBillNo:   94001,
 			OrderNumber: 93001,
@@ -154,6 +155,10 @@ func TestRefundOrder(t *testing.T) {
 		if payRPC.lastRefundReq == nil || payRPC.lastRefundReq.OrderNumber != 93001 || payRPC.lastRefundReq.Amount != 478 {
 			t.Fatalf("unexpected refund rpc request: %+v", payRPC.lastRefundReq)
 		}
+		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_user_guard", 93001)
+		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_viewer_guard", 93001)
+		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_seat_guard", 93001)
+		requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, "d_order_outbox", 93001, "order.refunded")
 	})
 
 	t.Run("paid order converges when pay bill already refunded", func(t *testing.T) {
@@ -262,4 +267,58 @@ func TestRefundOrder(t *testing.T) {
 			t.Fatalf("expected no refund rpc on reject, got %+v", payRPC.lastRefundReq)
 		}
 	})
+}
+
+func seedRefundGuardFixtures(
+	t *testing.T,
+	dataSource string,
+	orderNumber, programID, userID int64,
+	viewerIDs []int64,
+	seatIDs []int64,
+) {
+	t.Helper()
+
+	now := "2026-12-31 19:05:00"
+	db := openOrderTestDB(t, dataSource)
+	defer db.Close()
+
+	if _, err := db.Exec(
+		"INSERT INTO d_order_user_guard (id, order_number, program_id, user_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, 1)",
+		orderNumber+10000,
+		orderNumber,
+		programID,
+		userID,
+		now,
+		now,
+	); err != nil {
+		t.Fatalf("insert user guard error: %v", err)
+	}
+
+	for idx, viewerID := range viewerIDs {
+		if _, err := db.Exec(
+			"INSERT INTO d_order_viewer_guard (id, order_number, program_id, viewer_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, 1)",
+			orderNumber+11000+int64(idx),
+			orderNumber,
+			programID,
+			viewerID,
+			now,
+			now,
+		); err != nil {
+			t.Fatalf("insert viewer guard error: %v", err)
+		}
+	}
+
+	for idx, seatID := range seatIDs {
+		if _, err := db.Exec(
+			"INSERT INTO d_order_seat_guard (id, order_number, program_id, seat_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, 1)",
+			orderNumber+12000+int64(idx),
+			orderNumber,
+			programID,
+			seatID,
+			now,
+			now,
+		); err != nil {
+			t.Fatalf("insert seat guard error: %v", err)
+		}
+	}
 }

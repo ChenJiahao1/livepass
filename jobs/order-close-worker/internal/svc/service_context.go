@@ -12,6 +12,7 @@ import (
 
 type OrderCloseRPC interface {
 	CloseExpiredOrder(ctx context.Context, in *orderrpc.CloseExpiredOrderReq) (*orderrpc.BoolResp, error)
+	VerifyAttemptDue(ctx context.Context, in *orderrpc.VerifyAttemptDueReq) (*orderrpc.BoolResp, error)
 }
 
 type ServiceContext struct {
@@ -44,4 +45,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 func (a *orderRPCCloseAdapter) CloseExpiredOrder(ctx context.Context, in *orderrpc.CloseExpiredOrderReq) (*orderrpc.BoolResp, error) {
 	return a.client.CloseExpiredOrder(ctx, in)
+}
+
+func (a *orderRPCCloseAdapter) VerifyAttemptDue(ctx context.Context, in *orderrpc.VerifyAttemptDueReq) (*orderrpc.BoolResp, error) {
+	return a.client.VerifyAttemptDue(ctx, in)
 }
