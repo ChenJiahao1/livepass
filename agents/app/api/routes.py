@@ -48,7 +48,10 @@ def get_tool_registry() -> MCPToolRegistry:
 def get_llm():
     settings = get_settings()
     if not settings.openai_api_key:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OPENAI_API_KEY is required for /agent/chat",
+        )
     return build_chat_model(settings)
 
 
@@ -102,5 +105,5 @@ async def chat(
     return ChatResponse(
         conversationId=session.conversation_id,
         reply=final_reply,
-        status="handoff" if result.get("need_handoff") else "completed",
+        status="handoff" if result.get("need_handoff") else str(result.get("status") or "completed"),
     )

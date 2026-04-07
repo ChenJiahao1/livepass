@@ -63,6 +63,33 @@ async def test_subagent_runtime_rejects_unallowed_skill():
 
 
 @pytest.mark.anyio
+async def test_subagent_runtime_requires_llm():
+    runtime = build_runtime()
+    skill_registry = SkillRegistry.from_config("app/skills/registry.yaml")
+    provider_registry = ProviderRegistry.from_config("app/skills/registry.yaml")
+    resolution = SkillResolution(
+        skill=skill_registry.get_skill("refund.preview"),
+        provider=provider_registry.get_provider_for_skill("refund.preview"),
+    )
+    task = TaskCard(
+        task_id="task-llm",
+        session_id="sess-llm",
+        domain="refund",
+        task_type="refund_preview",
+        skill_id="refund.preview",
+        goal="确认订单是否可退款",
+        input_slots={"order_id": "ORD-10001", "user_id": 3001},
+        required_slots=["order_id"],
+        risk_level="medium",
+        fallback_policy="handoff",
+        expected_output_schema="refund_preview_v1",
+    )
+
+    with pytest.raises(ValueError, match="llm is required"):
+        await runtime.execute(task=task, resolution=resolution, session_state={}, llm=None)
+
+
+@pytest.mark.anyio
 async def test_subagent_runtime_loads_skill_prompt_and_binds_only_skill_tools_for_llm():
     runtime = build_runtime()
     skill_registry = SkillRegistry.from_config("app/skills/registry.yaml")

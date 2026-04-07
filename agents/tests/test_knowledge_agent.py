@@ -4,8 +4,8 @@ from pathlib import Path
 import httpx
 from langchain_core.messages import HumanMessage
 
-from app.agents.knowledge import KnowledgeAgent
 from app.config import get_settings
+from app.knowledge.service import KnowledgeService
 
 
 def _set_lightrag_env(monkeypatch, tmp_path: Path, *, api_key: str | None = "test-rag-key"):
@@ -19,7 +19,7 @@ def _set_lightrag_env(monkeypatch, tmp_path: Path, *, api_key: str | None = "tes
     get_settings.cache_clear()
 
 
-def test_knowledge_agent_returns_lightrag_response(monkeypatch, tmp_path: Path):
+def test_knowledge_service_returns_lightrag_response(monkeypatch, tmp_path: Path):
     _set_lightrag_env(monkeypatch, tmp_path)
     requests = []
 
@@ -30,7 +30,7 @@ def test_knowledge_agent_returns_lightrag_response(monkeypatch, tmp_path: Path):
             json={"response": "周杰伦是中国台湾男歌手、音乐人、演员。"},
         )
 
-    agent = KnowledgeAgent(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    agent = KnowledgeService(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
 
     result = asyncio.run(agent.handle({"messages": [HumanMessage(content="周杰伦是谁")]}))
 
@@ -39,7 +39,7 @@ def test_knowledge_agent_returns_lightrag_response(monkeypatch, tmp_path: Path):
     assert result["trace"] == ["knowledge:lightrag"]
 
 
-def test_knowledge_agent_returns_boundary_message_for_realtime_query(monkeypatch, tmp_path: Path):
+def test_knowledge_service_returns_boundary_message_for_realtime_query(monkeypatch, tmp_path: Path):
     _set_lightrag_env(monkeypatch, tmp_path)
     requests = []
 
@@ -47,7 +47,7 @@ def test_knowledge_agent_returns_boundary_message_for_realtime_query(monkeypatch
         requests.append(request)
         return httpx.Response(200, json={"response": "should not happen"})
 
-    agent = KnowledgeAgent(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    agent = KnowledgeService(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
 
     result = asyncio.run(agent.handle({"messages": [HumanMessage(content="周杰伦最近有什么新闻")]}))
 
@@ -56,7 +56,7 @@ def test_knowledge_agent_returns_boundary_message_for_realtime_query(monkeypatch
     assert requests == []
 
 
-def test_knowledge_agent_returns_config_error_when_api_key_missing(monkeypatch, tmp_path: Path):
+def test_knowledge_service_returns_config_error_when_api_key_missing(monkeypatch, tmp_path: Path):
     _set_lightrag_env(monkeypatch, tmp_path, api_key=None)
     requests = []
 
@@ -64,7 +64,7 @@ def test_knowledge_agent_returns_config_error_when_api_key_missing(monkeypatch, 
         requests.append(request)
         return httpx.Response(200, json={"response": "should not happen"})
 
-    agent = KnowledgeAgent(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    agent = KnowledgeService(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
 
     result = asyncio.run(agent.handle({"messages": [HumanMessage(content="周杰伦是谁")]}))
 
@@ -73,13 +73,13 @@ def test_knowledge_agent_returns_config_error_when_api_key_missing(monkeypatch, 
     assert requests == []
 
 
-def test_knowledge_agent_returns_fallback_for_timeout(monkeypatch, tmp_path: Path):
+def test_knowledge_service_returns_fallback_for_timeout(monkeypatch, tmp_path: Path):
     _set_lightrag_env(monkeypatch, tmp_path)
 
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("timeout", request=request)
 
-    agent = KnowledgeAgent(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    agent = KnowledgeService(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
 
     result = asyncio.run(agent.handle({"messages": [HumanMessage(content="周杰伦是谁")]}))
 
@@ -87,10 +87,10 @@ def test_knowledge_agent_returns_fallback_for_timeout(monkeypatch, tmp_path: Pat
     assert result["trace"] == ["knowledge:lightrag_timeout"]
 
 
-def test_knowledge_agent_returns_fallback_for_bad_json(monkeypatch, tmp_path: Path):
+def test_knowledge_service_returns_fallback_for_bad_json(monkeypatch, tmp_path: Path):
     _set_lightrag_env(monkeypatch, tmp_path)
     transport = httpx.MockTransport(lambda request: httpx.Response(200, text="not json"))
-    agent = KnowledgeAgent(http_client=httpx.AsyncClient(transport=transport))
+    agent = KnowledgeService(http_client=httpx.AsyncClient(transport=transport))
 
     result = asyncio.run(agent.handle({"messages": [HumanMessage(content="周杰伦是谁")]}))
 
@@ -98,10 +98,10 @@ def test_knowledge_agent_returns_fallback_for_bad_json(monkeypatch, tmp_path: Pa
     assert result["trace"] == ["knowledge:lightrag_bad_json"]
 
 
-def test_knowledge_agent_returns_fallback_for_empty_response(monkeypatch, tmp_path: Path):
+def test_knowledge_service_returns_fallback_for_empty_response(monkeypatch, tmp_path: Path):
     _set_lightrag_env(monkeypatch, tmp_path)
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json={"response": "   "}))
-    agent = KnowledgeAgent(http_client=httpx.AsyncClient(transport=transport))
+    agent = KnowledgeService(http_client=httpx.AsyncClient(transport=transport))
 
     result = asyncio.run(agent.handle({"messages": [HumanMessage(content="周杰伦是谁")]}))
 

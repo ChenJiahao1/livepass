@@ -8,3 +8,5 @@ def test_docs_describe_go_order_provider_and_python_handoff_provider():
     assert "Go `order` MCP provider" in readme
     assert "Python `handoff` provider" in readme
     assert "ORDER_MCP_ENDPOINT" in readme
+    assert "不再保留无模型 fallback" in readme
+    assert "KnowledgeService" in readme

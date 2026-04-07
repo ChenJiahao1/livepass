@@ -9,7 +9,6 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 
 from app.orchestrator.skill_resolver import SkillResolution
-from app.runtime.react_loop import ReactLoop
 from app.registry.skill_registry import SkillRegistry
 from app.tasking.task_card import TaskCard
 
@@ -35,7 +34,6 @@ class SubagentRuntime:
         system_prompt: str = DEFAULT_SUBAGENT_SYSTEM_PROMPT,
     ) -> None:
         self.broker = broker
-        self.react_loop = ReactLoop(broker=broker)
         self.skill_registry = skill_registry or getattr(broker, "skill_registry", None)
         self.system_prompt = system_prompt
 
@@ -51,17 +49,14 @@ class SubagentRuntime:
             raise PermissionError(
                 f"skill {resolution.skill.skill_id} does not match task skill {task.skill_id}"
             )
-
         if llm is None:
-            ctx = await self.react_loop.run(task=task, resolution=resolution)
-            output = ctx.structured_output or {}
-            tool_calls = ctx.tool_calls
-        else:
-            output, tool_calls = await self._run_with_llm(
-                task=task,
-                resolution=resolution,
-                llm=llm,
-            )
+            raise ValueError("llm is required")
+
+        output, tool_calls = await self._run_with_llm(
+            task=task,
+            resolution=resolution,
+            llm=llm,
+        )
         summary = self._build_summary(task.task_type, output)
         result = {
             "task_id": task.task_id,

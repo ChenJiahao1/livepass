@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.api.routes import get_agent_runtime, get_llm, get_session_store, get_tool_registry
+from app.config import get_settings
 from app.main import create_app
 from app.session.store import ConversationStateStore
 
@@ -59,6 +60,30 @@ def test_chat_requires_user_header():
     response = client.post("/agent/chat", json={"message": "你好，帮我查订单"})
 
     assert response.status_code in {400, 401}
+
+
+def test_chat_requires_configured_llm(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
+    get_settings.cache_clear()
+    get_llm.cache_clear()
+    app = create_app()
+    app.dependency_overrides[get_session_store] = lambda: ConversationStateStore(
+        redis_client=FakeRedis(),
+        ttl_seconds=600,
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/agent/chat",
+        headers={"X-User-Id": "3001"},
+        json={"message": "帮我查订单"},
+    )
+
+    assert response.status_code == 503
+    assert "OPENAI_API_KEY" in response.json()["detail"]
+    get_settings.cache_clear()
+    get_llm.cache_clear()
 
 
 def test_chat_api_injects_thread_and_user_context():

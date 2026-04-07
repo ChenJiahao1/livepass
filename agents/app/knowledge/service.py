@@ -1,4 +1,4 @@
-"""Knowledge specialist agent."""
+"""LightRAG-backed knowledge capability."""
 
 from __future__ import annotations
 
@@ -8,12 +8,11 @@ import httpx
 from langchain_core.messages import AnyMessage
 
 from app.config import Settings, get_settings
-from app.state import ConversationState
 
 REALTIME_KEYWORDS = ("最近", "最新", "新闻", "八卦", "热搜", "绯闻", "近况", "动态", "今天")
 
 
-class KnowledgeAgent:
+class KnowledgeService:
     def __init__(self, *, http_client: httpx.AsyncClient | None = None, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
         self.base_url = self.settings.lightrag_base_url.rstrip("/")
@@ -21,7 +20,7 @@ class KnowledgeAgent:
         self.timeout = self.settings.lightrag_timeout_seconds
         self.http_client = http_client or httpx.AsyncClient(timeout=self.timeout)
 
-    async def handle(self, state: ConversationState) -> dict[str, Any]:
+    async def handle(self, state: dict[str, Any]) -> dict[str, Any]:
         query = self._latest_user_message(state)
 
         if self._is_out_of_scope_query(query):
@@ -99,7 +98,7 @@ class KnowledgeAgent:
     def _is_out_of_scope_query(self, query: str) -> bool:
         return any(keyword in query for keyword in REALTIME_KEYWORDS)
 
-    def _latest_user_message(self, state: ConversationState) -> str:
+    def _latest_user_message(self, state: dict[str, Any]) -> str:
         messages = state.get("messages", [])
         for message in reversed(messages):
             if self._message_role(message) == "user":
