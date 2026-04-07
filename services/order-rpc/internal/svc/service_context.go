@@ -24,7 +24,7 @@ import (
 
 type AsyncCloseClient interface {
 	EnqueueCloseTimeout(ctx context.Context, orderNumber int64, expireAt time.Time) error
-	EnqueueVerifyAttemptDue(ctx context.Context, orderNumber, programID int64, dueAt time.Time) error
+	EnqueueVerifyAttemptDue(ctx context.Context, orderNumber int64, dueAt time.Time) error
 }
 
 type ServiceContext struct {

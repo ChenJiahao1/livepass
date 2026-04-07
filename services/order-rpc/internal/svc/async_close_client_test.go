@@ -66,7 +66,7 @@ func TestAsynqAsyncCloseClientEnqueueVerifyAttemptDue(t *testing.T) {
 		uniqueTTL: 30 * time.Minute,
 	}
 
-	err := client.EnqueueVerifyAttemptDue(context.Background(), 91001, 10001, dueAt)
+	err := client.EnqueueVerifyAttemptDue(context.Background(), 91001, dueAt)
 	if err != nil {
 		t.Fatalf("EnqueueVerifyAttemptDue returned error: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestAsynqAsyncCloseClientEnqueueVerifyAttemptDue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseVerifyAttemptPayload returned error: %v", err)
 	}
-	if payload.OrderNumber != 91001 || payload.ProgramID != 10001 {
+	if payload.OrderNumber != 91001 {
 		t.Fatalf("unexpected payload: %+v", payload)
 	}
 }

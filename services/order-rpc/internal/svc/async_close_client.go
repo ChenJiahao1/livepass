@@ -66,8 +66,8 @@ func (c *asynqAsyncCloseClient) EnqueueCloseTimeout(ctx context.Context, orderNu
 	return err
 }
 
-func (c *asynqAsyncCloseClient) EnqueueVerifyAttemptDue(ctx context.Context, orderNumber, programID int64, dueAt time.Time) error {
-	body, err := closequeue.MarshalVerifyAttemptPayload(orderNumber, programID, dueAt)
+func (c *asynqAsyncCloseClient) EnqueueVerifyAttemptDue(ctx context.Context, orderNumber int64, dueAt time.Time) error {
+	body, err := closequeue.MarshalVerifyAttemptPayload(orderNumber, dueAt)
 	if err != nil {
 		return err
 	}

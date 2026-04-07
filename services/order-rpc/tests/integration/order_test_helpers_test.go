@@ -185,7 +185,6 @@ type fakeAsyncCloseClient struct {
 	verifyEnqueueErr      error
 	verifyEnqueueCalls    int
 	verifyLastOrderNumber int64
-	verifyLastProgramID   int64
 	verifyLastDueAt       time.Time
 }
 
@@ -334,10 +333,9 @@ func (f *fakeAsyncCloseClient) EnqueueCloseTimeout(_ context.Context, orderNumbe
 	return f.enqueueErr
 }
 
-func (f *fakeAsyncCloseClient) EnqueueVerifyAttemptDue(_ context.Context, orderNumber, programID int64, dueAt time.Time) error {
+func (f *fakeAsyncCloseClient) EnqueueVerifyAttemptDue(_ context.Context, orderNumber int64, dueAt time.Time) error {
 	f.verifyEnqueueCalls++
 	f.verifyLastOrderNumber = orderNumber
-	f.verifyLastProgramID = programID
 	f.verifyLastDueAt = dueAt
 	return f.verifyEnqueueErr
 }

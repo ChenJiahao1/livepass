@@ -78,8 +78,8 @@ RepeatGuard:
 Kafka:
   Brokers:
     - 127.0.0.1:9094
-  TopicOrderCreate: order.create.command.v1
-  ConsumerGroup: damai-go-order-create
+  TopicOrderCreate: ticketing.attempt.command.v1
+  ConsumerGroup: damai-go-ticketing-attempt
   TopicPartitions: 5
   ConsumerWorkers: 1
   # 对齐 Java 开源版语义：超过该延迟的创建消息按废单处理，consumer 释放锁座且不补单。

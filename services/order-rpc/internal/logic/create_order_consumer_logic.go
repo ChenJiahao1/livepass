@@ -239,8 +239,13 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		return orderEvent, nil, nil
 	}
 
+	showTimeID := orderEvent.ShowTimeID
+	if showTimeID <= 0 {
+		showTimeID = orderEvent.ProgramID
+	}
+
 	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramPreorderReq{
-		ShowTimeId: orderEvent.ProgramID,
+		ShowTimeId: showTimeID,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -296,6 +301,10 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 	if orderEvent.RequestNo != "" {
 		event.RequestNo = orderEvent.RequestNo
 	}
+	event.ShowTimeID = orderEvent.ShowTimeID
+	event.Generation = orderEvent.Generation
+	event.SaleWindowEndAt = orderEvent.SaleWindowEndAt
+	event.ShowEndAt = orderEvent.ShowEndAt
 	event.CommitCutoffAt = orderEvent.CommitCutoffAt
 	event.UserDeadlineAt = orderEvent.UserDeadlineAt
 

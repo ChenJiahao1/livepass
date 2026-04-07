@@ -81,7 +81,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	if l.svcCtx.AsyncCloseClient != nil {
-		if err := l.svcCtx.AsyncCloseClient.EnqueueVerifyAttemptDue(l.ctx, attempt.OrderNumber, attempt.ProgramID, attempt.UserDeadlineAt); err != nil {
+		if err := l.svcCtx.AsyncCloseClient.EnqueueVerifyAttemptDue(l.ctx, attempt.OrderNumber, attempt.UserDeadlineAt); err != nil {
 			l.Errorf("enqueue verify attempt failed, orderNumber=%d err=%v", attempt.OrderNumber, err)
 		}
 	}
@@ -99,7 +99,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 	if err := l.svcCtx.OrderCreateProducer.Send(l.ctx, event.PartitionKey(), body); err != nil {
-		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+		l.Errorf("handoff order create event failed, orderNumber=%d err=%v", attempt.OrderNumber, err)
 	}
 	if err := l.svcCtx.AttemptStore.MarkQueued(l.ctx, attempt.OrderNumber, time.Now()); err != nil {
 		l.Errorf("mark rush attempt queued failed, orderNumber=%d err=%v", attempt.OrderNumber, err)

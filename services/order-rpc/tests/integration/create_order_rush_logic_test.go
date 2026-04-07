@@ -2,7 +2,8 @@ package integration_test
 
 import (
 	"context"
-	"strconv"
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"damai-go/services/order-rpc/pb"
 )
 
-func TestCreateOrderReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInline(t *testing.T) {
+func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInline(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
@@ -24,19 +25,24 @@ func TestCreateOrderReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInline(t 
 
 	ctx := context.Background()
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	showTimeID := programID + 101
 	claims := rush.PurchaseTokenClaims{
 		OrderNumber:      orderNumbers[0],
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:2],
 		TicketCount:      2,
+		Generation:       rush.BuildRushGeneration(showTimeID),
+		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
+		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
 		TakeTicketMode:   "paper",
 		ExpireAt:         time.Now().Add(2 * time.Minute).Unix(),
 	}
 	token := mustIssueRushPurchaseToken(t, svcCtx, claims)
-	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, claims.ProgramID, claims.TicketCategoryID, 6); err != nil {
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, claims.ShowTimeID, claims.TicketCategoryID, 6); err != nil {
 		t.Fatalf("SetQuotaAvailable() error = %v", err)
 	}
 
@@ -50,11 +56,9 @@ func TestCreateOrderReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInline(t 
 	if resp.GetOrderNumber() != claims.OrderNumber {
 		t.Fatalf("expected order number %d, got %d", claims.OrderNumber, resp.GetOrderNumber())
 	}
-	if producer.sendCalls != 1 {
-		t.Fatalf("expected producer send once, got %d", producer.sendCalls)
-	}
-	if producer.lastKey != strconv.FormatInt(claims.OrderNumber, 10) {
-		t.Fatalf("expected kafka key %d, got %s", claims.OrderNumber, producer.lastKey)
+	waitOrderCreateSendCalls(t, producer, 1)
+	if producer.lastKey != fmt.Sprintf("%d#%d", claims.ShowTimeID, claims.TicketCategoryID) {
+		t.Fatalf("expected kafka partition key %d#%d, got %s", claims.ShowTimeID, claims.TicketCategoryID, producer.lastKey)
 	}
 	if programRPC.lastAutoAssignAndFreezeSeatsReq != nil {
 		t.Fatalf("expected hot path to skip inline seat freeze, got %+v", programRPC.lastAutoAssignAndFreezeSeatsReq)
@@ -70,8 +74,11 @@ func TestCreateOrderReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInline(t 
 	if err != nil {
 		t.Fatalf("UnmarshalOrderCreateEvent() error = %v", err)
 	}
-	if event.OrderNumber != claims.OrderNumber || event.ProgramID != claims.ProgramID || event.TicketCount != claims.TicketCount {
+	if event.OrderNumber != claims.OrderNumber || event.ProgramID != claims.ProgramID || event.ShowTimeID != claims.ShowTimeID || event.TicketCount != claims.TicketCount {
 		t.Fatalf("unexpected event body: %+v", event)
+	}
+	if event.Generation != claims.Generation || event.SaleWindowEndAt == "" || event.ShowEndAt == "" {
+		t.Fatalf("expected show time generation window fields, got %+v", event)
 	}
 
 	record, err := svcCtx.AttemptStore.Get(ctx, claims.OrderNumber)
@@ -83,7 +90,7 @@ func TestCreateOrderReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInline(t 
 	}
 }
 
-func TestCreateOrderSchedulesVerifyTaskAtUserDeadline(t *testing.T) {
+func TestCreateOrderRushSchedulesVerifyTaskAtUserDeadline(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
@@ -94,19 +101,24 @@ func TestCreateOrderSchedulesVerifyTaskAtUserDeadline(t *testing.T) {
 
 	ctx := context.Background()
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	showTimeID := programID + 102
 	claims := rush.PurchaseTokenClaims{
 		OrderNumber:      orderNumbers[0],
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:1],
 		TicketCount:      1,
+		Generation:       rush.BuildRushGeneration(showTimeID),
+		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
+		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
 		TakeTicketMode:   "paper",
 		ExpireAt:         time.Now().Add(2 * time.Minute).Unix(),
 	}
 	token := mustIssueRushPurchaseToken(t, svcCtx, claims)
-	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, claims.ProgramID, claims.TicketCategoryID, 4); err != nil {
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, claims.ShowTimeID, claims.TicketCategoryID, 4); err != nil {
 		t.Fatalf("SetQuotaAvailable() error = %v", err)
 	}
 
@@ -126,9 +138,6 @@ func TestCreateOrderSchedulesVerifyTaskAtUserDeadline(t *testing.T) {
 	if asyncCloseClient.verifyLastOrderNumber != claims.OrderNumber {
 		t.Fatalf("expected verify task order number %d, got %d", claims.OrderNumber, asyncCloseClient.verifyLastOrderNumber)
 	}
-	if asyncCloseClient.verifyLastProgramID != claims.ProgramID {
-		t.Fatalf("expected verify task program id %d, got %d", claims.ProgramID, asyncCloseClient.verifyLastProgramID)
-	}
 
 	record, err := svcCtx.AttemptStore.Get(ctx, claims.OrderNumber)
 	if err != nil {
@@ -139,7 +148,7 @@ func TestCreateOrderSchedulesVerifyTaskAtUserDeadline(t *testing.T) {
 	}
 }
 
-func TestCreateOrderReturnsExistingOrderNumberForSameTokenFingerprint(t *testing.T) {
+func TestCreateOrderRushReturnsExistingOrderNumberForSameTokenFingerprint(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
@@ -150,13 +159,18 @@ func TestCreateOrderReturnsExistingOrderNumberForSameTokenFingerprint(t *testing
 
 	ctx := context.Background()
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	showTimeID := programID + 103
 	baseClaims := rush.PurchaseTokenClaims{
 		OrderNumber:      orderNumbers[0],
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:2],
 		TicketCount:      2,
+		Generation:       rush.BuildRushGeneration(showTimeID),
+		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
+		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
 		TakeTicketMode:   "paper",
 		ExpireAt:         time.Now().Add(2 * time.Minute).Unix(),
@@ -164,7 +178,7 @@ func TestCreateOrderReturnsExistingOrderNumberForSameTokenFingerprint(t *testing
 	secondClaims := baseClaims
 	secondClaims.OrderNumber = orderNumbers[1]
 
-	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, baseClaims.ProgramID, baseClaims.TicketCategoryID, 6); err != nil {
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, baseClaims.ShowTimeID, baseClaims.TicketCategoryID, 6); err != nil {
 		t.Fatalf("SetQuotaAvailable() error = %v", err)
 	}
 
@@ -194,6 +208,59 @@ func TestCreateOrderReturnsExistingOrderNumberForSameTokenFingerprint(t *testing
 	}
 	if _, err := svcCtx.AttemptStore.Get(ctx, secondClaims.OrderNumber); err == nil {
 		t.Fatalf("expected no second attempt record for reused fingerprint")
+	}
+}
+
+func TestCreateOrderRushReturnsOrderNumberWhenPublishHandoffFails(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
+	producer.sendErr = errors.New("publish handoff failed")
+
+	ctx := context.Background()
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	showTimeID := programID + 104
+	claims := rush.PurchaseTokenClaims{
+		OrderNumber:      orderNumbers[0],
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
+		TicketCategoryID: ticketCategoryID,
+		TicketUserIDs:    viewerIDs[:1],
+		TicketCount:      1,
+		Generation:       rush.BuildRushGeneration(showTimeID),
+		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
+		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+		ExpireAt:         time.Now().Add(2 * time.Minute).Unix(),
+	}
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, claims.ShowTimeID, claims.TicketCategoryID, 4); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+
+	resp, err := logicpkg.NewCreateOrderLogic(ctx, svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:        claims.UserID,
+		PurchaseToken: mustIssueRushPurchaseToken(t, svcCtx, claims),
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	if resp.GetOrderNumber() != claims.OrderNumber {
+		t.Fatalf("expected order number %d, got %d", claims.OrderNumber, resp.GetOrderNumber())
+	}
+	waitOrderCreateSendCalls(t, producer, 1)
+
+	record, err := svcCtx.AttemptStore.Get(ctx, claims.OrderNumber)
+	if err != nil {
+		t.Fatalf("AttemptStore.Get() error = %v", err)
+	}
+	if record.State != rush.AttemptStateQueued {
+		t.Fatalf("expected queued attempt state after publish failure, got %+v", record)
 	}
 }
 
@@ -228,4 +295,18 @@ func nextRushTestIDs() (userID, programID, ticketCategoryID int64, viewerIDs []i
 	}
 
 	return userID, programID, ticketCategoryID, viewerIDs, orderNumbers
+}
+
+func waitOrderCreateSendCalls(t *testing.T, producer *fakeOrderCreateProducer, expected int) {
+	t.Helper()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if producer.sendCalls == expected {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Fatalf("expected producer send calls %d, got %d", expected, producer.sendCalls)
 }
