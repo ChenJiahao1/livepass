@@ -31,12 +31,12 @@ func NewFreezeSeatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Freez
 }
 
 func (l *FreezeSeatsLogic) FreezeSeats(req *types.FreezeSeatsReq) (resp *types.FreezeSeatsResp, err error) {
-	if req.ProgramID <= 0 || req.TicketCategoryID <= 0 || req.Count <= 0 || req.RequestNo == "" {
+	if req.ShowTimeID <= 0 || req.TicketCategoryID <= 0 || req.Count <= 0 || req.RequestNo == "" {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
 	rpcResp, err := l.svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(l.ctx, &programrpc.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        req.ProgramID,
+		ShowTimeId:       req.ShowTimeID,
 		TicketCategoryId: req.TicketCategoryID,
 		Count:            req.Count,
 		RequestNo:        req.RequestNo,

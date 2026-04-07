@@ -69,8 +69,12 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 	if claims.Generation != rush.BuildRushGeneration(programID) || claims.SaleWindowEndAt == 0 || claims.ShowEndAt == 0 {
 		t.Fatalf("expected show time generation window claims, got %+v", claims)
 	}
-	if err := svcCtx.AttemptStore.SetQuotaAvailable(context.Background(), programID, ticketCategoryID, 4); err != nil {
-		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	available, ok, err := svcCtx.AttemptStore.GetQuotaAvailable(context.Background(), programID, ticketCategoryID)
+	if err != nil {
+		t.Fatalf("GetQuotaAvailable() error = %v", err)
+	}
+	if !ok || available != 100 {
+		t.Fatalf("expected purchase token precheck to prime quota=100, got ok=%t available=%d", ok, available)
 	}
 
 	programRPC.getProgramPreorderErr = status.Error(codes.Unavailable, "program rpc unavailable")

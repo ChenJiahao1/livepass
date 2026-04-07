@@ -292,11 +292,11 @@ func TestGetProgramPreorderReturnsLiveRemainNumbersFromSeats(t *testing.T) {
 	resetProgramDomainState(t)
 	clearSeatInventoryByProgram(t, svcCtx, 10001)
 	seedSeatFixtures(t, svcCtx,
-		seatFixture{ID: 91001, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
-		seatFixture{ID: 91002, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusAvailable},
-		seatFixture{ID: 91003, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 3, SeatStatus: testSeatStatusAvailable},
-		seatFixture{ID: 92001, ProgramID: 10001, TicketCategoryID: 40002, RowCode: 2, ColCode: 1, SeatStatus: testSeatStatusAvailable},
-		seatFixture{ID: 92002, ProgramID: 10001, TicketCategoryID: 40002, RowCode: 2, ColCode: 2, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 91001, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40001, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 91002, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40001, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 91003, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40001, RowCode: 1, ColCode: 3, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 92001, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40002, RowCode: 2, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 92002, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40002, RowCode: 2, ColCode: 2, SeatStatus: testSeatStatusAvailable},
 	)
 
 	l := logicpkg.NewGetProgramPreorderLogic(context.Background(), svcCtx)
@@ -347,10 +347,10 @@ func TestGetProgramPreorderExcludesFrozenAndSoldSeats(t *testing.T) {
 	resetProgramDomainState(t)
 	clearSeatInventoryByProgram(t, svcCtx, 10001)
 	seedSeatFixtures(t, svcCtx,
-		seatFixture{ID: 93001, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
-		seatFixture{ID: 93002, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusFrozen, FreezeToken: "freeze-preorder-001", FreezeExpireTime: "2026-12-31 18:00:00"},
-		seatFixture{ID: 93003, ProgramID: 10001, TicketCategoryID: 40001, RowCode: 1, ColCode: 3, SeatStatus: 3},
-		seatFixture{ID: 94001, ProgramID: 10001, TicketCategoryID: 40002, RowCode: 2, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 93001, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40001, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 93002, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40001, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusFrozen, FreezeToken: "freeze-preorder-001", FreezeExpireTime: "2026-12-31 18:00:00"},
+		seatFixture{ID: 93003, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40001, RowCode: 1, ColCode: 3, SeatStatus: 3},
+		seatFixture{ID: 94001, ProgramID: 10001, ShowTimeID: 30001, TicketCategoryID: 40002, RowCode: 2, ColCode: 1, SeatStatus: testSeatStatusAvailable},
 	)
 
 	l := logicpkg.NewGetProgramPreorderLogic(context.Background(), svcCtx)
@@ -385,11 +385,32 @@ func TestGetProgramPreorderReturnsNotFoundWhenProgramMissing(t *testing.T) {
 func TestGetProgramPreorderReturnsEmptyTicketCategoryListWhenNoneSeeded(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
-	seedSeatInventoryProgram(t, svcCtx, 51011, 61011)
+	seedProgramFixtures(t, svcCtx, programFixture{
+		ProgramID:               51011,
+		ShowTimeID:              71011,
+		ProgramGroupID:          52011,
+		ParentProgramCategoryID: 1,
+		ProgramCategoryID:       11,
+		AreaID:                  1,
+		Title:                   "空票档场次",
+		ShowTime:                "2026-12-31 19:30:00",
+		ShowDayTime:             "2026-12-31 00:00:00",
+		ShowWeekTime:            "周四",
+		TicketCategories: []ticketCategoryFixture{
+			{
+				ID:           61011,
+				ShowTimeID:   71011,
+				Introduce:    "普通票",
+				Price:        299,
+				TotalNumber:  100,
+				RemainNumber: 100,
+			},
+		},
+	})
 
 	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
 	defer db.Close()
-	mustExecProgramSQL(t, db, "DELETE FROM d_ticket_category WHERE program_id = ?", 51011)
+	mustExecProgramSQL(t, db, "DELETE FROM d_ticket_category WHERE show_time_id = ?", 71011)
 
 	l := logicpkg.NewGetProgramPreorderLogic(context.Background(), svcCtx)
 	resp, err := l.GetProgramPreorder(&pb.GetProgramPreorderReq{ShowTimeId: 71011})

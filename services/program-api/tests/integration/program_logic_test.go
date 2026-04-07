@@ -572,7 +572,7 @@ func TestFreezeSeatsMapsRequestAndResponse(t *testing.T) {
 	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
 
 	resp, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ProgramID:        10001,
+		ShowTimeID:       30001,
 		TicketCategoryID: 40001,
 		Count:            2,
 		RequestNo:        "preorder-demo-001",
@@ -590,7 +590,7 @@ func TestFreezeSeatsMapsRequestAndResponse(t *testing.T) {
 	if fake.lastAutoAssignAndFreezeSeatsReq == nil {
 		t.Fatalf("expected rpc request")
 	}
-	if fake.lastAutoAssignAndFreezeSeatsReq.ProgramId != 10001 ||
+	if fake.lastAutoAssignAndFreezeSeatsReq.ShowTimeId != 30001 ||
 		fake.lastAutoAssignAndFreezeSeatsReq.TicketCategoryId != 40001 ||
 		fake.lastAutoAssignAndFreezeSeatsReq.Count != 2 ||
 		fake.lastAutoAssignAndFreezeSeatsReq.RequestNo != "preorder-demo-001" ||
@@ -603,7 +603,7 @@ func TestFreezeSeatsRejectsInvalidPayload(t *testing.T) {
 	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: &fakeProgramRPC{}})
 
 	_, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ProgramID:        0,
+		ShowTimeID:       0,
 		TicketCategoryID: 40001,
 		Count:            2,
 		RequestNo:        "",
@@ -626,7 +626,7 @@ func TestFreezeSeatsPropagatesInventoryConflict(t *testing.T) {
 	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
 
 	_, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ProgramID:        10001,
+		ShowTimeID:       30001,
 		TicketCategoryID: 40001,
 		Count:            2,
 		RequestNo:        "preorder-demo-conflict",

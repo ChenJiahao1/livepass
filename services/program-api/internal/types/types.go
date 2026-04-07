@@ -11,7 +11,7 @@ type EmptyReq struct {
 }
 
 type FreezeSeatsReq struct {
-	ProgramID        int64  `json:"programId"`
+	ShowTimeID       int64  `json:"showTimeId"`
 	TicketCategoryID int64  `json:"ticketCategoryId"`
 	Count            int64  `json:"count"`
 	RequestNo        string `json:"requestNo"`

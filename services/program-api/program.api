@@ -166,7 +166,7 @@ type (
 		ID int64 `json:"id"`
 	}
 	FreezeSeatsReq {
-		ProgramID        int64  `json:"programId"`
+		ShowTimeID       int64  `json:"showTimeId"`
 		TicketCategoryID int64  `json:"ticketCategoryId"`
 		Count            int64  `json:"count"`
 		RequestNo        string `json:"requestNo"`
@@ -428,4 +428,3 @@ service program-api {
 	@handler FreezeSeats
 	post /program/seat/freeze (FreezeSeatsReq) returns (FreezeSeatsResp)
 }
-

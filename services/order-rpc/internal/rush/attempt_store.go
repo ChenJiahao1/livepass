@@ -91,6 +91,21 @@ func (s *AttemptStore) SetQuotaAvailable(ctx context.Context, showTimeID, ticket
 	return s.redis.SetCtx(ctx, quotaAvailableKey(s.prefix, showTimeID, BuildRushGeneration(showTimeID), ticketCategoryID), strconv.FormatInt(available, 10))
 }
 
+func (s *AttemptStore) SetQuotaAvailableIfAbsent(ctx context.Context, showTimeID, ticketCategoryID, available int64) (bool, error) {
+	if s == nil || s.redis == nil {
+		return false, xerr.ErrInternal
+	}
+	if showTimeID <= 0 || ticketCategoryID <= 0 || available < 0 {
+		return false, xerr.ErrInvalidParam
+	}
+
+	return s.redis.SetnxCtx(
+		ctx,
+		quotaAvailableKey(s.prefix, showTimeID, BuildRushGeneration(showTimeID), ticketCategoryID),
+		strconv.FormatInt(available, 10),
+	)
+}
+
 func (s *AttemptStore) GetQuotaAvailable(ctx context.Context, showTimeID, ticketCategoryID int64) (available int64, ok bool, err error) {
 	if s == nil || s.redis == nil {
 		return 0, false, xerr.ErrInternal

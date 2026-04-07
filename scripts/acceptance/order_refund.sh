@@ -2,19 +2,19 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./order_checkout.sh
 source "${SCRIPT_DIR}/order_checkout.sh"
 
 REFUND_REASON="${REFUND_REASON:-行程变更}"
-REFUND_MODE="${REFUND_MODE:-proactive}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-docker-compose-mysql-1}"
 MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-123456}"
+REFUND_BLOCK_REASON="${REFUND_BLOCK_REASON:-秒杀活动进行中，暂不支持退票}"
 
-REFUND_BILL_NO=""
-REFUND_AMOUNT=""
-ORDER_AMOUNT=""
-PAY_BILL_NO=""
 REMAIN_BEFORE_REFUND=""
 REMAIN_AFTER_REFUND=""
+ORIGINAL_RUSH_SALE_OPEN_TIME=""
+ORIGINAL_RUSH_SALE_END_TIME=""
+RUSH_WINDOW_MUTATED=0
 
 log() {
   printf '[order-refund] %s\n' "$*"
@@ -32,168 +32,52 @@ docker_mysql_query() {
   docker exec "${MYSQL_CONTAINER}" mysql -N -uroot -p"${MYSQL_ROOT_PASSWORD}" "${database}" -e "${sql}"
 }
 
-fetch_order_snapshot() {
-  local expected_status="$1"
-  local body
-
-  body="$(curl_json "/order/get" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
-  print_json "${body}"
-  assert_json_filter "${body}" ".orderNumber == ${ORDER_NUMBER}" "unexpected order number in order detail response"
-  if [[ -n "${expected_status}" ]]; then
-    assert_json_filter "${body}" ".orderStatus == ${expected_status}" "unexpected order status in order detail response"
+restore_rush_sale_window_if_needed() {
+  if [[ "${RUSH_WINDOW_MUTATED}" != "1" ]]; then
+    return
   fi
-  assert_json_filter "${body}" '.orderTicketInfoVoList | length == 2' "expected exactly two order ticket snapshots"
 
-  ORDER_AMOUNT="$(extract_required "${body}" '.orderPrice' 'orderPrice')"
+  docker_mysql_query damai_program "UPDATE d_program_show_time SET rush_sale_open_time = '${ORIGINAL_RUSH_SALE_OPEN_TIME}', rush_sale_end_time = '${ORIGINAL_RUSH_SALE_END_TIME}', edit_time = NOW() WHERE id = ${SHOW_TIME_ID};" >/dev/null || true
+  redis-cli -h 127.0.0.1 -p 6379 DEL "cache:dProgramShowTime:id:${SHOW_TIME_ID}" >/dev/null || true
 }
 
-refund_order() {
-  local body
-
-  log "10/13 发起退款"
-  body="$(curl_json "/order/refund" "{\"orderNumber\":${ORDER_NUMBER},\"reason\":\"${REFUND_REASON}\"}" 1)"
-  print_json "${body}"
-  assert_json_filter "${body}" ".orderNumber == ${ORDER_NUMBER}" "unexpected order number in refund response"
-  assert_json_filter "${body}" '.orderStatus == 4' "expected orderStatus=4 after refund"
-  assert_json_filter "${body}" '.refundAmount > 0' "expected refundAmount > 0"
-  assert_json_filter "${body}" '.refundPercent > 0' "expected refundPercent > 0"
-  assert_json_filter "${body}" '.refundBillNo > 0' "expected refundBillNo > 0"
-  assert_json_filter "${body}" '.refundTime != ""' "expected refundTime not empty"
-
-  REFUND_BILL_NO="$(extract_required "${body}" '.refundBillNo' 'refundBillNo')"
-  REFUND_AMOUNT="$(extract_required "${body}" '.refundAmount' 'refundAmount')"
-  printf 'REFUND_BILL_NO=%s\nREFUND_AMOUNT=%s\n' "${REFUND_BILL_NO}" "${REFUND_AMOUNT}"
+cleanup() {
+  restore_rush_sale_window_if_needed
 }
 
-check_refund_payment() {
-  local body
+trap cleanup EXIT
 
-  log "11/13 查询退款后支付状态"
-  body="$(curl_json "/order/pay/check" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
-  print_json "${body}"
-  assert_json_filter "${body}" ".orderNumber == ${ORDER_NUMBER}" "unexpected order number in pay check response"
-  assert_json_filter "${body}" '.orderStatus == 4' "expected refunded order status in pay check response"
-  assert_json_filter "${body}" '.payStatus == 3' "expected payStatus=3 in pay check response"
+force_rush_sale_window_now() {
+  local current_window open_at end_at
+
+  log "将场次秒杀窗口调整到当前时间"
+  current_window="$(docker_mysql_query damai_program "SELECT DATE_FORMAT(rush_sale_open_time, '%Y-%m-%d %H:%i:%s'), DATE_FORMAT(rush_sale_end_time, '%Y-%m-%d %H:%i:%s') FROM d_program_show_time WHERE id = ${SHOW_TIME_ID};")" || fail "failed to load current rush sale window"
+  ORIGINAL_RUSH_SALE_OPEN_TIME="${current_window%%$'\t'*}"
+  ORIGINAL_RUSH_SALE_END_TIME="${current_window#*$'\t'}"
+  open_at="$(date -d '-5 minutes' '+%F %T')"
+  end_at="$(date -d '+30 minutes' '+%F %T')"
+  docker_mysql_query damai_program "UPDATE d_program_show_time SET rush_sale_open_time = '${open_at}', rush_sale_end_time = '${end_at}', edit_time = '${end_at}' WHERE id = ${SHOW_TIME_ID};" >/dev/null || fail "failed to update rush sale window"
+  redis-cli -h 127.0.0.1 -p 6379 DEL "cache:dProgramShowTime:id:${SHOW_TIME_ID}" >/dev/null || fail "failed to clear show time cache"
+  RUSH_WINDOW_MUTATED=1
 }
 
-check_refund_order_detail() {
-  log "12/13 查询退款后订单详情"
-  fetch_order_snapshot "4"
-}
+assert_no_refund_bill() {
+  local refund_count
 
-check_refund_storage() {
-  local pay_status refund_row refund_status refund_amount
-
-  log "13/13 校验支付库与库存回滚"
-  pay_status="$(docker_mysql_query damai_pay "SELECT pay_status FROM d_pay_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query d_pay_bill"
-  [[ "${pay_status}" == "3" ]] || fail "expected d_pay_bill.pay_status=3, got ${pay_status}"
-
-  refund_row="$(docker_mysql_query damai_pay "SELECT refund_bill_no, refund_amount, refund_status FROM d_refund_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query d_refund_bill"
-  [[ -n "${refund_row}" ]] || fail "missing refund bill row for order ${ORDER_NUMBER}"
-
-  REFUND_BILL_NO="$(printf '%s\n' "${refund_row}" | awk '{print $1}')"
-  refund_amount="$(printf '%s\n' "${refund_row}" | awk '{print $2}')"
-  refund_status="$(printf '%s\n' "${refund_row}" | awk '{print $3}')"
-
-  [[ -n "${REFUND_BILL_NO}" && "${REFUND_BILL_NO}" -gt 0 ]] || fail "invalid refund bill no from db: ${REFUND_BILL_NO}"
-  [[ "${refund_status}" == "2" ]] || fail "expected refund_status=2, got ${refund_status}"
-  [[ "${refund_amount}" == "${REFUND_AMOUNT}" ]] || fail "refund amount mismatch, api=${REFUND_AMOUNT} db=${refund_amount}"
-
-  REMAIN_AFTER_REFUND="$(get_preorder_remain_number "${TICKET_CATEGORY_ID}")"
-  [[ "${REMAIN_AFTER_REFUND}" -eq $((REMAIN_BEFORE_REFUND + 2)) ]] || fail "expected remain_after_refund=${REMAIN_BEFORE_REFUND}+2, got ${REMAIN_AFTER_REFUND}"
-
-  printf 'REMAIN_BEFORE_REFUND=%s\nREMAIN_AFTER_REFUND=%s\n' "${REMAIN_BEFORE_REFUND}" "${REMAIN_AFTER_REFUND}"
-}
-
-cancel_order_for_compensation() {
-  local body
-
-  log "10/14 取消未支付订单"
-  body="$(curl_json "/order/cancel" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
-  print_json "${body}"
-  assert_json_filter "${body}" '.success == true' "expected cancel success"
-}
-
-inject_late_paid_bill() {
-  local pay_time pay_bill_seed
-
-  pay_time="$(date '+%Y-%m-%d %H:%M:%S')"
-  pay_bill_seed=$((ORDER_NUMBER + 800000))
-  PAY_BILL_NO="${pay_bill_seed}"
-
-  log "12/14 注入晚到支付账单"
-  docker_mysql_query damai_pay "INSERT INTO d_pay_bill (id, pay_bill_no, order_number, user_id, subject, channel, order_amount, pay_status, pay_time, create_time, edit_time, status) VALUES (${pay_bill_seed}, ${pay_bill_seed}, ${ORDER_NUMBER}, ${USER_ID}, '补偿退款验收支付', 'mock', ${ORDER_AMOUNT}, 2, '${pay_time}', '${pay_time}', '${pay_time}', 1) ON DUPLICATE KEY UPDATE pay_bill_no = VALUES(pay_bill_no), user_id = VALUES(user_id), subject = VALUES(subject), channel = VALUES(channel), order_amount = VALUES(order_amount), pay_status = 2, pay_time = VALUES(pay_time), edit_time = VALUES(edit_time), status = 1;" >/dev/null || fail "failed to inject paid bill"
-  printf 'PAY_BILL_NO=%s\nORDER_AMOUNT=%s\n' "${PAY_BILL_NO}" "${ORDER_AMOUNT}"
-}
-
-check_compensation_payment() {
-  local body
-
-  log "13/14 触发支付晚到补偿退款"
-  body="$(curl_json "/order/pay/check" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
-  print_json "${body}"
-  assert_json_filter "${body}" ".orderNumber == ${ORDER_NUMBER}" "unexpected order number in compensation pay check response"
-  assert_json_filter "${body}" '.orderStatus == 4' "expected refunded order status in compensation pay check response"
-  assert_json_filter "${body}" '.payStatus == 3' "expected payStatus=3 after compensation refund"
-  assert_json_filter "${body}" ".payBillNo == ${PAY_BILL_NO}" "unexpected pay bill no in compensation pay check response"
-}
-
-check_compensation_storage() {
-  local pay_status refund_row refund_status refund_amount
-
-  log "14/14 校验补偿退款支付库状态"
-  pay_status="$(docker_mysql_query damai_pay "SELECT pay_status FROM d_pay_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query compensation pay bill"
-  [[ "${pay_status}" == "3" ]] || fail "expected compensated d_pay_bill.pay_status=3, got ${pay_status}"
-
-  refund_row="$(docker_mysql_query damai_pay "SELECT refund_bill_no, refund_amount, refund_status FROM d_refund_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query compensation refund bill"
-  [[ -n "${refund_row}" ]] || fail "missing compensation refund bill row for order ${ORDER_NUMBER}"
-
-  REFUND_BILL_NO="$(printf '%s\n' "${refund_row}" | awk '{print $1}')"
-  refund_amount="$(printf '%s\n' "${refund_row}" | awk '{print $2}')"
-  refund_status="$(printf '%s\n' "${refund_row}" | awk '{print $3}')"
-
-  [[ -n "${REFUND_BILL_NO}" && "${REFUND_BILL_NO}" -gt 0 ]] || fail "invalid compensation refund bill no from db: ${REFUND_BILL_NO}"
-  [[ "${refund_status}" == "2" ]] || fail "expected compensation refund_status=2, got ${refund_status}"
-  [[ "${refund_amount}" == "${ORDER_AMOUNT}" ]] || fail "compensation refund amount mismatch, order=${ORDER_AMOUNT} db=${refund_amount}"
-
-  REFUND_AMOUNT="${refund_amount}"
-  printf 'REFUND_BILL_NO=%s\nREFUND_AMOUNT=%s\n' "${REFUND_BILL_NO}" "${REFUND_AMOUNT}"
-}
-
-run_proactive_flow() {
-  pay_order
-  check_payment
-  get_order
-
-  REMAIN_BEFORE_REFUND="$(get_preorder_remain_number "${TICKET_CATEGORY_ID}")"
-  log "退款前余量=${REMAIN_BEFORE_REFUND}"
-
-  refund_order
-  check_refund_payment
-  check_refund_order_detail
-  check_refund_storage
-}
-
-run_compensation_flow() {
-  fetch_order_snapshot "1"
-  cancel_order_for_compensation
-  fetch_order_snapshot "2"
-  inject_late_paid_bill
-  check_compensation_payment
-  fetch_order_snapshot "4"
-  check_compensation_storage
+  refund_count="$(docker_mysql_query damai_pay "SELECT COUNT(1) FROM d_refund_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query refund bill"
+  [[ "${refund_count}" == "0" ]] || fail "expected no refund bill for blocked refund, got ${refund_count}"
 }
 
 main() {
   preflight
   require_cmd docker
+  require_cmd redis-cli
 
   log "BASE_URL=${BASE_URL}"
   log "CHANNEL_CODE=${CHANNEL_CODE}"
-  log "PROGRAM_ID=${PROGRAM_ID}"
+  log "SHOW_TIME_ID=${SHOW_TIME_ID}"
   log "MOBILE=${MOBILE}"
   log "MYSQL_CONTAINER=${MYSQL_CONTAINER}"
-  log "REFUND_MODE=${REFUND_MODE}"
 
   register_user
   login_user
@@ -201,32 +85,44 @@ main() {
   add_ticket_user "${TICKET_USER_B_NAME}" "${TICKET_USER_B_ID_NUMBER}"
   list_ticket_users
   fetch_preorder
+  create_purchase_token
   create_order
-  case "${REFUND_MODE}" in
-    proactive)
-      run_proactive_flow
-      log "退款主路径执行成功"
-      printf 'ORDER_NUMBER=%s\nREFUND_BILL_NO=%s\nREFUND_AMOUNT=%s\nREMAIN_BEFORE_REFUND=%s\nREMAIN_AFTER_REFUND=%s\n' \
-        "${ORDER_NUMBER}" \
-        "${REFUND_BILL_NO}" \
-        "${REFUND_AMOUNT}" \
-        "${REMAIN_BEFORE_REFUND}" \
-        "${REMAIN_AFTER_REFUND}"
-      ;;
-    compensation)
-      run_compensation_flow
-      log "退款补偿路径执行成功"
-      printf 'ORDER_NUMBER=%s\nPAY_BILL_NO=%s\nREFUND_BILL_NO=%s\nORDER_AMOUNT=%s\nREFUND_AMOUNT=%s\n' \
-        "${ORDER_NUMBER}" \
-        "${PAY_BILL_NO}" \
-        "${REFUND_BILL_NO}" \
-        "${ORDER_AMOUNT}" \
-        "${REFUND_AMOUNT}"
-      ;;
-    *)
-      fail "unsupported REFUND_MODE=${REFUND_MODE}, expected proactive or compensation"
-      ;;
-  esac
+  poll_order_until_done
+  assert_poll_status "3"
+  pay_order
+  check_payment
+
+  REMAIN_BEFORE_REFUND="$(get_preorder_remain_number "${TICKET_CATEGORY_ID}")"
+  force_rush_sale_window_now
+
+  log "10/12 发起退款，预期被秒杀窗口拒绝"
+  body="$(curl_json_expect_error "/order/refund" "{\"orderNumber\":${ORDER_NUMBER},\"reason\":\"${REFUND_REASON}\"}" "${REFUND_BLOCK_REASON}" 1)"
+  print_json "${body}"
+
+  log "11/12 校验订单和支付状态未变化"
+  body="$(fetch_order_snapshot "3" "2")"
+  print_json "${body}"
+  body="$(curl_json "/order/pay/check" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
+  print_json "${body}"
+  assert_json_filter "${body}" '.orderStatus == 3' "expected orderStatus=3 after blocked refund"
+  assert_json_filter "${body}" '.payStatus == 2' "expected payStatus=2 after blocked refund"
+
+  log "12/12 校验支付库与库存未发生退款副作用"
+  pay_status="$(docker_mysql_query damai_pay "SELECT pay_status FROM d_pay_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query pay bill"
+  [[ "${pay_status}" == "2" ]] || fail "expected d_pay_bill.pay_status=2 after blocked refund, got ${pay_status}"
+  assert_no_refund_bill
+
+  REMAIN_AFTER_REFUND="$(get_preorder_remain_number "${TICKET_CATEGORY_ID}")"
+  [[ "${REMAIN_AFTER_REFUND}" == "${REMAIN_BEFORE_REFUND}" ]] || fail "expected remainNumber unchanged after blocked refund, before=${REMAIN_BEFORE_REFUND} after=${REMAIN_AFTER_REFUND}"
+
+  log "退款窗口拦截执行成功"
+  printf 'ORDER_NUMBER=%s\nPROGRAM_ID=%s\nSHOW_TIME_ID=%s\nTICKET_CATEGORY_ID=%s\nREMAIN_BEFORE_REFUND=%s\nREMAIN_AFTER_REFUND=%s\n' \
+    "${ORDER_NUMBER}" \
+    "${PROGRAM_ID}" \
+    "${SHOW_TIME_ID}" \
+    "${TICKET_CATEGORY_ID}" \
+    "${REMAIN_BEFORE_REFUND}" \
+    "${REMAIN_AFTER_REFUND}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

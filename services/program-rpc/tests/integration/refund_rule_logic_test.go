@@ -12,9 +12,10 @@ import (
 const refundRuleTestDateTimeLayout = "2006-01-02 15:04:05"
 
 func TestEvaluateRefundRule(t *testing.T) {
+	resetProgramDomainState(t)
+
 	t.Run("permitRefund=0 prefers refundExplain as reject reason", func(t *testing.T) {
 		svcCtx := newProgramTestServiceContext(t)
-		resetProgramDomainState(t)
 
 		const programID int64 = 54001
 		const showTimeID int64 = 64001
@@ -31,6 +32,9 @@ func TestEvaluateRefundRule(t *testing.T) {
 			ShowWeekTime:            "周四",
 			PermitRefund:            0,
 			RefundExplain:           rejectReason,
+			TicketCategories: []ticketCategoryFixture{
+				{ID: 164001, ShowTimeID: showTimeID, Introduce: "普通票", Price: 299, TotalNumber: 100, RemainNumber: 100},
+			},
 		})
 
 		l := logicpkg.NewEvaluateRefundRuleLogic(context.Background(), svcCtx)
@@ -51,7 +55,6 @@ func TestEvaluateRefundRule(t *testing.T) {
 
 	t.Run("permitRefund=2 returns full refund", func(t *testing.T) {
 		svcCtx := newProgramTestServiceContext(t)
-		resetProgramDomainState(t)
 
 		const programID int64 = 54002
 		const showTimeID int64 = 64002
@@ -67,6 +70,9 @@ func TestEvaluateRefundRule(t *testing.T) {
 			ShowDayTime:             "2026-12-31 00:00:00",
 			ShowWeekTime:            "周四",
 			PermitRefund:            2,
+			TicketCategories: []ticketCategoryFixture{
+				{ID: 164002, ShowTimeID: showTimeID, Introduce: "普通票", Price: 299, TotalNumber: 100, RemainNumber: 100},
+			},
 		})
 
 		l := logicpkg.NewEvaluateRefundRuleLogic(context.Background(), svcCtx)
@@ -84,7 +90,6 @@ func TestEvaluateRefundRule(t *testing.T) {
 
 	t.Run("permitRefund=1 matches staged rule", func(t *testing.T) {
 		svcCtx := newProgramTestServiceContext(t)
-		resetProgramDomainState(t)
 
 		const programID int64 = 54003
 		const showTimeID int64 = 64003
@@ -102,6 +107,9 @@ func TestEvaluateRefundRule(t *testing.T) {
 			PermitRefund:            1,
 			RefundExplain:           "支持按时间阶梯退款",
 			RefundRuleJSON:          `{"version":1,"stages":[{"beforeMinutes":10080,"refundPercent":100},{"beforeMinutes":1440,"refundPercent":80},{"beforeMinutes":120,"refundPercent":50}]}`,
+			TicketCategories: []ticketCategoryFixture{
+				{ID: 164003, ShowTimeID: showTimeID, Introduce: "普通票", Price: 299, TotalNumber: 100, RemainNumber: 100},
+			},
 		})
 
 		l := logicpkg.NewEvaluateRefundRuleLogic(context.Background(), svcCtx)
@@ -119,7 +127,6 @@ func TestEvaluateRefundRule(t *testing.T) {
 
 	t.Run("permitRefund=1 no-match prefers refundTicketRule/refundExplain copy", func(t *testing.T) {
 		svcCtx := newProgramTestServiceContext(t)
-		resetProgramDomainState(t)
 
 		const programID int64 = 54004
 		const showTimeID int64 = 64004
@@ -141,6 +148,9 @@ func TestEvaluateRefundRule(t *testing.T) {
 			RefundTicketRule:        refundTicketRule,
 			RefundExplain:           refundExplain,
 			RefundRuleJSON:          `{"version":1,"stages":[{"beforeMinutes":120,"refundPercent":50}]}`,
+			TicketCategories: []ticketCategoryFixture{
+				{ID: 164004, ShowTimeID: showTimeID, Introduce: "普通票", Price: 299, TotalNumber: 100, RemainNumber: 100},
+			},
 		})
 
 		l := logicpkg.NewEvaluateRefundRuleLogic(context.Background(), svcCtx)
@@ -161,7 +171,6 @@ func TestEvaluateRefundRule(t *testing.T) {
 
 	t.Run("rush sale window blocks refund with fixed reject copy", func(t *testing.T) {
 		svcCtx := newProgramTestServiceContext(t)
-		resetProgramDomainState(t)
 
 		const programID int64 = 54005
 		const showTimeID int64 = 64005
@@ -179,6 +188,9 @@ func TestEvaluateRefundRule(t *testing.T) {
 			RushSaleOpenTime:        time.Now().Add(-time.Minute).Format(refundRuleTestDateTimeLayout),
 			RushSaleEndTime:         time.Now().Add(time.Minute).Format(refundRuleTestDateTimeLayout),
 			PermitRefund:            2,
+			TicketCategories: []ticketCategoryFixture{
+				{ID: 164005, ShowTimeID: showTimeID, Introduce: "普通票", Price: 299, TotalNumber: 100, RemainNumber: 100},
+			},
 		})
 
 		l := logicpkg.NewEvaluateRefundRuleLogic(context.Background(), svcCtx)

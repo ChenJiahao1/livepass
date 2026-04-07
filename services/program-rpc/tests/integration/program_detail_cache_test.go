@@ -14,12 +14,39 @@ import (
 )
 
 func TestGetProgramDetailUsesLocalCacheUntilInvalidate(t *testing.T) {
+	const (
+		programID      int64 = 81101
+		programGroupID int64 = 82101
+	)
+
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
+	if err := svcCtx.ProgramCacheInvalidator.InvalidateProgram(context.Background(), programID, programGroupID); err != nil {
+		t.Fatalf("clear stale program caches error: %v", err)
+	}
+	assertProgramRelatedCacheKeysMissing(t, svcCtx, programID, programGroupID)
+	assertProgramMissingFromDB(t, svcCtx, programID)
+
+	seedProgramFixtures(t, svcCtx, programFixture{
+		ProgramID:               programID,
+		ProgramGroupID:          programGroupID,
+		ParentProgramCategoryID: 1,
+		ProgramCategoryID:       11,
+		AreaID:                  1,
+		Title:                   "本地缓存测试演出",
+		ShowTime:                "2026-12-21 19:30:00",
+		ShowDayTime:             "2026-12-21 00:00:00",
+		ShowWeekTime:            "周日",
+		GroupAreaName:           "上海",
+		TicketCategories: []ticketCategoryFixture{
+			{ID: 83101, Introduce: "普通票", Price: 188, TotalNumber: 30, RemainNumber: 30},
+			{ID: 83102, Introduce: "VIP票", Price: 388, TotalNumber: 20, RemainNumber: 20},
+		},
+	})
 
 	l := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
 
-	first, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: 10001})
+	first, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
 	if err != nil {
 		t.Fatalf("first GetProgramDetail returned error: %v", err)
 	}
@@ -29,9 +56,9 @@ func TestGetProgramDetailUsesLocalCacheUntilInvalidate(t *testing.T) {
 
 	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
 	defer db.Close()
-	mustExecProgramSQL(t, db, "DELETE FROM d_ticket_category WHERE program_id = ?", 10001)
+	mustExecProgramSQL(t, db, "DELETE FROM d_ticket_category WHERE program_id = ?", programID)
 
-	second, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: 10001})
+	second, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
 	if err != nil {
 		t.Fatalf("second GetProgramDetail returned error: %v", err)
 	}
@@ -39,9 +66,9 @@ func TestGetProgramDetailUsesLocalCacheUntilInvalidate(t *testing.T) {
 		t.Fatalf("expected second request to hit L1 cache and keep 2 ticket categories, got %+v", second.TicketCategoryVoList)
 	}
 
-	svcCtx.ProgramDetailCache.Invalidate(10001)
+	svcCtx.ProgramDetailCache.Invalidate(programID)
 
-	third, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: 10001})
+	third, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
 	if err != nil {
 		t.Fatalf("third GetProgramDetail after invalidate returned error: %v", err)
 	}

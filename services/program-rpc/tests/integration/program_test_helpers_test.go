@@ -257,6 +257,7 @@ func clearProgramRedisState(t *testing.T) {
 	for _, pattern := range []string{
 		"cache:dProgram:id:*",
 		"cache:dProgramGroup:id:*",
+		"cache:dProgramShowTime:id:*",
 		"cache:dProgramShowTime:first:programId:*",
 		testProgramSeatLedgerPrefix + ":*",
 	} {
