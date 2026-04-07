@@ -14,12 +14,9 @@ if state == "COMMITTED" or state == "RELEASED" then
 end
 
 local verifyStartedAt = redis.call("HGET", KEYS[1], "verify_started_at")
-local probeAttempts = tonumber(redis.call("HGET", KEYS[1], "db_probe_attempts") or "0") + 1
 
 local updates = {
-    "state", "VERIFYING",
-    "last_db_probe_at", ARGV[1],
-    "db_probe_attempts", probeAttempts
+    "state", "VERIFYING"
 }
 
 if not verifyStartedAt or verifyStartedAt == "" or verifyStartedAt == "0" then

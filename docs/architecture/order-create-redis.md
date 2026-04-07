@@ -1,5 +1,7 @@
 /order/create 只做 Redis 准入和 Kafka 异步投递，先返回 orderNumber；Kafka consumer 再去冻座并把“未支付订单”落到 MySQL；/order/poll 返回 SUCCESS 代表“订单已创建，可支付”，不是“已支付”；真正把座位从
-冻结态写成已售，是 /order/pay。下面我按实现来讲，不按设计稿脑补；seat-ledger 的 key 顺序我也按代码实际值写。主要代码入口在 services/order-rpc/internal/logic/create_purchase_token_logic.go:33、
+冻结态写成已售，是 /order/pay。下面我按实现来讲，不按设计稿脑补；seat-ledger 的 key 顺序我也按代码实际值写。注意 program 侧 scope tag 固定由 `seatLedgerScopeTag(showTimeID)` 生成，实际长这样：
+`{st:<show_time_id>:g:g-<show_time_id>}`；前一个 `g` 是 tag 里的字段名，后一个 `g-<show_time_id>` 才是 generation 值，所以看起来像重复，其实不是写错。主要代码入口在
+services/order-rpc/internal/logic/create_purchase_token_logic.go:33、
 services/order-rpc/internal/logic/create_order_logic.go:31、services/order-rpc/internal/rush/admit_attempt.lua:1、services/order-rpc/internal/logic/create_order_consumer_logic.go:38、services/
 program-rpc/internal/logic/auto_assign_and_freeze_seats_logic.go:43、services/order-rpc/internal/logic/rush_attempt_projection_helper.go:98、services/order-rpc/internal/logic/
 pay_order_logic.go:31。
@@ -63,12 +65,10 @@ damai-go:order:rush:{st:<show_time_id>:g:<generation>}:seat_occupied:<order_numb
   processing_epoch="0|1|2..."
   processing_started_at="1775551105231"
   verify_started_at="1775551115320"
-  last_db_probe_at="1775551116320"
-  db_probe_attempts="0|1|2..."
   created_at="1775551105000"
   last_transition_at="1775551105400"
   说明：
-  orderNumber、userId、showTimeId、ticketCategoryId、ticketCount、processingEpoch、dbProbeAttempts 都按十进制字符串存。
+  orderNumber、userId、showTimeId、ticketCategoryId、ticketCount、processingEpoch 都按十进制字符串存。
   时间字段全部按 Unix 毫秒时间戳字符串存，不是 datetime 字符串。
   viewer_ids 是逗号分隔字符串。
   state/reason_code 是状态机枚举值。
@@ -99,14 +99,16 @@ damai-go:order:rush:{st:<show_time_id>:g:<generation>}:seat_occupied:<order_numb
 
 program seat-ledger Redis key：
 
-damai-go:program:seat-ledger:stock:{st:<show_time_id>:g:g-<show_time_id>}:<ticket_category_id>
-damai-go:program:seat-ledger:available:{st:<show_time_id>:g:g-<show_time_id>}:<ticket_category_id>
-damai-go:program:seat-ledger:sold:{st:<show_time_id>:g:g-<show_time_id>}:<ticket_category_id>
-damai-go:program:seat-ledger:frozen:{st:<show_time_id>:g:g-<show_time_id>}:<ticket_category_id>:<freeze_token>
-damai-go:program:seat-ledger:loading:{st:<show_time_id>:g:g-<show_time_id>}:<ticket_category_id>
+其中 `<scope_tag>` 的实际值是 `{st:<show_time_id>:g:g-<show_time_id>}`。
+
+damai-go:program:seat-ledger:stock:<scope_tag>:<ticket_category_id>
+damai-go:program:seat-ledger:available:<scope_tag>:<ticket_category_id>
+damai-go:program:seat-ledger:sold:<scope_tag>:<ticket_category_id>
+damai-go:program:seat-ledger:frozen:<scope_tag>:<ticket_category_id>:<freeze_token>
+damai-go:program:seat-ledger:loading:<scope_tag>:<ticket_category_id>
 damai-go:program:seat-ledger:freeze:meta:<freeze_token>
 damai-go:program:seat-ledger:freeze:req:<request_no>
-damai-go:program:seat-ledger:freeze:index:{st:<show_time_id>:g:g-<show_time_id>}:<ticket_category_id>
+damai-go:program:seat-ledger:freeze:index:<scope_tag>:<ticket_category_id>
 
 - stock 是 Hash。
   示例：

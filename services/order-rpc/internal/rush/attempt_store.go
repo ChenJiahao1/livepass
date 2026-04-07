@@ -662,10 +662,6 @@ func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	record.DBProbeAttempts, err = parseFieldInt64(fields, attemptFieldDBProbeAttempts)
-	if err != nil {
-		return nil, err
-	}
 	record.Generation = fields[attemptFieldGeneration]
 	if record.Generation == "" {
 		record.Generation = BuildRushGeneration(record.ShowTimeID)
@@ -696,10 +692,6 @@ func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 		return nil, err
 	}
 	record.VerifyStartedAt, err = parseFieldTime(fields, attemptFieldVerifyStartedAt)
-	if err != nil {
-		return nil, err
-	}
-	record.LastDBProbeAt, err = parseFieldTime(fields, attemptFieldLastDBProbeAt)
 	if err != nil {
 		return nil, err
 	}

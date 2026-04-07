@@ -102,7 +102,6 @@ redis.call("HSET", KEYS[1],
     "user_deadline_at", userDeadlineAt,
     "show_end_at", showEndAt,
     "processing_epoch", 0,
-    "db_probe_attempts", 0,
     "created_at", nowUnixMs,
     "last_transition_at", nowUnixMs
 )

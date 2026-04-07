@@ -2,11 +2,14 @@ package integration_test
 
 import (
 	"context"
+	"fmt"
+	"sort"
 	"testing"
 	"time"
 
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/internal/rush"
+	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 	"damai-go/services/order-rpc/sharding"
 )
@@ -65,11 +68,15 @@ func TestVerifyAttemptDueMarksAttemptVerifyingAndReconcileReleasesMissingOrder(t
 	if record.State != rush.AttemptStateVerifying {
 		t.Fatalf("expected verifying attempt state, got %+v", record)
 	}
-	if record.VerifyStartedAt.IsZero() || record.LastDBProbeAt.IsZero() {
-		t.Fatalf("expected verify timestamps to be recorded, got %+v", record)
+	if record.VerifyStartedAt.IsZero() {
+		t.Fatalf("expected verify_started_at to be recorded, got %+v", record)
 	}
-	if record.DBProbeAttempts != 1 {
-		t.Fatalf("expected first DB probe attempt, got %+v", record)
+	fields := loadRushAttemptFields(t, svcCtx, orderNumber)
+	if _, ok := fields["last_db_probe_at"]; ok {
+		t.Fatalf("expected last_db_probe_at to be removed, got fields=%+v", fields)
+	}
+	if _, ok := fields["db_probe_attempts"]; ok {
+		t.Fatalf("expected db_probe_attempts to be removed, got fields=%+v", fields)
 	}
 	asyncClient, ok := svcCtx.AsyncCloseClient.(*fakeAsyncCloseClient)
 	if !ok {
@@ -115,6 +122,42 @@ func TestVerifyAttemptDueMarksAttemptVerifyingAndReconcileReleasesMissingOrder(t
 	if !ok || available != 4 {
 		t.Fatalf("expected quota restored to 4 after reconcile release, got ok=%t available=%d", ok, available)
 	}
+}
+
+func loadRushAttemptFields(t *testing.T, svcCtx *svc.ServiceContext, orderNumber int64) map[string]string {
+	t.Helper()
+
+	if svcCtx == nil || svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	pattern := fmt.Sprintf("*:attempt:%d", orderNumber)
+	var (
+		cursor uint64
+		keys   []string
+	)
+	for {
+		batch, nextCursor, err := svcCtx.Redis.ScanCtx(context.Background(), cursor, pattern, 32)
+		if err != nil {
+			t.Fatalf("ScanCtx() error = %v", err)
+		}
+		keys = append(keys, batch...)
+		if nextCursor == 0 {
+			break
+		}
+		cursor = nextCursor
+	}
+	if len(keys) == 0 {
+		t.Fatalf("expected attempt redis key for order %d with pattern %s", orderNumber, pattern)
+	}
+	sort.Strings(keys)
+
+	fields, err := svcCtx.Redis.HgetallCtx(context.Background(), keys[0])
+	if err != nil {
+		t.Fatalf("HgetallCtx() error = %v", err)
+	}
+
+	return fields
 }
 
 func TestVerifyAttemptDueCommitsProjectionWhenOrderAlreadyPersisted(t *testing.T) {

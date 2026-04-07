@@ -23,8 +23,6 @@ const (
 	attemptFieldProcessingEpoch   = "processing_epoch"
 	attemptFieldProcessingStartAt = "processing_started_at"
 	attemptFieldVerifyStartedAt   = "verify_started_at"
-	attemptFieldLastDBProbeAt     = "last_db_probe_at"
-	attemptFieldDBProbeAttempts   = "db_probe_attempts"
 	attemptFieldCreatedAt         = "created_at"
 	attemptFieldTransitionAt      = "last_transition_at"
 )

@@ -30,8 +30,6 @@ type AttemptRecord struct {
 	ProcessingEpoch     int64
 	ProcessingStartedAt time.Time
 	VerifyStartedAt     time.Time
-	LastDBProbeAt       time.Time
-	DBProbeAttempts     int64
 
 	CreatedAt        time.Time
 	LastTransitionAt time.Time
