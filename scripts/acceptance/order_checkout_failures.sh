@@ -64,7 +64,7 @@ force_inventory_insufficient() {
   local ticket_category_id="$1"
   local seat_ids
 
-  seat_ids="$(mysql_exec_db "damai_program" "SELECT COALESCE(GROUP_CONCAT(id ORDER BY id SEPARATOR ','), '') FROM d_seat WHERE status = 1 AND program_id = ${PROGRAM_ID} AND ticket_category_id = ${ticket_category_id} AND seat_status = 1")"
+  seat_ids="$(mysql_exec_db "damai_program" "SELECT COALESCE(GROUP_CONCAT(id ORDER BY id SEPARATOR ','), '') FROM d_seat WHERE status = 1 AND show_time_id = ${SHOW_TIME_ID} AND ticket_category_id = ${ticket_category_id} AND seat_status = 1")"
   if [[ -z "${seat_ids}" ]]; then
     fail "no available seats to mutate for ticketCategoryId=${ticket_category_id}"
   fi
@@ -75,11 +75,13 @@ force_inventory_insufficient() {
 }
 
 run_order_close_once() {
-  local log_file pid started=0
+  local config_file log_file pid started=0
 
   log "触发一次 order-close 任务"
+  config_file="$(mktemp /tmp/order-close-acceptance-XXXXXX.yaml)"
   log_file="$(mktemp)"
-  go run jobs/order-close/order_close.go -f "${ORDER_CLOSE_CONFIG}" >"${log_file}" 2>&1 &
+  sed 's/^ScanSlotBatchSize:.*/ScanSlotBatchSize: 1024/' "${ORDER_CLOSE_CONFIG}" >"${config_file}"
+  go run jobs/order-close/order_close.go -f "${config_file}" >"${log_file}" 2>&1 &
   pid=$!
 
   for ((i = 0; i < ORDER_CLOSE_WAIT_SECONDS; i++)); do
@@ -100,15 +102,18 @@ run_order_close_once() {
 
   if grep -q "initial order-close run failed" "${log_file}"; then
     cat "${log_file}" >&2
+    rm -f "${config_file}"
     rm -f "${log_file}"
     fail "order-close initial run failed"
   fi
   if [[ "${started}" -ne 1 ]]; then
     cat "${log_file}" >&2
+    rm -f "${config_file}"
     rm -f "${log_file}"
     fail "order-close did not finish initial run within ${ORDER_CLOSE_WAIT_SECONDS}s"
   fi
 
+  rm -f "${config_file}"
   rm -f "${log_file}"
 }
 
@@ -124,17 +129,38 @@ scenario_inventory_insufficient() {
   local preorder_body ticket_category_id body
 
   log "失败场景 2/4 库存不足"
-  preorder_body="$(curl_json "/program/preorder/detail" "{\"id\":${PROGRAM_ID}}")"
+  preorder_body="$(get_preorder_body)"
   ticket_category_id="$(resolve_inventory_failure_category "${preorder_body}")"
   force_inventory_insufficient "${ticket_category_id}"
 
-  body="$(curl_json "/program/preorder/detail" "{\"id\":${PROGRAM_ID}}")"
+  body="$(get_preorder_body)"
   print_json "${body}"
   assert_json_filter "${body}" "([.ticketCategoryVoList[] | select(.id == ${ticket_category_id}) | .remainNumber] | first) == 0" "expected remainNumber=0 for inventory failure category"
 
-  body="$(curl_json_expect_error "/order/create" "{\"programId\":${PROGRAM_ID},\"ticketCategoryId\":${ticket_category_id},\"ticketUserIds\":[${TICKET_USER_ID_1},${TICKET_USER_ID_2}],\"distributionMode\":\"express\",\"takeTicketMode\":\"paper\"}" "seat inventory insufficient" 1)"
-  print_json "${body}"
+  curl_request "/order/purchase/token" "{\"showTimeId\":${SHOW_TIME_ID},\"ticketCategoryId\":${ticket_category_id},\"ticketUserIds\":[${TICKET_USER_ID_1},${TICKET_USER_ID_2}],\"distributionMode\":\"express\",\"takeTicketMode\":\"paper\"}" 1
+  if [[ ! "${CURL_LAST_STATUS}" =~ ^2 ]]; then
+    print_json "${CURL_LAST_BODY}"
+    [[ "${CURL_LAST_BODY}" == *"seat inventory insufficient"* ]] || fail "expected purchase token failure caused by insufficient inventory"
+    restore_inventory_if_needed
+    return
+  fi
 
+  PURCHASE_TOKEN="$(extract_required "${CURL_LAST_BODY}" '.purchaseToken' 'purchaseToken')"
+  print_json "${CURL_LAST_BODY}"
+
+  curl_request "/order/create" "{\"purchaseToken\":\"${PURCHASE_TOKEN}\"}" 1
+  if [[ ! "${CURL_LAST_STATUS}" =~ ^2 ]]; then
+    print_json "${CURL_LAST_BODY}"
+    [[ "${CURL_LAST_BODY}" == *"seat inventory insufficient"* ]] || fail "expected create order failure caused by insufficient inventory"
+    restore_inventory_if_needed
+    return
+  fi
+
+  ORDER_NUMBER="$(extract_required "${CURL_LAST_BODY}" '.orderNumber' 'orderNumber')"
+  print_json "${CURL_LAST_BODY}"
+
+  poll_order_until_done
+  assert_poll_status "4"
   restore_inventory_if_needed
 }
 
@@ -143,16 +169,17 @@ scenario_cancel_order() {
 
   log "失败场景 3/4 取消订单后不可继续支付"
   fetch_preorder
+  create_purchase_token
   create_order
-  wait_order_visible
+  poll_order_until_done
+  assert_poll_status "3"
 
   body="$(curl_json "/order/cancel" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
   print_json "${body}"
   assert_json_filter "${body}" 'has("success") and .success == true' "/order/cancel success != true"
 
-  body="$(curl_json "/order/get" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
+  body="$(fetch_order_snapshot "2" "2")"
   print_json "${body}"
-  assert_json_filter "${body}" '.orderStatus == 2' "expected cancelled order status after /order/cancel"
 
   body="$(curl_json_expect_error "/order/pay" "{\"orderNumber\":${ORDER_NUMBER},\"subject\":\"${SUBJECT}\",\"channel\":\"${PAY_CHANNEL}\"}" "order status invalid" 1)"
   print_json "${body}"
@@ -164,15 +191,16 @@ scenario_close_expired_order() {
   log "失败场景 4/4 超时关单"
   fetch_preorder
   remain_before="$(get_preorder_remain_number "${TICKET_CATEGORY_ID}")"
+  create_purchase_token
   create_order
-  wait_order_visible
+  poll_order_until_done
+  assert_poll_status "3"
 
   mysql_exec_db "damai_order" "UPDATE d_order_00 SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}; UPDATE d_order_01 SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}"
   run_order_close_once
 
-  body="$(curl_json "/order/get" "{\"orderNumber\":${ORDER_NUMBER}}" 1)"
+  body="$(fetch_order_snapshot "2" "2")"
   print_json "${body}"
-  assert_json_filter "${body}" '.orderStatus == 2' "expected cancelled order status after order-close"
 
   body="$(curl_json_expect_error "/order/pay" "{\"orderNumber\":${ORDER_NUMBER},\"subject\":\"${SUBJECT}\",\"channel\":\"${PAY_CHANNEL}\"}" "order status invalid" 1)"
   print_json "${body}"
@@ -188,7 +216,7 @@ main() {
 
   log "BASE_URL=${BASE_URL}"
   log "CHANNEL_CODE=${CHANNEL_CODE}"
-  log "PROGRAM_ID=${PROGRAM_ID}"
+  log "SHOW_TIME_ID=${SHOW_TIME_ID}"
   log "MOBILE=${MOBILE}"
   log "MYSQL_CONTAINER=${MYSQL_CONTAINER}"
 

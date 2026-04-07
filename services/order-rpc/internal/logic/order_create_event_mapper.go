@@ -57,6 +57,7 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 		Id:                      xid.New(),
 		OrderNumber:             orderEvent.OrderNumber,
 		ProgramId:               orderEvent.ProgramID,
+		ShowTimeId:              orderEvent.ShowTimeID,
 		ProgramTitle:            orderEvent.ProgramSnapshot.Title,
 		ProgramItemPicture:      orderEvent.ProgramSnapshot.ItemPicture,
 		ProgramPlace:            orderEvent.ProgramSnapshot.Place,
@@ -86,6 +87,7 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 		orderTickets = append(orderTickets, &model.DOrderTicketUser{
 			Id:                 xid.New(),
 			OrderNumber:        orderEvent.OrderNumber,
+			ShowTimeId:         orderEvent.ShowTimeID,
 			UserId:             orderEvent.UserID,
 			TicketUserId:       ticketUser.TicketUserID,
 			TicketUserName:     ticketUser.Name,
@@ -107,6 +109,7 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 			Id:          xid.New(),
 			OrderNumber: orderEvent.OrderNumber,
 			ProgramId:   orderEvent.ProgramID,
+			ShowTimeId:  orderEvent.ShowTimeID,
 			ViewerId:    ticketUser.TicketUserID,
 			CreateTime:  now,
 			EditTime:    now,
@@ -116,6 +119,7 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 			Id:          xid.New(),
 			OrderNumber: orderEvent.OrderNumber,
 			ProgramId:   orderEvent.ProgramID,
+			ShowTimeId:  orderEvent.ShowTimeID,
 			SeatId:      seat.SeatID,
 			CreateTime:  now,
 			EditTime:    now,
@@ -123,7 +127,7 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 		})
 	}
 
-	createdOutbox, err := newOrderOutboxRow(now, orderEvent.OrderNumber, orderEvent.ProgramID, orderEvent.UserID, "order.created")
+	createdOutbox, err := newOrderOutboxRow(now, orderEvent.OrderNumber, orderEvent.ProgramID, orderEvent.ShowTimeID, orderEvent.UserID, "order.created")
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +139,7 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 			Id:          xid.New(),
 			OrderNumber: orderEvent.OrderNumber,
 			ProgramId:   orderEvent.ProgramID,
+			ShowTimeId:  orderEvent.ShowTimeID,
 			UserId:      orderEvent.UserID,
 			CreateTime:  now,
 			EditTime:    now,

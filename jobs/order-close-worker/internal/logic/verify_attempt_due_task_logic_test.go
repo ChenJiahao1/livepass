@@ -35,7 +35,7 @@ func (f *fakeOrderVerifyRPC) VerifyAttemptDue(ctx context.Context, in *orderrpc.
 
 func TestVerifyAttemptDueTaskLogicHandleCallsOrderRPC(t *testing.T) {
 	dueAt := time.Date(2026, time.March, 30, 19, 45, 0, 0, time.Local)
-	body, err := closequeue.MarshalVerifyAttemptPayload(91001, 10001, dueAt)
+	body, err := closequeue.MarshalVerifyAttemptPayload(91001, dueAt)
 	if err != nil {
 		t.Fatalf("MarshalVerifyAttemptPayload returned error: %v", err)
 	}

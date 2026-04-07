@@ -210,11 +210,11 @@ func (r *fakeMCPOrderRepository) FindExpiredUnpaidBySlot(ctx context.Context, lo
 	return nil, nil
 }
 
-func (r *fakeMCPOrderRepository) CountActiveTicketsByUserProgram(ctx context.Context, userID, programID int64) (int64, error) {
+func (r *fakeMCPOrderRepository) CountActiveTicketsByUserShowTime(ctx context.Context, userID, showTimeID int64) (int64, error) {
 	return 0, nil
 }
 
-func (r *fakeMCPOrderRepository) ListUnpaidReservationsByUserProgram(ctx context.Context, userID, programID int64) (map[int64]int64, error) {
+func (r *fakeMCPOrderRepository) ListUnpaidReservationsByUserShowTime(ctx context.Context, userID, showTimeID int64) (map[int64]int64, error) {
 	return map[int64]int64{}, nil
 }
 

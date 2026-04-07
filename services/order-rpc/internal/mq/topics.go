@@ -3,8 +3,8 @@ package mq
 import "damai-go/services/order-rpc/internal/config"
 
 const (
-	DefaultOrderCreateTopic         = "order.create.command.v1"
-	DefaultOrderCreateConsumerGroup = "damai-go-order-create"
+	DefaultOrderCreateTopic         = "ticketing.attempt.command.v1"
+	DefaultOrderCreateConsumerGroup = "damai-go-ticketing-attempt"
 )
 
 func OrderCreateTopic(cfg config.KafkaConfig) string {

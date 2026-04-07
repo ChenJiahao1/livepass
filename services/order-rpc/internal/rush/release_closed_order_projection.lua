@@ -1,14 +1,25 @@
 -- KEYS:
 -- 1: attempt record key(hash)
--- 2: user inflight key(string)
--- 3: quota available key(string)
--- 4: user fingerprint index key(hash)
--- 5..n: viewer inflight keys(string)
+-- 2: user active key(string)
+-- 3: user inflight key(string)
+-- 4: quota available key(string)
+-- 5: order progress index(zset)
+-- 6: seat occupied key(set)
+-- 7: user fingerprint index key(hash)
+-- 8..(7+viewer_count): viewer active keys(string)
+-- remaining: viewer inflight keys(string)
 --
 -- ARGV:
 -- 1: now(unix ms)
 -- 2: ticket_count
--- 3: token_fingerprint
+-- 3: final attempt ttl seconds
+-- 4: token_fingerprint
+-- 5: viewer_count
+
+local viewerCount = tonumber(ARGV[5]) or 0
+local viewerActiveStart = 8
+local viewerActiveEnd = viewerActiveStart + viewerCount - 1
+local viewerInflightStart = viewerActiveEnd + 1
 
 if redis.call("EXISTS", KEYS[1]) == 0 then
     return -1
@@ -27,16 +38,28 @@ redis.call("HSET", KEYS[1],
 
 local ticketCount = tonumber(ARGV[2]) or 0
 if ticketCount > 0 then
-    redis.call("INCRBY", KEYS[3], ticketCount)
+    redis.call("INCRBY", KEYS[4], ticketCount)
 end
 
 redis.call("DEL", KEYS[2])
-for idx = 5, #KEYS do
+redis.call("DEL", KEYS[3])
+redis.call("DEL", KEYS[6])
+for idx = viewerActiveStart, viewerActiveEnd do
+    redis.call("DEL", KEYS[idx])
+end
+for idx = viewerInflightStart, #KEYS do
     redis.call("DEL", KEYS[idx])
 end
 
-if ARGV[3] and ARGV[3] ~= "" then
-    redis.call("HDEL", KEYS[4], ARGV[3])
+if ARGV[4] and ARGV[4] ~= "" then
+    redis.call("HDEL", KEYS[7], ARGV[4])
+end
+
+redis.call("ZREM", KEYS[5], redis.call("HGET", KEYS[1], "order_number"))
+
+local finalAttemptTTL = tonumber(ARGV[3]) or 0
+if finalAttemptTTL > 0 then
+    redis.call("EXPIRE", KEYS[1], finalAttemptTTL)
 end
 
 return 1

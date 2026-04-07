@@ -15,7 +15,6 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/limitcache"
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
@@ -37,8 +36,6 @@ import (
 
 var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
 
-const testPurchaseLimitLedgerPrefix = "damai-go:test:order:purchase-limit"
-
 const (
 	testOrderStatusUnpaid    int64 = 1
 	testOrderStatusCancelled int64 = 2
@@ -50,6 +47,7 @@ type orderFixture struct {
 	ID                      int64
 	OrderNumber             int64
 	ProgramID               int64
+	ShowTimeID              int64
 	ProgramTitle            string
 	ProgramItemPicture      string
 	ProgramPlace            string
@@ -71,6 +69,7 @@ type orderFixture struct {
 type orderTicketUserFixture struct {
 	ID                 int64
 	OrderNumber        int64
+	ShowTimeID         int64
 	UserID             int64
 	TicketUserID       int64
 	TicketUserName     string
@@ -90,7 +89,7 @@ type fakeOrderProgramRPC struct {
 	getProgramPreorderResp            *programrpc.ProgramPreorderInfo
 	getProgramPreorderRespByProgramID map[int64]*programrpc.ProgramPreorderInfo
 	getProgramPreorderErr             error
-	lastGetProgramPreorderReq         *programrpc.GetProgramDetailReq
+	lastGetProgramPreorderReq         *programrpc.GetProgramPreorderReq
 
 	autoAssignAndFreezeSeatsFunc    func(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq) (*programrpc.AutoAssignAndFreezeSeatsResp, error)
 	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
@@ -186,7 +185,6 @@ type fakeAsyncCloseClient struct {
 	verifyEnqueueErr      error
 	verifyEnqueueCalls    int
 	verifyLastOrderNumber int64
-	verifyLastProgramID   int64
 	verifyLastDueAt       time.Time
 }
 
@@ -277,11 +275,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		RouteMap: routeMap,
 		Router:   orderRouter,
 	})
-	purchaseLimitStore := limitcache.NewPurchaseLimitStore(redisClient, orderRepository, limitcache.Config{
-		Prefix:          testPurchaseLimitLedgerPrefix,
-		LedgerTTL:       time.Hour,
-		LoadingCooldown: 200 * time.Millisecond,
-	})
 	attemptStore := rush.NewAttemptStore(redisClient, rush.AttemptStoreConfig{
 		InFlightTTL:   cfg.RushOrder.InFlightTTL,
 		FinalStateTTL: cfg.RushOrder.FinalStateTTL,
@@ -296,7 +289,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		},
 		Redis:                      redisClient,
 		AttemptStore:               attemptStore,
-		PurchaseLimitStore:         purchaseLimitStore,
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,
@@ -341,10 +333,9 @@ func (f *fakeAsyncCloseClient) EnqueueCloseTimeout(_ context.Context, orderNumbe
 	return f.enqueueErr
 }
 
-func (f *fakeAsyncCloseClient) EnqueueVerifyAttemptDue(_ context.Context, orderNumber, programID int64, dueAt time.Time) error {
+func (f *fakeAsyncCloseClient) EnqueueVerifyAttemptDue(_ context.Context, orderNumber int64, dueAt time.Time) error {
 	f.verifyEnqueueCalls++
 	f.verifyLastOrderNumber = orderNumber
-	f.verifyLastProgramID = programID
 	f.verifyLastDueAt = dueAt
 	return f.verifyEnqueueErr
 }
@@ -415,92 +406,6 @@ func mustInitOrderTestXid(t *testing.T) {
 	t.Cleanup(func() {
 		_ = xid.Close()
 	})
-}
-
-func clearPurchaseLimitLedger(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
-	t.Helper()
-
-	if svcCtx.PurchaseLimitStore == nil {
-		t.Fatalf("expected purchase limit store to be configured")
-	}
-	if err := svcCtx.PurchaseLimitStore.Clear(context.Background(), userID, programID); err != nil {
-		t.Fatalf("clear purchase limit ledger error: %v", err)
-	}
-}
-
-func seedPurchaseLimitLedger(t *testing.T, svcCtx *svc.ServiceContext, userID, programID, activeCount int64, reservations map[int64]int64) {
-	t.Helper()
-
-	if svcCtx.PurchaseLimitStore == nil {
-		t.Fatalf("expected purchase limit store to be configured")
-	}
-	if err := svcCtx.PurchaseLimitStore.Seed(context.Background(), userID, programID, activeCount, reservations); err != nil {
-		t.Fatalf("seed purchase limit ledger error: %v", err)
-	}
-}
-
-func requirePurchaseLimitSnapshot(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) *limitcache.PurchaseLimitSnapshot {
-	t.Helper()
-
-	if svcCtx.PurchaseLimitStore == nil {
-		t.Fatalf("expected purchase limit store to be configured")
-	}
-
-	snapshot, err := svcCtx.PurchaseLimitStore.Snapshot(context.Background(), userID, programID)
-	if err != nil {
-		t.Fatalf("snapshot purchase limit ledger error: %v", err)
-	}
-
-	return snapshot
-}
-
-func waitPurchaseLimitLedgerReady(t *testing.T, svcCtx *svc.ServiceContext, userID, programID, expectedActiveCount int64) *limitcache.PurchaseLimitSnapshot {
-	t.Helper()
-
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		snapshot := requirePurchaseLimitSnapshot(t, svcCtx, userID, programID)
-		if snapshot.Ready && snapshot.ActiveCount == expectedActiveCount {
-			return snapshot
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-
-	t.Fatalf("purchase limit ledger was not ready before deadline, userID=%d programID=%d", userID, programID)
-	return nil
-}
-
-func requirePurchaseLimitLedgerAbsentFor(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64, duration time.Duration) {
-	t.Helper()
-
-	deadline := time.Now().Add(duration)
-	for time.Now().Before(deadline) {
-		snapshot := requirePurchaseLimitSnapshot(t, svcCtx, userID, programID)
-		if snapshot.Ready || snapshot.Loading {
-			t.Fatalf(
-				"expected purchase limit ledger to stay absent, userID=%d programID=%d snapshot=%+v",
-				userID,
-				programID,
-				snapshot,
-			)
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-}
-
-func primePurchaseLimitLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
-	t.Helper()
-
-	activeCount, err := svcCtx.OrderRepository.CountActiveTicketsByUserProgram(context.Background(), userID, programID)
-	if err != nil {
-		t.Fatalf("count active tickets for purchase limit ledger error: %v", err)
-	}
-	reservations, err := svcCtx.OrderRepository.ListUnpaidReservationsByUserProgram(context.Background(), userID, programID)
-	if err != nil {
-		t.Fatalf("list unpaid reservations for purchase limit ledger error: %v", err)
-	}
-
-	seedPurchaseLimitLedger(t, svcCtx, userID, programID, activeCount, reservations)
 }
 
 func (f *fakeOrderCreateProducer) Send(_ context.Context, key string, value []byte) error {
@@ -879,6 +784,9 @@ func withOrderFixtureDefaults(fixture orderFixture) orderFixture {
 	if fixture.ProgramTitle == "" {
 		fixture.ProgramTitle = "订单测试演出"
 	}
+	if fixture.ShowTimeID == 0 {
+		fixture.ShowTimeID = fixture.ProgramID
+	}
 	if fixture.ProgramItemPicture == "" {
 		fixture.ProgramItemPicture = "https://example.com/order-program.jpg"
 	}
@@ -981,13 +889,14 @@ func seedOrderFixturesIntoTable(t *testing.T, dataSource, table string, fixtures
 			t,
 			db,
 			`INSERT INTO `+table+` (
-				id, order_number, program_id, program_title, program_item_picture, program_place, program_show_time,
+				id, order_number, program_id, show_time_id, program_title, program_item_picture, program_place, program_show_time,
 				program_permit_choose_seat, user_id, distribution_mode, take_ticket_mode, ticket_count, order_price,
 				order_status, freeze_token, order_expire_time, create_order_time, cancel_order_time, pay_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fixture.ID,
 			fixture.OrderNumber,
 			fixture.ProgramID,
+			fixture.ShowTimeID,
 			fixture.ProgramTitle,
 			fixture.ProgramItemPicture,
 			fixture.ProgramPlace,
@@ -1019,16 +928,20 @@ func seedOrderTicketUserFixturesIntoTable(t *testing.T, dataSource, table string
 
 	for _, fixture := range fixtures {
 		fixture = withOrderTicketUserFixtureDefaults(fixture)
+		if fixture.ShowTimeID == 0 {
+			fixture.ShowTimeID = lookupOrderShowTimeID(t, db, strings.Replace(table, "d_order_ticket_user_", "d_order_", 1), fixture.OrderNumber)
+		}
 		mustExecOrderSQL(
 			t,
 			db,
 			`INSERT INTO `+table+` (
-				id, order_number, user_id, ticket_user_id, ticket_user_name, ticket_user_id_number,
+				id, order_number, show_time_id, user_id, ticket_user_id, ticket_user_name, ticket_user_id_number,
 				ticket_category_id, ticket_category_name, ticket_price, seat_id, seat_row, seat_col,
 				seat_price, order_status, create_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fixture.ID,
 			fixture.OrderNumber,
+			fixture.ShowTimeID,
 			fixture.UserID,
 			fixture.TicketUserID,
 			fixture.TicketUserName,
@@ -1047,6 +960,17 @@ func seedOrderTicketUserFixturesIntoTable(t *testing.T, dataSource, table string
 			1,
 		)
 	}
+}
+
+func lookupOrderShowTimeID(t *testing.T, db *sql.DB, table string, orderNumber int64) int64 {
+	t.Helper()
+
+	var showTimeID int64
+	if err := db.QueryRow("SELECT show_time_id FROM "+table+" WHERE order_number = ? LIMIT 1", orderNumber).Scan(&showTimeID); err != nil {
+		t.Fatalf("lookup order show_time_id error: %v", err)
+	}
+
+	return showTimeID
 }
 
 func nullTimeIfEmpty(value string) interface{} {
@@ -1070,7 +994,8 @@ func orderProjectRoot(t *testing.T) string {
 
 func buildTestProgramPreorder(programID, ticketCategoryID, perOrderLimit, perAccountLimit, ticketPrice int64) *programrpc.ProgramPreorderInfo {
 	return &programrpc.ProgramPreorderInfo{
-		Id:                           programID,
+		ProgramId:                    programID,
+		ShowTimeId:                   programID,
 		ProgramGroupId:               programID + 1000,
 		Title:                        "订单测试演出",
 		Place:                        "测试场馆",
@@ -1078,6 +1003,8 @@ func buildTestProgramPreorder(programID, ticketCategoryID, perOrderLimit, perAcc
 		ShowTime:                     "2026-12-31 19:30:00",
 		ShowDayTime:                  "2026-12-31 00:00:00",
 		ShowWeekTime:                 "周四",
+		RushSaleOpenTime:             "2026-12-31 18:00:00",
+		RushSaleEndTime:              "2026-12-31 19:00:00",
 		PerOrderLimitPurchaseCount:   perOrderLimit,
 		PerAccountLimitPurchaseCount: perAccountLimit,
 		PermitChooseSeat:             0,
@@ -1144,9 +1071,9 @@ func (f *fakeOrderProgramRPC) GetProgramDetail(ctx context.Context, in *programr
 	return nil, nil
 }
 
-func (f *fakeOrderProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramDetailReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
+func (f *fakeOrderProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramPreorderReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
 	f.lastGetProgramPreorderReq = in
-	if resp, ok := f.getProgramPreorderRespByProgramID[in.GetId()]; ok {
+	if resp, ok := f.getProgramPreorderRespByProgramID[in.GetShowTimeId()]; ok {
 		return resp, f.getProgramPreorderErr
 	}
 	return f.getProgramPreorderResp, f.getProgramPreorderErr
@@ -1239,12 +1166,12 @@ func (r *tracingOrderRepository) FindExpiredUnpaidBySlot(ctx context.Context, lo
 	return r.base.FindExpiredUnpaidBySlot(ctx, logicSlot, before, limit)
 }
 
-func (r *tracingOrderRepository) CountActiveTicketsByUserProgram(ctx context.Context, userID, programID int64) (int64, error) {
-	return r.base.CountActiveTicketsByUserProgram(ctx, userID, programID)
+func (r *tracingOrderRepository) CountActiveTicketsByUserShowTime(ctx context.Context, userID, showTimeID int64) (int64, error) {
+	return r.base.CountActiveTicketsByUserShowTime(ctx, userID, showTimeID)
 }
 
-func (r *tracingOrderRepository) ListUnpaidReservationsByUserProgram(ctx context.Context, userID, programID int64) (map[int64]int64, error) {
-	return r.base.ListUnpaidReservationsByUserProgram(ctx, userID, programID)
+func (r *tracingOrderRepository) ListUnpaidReservationsByUserShowTime(ctx context.Context, userID, showTimeID int64) (map[int64]int64, error) {
+	return r.base.ListUnpaidReservationsByUserShowTime(ctx, userID, showTimeID)
 }
 
 func (r *tracingOrderRepository) RouteByUserID(ctx context.Context, userID int64) (sharding.Route, error) {

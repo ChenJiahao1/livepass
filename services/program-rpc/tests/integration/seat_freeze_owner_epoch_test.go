@@ -50,7 +50,7 @@ func TestStaleEpochCannotConfirmFreeze(t *testing.T) {
 	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 	freezeResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-owner-confirm-stale",
@@ -106,7 +106,7 @@ func TestStaleEpochCannotReleaseNewFreeze(t *testing.T) {
 	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 	freezeResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-owner-release-stale",

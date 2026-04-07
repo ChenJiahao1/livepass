@@ -9,20 +9,45 @@ import (
 )
 
 func TestProgramCachedModelsReturnCachedRowsAfterSourceDelete(t *testing.T) {
+	const (
+		programID      int64 = 71111
+		programGroupID int64 = 72111
+	)
+
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
 
 	ctx := context.Background()
+	if err := svcCtx.ProgramCacheInvalidator.InvalidateProgram(ctx, programID, programGroupID); err != nil {
+		t.Fatalf("clear stale program caches error: %v", err)
+	}
+	assertProgramRelatedCacheKeysMissing(t, svcCtx, programID, programGroupID)
+	assertProgramMissingFromDB(t, svcCtx, programID)
+	seedProgramFixtures(t, svcCtx, programFixture{
+		ProgramID:               programID,
+		ProgramGroupID:          programGroupID,
+		ParentProgramCategoryID: 1,
+		ProgramCategoryID:       11,
+		AreaID:                  1,
+		Title:                   "模型缓存测试演出",
+		ShowTime:                "2026-11-21 19:30:00",
+		ShowDayTime:             "2026-11-21 00:00:00",
+		ShowWeekTime:            "周五",
+		GroupAreaName:           "上海",
+		TicketCategories: []ticketCategoryFixture{
+			{ID: 73111, Introduce: "普通票", Price: 180, TotalNumber: 50, RemainNumber: 50},
+		},
+	})
 
-	firstProgram, err := svcCtx.DProgramModel.FindOne(ctx, 10001)
+	firstProgram, err := svcCtx.DProgramModel.FindOne(ctx, programID)
 	if err != nil {
 		t.Fatalf("first DProgramModel.FindOne returned error: %v", err)
 	}
-	firstGroup, err := svcCtx.DProgramGroupModel.FindOne(ctx, 20001)
+	firstGroup, err := svcCtx.DProgramGroupModel.FindOne(ctx, programGroupID)
 	if err != nil {
 		t.Fatalf("first DProgramGroupModel.FindOne returned error: %v", err)
 	}
-	firstShowTime, err := svcCtx.DProgramShowTimeModel.FindFirstByProgramId(ctx, 10001)
+	firstShowTime, err := svcCtx.DProgramShowTimeModel.FindFirstByProgramId(ctx, programID)
 	if err != nil {
 		t.Fatalf("first DProgramShowTimeModel.FindFirstByProgramId returned error: %v", err)
 	}
@@ -30,11 +55,11 @@ func TestProgramCachedModelsReturnCachedRowsAfterSourceDelete(t *testing.T) {
 	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
 	defer db.Close()
 
-	mustExecProgramSQL(t, db, "DELETE FROM d_program_show_time WHERE program_id = ?", 10001)
-	mustExecProgramSQL(t, db, "DELETE FROM d_program WHERE id = ?", 10001)
-	mustExecProgramSQL(t, db, "DELETE FROM d_program_group WHERE id = ?", 20001)
+	mustExecProgramSQL(t, db, "DELETE FROM d_program_show_time WHERE program_id = ?", programID)
+	mustExecProgramSQL(t, db, "DELETE FROM d_program WHERE id = ?", programID)
+	mustExecProgramSQL(t, db, "DELETE FROM d_program_group WHERE id = ?", programGroupID)
 
-	secondProgram, err := svcCtx.DProgramModel.FindOne(ctx, 10001)
+	secondProgram, err := svcCtx.DProgramModel.FindOne(ctx, programID)
 	if err != nil {
 		t.Fatalf("second DProgramModel.FindOne returned error: %v", err)
 	}
@@ -42,7 +67,7 @@ func TestProgramCachedModelsReturnCachedRowsAfterSourceDelete(t *testing.T) {
 		t.Fatalf("expected cached program to stay stable, first=%+v second=%+v", firstProgram, secondProgram)
 	}
 
-	secondGroup, err := svcCtx.DProgramGroupModel.FindOne(ctx, 20001)
+	secondGroup, err := svcCtx.DProgramGroupModel.FindOne(ctx, programGroupID)
 	if err != nil {
 		t.Fatalf("second DProgramGroupModel.FindOne returned error: %v", err)
 	}
@@ -50,7 +75,7 @@ func TestProgramCachedModelsReturnCachedRowsAfterSourceDelete(t *testing.T) {
 		t.Fatalf("expected cached group to stay stable, first=%+v second=%+v", firstGroup, secondGroup)
 	}
 
-	secondShowTime, err := svcCtx.DProgramShowTimeModel.FindFirstByProgramId(ctx, 10001)
+	secondShowTime, err := svcCtx.DProgramShowTimeModel.FindFirstByProgramId(ctx, programID)
 	if err != nil {
 		t.Fatalf("second DProgramShowTimeModel.FindFirstByProgramId returned error: %v", err)
 	}

@@ -43,7 +43,7 @@ func TestNewServeMuxRoutesCloseTimeoutAndVerifyAttemptTasks(t *testing.T) {
 	}
 
 	verifyDueAt := time.Date(2026, time.March, 29, 21, 0, 30, 0, time.Local)
-	verifyBody, err := closequeue.MarshalVerifyAttemptPayload(92002, 10001, verifyDueAt)
+	verifyBody, err := closequeue.MarshalVerifyAttemptPayload(92002, verifyDueAt)
 	if err != nil {
 		t.Fatalf("MarshalVerifyAttemptPayload returned error: %v", err)
 	}

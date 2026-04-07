@@ -125,6 +125,7 @@ func buildOrderCreateEventFromSnapshots(
 		OccurredAt:       formatOrderTime(now),
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       preorder.GetShowTimeId(),
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    append([]int64(nil), ticketUserIDs...),
 		TicketCount:      int64(len(ticketUserIDs)),
@@ -156,7 +157,10 @@ func buildAttemptCreateEvent(attempt *rush.AttemptRecord, claims *rush.PurchaseT
 	if attempt.OrderNumber <= 0 || claims.OrderNumber <= 0 || attempt.OrderNumber != claims.OrderNumber {
 		return nil, xerr.ErrInvalidParam
 	}
-	if attempt.UserID != claims.UserID || attempt.ProgramID != claims.ProgramID || attempt.TicketCategoryID != claims.TicketCategoryID {
+	if attempt.UserID != claims.UserID || attempt.ProgramID != claims.ProgramID || attempt.ShowTimeID != claims.ShowTimeID || attempt.TicketCategoryID != claims.TicketCategoryID {
+		return nil, xerr.ErrInvalidParam
+	}
+	if attempt.Generation != claims.Generation {
 		return nil, xerr.ErrInvalidParam
 	}
 	if attempt.TicketCount <= 0 || attempt.TicketCount != claims.TicketCount {
@@ -179,11 +183,15 @@ func buildAttemptCreateEvent(attempt *rush.AttemptRecord, claims *rush.PurchaseT
 		OccurredAt:       formatOrderTime(occurredAt),
 		UserID:           attempt.UserID,
 		ProgramID:        attempt.ProgramID,
+		ShowTimeID:       attempt.ShowTimeID,
 		TicketCategoryID: attempt.TicketCategoryID,
 		TicketUserIDs:    append([]int64(nil), claims.TicketUserIDs...),
 		TicketCount:      attempt.TicketCount,
+		Generation:       attempt.Generation,
 		DistributionMode: claims.DistributionMode,
 		TakeTicketMode:   claims.TakeTicketMode,
+		SaleWindowEndAt:  formatOrderTime(time.Unix(claims.SaleWindowEndAt, 0)),
+		ShowEndAt:        formatOrderTime(time.Unix(claims.ShowEndAt, 0)),
 		CommitCutoffAt:   formatOrderTime(attempt.CommitCutoffAt),
 		UserDeadlineAt:   formatOrderTime(attempt.UserDeadlineAt),
 	}, nil

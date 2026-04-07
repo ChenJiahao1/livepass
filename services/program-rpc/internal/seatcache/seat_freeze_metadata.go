@@ -20,6 +20,7 @@ type SeatFreezeMetadata struct {
 	FreezeToken      string `json:"freezeToken"`
 	RequestNo        string `json:"requestNo"`
 	ProgramID        int64  `json:"programId"`
+	ShowTimeID       int64  `json:"showTimeId"`
 	TicketCategoryID int64  `json:"ticketCategoryId"`
 	OwnerOrderNumber int64  `json:"ownerOrderNumber,omitempty"`
 	OwnerEpoch       int64  `json:"ownerEpoch,omitempty"`
@@ -65,7 +66,7 @@ func (s *SeatStockStore) SaveFreezeMetadata(ctx context.Context, meta *SeatFreez
 	if s == nil || s.redis == nil {
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
-	if meta == nil || meta.FreezeToken == "" || meta.RequestNo == "" || meta.ProgramID <= 0 || meta.TicketCategoryID <= 0 {
+	if meta == nil || meta.FreezeToken == "" || meta.RequestNo == "" || meta.ProgramID <= 0 || meta.ShowTimeID <= 0 || meta.TicketCategoryID <= 0 {
 		return xerr.ErrInvalidParam
 	}
 
@@ -76,7 +77,7 @@ func (s *SeatStockStore) SaveFreezeMetadata(ctx context.Context, meta *SeatFreez
 
 	metaKey := freezeMetaKey(s.prefix, meta.FreezeToken)
 	requestKey := freezeRequestKey(s.prefix, meta.RequestNo)
-	indexKey := freezeIndexKey(s.prefix, meta.ProgramID, meta.TicketCategoryID)
+	indexKey := freezeIndexKey(s.prefix, meta.ShowTimeID, meta.TicketCategoryID)
 	ttlSeconds := s.freezeMetadataTTLSeconds()
 
 	if err := s.redis.SetexCtx(ctx, metaKey, string(payload), ttlSeconds); err != nil {
@@ -201,12 +202,12 @@ func (s *SeatStockStore) MarkFreezeConfirmed(ctx context.Context, freezeToken st
 	return meta, nil
 }
 
-func (s *SeatStockStore) ListExpiredFreezeTokens(ctx context.Context, programID, ticketCategoryID int64, now time.Time) ([]string, error) {
+func (s *SeatStockStore) ListExpiredFreezeTokens(ctx context.Context, showTimeID, ticketCategoryID int64, now time.Time) ([]string, error) {
 	if s == nil || s.redis == nil {
 		return nil, xerr.ErrProgramSeatLedgerNotReady
 	}
 
-	pairs, err := s.redis.ZrangebyscoreWithScoresCtx(ctx, freezeIndexKey(s.prefix, programID, ticketCategoryID), 0, now.Unix())
+	pairs, err := s.redis.ZrangebyscoreWithScoresCtx(ctx, freezeIndexKey(s.prefix, showTimeID, ticketCategoryID), 0, now.Unix())
 	if err != nil {
 		return nil, err
 	}
@@ -222,12 +223,12 @@ func (s *SeatStockStore) ListExpiredFreezeTokens(ctx context.Context, programID,
 	return resp, nil
 }
 
-func (s *SeatStockStore) FrozenSeats(ctx context.Context, programID, ticketCategoryID int64, freezeToken string) ([]Seat, error) {
+func (s *SeatStockStore) FrozenSeats(ctx context.Context, showTimeID, ticketCategoryID int64, freezeToken string) ([]Seat, error) {
 	if s == nil || s.redis == nil {
 		return nil, xerr.ErrProgramSeatLedgerNotReady
 	}
 
-	return s.listSeats(ctx, frozenSeatsKey(s.prefix, programID, ticketCategoryID, freezeToken))
+	return s.listSeats(ctx, frozenSeatsKey(s.prefix, showTimeID, ticketCategoryID, freezeToken))
 }
 
 func (s *SeatStockStore) freezeMetadataTTLSeconds() int {
@@ -266,7 +267,7 @@ func (s *SeatStockStore) removeFreezeFromIndex(ctx context.Context, meta *SeatFr
 		return nil
 	}
 
-	_, err := s.redis.ZremCtx(ctx, freezeIndexKey(s.prefix, meta.ProgramID, meta.TicketCategoryID), meta.FreezeToken)
+	_, err := s.redis.ZremCtx(ctx, freezeIndexKey(s.prefix, meta.ShowTimeID, meta.TicketCategoryID), meta.FreezeToken)
 	return err
 }
 
@@ -278,6 +279,6 @@ func freezeRequestKey(prefix, requestNo string) string {
 	return fmt.Sprintf("%s:freeze:req:%s", prefix, requestNo)
 }
 
-func freezeIndexKey(prefix string, programID, ticketCategoryID int64) string {
-	return fmt.Sprintf("%s:freeze:index:%d:%d", prefix, programID, ticketCategoryID)
+func freezeIndexKey(prefix string, showTimeID, ticketCategoryID int64) string {
+	return fmt.Sprintf("%s:freeze:index:%s:%d", prefix, seatLedgerScopeTag(showTimeID), ticketCategoryID)
 }

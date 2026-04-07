@@ -13,6 +13,7 @@ import (
 type DOrderOutbox struct {
 	Id              int64        `db:"id"`
 	OrderNumber     int64        `db:"order_number"`
+	ShowTimeId      int64        `db:"show_time_id"`
 	EventType       string       `db:"event_type"`
 	Payload         string       `db:"payload"`
 	PublishedStatus int64        `db:"published_status"`
@@ -51,12 +52,13 @@ func (m *customDOrderOutboxModel) InsertBatch(ctx context.Context, session sqlx.
 	}
 
 	placeholders := make([]string, 0, len(rows))
-	args := make([]interface{}, 0, len(rows)*9)
+	args := make([]interface{}, 0, len(rows)*10)
 	for _, row := range rows {
-		placeholders = append(placeholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		placeholders = append(placeholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 		args = append(args,
 			row.Id,
 			row.OrderNumber,
+			row.ShowTimeId,
 			row.EventType,
 			row.Payload,
 			row.PublishedStatus,
@@ -68,7 +70,7 @@ func (m *customDOrderOutboxModel) InsertBatch(ctx context.Context, session sqlx.
 	}
 
 	query := fmt.Sprintf(
-		"insert into %s (`id`, `order_number`, `event_type`, `payload`, `published_status`, `published_time`, `create_time`, `edit_time`, `status`) values %s",
+		"insert into %s (`id`, `order_number`, `show_time_id`, `event_type`, `payload`, `published_status`, `published_time`, `create_time`, `edit_time`, `status`) values %s",
 		m.table,
 		strings.Join(placeholders, ", "),
 	)

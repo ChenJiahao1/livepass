@@ -66,7 +66,7 @@ func buildTopicAdminKafkaConfig(topic string, partitions int) config.KafkaConfig
 	return config.KafkaConfig{
 		Brokers:          []string{testKafkaBroker},
 		TopicOrderCreate: topic,
-		ConsumerGroup:    "damai-go-order-create",
+		ConsumerGroup:    "damai-go-ticketing-attempt",
 		TopicPartitions:  partitions,
 		ConsumerWorkers:  partitions,
 		ProducerTimeout:  3 * time.Second,

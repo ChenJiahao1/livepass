@@ -185,10 +185,13 @@ func TestListTicketCategoriesByProgramMapsResponse(t *testing.T) {
 func TestGetProgramPreorderMapsNestedResponse(t *testing.T) {
 	fake := &fakeProgramRPC{
 		getProgramPreorderResp: &programrpc.ProgramPreorderInfo{
-			Id:                           10001,
+			ProgramId:                    10001,
+			ShowTimeId:                   30001,
 			ProgramGroupId:               20001,
 			Title:                        "Phase2 预下单演出",
 			ShowTime:                     "2026-12-31 19:30:00",
+			RushSaleOpenTime:             "2026-12-31 18:00:00",
+			RushSaleEndTime:              "2026-12-31 19:00:00",
 			PerOrderLimitPurchaseCount:   6,
 			PerAccountLimitPurchaseCount: 6,
 			PermitChooseSeat:             0,
@@ -201,17 +204,20 @@ func TestGetProgramPreorderMapsNestedResponse(t *testing.T) {
 	}
 	logic := logicpkg.NewGetProgramPreorderLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
 
-	resp, err := logic.GetProgramPreorder(&types.GetProgramPreorderReq{ID: 10001})
+	resp, err := logic.GetProgramPreorder(&types.GetProgramPreorderReq{ShowTimeID: 30001})
 	if err != nil {
 		t.Fatalf("GetProgramPreorder returned error: %v", err)
 	}
-	if resp.ID != 10001 || resp.ProgramGroupID != 20001 || resp.ShowTime != "2026-12-31 19:30:00" {
+	if resp.ProgramID != 10001 || resp.ShowTimeID != 30001 || resp.ProgramGroupID != 20001 || resp.ShowTime != "2026-12-31 19:30:00" {
 		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if resp.RushSaleOpenTime != "2026-12-31 18:00:00" || resp.RushSaleEndTime != "2026-12-31 19:00:00" {
+		t.Fatalf("unexpected rush sale window: %+v", resp)
 	}
 	if len(resp.TicketCategoryVoList) != 2 || resp.TicketCategoryVoList[0].RemainNumber != 12 || resp.TicketCategoryVoList[1].Price != 599 {
 		t.Fatalf("unexpected preorder ticket categories: %+v", resp.TicketCategoryVoList)
 	}
-	if fake.lastGetProgramPreorderReq == nil || fake.lastGetProgramPreorderReq.Id != 10001 {
+	if fake.lastGetProgramPreorderReq == nil || fake.lastGetProgramPreorderReq.ShowTimeId != 30001 {
 		t.Fatalf("unexpected request: %+v", fake.lastGetProgramPreorderReq)
 	}
 }
@@ -222,7 +228,7 @@ func TestGetProgramPreorderPropagatesRPCErrors(t *testing.T) {
 	}
 	logic := logicpkg.NewGetProgramPreorderLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
 
-	_, err := logic.GetProgramPreorder(&types.GetProgramPreorderReq{ID: 10001})
+	_, err := logic.GetProgramPreorder(&types.GetProgramPreorderReq{ShowTimeID: 30001})
 	if err == nil {
 		t.Fatalf("expected rpc error")
 	}
@@ -390,10 +396,10 @@ func TestCreateProgramShowTimeMapsRequestAndResponse(t *testing.T) {
 	logic := logicpkg.NewCreateProgramShowTimeLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
 
 	resp, err := logic.CreateProgramShowTime(&types.ProgramShowTimeAddReq{
-		ProgramID:   10001,
-		ShowTime:    "2026-12-31 19:30:00",
-		ShowDayTime: "2026-12-31 00:00:00",
-		ShowWeekTime:"周三",
+		ProgramID:    10001,
+		ShowTime:     "2026-12-31 19:30:00",
+		ShowDayTime:  "2026-12-31 00:00:00",
+		ShowWeekTime: "周三",
 	})
 	if err != nil {
 		t.Fatalf("CreateProgramShowTime returned error: %v", err)
@@ -505,11 +511,11 @@ func TestBatchCreateSeatsMapsRequestAndResponse(t *testing.T) {
 func TestGetSeatRelateInfoMapsResponse(t *testing.T) {
 	fake := &fakeProgramRPC{
 		getSeatRelateInfoResp: &programrpc.SeatRelateInfo{
-			ProgramId:     10001,
-			Place:         "北京示例剧场",
-			ShowTime:      "2026-12-31 19:30:00",
-			ShowWeekTime:  "周三",
-			PriceList:     []string{"299", "599"},
+			ProgramId:    10001,
+			Place:        "北京示例剧场",
+			ShowTime:     "2026-12-31 19:30:00",
+			ShowWeekTime: "周三",
+			PriceList:    []string{"299", "599"},
 			PriceSeatGroupList: []*programrpc.PriceSeatGroup{
 				{
 					Price: "299",
@@ -566,7 +572,7 @@ func TestFreezeSeatsMapsRequestAndResponse(t *testing.T) {
 	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
 
 	resp, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ProgramID:        10001,
+		ShowTimeID:       30001,
 		TicketCategoryID: 40001,
 		Count:            2,
 		RequestNo:        "preorder-demo-001",
@@ -584,7 +590,7 @@ func TestFreezeSeatsMapsRequestAndResponse(t *testing.T) {
 	if fake.lastAutoAssignAndFreezeSeatsReq == nil {
 		t.Fatalf("expected rpc request")
 	}
-	if fake.lastAutoAssignAndFreezeSeatsReq.ProgramId != 10001 ||
+	if fake.lastAutoAssignAndFreezeSeatsReq.ShowTimeId != 30001 ||
 		fake.lastAutoAssignAndFreezeSeatsReq.TicketCategoryId != 40001 ||
 		fake.lastAutoAssignAndFreezeSeatsReq.Count != 2 ||
 		fake.lastAutoAssignAndFreezeSeatsReq.RequestNo != "preorder-demo-001" ||
@@ -597,7 +603,7 @@ func TestFreezeSeatsRejectsInvalidPayload(t *testing.T) {
 	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: &fakeProgramRPC{}})
 
 	_, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ProgramID:        0,
+		ShowTimeID:       0,
 		TicketCategoryID: 40001,
 		Count:            2,
 		RequestNo:        "",
@@ -620,7 +626,7 @@ func TestFreezeSeatsPropagatesInventoryConflict(t *testing.T) {
 	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
 
 	_, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ProgramID:        10001,
+		ShowTimeID:       30001,
 		TicketCategoryID: 40001,
 		Count:            2,
 		RequestNo:        "preorder-demo-conflict",

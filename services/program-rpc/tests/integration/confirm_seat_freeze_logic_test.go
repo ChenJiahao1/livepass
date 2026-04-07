@@ -31,7 +31,7 @@ func TestAutoAssignAndFreezeSeatsDoesNotPersistFrozenSeatsBeforePaymentConfirm(t
 	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 	resp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-confirm-ledger-persist",
@@ -77,7 +77,7 @@ func TestConfirmSeatFreezeMovesSeatsToSoldLedger(t *testing.T) {
 	)
 	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 	freezeResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-confirm-ledger-sold",
@@ -132,7 +132,7 @@ func TestConfirmSeatFreeze(t *testing.T) {
 		)
 		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 		freezeResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-confirm-success",
@@ -207,7 +207,7 @@ func TestConfirmSeatFreeze(t *testing.T) {
 		)
 		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 		freezeResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            1,
 			RequestNo:        "req-confirm-released",
@@ -246,7 +246,7 @@ func TestConfirmSeatFreeze(t *testing.T) {
 		)
 		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 		freezeResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-confirm-idempotent",

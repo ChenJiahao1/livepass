@@ -3,6 +3,7 @@ CREATE TABLE `d_order_00` (
   `id` bigint NOT NULL COMMENT 'primary key',
   `order_number` bigint NOT NULL COMMENT 'order number',
   `program_id` bigint NOT NULL COMMENT 'program id',
+  `show_time_id` bigint NOT NULL COMMENT 'show time id',
   `program_title` varchar(256) NOT NULL COMMENT 'program title snapshot',
   `program_item_picture` varchar(512) NOT NULL DEFAULT '' COMMENT 'program picture snapshot',
   `program_place` varchar(256) NOT NULL COMMENT 'program place snapshot',
@@ -26,7 +27,7 @@ CREATE TABLE `d_order_00` (
   UNIQUE KEY `uk_order_number` (`order_number`),
   KEY `idx_user_status_time` (`user_id`,`order_status`,`create_order_time`,`id`),
   KEY `idx_user_time` (`user_id`,`create_order_time`,`id`),
-  KEY `idx_program_user_status` (`program_id`,`user_id`,`order_status`),
+  KEY `idx_show_time_user_status` (`show_time_id`,`user_id`,`order_status`),
   KEY `idx_close_scan` (`order_status`,`order_expire_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='order main shard table 00';
 

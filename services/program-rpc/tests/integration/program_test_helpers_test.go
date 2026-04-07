@@ -29,6 +29,7 @@ const testProgramDateTimeLayout = "2006-01-02 15:04:05"
 
 type ticketCategoryFixture struct {
 	ID           int64
+	ShowTimeID   int64
 	Introduce    string
 	Price        float64
 	TotalNumber  int64
@@ -38,6 +39,7 @@ type ticketCategoryFixture struct {
 type seatFixture struct {
 	ID               int64
 	ProgramID        int64
+	ShowTimeID       int64
 	TicketCategoryID int64
 	RowCode          int
 	ColCode          int
@@ -53,6 +55,7 @@ type seatFreezeFixture struct {
 	FreezeToken      string
 	RequestNo        string
 	ProgramID        int64
+	ShowTimeID       int64
 	TicketCategoryID int64
 	OwnerOrderNumber int64
 	OwnerEpoch       int64
@@ -77,9 +80,13 @@ type programFixture struct {
 	Detail                    string
 	HighHeat                  int64
 	IssueTime                 string
+	ShowTimeID                int64
 	ShowTime                  string
 	ShowDayTime               string
 	ShowWeekTime              string
+	RushSaleOpenTime          string
+	RushSaleEndTime           string
+	ShowEndTime               string
 	PermitRefund              int64
 	RefundTicketRule          string
 	RefundExplain             string
@@ -145,7 +152,8 @@ func clearProgramSeatLedger(t *testing.T, svcCtx *svc.ServiceContext, programID,
 	if svcCtx.SeatStockStore == nil {
 		t.Fatalf("expected seat stock store to be configured")
 	}
-	if err := svcCtx.SeatStockStore.Clear(context.Background(), programID, ticketCategoryID); err != nil {
+	showTimeID := resolveSeatLedgerShowTimeID(t, svcCtx, programID, ticketCategoryID)
+	if err := svcCtx.SeatStockStore.Clear(context.Background(), showTimeID, ticketCategoryID); err != nil {
 		t.Fatalf("clear program seat ledger error: %v", err)
 	}
 }
@@ -156,7 +164,8 @@ func primeProgramSeatLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, prog
 	if svcCtx.SeatStockStore == nil {
 		t.Fatalf("expected seat stock store to be configured")
 	}
-	if err := svcCtx.SeatStockStore.PrimeFromDB(context.Background(), programID, ticketCategoryID); err != nil {
+	showTimeID := resolveSeatLedgerShowTimeID(t, svcCtx, programID, ticketCategoryID)
+	if err := svcCtx.SeatStockStore.PrimeFromDB(context.Background(), showTimeID, ticketCategoryID); err != nil {
 		t.Fatalf("prime program seat ledger from db error: %v", err)
 	}
 }
@@ -168,7 +177,8 @@ func requireProgramSeatLedgerSnapshot(t *testing.T, svcCtx *svc.ServiceContext, 
 		t.Fatalf("expected seat stock store to be configured")
 	}
 
-	snapshot, err := svcCtx.SeatStockStore.Snapshot(context.Background(), programID, ticketCategoryID)
+	showTimeID := resolveSeatLedgerShowTimeID(t, svcCtx, programID, ticketCategoryID)
+	snapshot, err := svcCtx.SeatStockStore.Snapshot(context.Background(), showTimeID, ticketCategoryID)
 	if err != nil {
 		t.Fatalf("snapshot program seat ledger error: %v", err)
 	}
@@ -190,6 +200,26 @@ func waitProgramSeatLedgerReady(t *testing.T, svcCtx *svc.ServiceContext, progra
 
 	t.Fatalf("program seat ledger was not ready before deadline, programID=%d ticketCategoryID=%d", programID, ticketCategoryID)
 	return nil
+}
+
+func resolveSeatLedgerShowTimeID(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) int64 {
+	t.Helper()
+
+	if ticketCategoryID > 0 && svcCtx != nil && svcCtx.DTicketCategoryModel != nil {
+		ticketCategory, err := svcCtx.DTicketCategoryModel.FindOne(context.Background(), ticketCategoryID)
+		if err == nil && ticketCategory != nil && ticketCategory.ShowTimeId > 0 {
+			return ticketCategory.ShowTimeId
+		}
+	}
+	if programID > 0 && svcCtx != nil && svcCtx.DProgramShowTimeModel != nil {
+		showTime, err := svcCtx.DProgramShowTimeModel.FindFirstByProgramId(context.Background(), programID)
+		if err == nil && showTime != nil && showTime.Id > 0 {
+			return showTime.Id
+		}
+	}
+
+	t.Fatalf("resolve seat ledger show time id failed, programID=%d ticketCategoryID=%d", programID, ticketCategoryID)
+	return 0
 }
 
 func resetProgramDomainState(t *testing.T) {
@@ -227,6 +257,7 @@ func clearProgramRedisState(t *testing.T) {
 	for _, pattern := range []string{
 		"cache:dProgram:id:*",
 		"cache:dProgramGroup:id:*",
+		"cache:dProgramShowTime:id:*",
 		"cache:dProgramShowTime:first:programId:*",
 		testProgramSeatLedgerPrefix + ":*",
 	} {
@@ -266,11 +297,12 @@ func seedSeatFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...seat
 			t,
 			db,
 			`INSERT INTO d_seat (
-				id, program_id, ticket_category_id, row_code, col_code, seat_type, price, seat_status,
+				id, program_id, show_time_id, ticket_category_id, row_code, col_code, seat_type, price, seat_status,
 				freeze_token, freeze_expire_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fixture.ID,
 			fixture.ProgramID,
+			fixture.ShowTimeID,
 			fixture.TicketCategoryID,
 			fixture.RowCode,
 			fixture.ColCode,
@@ -301,7 +333,7 @@ func seedRedisSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixtur
 
 	if _, err := svcCtx.SeatStockStore.FreezeAutoAssignedSeats(
 		context.Background(),
-		fixture.ProgramID,
+		fixture.ShowTimeID,
 		fixture.TicketCategoryID,
 		fixture.FreezeToken,
 		int64(fixture.SeatCount),
@@ -313,6 +345,7 @@ func seedRedisSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixtur
 		FreezeToken:      fixture.FreezeToken,
 		RequestNo:        fixture.RequestNo,
 		ProgramID:        fixture.ProgramID,
+		ShowTimeID:       fixture.ShowTimeID,
 		TicketCategoryID: fixture.TicketCategoryID,
 		OwnerOrderNumber: fixture.OwnerOrderNumber,
 		OwnerEpoch:       fixture.OwnerEpoch,
@@ -465,6 +498,9 @@ func withProgramFixtureDefaults(fixture programFixture) programFixture {
 	if fixture.IssueTime == "" {
 		fixture.IssueTime = "2026-06-01 09:00:00"
 	}
+	if fixture.ShowTimeID == 0 {
+		fixture.ShowTimeID = fixture.ProgramID
+	}
 	if fixture.ShowWeekTime == "" {
 		fixture.ShowWeekTime = "周六"
 	}
@@ -500,6 +536,9 @@ func withSeatFixtureDefaults(fixture seatFixture) seatFixture {
 	if fixture.SeatType == 0 {
 		fixture.SeatType = 1
 	}
+	if fixture.ShowTimeID == 0 {
+		fixture.ShowTimeID = fixture.ProgramID
+	}
 	if fixture.Price == 0 {
 		fixture.Price = 299
 	}
@@ -513,6 +552,9 @@ func withSeatFixtureDefaults(fixture seatFixture) seatFixture {
 func withSeatFreezeFixtureDefaults(fixture seatFreezeFixture) seatFreezeFixture {
 	if fixture.SeatCount == 0 {
 		fixture.SeatCount = 1
+	}
+	if fixture.ShowTimeID == 0 {
+		fixture.ShowTimeID = fixture.ProgramID
 	}
 	if fixture.FreezeStatus == 0 {
 		fixture.FreezeStatus = 1
@@ -533,7 +575,7 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		fixture.AreaID,
 		fixture.ProgramSimpleInfoAreaName,
 	)
-	showTimeID := fixture.ProgramID + 20000
+	showTimeID := fixture.ShowTimeID
 
 	mustExecProgramSQL(
 		t,
@@ -581,24 +623,37 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 	mustExecProgramSQL(
 		t,
 		db,
-		`INSERT INTO d_program_show_time (id, program_id, show_time, show_day_time, show_week_time, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO d_program_show_time (
+			id, program_id, show_time, show_day_time, show_week_time,
+			rush_sale_open_time, rush_sale_end_time, show_end_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		showTimeID,
 		fixture.ProgramID,
 		fixture.ShowTime,
 		fixture.ShowDayTime,
 		fixture.ShowWeekTime,
+		nullIfEmpty(fixture.RushSaleOpenTime),
+		nullIfEmpty(fixture.RushSaleEndTime),
+		nullIfEmpty(fixture.ShowEndTime),
 		"2026-01-01 00:00:00",
 		"2026-01-01 00:00:00",
 		1,
 	)
 
 	for _, ticketCategory := range fixture.TicketCategories {
+		ticketShowTimeID := ticketCategory.ShowTimeID
+		if ticketShowTimeID == 0 {
+			ticketShowTimeID = showTimeID
+		}
 		mustExecProgramSQL(
 			t,
 			db,
-			`INSERT INTO d_ticket_category (id, program_id, introduce, price, total_number, remain_number, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO d_ticket_category (
+				id, program_id, show_time_id, introduce, price, total_number, remain_number, create_time, edit_time, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			ticketCategory.ID,
 			fixture.ProgramID,
+			ticketShowTimeID,
 			ticketCategory.Introduce,
 			ticketCategory.Price,
 			ticketCategory.TotalNumber,

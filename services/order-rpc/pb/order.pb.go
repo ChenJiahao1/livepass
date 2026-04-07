@@ -68,7 +68,7 @@ func (x *BoolResp) GetSuccess() bool {
 type CreatePurchaseTokenReq struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	UserId           int64                  `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	ProgramId        int64                  `protobuf:"varint,2,opt,name=programId,proto3" json:"programId,omitempty"`
+	ShowTimeId       int64                  `protobuf:"varint,2,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	TicketCategoryId int64                  `protobuf:"varint,3,opt,name=ticketCategoryId,proto3" json:"ticketCategoryId,omitempty"`
 	TicketUserIds    []int64                `protobuf:"varint,4,rep,packed,name=ticketUserIds,proto3" json:"ticketUserIds,omitempty"`
 	DistributionMode string                 `protobuf:"bytes,5,opt,name=distributionMode,proto3" json:"distributionMode,omitempty"`
@@ -114,9 +114,9 @@ func (x *CreatePurchaseTokenReq) GetUserId() int64 {
 	return 0
 }
 
-func (x *CreatePurchaseTokenReq) GetProgramId() int64 {
+func (x *CreatePurchaseTokenReq) GetShowTimeId() int64 {
 	if x != nil {
-		return x.ProgramId
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -473,16 +473,17 @@ type OrderListInfo struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	OrderNumber        int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
 	ProgramId          int64                  `protobuf:"varint,2,opt,name=programId,proto3" json:"programId,omitempty"`
-	ProgramTitle       string                 `protobuf:"bytes,3,opt,name=programTitle,proto3" json:"programTitle,omitempty"`
-	ProgramItemPicture string                 `protobuf:"bytes,4,opt,name=programItemPicture,proto3" json:"programItemPicture,omitempty"`
-	ProgramPlace       string                 `protobuf:"bytes,5,opt,name=programPlace,proto3" json:"programPlace,omitempty"`
-	ProgramShowTime    string                 `protobuf:"bytes,6,opt,name=programShowTime,proto3" json:"programShowTime,omitempty"`
-	TicketCount        int64                  `protobuf:"varint,7,opt,name=ticketCount,proto3" json:"ticketCount,omitempty"`
-	OrderPrice         int64                  `protobuf:"varint,8,opt,name=orderPrice,proto3" json:"orderPrice,omitempty"`
-	OrderStatus        int64                  `protobuf:"varint,9,opt,name=orderStatus,proto3" json:"orderStatus,omitempty"`
-	OrderExpireTime    string                 `protobuf:"bytes,10,opt,name=orderExpireTime,proto3" json:"orderExpireTime,omitempty"`
-	CreateOrderTime    string                 `protobuf:"bytes,11,opt,name=createOrderTime,proto3" json:"createOrderTime,omitempty"`
-	CancelOrderTime    string                 `protobuf:"bytes,12,opt,name=cancelOrderTime,proto3" json:"cancelOrderTime,omitempty"`
+	ShowTimeId         int64                  `protobuf:"varint,3,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
+	ProgramTitle       string                 `protobuf:"bytes,4,opt,name=programTitle,proto3" json:"programTitle,omitempty"`
+	ProgramItemPicture string                 `protobuf:"bytes,5,opt,name=programItemPicture,proto3" json:"programItemPicture,omitempty"`
+	ProgramPlace       string                 `protobuf:"bytes,6,opt,name=programPlace,proto3" json:"programPlace,omitempty"`
+	ProgramShowTime    string                 `protobuf:"bytes,7,opt,name=programShowTime,proto3" json:"programShowTime,omitempty"`
+	TicketCount        int64                  `protobuf:"varint,8,opt,name=ticketCount,proto3" json:"ticketCount,omitempty"`
+	OrderPrice         int64                  `protobuf:"varint,9,opt,name=orderPrice,proto3" json:"orderPrice,omitempty"`
+	OrderStatus        int64                  `protobuf:"varint,10,opt,name=orderStatus,proto3" json:"orderStatus,omitempty"`
+	OrderExpireTime    string                 `protobuf:"bytes,11,opt,name=orderExpireTime,proto3" json:"orderExpireTime,omitempty"`
+	CreateOrderTime    string                 `protobuf:"bytes,12,opt,name=createOrderTime,proto3" json:"createOrderTime,omitempty"`
+	CancelOrderTime    string                 `protobuf:"bytes,13,opt,name=cancelOrderTime,proto3" json:"cancelOrderTime,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -527,6 +528,13 @@ func (x *OrderListInfo) GetOrderNumber() int64 {
 func (x *OrderListInfo) GetProgramId() int64 {
 	if x != nil {
 		return x.ProgramId
+	}
+	return 0
+}
+
+func (x *OrderListInfo) GetShowTimeId() int64 {
+	if x != nil {
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -864,15 +872,17 @@ func (x *GetOrderCacheResp) GetCache() string {
 type OrderServiceViewResp struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	OrderNumber         int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
-	OrderStatus         int64                  `protobuf:"varint,2,opt,name=orderStatus,proto3" json:"orderStatus,omitempty"`
-	PayStatus           int64                  `protobuf:"varint,3,opt,name=payStatus,proto3" json:"payStatus,omitempty"`
-	TicketStatus        int64                  `protobuf:"varint,4,opt,name=ticketStatus,proto3" json:"ticketStatus,omitempty"`
-	ProgramTitle        string                 `protobuf:"bytes,5,opt,name=programTitle,proto3" json:"programTitle,omitempty"`
-	ProgramShowTime     string                 `protobuf:"bytes,6,opt,name=programShowTime,proto3" json:"programShowTime,omitempty"`
-	TicketCount         int64                  `protobuf:"varint,7,opt,name=ticketCount,proto3" json:"ticketCount,omitempty"`
-	OrderPrice          int64                  `protobuf:"varint,8,opt,name=orderPrice,proto3" json:"orderPrice,omitempty"`
-	CanRefund           bool                   `protobuf:"varint,9,opt,name=canRefund,proto3" json:"canRefund,omitempty"`
-	RefundBlockedReason string                 `protobuf:"bytes,10,opt,name=refundBlockedReason,proto3" json:"refundBlockedReason,omitempty"`
+	ProgramId           int64                  `protobuf:"varint,2,opt,name=programId,proto3" json:"programId,omitempty"`
+	ShowTimeId          int64                  `protobuf:"varint,3,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
+	OrderStatus         int64                  `protobuf:"varint,4,opt,name=orderStatus,proto3" json:"orderStatus,omitempty"`
+	PayStatus           int64                  `protobuf:"varint,5,opt,name=payStatus,proto3" json:"payStatus,omitempty"`
+	TicketStatus        int64                  `protobuf:"varint,6,opt,name=ticketStatus,proto3" json:"ticketStatus,omitempty"`
+	ProgramTitle        string                 `protobuf:"bytes,7,opt,name=programTitle,proto3" json:"programTitle,omitempty"`
+	ProgramShowTime     string                 `protobuf:"bytes,8,opt,name=programShowTime,proto3" json:"programShowTime,omitempty"`
+	TicketCount         int64                  `protobuf:"varint,9,opt,name=ticketCount,proto3" json:"ticketCount,omitempty"`
+	OrderPrice          int64                  `protobuf:"varint,10,opt,name=orderPrice,proto3" json:"orderPrice,omitempty"`
+	CanRefund           bool                   `protobuf:"varint,11,opt,name=canRefund,proto3" json:"canRefund,omitempty"`
+	RefundBlockedReason string                 `protobuf:"bytes,12,opt,name=refundBlockedReason,proto3" json:"refundBlockedReason,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -910,6 +920,20 @@ func (*OrderServiceViewResp) Descriptor() ([]byte, []int) {
 func (x *OrderServiceViewResp) GetOrderNumber() int64 {
 	if x != nil {
 		return x.OrderNumber
+	}
+	return 0
+}
+
+func (x *OrderServiceViewResp) GetProgramId() int64 {
+	if x != nil {
+		return x.ProgramId
+	}
+	return 0
+}
+
+func (x *OrderServiceViewResp) GetShowTimeId() int64 {
+	if x != nil {
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -1097,22 +1121,23 @@ type OrderDetailInfo struct {
 	state                   protoimpl.MessageState `protogen:"open.v1"`
 	OrderNumber             int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
 	ProgramId               int64                  `protobuf:"varint,2,opt,name=programId,proto3" json:"programId,omitempty"`
-	ProgramTitle            string                 `protobuf:"bytes,3,opt,name=programTitle,proto3" json:"programTitle,omitempty"`
-	ProgramItemPicture      string                 `protobuf:"bytes,4,opt,name=programItemPicture,proto3" json:"programItemPicture,omitempty"`
-	ProgramPlace            string                 `protobuf:"bytes,5,opt,name=programPlace,proto3" json:"programPlace,omitempty"`
-	ProgramShowTime         string                 `protobuf:"bytes,6,opt,name=programShowTime,proto3" json:"programShowTime,omitempty"`
-	ProgramPermitChooseSeat int64                  `protobuf:"varint,7,opt,name=programPermitChooseSeat,proto3" json:"programPermitChooseSeat,omitempty"`
-	UserId                  int64                  `protobuf:"varint,8,opt,name=userId,proto3" json:"userId,omitempty"`
-	DistributionMode        string                 `protobuf:"bytes,9,opt,name=distributionMode,proto3" json:"distributionMode,omitempty"`
-	TakeTicketMode          string                 `protobuf:"bytes,10,opt,name=takeTicketMode,proto3" json:"takeTicketMode,omitempty"`
-	TicketCount             int64                  `protobuf:"varint,11,opt,name=ticketCount,proto3" json:"ticketCount,omitempty"`
-	OrderPrice              int64                  `protobuf:"varint,12,opt,name=orderPrice,proto3" json:"orderPrice,omitempty"`
-	OrderStatus             int64                  `protobuf:"varint,13,opt,name=orderStatus,proto3" json:"orderStatus,omitempty"`
-	FreezeToken             string                 `protobuf:"bytes,14,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
-	OrderExpireTime         string                 `protobuf:"bytes,15,opt,name=orderExpireTime,proto3" json:"orderExpireTime,omitempty"`
-	CreateOrderTime         string                 `protobuf:"bytes,16,opt,name=createOrderTime,proto3" json:"createOrderTime,omitempty"`
-	CancelOrderTime         string                 `protobuf:"bytes,17,opt,name=cancelOrderTime,proto3" json:"cancelOrderTime,omitempty"`
-	OrderTicketInfoVoList   []*OrderTicketInfo     `protobuf:"bytes,18,rep,name=orderTicketInfoVoList,proto3" json:"orderTicketInfoVoList,omitempty"`
+	ShowTimeId              int64                  `protobuf:"varint,3,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
+	ProgramTitle            string                 `protobuf:"bytes,4,opt,name=programTitle,proto3" json:"programTitle,omitempty"`
+	ProgramItemPicture      string                 `protobuf:"bytes,5,opt,name=programItemPicture,proto3" json:"programItemPicture,omitempty"`
+	ProgramPlace            string                 `protobuf:"bytes,6,opt,name=programPlace,proto3" json:"programPlace,omitempty"`
+	ProgramShowTime         string                 `protobuf:"bytes,7,opt,name=programShowTime,proto3" json:"programShowTime,omitempty"`
+	ProgramPermitChooseSeat int64                  `protobuf:"varint,8,opt,name=programPermitChooseSeat,proto3" json:"programPermitChooseSeat,omitempty"`
+	UserId                  int64                  `protobuf:"varint,9,opt,name=userId,proto3" json:"userId,omitempty"`
+	DistributionMode        string                 `protobuf:"bytes,10,opt,name=distributionMode,proto3" json:"distributionMode,omitempty"`
+	TakeTicketMode          string                 `protobuf:"bytes,11,opt,name=takeTicketMode,proto3" json:"takeTicketMode,omitempty"`
+	TicketCount             int64                  `protobuf:"varint,12,opt,name=ticketCount,proto3" json:"ticketCount,omitempty"`
+	OrderPrice              int64                  `protobuf:"varint,13,opt,name=orderPrice,proto3" json:"orderPrice,omitempty"`
+	OrderStatus             int64                  `protobuf:"varint,14,opt,name=orderStatus,proto3" json:"orderStatus,omitempty"`
+	FreezeToken             string                 `protobuf:"bytes,15,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
+	OrderExpireTime         string                 `protobuf:"bytes,16,opt,name=orderExpireTime,proto3" json:"orderExpireTime,omitempty"`
+	CreateOrderTime         string                 `protobuf:"bytes,17,opt,name=createOrderTime,proto3" json:"createOrderTime,omitempty"`
+	CancelOrderTime         string                 `protobuf:"bytes,18,opt,name=cancelOrderTime,proto3" json:"cancelOrderTime,omitempty"`
+	OrderTicketInfoVoList   []*OrderTicketInfo     `protobuf:"bytes,19,rep,name=orderTicketInfoVoList,proto3" json:"orderTicketInfoVoList,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -1157,6 +1182,13 @@ func (x *OrderDetailInfo) GetOrderNumber() int64 {
 func (x *OrderDetailInfo) GetProgramId() int64 {
 	if x != nil {
 		return x.ProgramId
+	}
+	return 0
+}
+
+func (x *OrderDetailInfo) GetShowTimeId() int64 {
+	if x != nil {
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -2157,28 +2189,28 @@ func (x *ReconcileRushAttemptsResp) GetReconciledCount() int64 {
 	return 0
 }
 
-type CountActiveTicketsByUserProgramReq struct {
+type CountActiveTicketsByUserShowTimeReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        int64                  `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	ProgramId     int64                  `protobuf:"varint,2,opt,name=programId,proto3" json:"programId,omitempty"`
+	ShowTimeId    int64                  `protobuf:"varint,2,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CountActiveTicketsByUserProgramReq) Reset() {
-	*x = CountActiveTicketsByUserProgramReq{}
+func (x *CountActiveTicketsByUserShowTimeReq) Reset() {
+	*x = CountActiveTicketsByUserShowTimeReq{}
 	mi := &file_order_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CountActiveTicketsByUserProgramReq) String() string {
+func (x *CountActiveTicketsByUserShowTimeReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CountActiveTicketsByUserProgramReq) ProtoMessage() {}
+func (*CountActiveTicketsByUserShowTimeReq) ProtoMessage() {}
 
-func (x *CountActiveTicketsByUserProgramReq) ProtoReflect() protoreflect.Message {
+func (x *CountActiveTicketsByUserShowTimeReq) ProtoReflect() protoreflect.Message {
 	mi := &file_order_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2190,46 +2222,46 @@ func (x *CountActiveTicketsByUserProgramReq) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CountActiveTicketsByUserProgramReq.ProtoReflect.Descriptor instead.
-func (*CountActiveTicketsByUserProgramReq) Descriptor() ([]byte, []int) {
+// Deprecated: Use CountActiveTicketsByUserShowTimeReq.ProtoReflect.Descriptor instead.
+func (*CountActiveTicketsByUserShowTimeReq) Descriptor() ([]byte, []int) {
 	return file_order_proto_rawDescGZIP(), []int{32}
 }
 
-func (x *CountActiveTicketsByUserProgramReq) GetUserId() int64 {
+func (x *CountActiveTicketsByUserShowTimeReq) GetUserId() int64 {
 	if x != nil {
 		return x.UserId
 	}
 	return 0
 }
 
-func (x *CountActiveTicketsByUserProgramReq) GetProgramId() int64 {
+func (x *CountActiveTicketsByUserShowTimeReq) GetShowTimeId() int64 {
 	if x != nil {
-		return x.ProgramId
+		return x.ShowTimeId
 	}
 	return 0
 }
 
-type CountActiveTicketsByUserProgramResp struct {
+type CountActiveTicketsByUserShowTimeResp struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	ActiveTicketCount int64                  `protobuf:"varint,1,opt,name=activeTicketCount,proto3" json:"activeTicketCount,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
-func (x *CountActiveTicketsByUserProgramResp) Reset() {
-	*x = CountActiveTicketsByUserProgramResp{}
+func (x *CountActiveTicketsByUserShowTimeResp) Reset() {
+	*x = CountActiveTicketsByUserShowTimeResp{}
 	mi := &file_order_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CountActiveTicketsByUserProgramResp) String() string {
+func (x *CountActiveTicketsByUserShowTimeResp) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CountActiveTicketsByUserProgramResp) ProtoMessage() {}
+func (*CountActiveTicketsByUserShowTimeResp) ProtoMessage() {}
 
-func (x *CountActiveTicketsByUserProgramResp) ProtoReflect() protoreflect.Message {
+func (x *CountActiveTicketsByUserShowTimeResp) ProtoReflect() protoreflect.Message {
 	mi := &file_order_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2241,12 +2273,12 @@ func (x *CountActiveTicketsByUserProgramResp) ProtoReflect() protoreflect.Messag
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CountActiveTicketsByUserProgramResp.ProtoReflect.Descriptor instead.
-func (*CountActiveTicketsByUserProgramResp) Descriptor() ([]byte, []int) {
+// Deprecated: Use CountActiveTicketsByUserShowTimeResp.ProtoReflect.Descriptor instead.
+func (*CountActiveTicketsByUserShowTimeResp) Descriptor() ([]byte, []int) {
 	return file_order_proto_rawDescGZIP(), []int{33}
 }
 
-func (x *CountActiveTicketsByUserProgramResp) GetActiveTicketCount() int64 {
+func (x *CountActiveTicketsByUserShowTimeResp) GetActiveTicketCount() int64 {
 	if x != nil {
 		return x.ActiveTicketCount
 	}
@@ -2259,10 +2291,12 @@ const file_order_proto_rawDesc = "" +
 	"\n" +
 	"\vorder.proto\x12\x05order\"$\n" +
 	"\bBoolResp\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xf4\x01\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xf6\x01\n" +
 	"\x16CreatePurchaseTokenReq\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12\x1c\n" +
-	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\x12*\n" +
+	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x02 \x01(\x03R\n" +
+	"showTimeId\x12*\n" +
 	"\x10ticketCategoryId\x18\x03 \x01(\x03R\x10ticketCategoryId\x12$\n" +
 	"\rticketUserIds\x18\x04 \x03(\x03R\rticketUserIds\x12*\n" +
 	"\x10distributionMode\x18\x05 \x01(\tR\x10distributionMode\x12&\n" +
@@ -2287,23 +2321,26 @@ const file_order_proto_rawDesc = "" +
 	"pageNumber\x18\x02 \x01(\x03R\n" +
 	"pageNumber\x12\x1a\n" +
 	"\bpageSize\x18\x03 \x01(\x03R\bpageSize\x12 \n" +
-	"\vorderStatus\x18\x04 \x01(\x03R\vorderStatus\"\xd3\x03\n" +
+	"\vorderStatus\x18\x04 \x01(\x03R\vorderStatus\"\xf3\x03\n" +
 	"\rOrderListInfo\x12 \n" +
 	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12\x1c\n" +
-	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\x12\"\n" +
-	"\fprogramTitle\x18\x03 \x01(\tR\fprogramTitle\x12.\n" +
-	"\x12programItemPicture\x18\x04 \x01(\tR\x12programItemPicture\x12\"\n" +
-	"\fprogramPlace\x18\x05 \x01(\tR\fprogramPlace\x12(\n" +
-	"\x0fprogramShowTime\x18\x06 \x01(\tR\x0fprogramShowTime\x12 \n" +
-	"\vticketCount\x18\a \x01(\x03R\vticketCount\x12\x1e\n" +
+	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\x12\x1e\n" +
 	"\n" +
-	"orderPrice\x18\b \x01(\x03R\n" +
+	"showTimeId\x18\x03 \x01(\x03R\n" +
+	"showTimeId\x12\"\n" +
+	"\fprogramTitle\x18\x04 \x01(\tR\fprogramTitle\x12.\n" +
+	"\x12programItemPicture\x18\x05 \x01(\tR\x12programItemPicture\x12\"\n" +
+	"\fprogramPlace\x18\x06 \x01(\tR\fprogramPlace\x12(\n" +
+	"\x0fprogramShowTime\x18\a \x01(\tR\x0fprogramShowTime\x12 \n" +
+	"\vticketCount\x18\b \x01(\x03R\vticketCount\x12\x1e\n" +
+	"\n" +
+	"orderPrice\x18\t \x01(\x03R\n" +
 	"orderPrice\x12 \n" +
-	"\vorderStatus\x18\t \x01(\x03R\vorderStatus\x12(\n" +
-	"\x0forderExpireTime\x18\n" +
-	" \x01(\tR\x0forderExpireTime\x12(\n" +
-	"\x0fcreateOrderTime\x18\v \x01(\tR\x0fcreateOrderTime\x12(\n" +
-	"\x0fcancelOrderTime\x18\f \x01(\tR\x0fcancelOrderTime\"\x8e\x01\n" +
+	"\vorderStatus\x18\n" +
+	" \x01(\x03R\vorderStatus\x12(\n" +
+	"\x0forderExpireTime\x18\v \x01(\tR\x0forderExpireTime\x12(\n" +
+	"\x0fcreateOrderTime\x18\f \x01(\tR\x0fcreateOrderTime\x12(\n" +
+	"\x0fcancelOrderTime\x18\r \x01(\tR\x0fcancelOrderTime\"\x8e\x01\n" +
 	"\x0eListOrdersResp\x12\x18\n" +
 	"\apageNum\x18\x01 \x01(\x03R\apageNum\x12\x1a\n" +
 	"\bpageSize\x18\x02 \x01(\x03R\bpageSize\x12\x1c\n" +
@@ -2318,21 +2355,25 @@ const file_order_proto_rawDesc = "" +
 	"\x10GetOrderCacheReq\x12 \n" +
 	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\")\n" +
 	"\x11GetOrderCacheResp\x12\x14\n" +
-	"\x05cache\x18\x01 \x01(\tR\x05cache\"\xfc\x02\n" +
+	"\x05cache\x18\x01 \x01(\tR\x05cache\"\xba\x03\n" +
 	"\x14OrderServiceViewResp\x12 \n" +
-	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12 \n" +
-	"\vorderStatus\x18\x02 \x01(\x03R\vorderStatus\x12\x1c\n" +
-	"\tpayStatus\x18\x03 \x01(\x03R\tpayStatus\x12\"\n" +
-	"\fticketStatus\x18\x04 \x01(\x03R\fticketStatus\x12\"\n" +
-	"\fprogramTitle\x18\x05 \x01(\tR\fprogramTitle\x12(\n" +
-	"\x0fprogramShowTime\x18\x06 \x01(\tR\x0fprogramShowTime\x12 \n" +
-	"\vticketCount\x18\a \x01(\x03R\vticketCount\x12\x1e\n" +
+	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12\x1c\n" +
+	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\x12\x1e\n" +
 	"\n" +
-	"orderPrice\x18\b \x01(\x03R\n" +
+	"showTimeId\x18\x03 \x01(\x03R\n" +
+	"showTimeId\x12 \n" +
+	"\vorderStatus\x18\x04 \x01(\x03R\vorderStatus\x12\x1c\n" +
+	"\tpayStatus\x18\x05 \x01(\x03R\tpayStatus\x12\"\n" +
+	"\fticketStatus\x18\x06 \x01(\x03R\fticketStatus\x12\"\n" +
+	"\fprogramTitle\x18\a \x01(\tR\fprogramTitle\x12(\n" +
+	"\x0fprogramShowTime\x18\b \x01(\tR\x0fprogramShowTime\x12 \n" +
+	"\vticketCount\x18\t \x01(\x03R\vticketCount\x12\x1e\n" +
+	"\n" +
+	"orderPrice\x18\n" +
+	" \x01(\x03R\n" +
 	"orderPrice\x12\x1c\n" +
-	"\tcanRefund\x18\t \x01(\bR\tcanRefund\x120\n" +
-	"\x13refundBlockedReason\x18\n" +
-	" \x01(\tR\x13refundBlockedReason\"\xf5\x02\n" +
+	"\tcanRefund\x18\v \x01(\bR\tcanRefund\x120\n" +
+	"\x13refundBlockedReason\x18\f \x01(\tR\x13refundBlockedReason\"\xf5\x02\n" +
 	"\x0fOrderTicketInfo\x12\"\n" +
 	"\fticketUserId\x18\x01 \x01(\x03R\fticketUserId\x12&\n" +
 	"\x0eticketUserName\x18\x02 \x01(\tR\x0eticketUserName\x12.\n" +
@@ -2344,29 +2385,32 @@ const file_order_proto_rawDesc = "" +
 	"\aseatRow\x18\b \x01(\x03R\aseatRow\x12\x18\n" +
 	"\aseatCol\x18\t \x01(\x03R\aseatCol\x12\x1c\n" +
 	"\tseatPrice\x18\n" +
-	" \x01(\x03R\tseatPrice\"\xeb\x05\n" +
+	" \x01(\x03R\tseatPrice\"\x8b\x06\n" +
 	"\x0fOrderDetailInfo\x12 \n" +
 	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12\x1c\n" +
-	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\x12\"\n" +
-	"\fprogramTitle\x18\x03 \x01(\tR\fprogramTitle\x12.\n" +
-	"\x12programItemPicture\x18\x04 \x01(\tR\x12programItemPicture\x12\"\n" +
-	"\fprogramPlace\x18\x05 \x01(\tR\fprogramPlace\x12(\n" +
-	"\x0fprogramShowTime\x18\x06 \x01(\tR\x0fprogramShowTime\x128\n" +
-	"\x17programPermitChooseSeat\x18\a \x01(\x03R\x17programPermitChooseSeat\x12\x16\n" +
-	"\x06userId\x18\b \x01(\x03R\x06userId\x12*\n" +
-	"\x10distributionMode\x18\t \x01(\tR\x10distributionMode\x12&\n" +
-	"\x0etakeTicketMode\x18\n" +
-	" \x01(\tR\x0etakeTicketMode\x12 \n" +
-	"\vticketCount\x18\v \x01(\x03R\vticketCount\x12\x1e\n" +
+	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\x12\x1e\n" +
 	"\n" +
-	"orderPrice\x18\f \x01(\x03R\n" +
+	"showTimeId\x18\x03 \x01(\x03R\n" +
+	"showTimeId\x12\"\n" +
+	"\fprogramTitle\x18\x04 \x01(\tR\fprogramTitle\x12.\n" +
+	"\x12programItemPicture\x18\x05 \x01(\tR\x12programItemPicture\x12\"\n" +
+	"\fprogramPlace\x18\x06 \x01(\tR\fprogramPlace\x12(\n" +
+	"\x0fprogramShowTime\x18\a \x01(\tR\x0fprogramShowTime\x128\n" +
+	"\x17programPermitChooseSeat\x18\b \x01(\x03R\x17programPermitChooseSeat\x12\x16\n" +
+	"\x06userId\x18\t \x01(\x03R\x06userId\x12*\n" +
+	"\x10distributionMode\x18\n" +
+	" \x01(\tR\x10distributionMode\x12&\n" +
+	"\x0etakeTicketMode\x18\v \x01(\tR\x0etakeTicketMode\x12 \n" +
+	"\vticketCount\x18\f \x01(\x03R\vticketCount\x12\x1e\n" +
+	"\n" +
+	"orderPrice\x18\r \x01(\x03R\n" +
 	"orderPrice\x12 \n" +
-	"\vorderStatus\x18\r \x01(\x03R\vorderStatus\x12 \n" +
-	"\vfreezeToken\x18\x0e \x01(\tR\vfreezeToken\x12(\n" +
-	"\x0forderExpireTime\x18\x0f \x01(\tR\x0forderExpireTime\x12(\n" +
-	"\x0fcreateOrderTime\x18\x10 \x01(\tR\x0fcreateOrderTime\x12(\n" +
-	"\x0fcancelOrderTime\x18\x11 \x01(\tR\x0fcancelOrderTime\x12L\n" +
-	"\x15orderTicketInfoVoList\x18\x12 \x03(\v2\x16.order.OrderTicketInfoR\x15orderTicketInfoVoList\"J\n" +
+	"\vorderStatus\x18\x0e \x01(\x03R\vorderStatus\x12 \n" +
+	"\vfreezeToken\x18\x0f \x01(\tR\vfreezeToken\x12(\n" +
+	"\x0forderExpireTime\x18\x10 \x01(\tR\x0forderExpireTime\x12(\n" +
+	"\x0fcreateOrderTime\x18\x11 \x01(\tR\x0fcreateOrderTime\x12(\n" +
+	"\x0fcancelOrderTime\x18\x12 \x01(\tR\x0fcancelOrderTime\x12L\n" +
+	"\x15orderTicketInfoVoList\x18\x13 \x03(\v2\x16.order.OrderTicketInfoR\x15orderTicketInfoVoList\"J\n" +
 	"\x0eCancelOrderReq\x12\x16\n" +
 	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12 \n" +
 	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\"{\n" +
@@ -2426,12 +2470,14 @@ const file_order_proto_rawDesc = "" +
 	"\x18ReconcileRushAttemptsReq\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x03R\x05limit\"E\n" +
 	"\x19ReconcileRushAttemptsResp\x12(\n" +
-	"\x0freconciledCount\x18\x01 \x01(\x03R\x0freconciledCount\"Z\n" +
-	"\"CountActiveTicketsByUserProgramReq\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12\x1c\n" +
-	"\tprogramId\x18\x02 \x01(\x03R\tprogramId\"S\n" +
-	"#CountActiveTicketsByUserProgramResp\x12,\n" +
-	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount2\xd7\t\n" +
+	"\x0freconciledCount\x18\x01 \x01(\x03R\x0freconciledCount\"]\n" +
+	"#CountActiveTicketsByUserShowTimeReq\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x02 \x01(\x03R\n" +
+	"showTimeId\"T\n" +
+	"$CountActiveTicketsByUserShowTimeResp\x12,\n" +
+	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount2\xda\t\n" +
 	"\bOrderRpc\x12T\n" +
 	"\x13CreatePurchaseToken\x12\x1d.order.CreatePurchaseTokenReq\x1a\x1e.order.CreatePurchaseTokenResp\x12<\n" +
 	"\vCreateOrder\x12\x15.order.CreateOrderReq\x1a\x16.order.CreateOrderResp\x12N\n" +
@@ -2449,8 +2495,8 @@ const file_order_proto_rawDesc = "" +
 	"\x11CloseExpiredOrder\x12\x1b.order.CloseExpiredOrderReq\x1a\x0f.order.BoolResp\x12Q\n" +
 	"\x12CloseExpiredOrders\x12\x1c.order.CloseExpiredOrdersReq\x1a\x1d.order.CloseExpiredOrdersResp\x12?\n" +
 	"\x10VerifyAttemptDue\x12\x1a.order.VerifyAttemptDueReq\x1a\x0f.order.BoolResp\x12Z\n" +
-	"\x15ReconcileRushAttempts\x12\x1f.order.ReconcileRushAttemptsReq\x1a .order.ReconcileRushAttemptsResp\x12x\n" +
-	"\x1fCountActiveTicketsByUserProgram\x12).order.CountActiveTicketsByUserProgramReq\x1a*.order.CountActiveTicketsByUserProgramRespB\x06Z\x04./pbb\x06proto3"
+	"\x15ReconcileRushAttempts\x12\x1f.order.ReconcileRushAttemptsReq\x1a .order.ReconcileRushAttemptsResp\x12{\n" +
+	" CountActiveTicketsByUserShowTime\x12*.order.CountActiveTicketsByUserShowTimeReq\x1a+.order.CountActiveTicketsByUserShowTimeRespB\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_order_proto_rawDescOnce sync.Once
@@ -2466,40 +2512,40 @@ func file_order_proto_rawDescGZIP() []byte {
 
 var file_order_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_order_proto_goTypes = []any{
-	(*BoolResp)(nil),                            // 0: order.BoolResp
-	(*CreatePurchaseTokenReq)(nil),              // 1: order.CreatePurchaseTokenReq
-	(*CreatePurchaseTokenResp)(nil),             // 2: order.CreatePurchaseTokenResp
-	(*CreateOrderReq)(nil),                      // 3: order.CreateOrderReq
-	(*CreateOrderResp)(nil),                     // 4: order.CreateOrderResp
-	(*PollOrderProgressReq)(nil),                // 5: order.PollOrderProgressReq
-	(*PollOrderProgressResp)(nil),               // 6: order.PollOrderProgressResp
-	(*ListOrdersReq)(nil),                       // 7: order.ListOrdersReq
-	(*OrderListInfo)(nil),                       // 8: order.OrderListInfo
-	(*ListOrdersResp)(nil),                      // 9: order.ListOrdersResp
-	(*GetOrderReq)(nil),                         // 10: order.GetOrderReq
-	(*GetOrderServiceViewReq)(nil),              // 11: order.GetOrderServiceViewReq
-	(*GetOrderCacheReq)(nil),                    // 12: order.GetOrderCacheReq
-	(*GetOrderCacheResp)(nil),                   // 13: order.GetOrderCacheResp
-	(*OrderServiceViewResp)(nil),                // 14: order.OrderServiceViewResp
-	(*OrderTicketInfo)(nil),                     // 15: order.OrderTicketInfo
-	(*OrderDetailInfo)(nil),                     // 16: order.OrderDetailInfo
-	(*CancelOrderReq)(nil),                      // 17: order.CancelOrderReq
-	(*PayOrderReq)(nil),                         // 18: order.PayOrderReq
-	(*PayOrderResp)(nil),                        // 19: order.PayOrderResp
-	(*PayCheckReq)(nil),                         // 20: order.PayCheckReq
-	(*PayCheckResp)(nil),                        // 21: order.PayCheckResp
-	(*RefundOrderReq)(nil),                      // 22: order.RefundOrderReq
-	(*PreviewRefundOrderReq)(nil),               // 23: order.PreviewRefundOrderReq
-	(*PreviewRefundOrderResp)(nil),              // 24: order.PreviewRefundOrderResp
-	(*RefundOrderResp)(nil),                     // 25: order.RefundOrderResp
-	(*CloseExpiredOrderReq)(nil),                // 26: order.CloseExpiredOrderReq
-	(*CloseExpiredOrdersReq)(nil),               // 27: order.CloseExpiredOrdersReq
-	(*CloseExpiredOrdersResp)(nil),              // 28: order.CloseExpiredOrdersResp
-	(*VerifyAttemptDueReq)(nil),                 // 29: order.VerifyAttemptDueReq
-	(*ReconcileRushAttemptsReq)(nil),            // 30: order.ReconcileRushAttemptsReq
-	(*ReconcileRushAttemptsResp)(nil),           // 31: order.ReconcileRushAttemptsResp
-	(*CountActiveTicketsByUserProgramReq)(nil),  // 32: order.CountActiveTicketsByUserProgramReq
-	(*CountActiveTicketsByUserProgramResp)(nil), // 33: order.CountActiveTicketsByUserProgramResp
+	(*BoolResp)(nil),                             // 0: order.BoolResp
+	(*CreatePurchaseTokenReq)(nil),               // 1: order.CreatePurchaseTokenReq
+	(*CreatePurchaseTokenResp)(nil),              // 2: order.CreatePurchaseTokenResp
+	(*CreateOrderReq)(nil),                       // 3: order.CreateOrderReq
+	(*CreateOrderResp)(nil),                      // 4: order.CreateOrderResp
+	(*PollOrderProgressReq)(nil),                 // 5: order.PollOrderProgressReq
+	(*PollOrderProgressResp)(nil),                // 6: order.PollOrderProgressResp
+	(*ListOrdersReq)(nil),                        // 7: order.ListOrdersReq
+	(*OrderListInfo)(nil),                        // 8: order.OrderListInfo
+	(*ListOrdersResp)(nil),                       // 9: order.ListOrdersResp
+	(*GetOrderReq)(nil),                          // 10: order.GetOrderReq
+	(*GetOrderServiceViewReq)(nil),               // 11: order.GetOrderServiceViewReq
+	(*GetOrderCacheReq)(nil),                     // 12: order.GetOrderCacheReq
+	(*GetOrderCacheResp)(nil),                    // 13: order.GetOrderCacheResp
+	(*OrderServiceViewResp)(nil),                 // 14: order.OrderServiceViewResp
+	(*OrderTicketInfo)(nil),                      // 15: order.OrderTicketInfo
+	(*OrderDetailInfo)(nil),                      // 16: order.OrderDetailInfo
+	(*CancelOrderReq)(nil),                       // 17: order.CancelOrderReq
+	(*PayOrderReq)(nil),                          // 18: order.PayOrderReq
+	(*PayOrderResp)(nil),                         // 19: order.PayOrderResp
+	(*PayCheckReq)(nil),                          // 20: order.PayCheckReq
+	(*PayCheckResp)(nil),                         // 21: order.PayCheckResp
+	(*RefundOrderReq)(nil),                       // 22: order.RefundOrderReq
+	(*PreviewRefundOrderReq)(nil),                // 23: order.PreviewRefundOrderReq
+	(*PreviewRefundOrderResp)(nil),               // 24: order.PreviewRefundOrderResp
+	(*RefundOrderResp)(nil),                      // 25: order.RefundOrderResp
+	(*CloseExpiredOrderReq)(nil),                 // 26: order.CloseExpiredOrderReq
+	(*CloseExpiredOrdersReq)(nil),                // 27: order.CloseExpiredOrdersReq
+	(*CloseExpiredOrdersResp)(nil),               // 28: order.CloseExpiredOrdersResp
+	(*VerifyAttemptDueReq)(nil),                  // 29: order.VerifyAttemptDueReq
+	(*ReconcileRushAttemptsReq)(nil),             // 30: order.ReconcileRushAttemptsReq
+	(*ReconcileRushAttemptsResp)(nil),            // 31: order.ReconcileRushAttemptsResp
+	(*CountActiveTicketsByUserShowTimeReq)(nil),  // 32: order.CountActiveTicketsByUserShowTimeReq
+	(*CountActiveTicketsByUserShowTimeResp)(nil), // 33: order.CountActiveTicketsByUserShowTimeResp
 }
 var file_order_proto_depIdxs = []int32{
 	8,  // 0: order.ListOrdersResp.list:type_name -> order.OrderListInfo
@@ -2520,7 +2566,7 @@ var file_order_proto_depIdxs = []int32{
 	27, // 15: order.OrderRpc.CloseExpiredOrders:input_type -> order.CloseExpiredOrdersReq
 	29, // 16: order.OrderRpc.VerifyAttemptDue:input_type -> order.VerifyAttemptDueReq
 	30, // 17: order.OrderRpc.ReconcileRushAttempts:input_type -> order.ReconcileRushAttemptsReq
-	32, // 18: order.OrderRpc.CountActiveTicketsByUserProgram:input_type -> order.CountActiveTicketsByUserProgramReq
+	32, // 18: order.OrderRpc.CountActiveTicketsByUserShowTime:input_type -> order.CountActiveTicketsByUserShowTimeReq
 	2,  // 19: order.OrderRpc.CreatePurchaseToken:output_type -> order.CreatePurchaseTokenResp
 	4,  // 20: order.OrderRpc.CreateOrder:output_type -> order.CreateOrderResp
 	6,  // 21: order.OrderRpc.PollOrderProgress:output_type -> order.PollOrderProgressResp
@@ -2537,7 +2583,7 @@ var file_order_proto_depIdxs = []int32{
 	28, // 32: order.OrderRpc.CloseExpiredOrders:output_type -> order.CloseExpiredOrdersResp
 	0,  // 33: order.OrderRpc.VerifyAttemptDue:output_type -> order.BoolResp
 	31, // 34: order.OrderRpc.ReconcileRushAttempts:output_type -> order.ReconcileRushAttemptsResp
-	33, // 35: order.OrderRpc.CountActiveTicketsByUserProgram:output_type -> order.CountActiveTicketsByUserProgramResp
+	33, // 35: order.OrderRpc.CountActiveTicketsByUserShowTime:output_type -> order.CountActiveTicketsByUserShowTimeResp
 	19, // [19:36] is the sub-list for method output_type
 	2,  // [2:19] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name

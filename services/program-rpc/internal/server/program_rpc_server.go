@@ -78,7 +78,7 @@ func (s *ProgramRpcServer) GetProgramDetail(ctx context.Context, in *pb.GetProgr
 	return l.GetProgramDetail(in)
 }
 
-func (s *ProgramRpcServer) GetProgramPreorder(ctx context.Context, in *pb.GetProgramDetailReq) (*pb.ProgramPreorderInfo, error) {
+func (s *ProgramRpcServer) GetProgramPreorder(ctx context.Context, in *pb.GetProgramPreorderReq) (*pb.ProgramPreorderInfo, error) {
 	l := logic.NewGetProgramPreorderLogic(ctx, s.svcCtx)
 	return l.GetProgramPreorder(in)
 }

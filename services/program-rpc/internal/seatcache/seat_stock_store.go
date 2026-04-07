@@ -81,7 +81,7 @@ func NewSeatStockStore(redis redisClient, seatModel seatLedgerSource, cfg Config
 	}
 }
 
-func (s *SeatStockStore) FreezeAutoAssignedSeats(ctx context.Context, programID, ticketCategoryID int64, freezeToken string, count int64) ([]Seat, error) {
+func (s *SeatStockStore) FreezeAutoAssignedSeats(ctx context.Context, showTimeID, ticketCategoryID int64, freezeToken string, count int64) ([]Seat, error) {
 	if s == nil || s.redis == nil {
 		return nil, xerr.ErrProgramSeatLedgerNotReady
 	}
@@ -90,9 +90,9 @@ func (s *SeatStockStore) FreezeAutoAssignedSeats(ctx context.Context, programID,
 		ctx,
 		freezeAutoAssignedSeatsScript,
 		[]string{
-			stockKey(s.prefix, programID, ticketCategoryID),
-			availableSeatsKey(s.prefix, programID, ticketCategoryID),
-			frozenSeatsKey(s.prefix, programID, ticketCategoryID, freezeToken),
+			stockKey(s.prefix, showTimeID, ticketCategoryID),
+			availableSeatsKey(s.prefix, showTimeID, ticketCategoryID),
+			frozenSeatsKey(s.prefix, showTimeID, ticketCategoryID, freezeToken),
 		},
 		count,
 		s.stockTTLSeconds,
@@ -130,7 +130,7 @@ func (s *SeatStockStore) FreezeAutoAssignedSeats(ctx context.Context, programID,
 		return nil, xerr.ErrSeatInventoryInsufficient
 	case -1:
 		if s.loader != nil {
-			s.loader.Schedule(programID, ticketCategoryID)
+			s.loader.Schedule(showTimeID, ticketCategoryID)
 		}
 		return nil, xerr.ErrProgramSeatLedgerNotReady
 	default:
@@ -138,7 +138,7 @@ func (s *SeatStockStore) FreezeAutoAssignedSeats(ctx context.Context, programID,
 	}
 }
 
-func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, programID, ticketCategoryID int64, freezeToken string, ownerOrderNumber, ownerEpoch int64) error {
+func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, showTimeID, ticketCategoryID int64, freezeToken string, ownerOrderNumber, ownerEpoch int64) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
@@ -147,9 +147,9 @@ func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, programID, tick
 		ctx,
 		releaseFrozenSeatsScript,
 		[]string{
-			stockKey(s.prefix, programID, ticketCategoryID),
-			availableSeatsKey(s.prefix, programID, ticketCategoryID),
-			frozenSeatsKey(s.prefix, programID, ticketCategoryID, freezeToken),
+			stockKey(s.prefix, showTimeID, ticketCategoryID),
+			availableSeatsKey(s.prefix, showTimeID, ticketCategoryID),
+			frozenSeatsKey(s.prefix, showTimeID, ticketCategoryID, freezeToken),
 			freezeMetaKey(s.prefix, freezeToken),
 		},
 		s.stockTTLSeconds,
@@ -167,7 +167,7 @@ func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, programID, tick
 	}
 	if code == -1 {
 		if s.loader != nil {
-			s.loader.Schedule(programID, ticketCategoryID)
+			s.loader.Schedule(showTimeID, ticketCategoryID)
 		}
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
@@ -181,7 +181,7 @@ func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, programID, tick
 	return nil
 }
 
-func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, programID, ticketCategoryID int64, freezeToken string, ownerOrderNumber, ownerEpoch int64) error {
+func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, showTimeID, ticketCategoryID int64, freezeToken string, ownerOrderNumber, ownerEpoch int64) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
@@ -190,9 +190,9 @@ func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, programID, tick
 		ctx,
 		confirmFrozenSeatsScript,
 		[]string{
-			stockKey(s.prefix, programID, ticketCategoryID),
-			soldSeatsKey(s.prefix, programID, ticketCategoryID),
-			frozenSeatsKey(s.prefix, programID, ticketCategoryID, freezeToken),
+			stockKey(s.prefix, showTimeID, ticketCategoryID),
+			soldSeatsKey(s.prefix, showTimeID, ticketCategoryID),
+			frozenSeatsKey(s.prefix, showTimeID, ticketCategoryID, freezeToken),
 			freezeMetaKey(s.prefix, freezeToken),
 		},
 		s.stockTTLSeconds,
@@ -210,7 +210,7 @@ func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, programID, tick
 	}
 	if code == -1 {
 		if s.loader != nil {
-			s.loader.Schedule(programID, ticketCategoryID)
+			s.loader.Schedule(showTimeID, ticketCategoryID)
 		}
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
@@ -224,7 +224,7 @@ func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, programID, tick
 	return nil
 }
 
-func (s *SeatStockStore) PrimeFromDB(ctx context.Context, programID, ticketCategoryID int64) error {
+func (s *SeatStockStore) PrimeFromDB(ctx context.Context, showTimeID, ticketCategoryID int64) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
@@ -232,21 +232,21 @@ func (s *SeatStockStore) PrimeFromDB(ctx context.Context, programID, ticketCateg
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
 
-	return s.loader.LoadSync(ctx, programID, ticketCategoryID)
+	return s.loader.LoadSync(ctx, showTimeID, ticketCategoryID)
 }
 
-func (s *SeatStockStore) Clear(ctx context.Context, programID, ticketCategoryID int64) error {
+func (s *SeatStockStore) Clear(ctx context.Context, showTimeID, ticketCategoryID int64) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
 
 	keys := []string{
-		stockKey(s.prefix, programID, ticketCategoryID),
-		availableSeatsKey(s.prefix, programID, ticketCategoryID),
-		soldSeatsKey(s.prefix, programID, ticketCategoryID),
-		loadingKey(s.prefix, programID, ticketCategoryID),
+		stockKey(s.prefix, showTimeID, ticketCategoryID),
+		availableSeatsKey(s.prefix, showTimeID, ticketCategoryID),
+		soldSeatsKey(s.prefix, showTimeID, ticketCategoryID),
+		loadingKey(s.prefix, showTimeID, ticketCategoryID),
 	}
-	frozenKeys, err := s.redis.KeysCtx(ctx, frozenSeatsPattern(s.prefix, programID, ticketCategoryID))
+	frozenKeys, err := s.redis.KeysCtx(ctx, frozenSeatsPattern(s.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return err
 	}
@@ -256,16 +256,16 @@ func (s *SeatStockStore) Clear(ctx context.Context, programID, ticketCategoryID 
 	return err
 }
 
-func (s *SeatStockStore) Snapshot(ctx context.Context, programID, ticketCategoryID int64) (*SeatLedgerSnapshot, error) {
+func (s *SeatStockStore) Snapshot(ctx context.Context, showTimeID, ticketCategoryID int64) (*SeatLedgerSnapshot, error) {
 	if s == nil || s.redis == nil {
 		return nil, xerr.ErrProgramSeatLedgerNotReady
 	}
 
-	ready, err := s.redis.ExistsCtx(ctx, stockKey(s.prefix, programID, ticketCategoryID))
+	ready, err := s.redis.ExistsCtx(ctx, stockKey(s.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return nil, err
 	}
-	loading, err := s.redis.ExistsCtx(ctx, loadingKey(s.prefix, programID, ticketCategoryID))
+	loading, err := s.redis.ExistsCtx(ctx, loadingKey(s.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +279,7 @@ func (s *SeatStockStore) Snapshot(ctx context.Context, programID, ticketCategory
 		return snapshot, nil
 	}
 
-	availableCountRaw, err := s.redis.HgetCtx(ctx, stockKey(s.prefix, programID, ticketCategoryID), seatStockAvailableCountField)
+	availableCountRaw, err := s.redis.HgetCtx(ctx, stockKey(s.prefix, showTimeID, ticketCategoryID), seatStockAvailableCountField)
 	if err != nil {
 		return nil, err
 	}
@@ -288,20 +288,20 @@ func (s *SeatStockStore) Snapshot(ctx context.Context, programID, ticketCategory
 		return nil, err
 	}
 
-	snapshot.AvailableSeats, err = s.listSeats(ctx, availableSeatsKey(s.prefix, programID, ticketCategoryID))
+	snapshot.AvailableSeats, err = s.listSeats(ctx, availableSeatsKey(s.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return nil, err
 	}
-	snapshot.SoldSeats, err = s.listSeats(ctx, soldSeatsKey(s.prefix, programID, ticketCategoryID))
+	snapshot.SoldSeats, err = s.listSeats(ctx, soldSeatsKey(s.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return nil, err
 	}
-	frozenKeys, err := s.redis.KeysCtx(ctx, frozenSeatsPattern(s.prefix, programID, ticketCategoryID))
+	frozenKeys, err := s.redis.KeysCtx(ctx, frozenSeatsPattern(s.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return nil, err
 	}
 	for _, key := range frozenKeys {
-		freezeToken := strings.TrimPrefix(key, fmt.Sprintf("%s:frozen:%d:%d:", s.prefix, programID, ticketCategoryID))
+		freezeToken := strings.TrimPrefix(key, fmt.Sprintf("%s:frozen:%s:%d:", s.prefix, seatLedgerScopeTag(showTimeID), ticketCategoryID))
 		snapshot.FrozenSeats[freezeToken], err = s.listSeats(ctx, key)
 		if err != nil {
 			return nil, err

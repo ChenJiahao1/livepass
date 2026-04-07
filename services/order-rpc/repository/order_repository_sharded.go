@@ -181,7 +181,7 @@ func (r *shardedOrderRepository) FindExpiredUnpaidBySlot(ctx context.Context, lo
 	return orders, nil
 }
 
-func (r *shardedOrderRepository) CountActiveTicketsByUserProgram(ctx context.Context, userID, programID int64) (int64, error) {
+func (r *shardedOrderRepository) CountActiveTicketsByUserShowTime(ctx context.Context, userID, showTimeID int64) (int64, error) {
 	route, err := r.RouteByUserID(ctx, userID)
 	if err != nil {
 		return 0, err
@@ -191,10 +191,10 @@ func (r *shardedOrderRepository) CountActiveTicketsByUserProgram(ctx context.Con
 		return 0, err
 	}
 
-	return target.orderModel.CountActiveTicketsByUserProgram(ctx, userID, programID)
+	return target.orderModel.CountActiveTicketsByUserShowTime(ctx, userID, showTimeID)
 }
 
-func (r *shardedOrderRepository) ListUnpaidReservationsByUserProgram(ctx context.Context, userID, programID int64) (map[int64]int64, error) {
+func (r *shardedOrderRepository) ListUnpaidReservationsByUserShowTime(ctx context.Context, userID, showTimeID int64) (map[int64]int64, error) {
 	route, err := r.RouteByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -204,7 +204,7 @@ func (r *shardedOrderRepository) ListUnpaidReservationsByUserProgram(ctx context
 		return nil, err
 	}
 
-	return target.orderModel.ListUnpaidReservationsByUserProgram(ctx, userID, programID)
+	return target.orderModel.ListUnpaidReservationsByUserShowTime(ctx, userID, showTimeID)
 }
 
 func (r *shardedOrderRepository) RouteByUserID(_ context.Context, userID int64) (sharding.Route, error) {

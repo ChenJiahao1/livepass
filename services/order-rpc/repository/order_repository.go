@@ -32,8 +32,8 @@ type OrderRepository interface {
 	FindOrderTicketsByNumber(ctx context.Context, orderNumber int64) ([]*model.DOrderTicketUser, error)
 	FindOrderPageByUser(ctx context.Context, userID, orderStatus, pageNumber, pageSize int64) ([]*model.DOrder, int64, error)
 	FindExpiredUnpaidBySlot(ctx context.Context, logicSlot int, before time.Time, limit int64) ([]*model.DOrder, error)
-	CountActiveTicketsByUserProgram(ctx context.Context, userID, programID int64) (int64, error)
-	ListUnpaidReservationsByUserProgram(ctx context.Context, userID, programID int64) (map[int64]int64, error)
+	CountActiveTicketsByUserShowTime(ctx context.Context, userID, showTimeID int64) (int64, error)
+	ListUnpaidReservationsByUserShowTime(ctx context.Context, userID, showTimeID int64) (map[int64]int64, error)
 	RouteByUserID(ctx context.Context, userID int64) (sharding.Route, error)
 	RouteByOrderNumber(ctx context.Context, orderNumber int64) (sharding.Route, error)
 }

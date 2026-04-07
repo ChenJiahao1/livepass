@@ -59,7 +59,7 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 
 	if existing, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, orderEvent.OrderNumber); err == nil && existing != nil {
 		if attempt != nil && l.svcCtx.AttemptStore != nil {
-			if err := l.svcCtx.AttemptStore.CommitProjection(l.ctx, attempt, now); err != nil {
+			if err := l.svcCtx.AttemptStore.CommitProjection(l.ctx, attempt, extractSeatIDs(orderEvent.SeatSnapshot), now); err != nil {
 				l.Errorf("commit rush attempt projection failed after duplicate consume, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
 			}
 		}
@@ -141,7 +141,7 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		return err
 	}
 	if attempt != nil && l.svcCtx.AttemptStore != nil {
-		if err := l.svcCtx.AttemptStore.CommitProjection(l.ctx, attempt, now); err != nil {
+		if err := l.svcCtx.AttemptStore.CommitProjection(l.ctx, attempt, extractSeatIDs(orderEvent.SeatSnapshot), now); err != nil {
 			return err
 		}
 	}
@@ -152,6 +152,22 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	}
 
 	return nil
+}
+
+func extractSeatIDs(seats []orderevent.SeatSnapshot) []int64 {
+	if len(seats) == 0 {
+		return nil
+	}
+
+	ids := make([]int64, 0, len(seats))
+	for _, seat := range seats {
+		if seat.SeatID <= 0 {
+			continue
+		}
+		ids = append(ids, seat.SeatID)
+	}
+
+	return ids
 }
 
 func validateOrderCreateEvent(orderEvent *orderevent.OrderCreateEvent) error {
@@ -223,8 +239,13 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		return orderEvent, nil, nil
 	}
 
-	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramDetailReq{
-		Id: orderEvent.ProgramID,
+	showTimeID := orderEvent.ShowTimeID
+	if showTimeID <= 0 {
+		showTimeID = orderEvent.ProgramID
+	}
+
+	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramPreorderReq{
+		ShowTimeId: showTimeID,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -236,7 +257,7 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		return nil, nil, err
 	}
 	freezeReq := &programrpc.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        orderEvent.ProgramID,
+		ShowTimeId:       showTimeID,
 		TicketCategoryId: orderEvent.TicketCategoryID,
 		Count:            orderEvent.TicketCount,
 		RequestNo:        orderEvent.RequestNo,
@@ -280,6 +301,10 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 	if orderEvent.RequestNo != "" {
 		event.RequestNo = orderEvent.RequestNo
 	}
+	event.ShowTimeID = orderEvent.ShowTimeID
+	event.Generation = orderEvent.Generation
+	event.SaleWindowEndAt = orderEvent.SaleWindowEndAt
+	event.ShowEndAt = orderEvent.ShowEndAt
 	event.CommitCutoffAt = orderEvent.CommitCutoffAt
 	event.UserDeadlineAt = orderEvent.UserDeadlineAt
 

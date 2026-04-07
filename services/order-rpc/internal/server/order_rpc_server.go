@@ -103,7 +103,7 @@ func (s *OrderRpcServer) ReconcileRushAttempts(ctx context.Context, in *pb.Recon
 	return l.ReconcileRushAttempts(in)
 }
 
-func (s *OrderRpcServer) CountActiveTicketsByUserProgram(ctx context.Context, in *pb.CountActiveTicketsByUserProgramReq) (*pb.CountActiveTicketsByUserProgramResp, error) {
-	l := logic.NewCountActiveTicketsByUserProgramLogic(ctx, s.svcCtx)
-	return l.CountActiveTicketsByUserProgram(in)
+func (s *OrderRpcServer) CountActiveTicketsByUserShowTime(ctx context.Context, in *pb.CountActiveTicketsByUserShowTimeReq) (*pb.CountActiveTicketsByUserShowTimeResp, error) {
+	l := logic.NewCountActiveTicketsByUserShowTimeLogic(ctx, s.svcCtx)
+	return l.CountActiveTicketsByUserShowTime(in)
 }

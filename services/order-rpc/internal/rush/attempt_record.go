@@ -13,9 +13,13 @@ type AttemptRecord struct {
 	OrderNumber      int64
 	UserID           int64
 	ProgramID        int64
+	ShowTimeID       int64
 	TicketCategoryID int64
 	ViewerIDs        []int64
 	TicketCount      int64
+	Generation       string
+	SaleWindowEndAt  time.Time
+	ShowEndAt        time.Time
 	TokenFingerprint string
 
 	State          string

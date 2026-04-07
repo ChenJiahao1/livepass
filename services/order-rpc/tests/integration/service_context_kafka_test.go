@@ -18,8 +18,8 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
-func TestNewOrderServiceContextBuildsKafkaProducer(t *testing.T) {
-	cfg := buildKafkaServiceContextConfig("order.create.command.v1")
+func TestServiceContextKafkaBuildsKafkaProducer(t *testing.T) {
+	cfg := buildKafkaServiceContextConfig("ticketing.attempt.command.v1")
 	svcCtx := svc.NewServiceContext(cfg)
 	if svcCtx.OrderCreateProducer == nil {
 		t.Fatalf("expected kafka producer to be wired")
@@ -40,8 +40,8 @@ func TestNewOrderServiceContextBuildsKafkaProducer(t *testing.T) {
 	})
 }
 
-func TestNewOrderServiceContextEnsuresKafkaTopicExists(t *testing.T) {
-	topic := fmt.Sprintf("order.create.command.test.%d", time.Now().UnixNano())
+func TestServiceContextKafkaEnsuresKafkaTopicExists(t *testing.T) {
+	topic := fmt.Sprintf("ticketing.attempt.command.test.%d", time.Now().UnixNano())
 	cfg := buildKafkaServiceContextConfig(topic)
 
 	svcCtx := svc.NewServiceContext(cfg)
@@ -64,8 +64,8 @@ func TestNewOrderServiceContextEnsuresKafkaTopicExists(t *testing.T) {
 	t.Fatalf("expected kafka topic %q to exist after service context init", topic)
 }
 
-func TestNewOrderServiceContextBuildsShardingResources(t *testing.T) {
-	cfg := buildKafkaServiceContextConfig("order.create.command.v1")
+func TestServiceContextKafkaBuildsShardingResources(t *testing.T) {
+	cfg := buildKafkaServiceContextConfig("ticketing.attempt.command.v1")
 	svcCtx := svc.NewServiceContext(cfg)
 	if svcCtx.SqlConn == nil {
 		t.Fatalf("expected sql conn to be wired")
@@ -93,7 +93,7 @@ func TestNewOrderServiceContextBuildsShardingResources(t *testing.T) {
 	}
 }
 
-func TestLoadOrderKafkaConfig(t *testing.T) {
+func TestServiceContextKafkaLoadOrderKafkaConfig(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -125,8 +125,8 @@ UserRpc:
 Kafka:
   Brokers:
     - 127.0.0.1:9094
-  TopicOrderCreate: order.create.command.test
-  ConsumerGroup: damai-go-order-create
+  TopicOrderCreate: ticketing.attempt.command.test
+  ConsumerGroup: damai-go-ticketing-attempt
   TopicPartitions: 5
   ConsumerWorkers: 1
   MaxMessageDelay: 60s
@@ -174,7 +174,7 @@ Sharding:
 	}
 }
 
-func TestLoadOrderKafkaConfigDefaults(t *testing.T) {
+func TestServiceContextKafkaLoadOrderKafkaConfigDefaults(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -262,7 +262,7 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 		Kafka: config.KafkaConfig{
 			Brokers:          []string{"127.0.0.1:9094"},
 			TopicOrderCreate: topic,
-			ConsumerGroup:    "damai-go-order-create",
+			ConsumerGroup:    "damai-go-ticketing-attempt",
 			TopicPartitions:  5,
 			ConsumerWorkers:  1,
 			MaxMessageDelay:  5 * time.Second,

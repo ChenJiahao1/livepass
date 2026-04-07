@@ -10,6 +10,7 @@ import (
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -40,7 +41,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-seat-success",
@@ -94,7 +95,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-seat-split-fallback",
@@ -130,7 +131,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		first, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-seat-idempotent",
@@ -141,7 +142,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 		}
 
 		second, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-seat-idempotent",
@@ -189,7 +190,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-expired-new",
@@ -226,7 +227,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		_, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-insufficient",
@@ -254,7 +255,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		_, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-show-time-missing",
@@ -264,6 +265,145 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			t.Fatalf("expected not found, got %v", err)
 		}
 	})
+}
+
+func TestSeatInventoryQueriesAreScopedByShowTime(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	const (
+		programID         int64 = 59001
+		showTimeOneID     int64 = 69001
+		showTimeTwoID     int64 = 69002
+		ticketCategoryOne int64 = 79001
+		ticketCategoryTwo int64 = 79002
+	)
+
+	seedProgramFixtures(t, svcCtx, programFixture{
+		ProgramID:               programID,
+		ProgramGroupID:          59901,
+		ParentProgramCategoryID: 1,
+		ProgramCategoryID:       11,
+		AreaID:                  1,
+		ShowTimeID:              showTimeOneID,
+		ShowTime:                "2026-12-31 19:30:00",
+		ShowDayTime:             "2026-12-31 00:00:00",
+		ShowWeekTime:            "周四",
+		RushSaleOpenTime:        "2026-12-31 18:00:00",
+		RushSaleEndTime:         "2026-12-31 19:00:00",
+		ShowEndTime:             "2026-12-31 22:30:00",
+		TicketCategories: []ticketCategoryFixture{
+			{ID: ticketCategoryOne, ShowTimeID: showTimeOneID, Introduce: "第一场普通票", Price: 299, TotalNumber: 2, RemainNumber: 2},
+		},
+	})
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	mustExecProgramSQL(
+		t,
+		db,
+		`INSERT INTO d_program_show_time (
+			id, program_id, show_time, show_day_time, show_week_time,
+			rush_sale_open_time, rush_sale_end_time, show_end_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		showTimeTwoID,
+		programID,
+		"2027-01-01 19:30:00",
+		"2027-01-01 00:00:00",
+		"周五",
+		"2027-01-01 18:00:00",
+		"2027-01-01 19:00:00",
+		"2027-01-01 22:30:00",
+		"2026-01-01 00:00:00",
+		"2026-01-01 00:00:00",
+		1,
+	)
+	mustExecProgramSQL(
+		t,
+		db,
+		`INSERT INTO d_ticket_category (
+			id, program_id, show_time_id, introduce, price, total_number, remain_number, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		ticketCategoryTwo,
+		programID,
+		showTimeTwoID,
+		"第二场普通票",
+		399,
+		3,
+		3,
+		"2026-01-01 00:00:00",
+		"2026-01-01 00:00:00",
+		1,
+	)
+
+	seedSeatFixtures(t, svcCtx,
+		seatFixture{ID: 89001, ProgramID: programID, ShowTimeID: showTimeOneID, TicketCategoryID: ticketCategoryOne, RowCode: 1, ColCode: 1},
+		seatFixture{ID: 89002, ProgramID: programID, ShowTimeID: showTimeOneID, TicketCategoryID: ticketCategoryOne, RowCode: 1, ColCode: 2},
+		seatFixture{ID: 89003, ProgramID: programID, ShowTimeID: showTimeTwoID, TicketCategoryID: ticketCategoryTwo, RowCode: 1, ColCode: 1},
+		seatFixture{ID: 89004, ProgramID: programID, ShowTimeID: showTimeTwoID, TicketCategoryID: ticketCategoryTwo, RowCode: 1, ColCode: 2},
+		seatFixture{ID: 89005, ProgramID: programID, ShowTimeID: showTimeTwoID, TicketCategoryID: ticketCategoryTwo, RowCode: 1, ColCode: 3},
+	)
+
+	ctx := context.Background()
+	secondShowTime, err := svcCtx.DProgramShowTimeModel.FindOne(ctx, showTimeTwoID)
+	if err != nil {
+		t.Fatalf("FindOne(showTimeID) returned error: %v", err)
+	}
+	if secondShowTime.Id != showTimeTwoID {
+		t.Fatalf("expected showTimeID=%d, got %+v", showTimeTwoID, secondShowTime)
+	}
+
+	firstCategories, err := svcCtx.DTicketCategoryModel.FindByShowTimeId(ctx, showTimeOneID)
+	if err != nil {
+		t.Fatalf("FindByShowTimeId(first) returned error: %v", err)
+	}
+	if len(firstCategories) != 1 || firstCategories[0].Id != ticketCategoryOne {
+		t.Fatalf("expected only first show time ticket category, got %+v", firstCategories)
+	}
+
+	secondCategories, err := svcCtx.DTicketCategoryModel.FindByShowTimeId(ctx, showTimeTwoID)
+	if err != nil {
+		t.Fatalf("FindByShowTimeId(second) returned error: %v", err)
+	}
+	if len(secondCategories) != 1 || secondCategories[0].Id != ticketCategoryTwo {
+		t.Fatalf("expected only second show time ticket category, got %+v", secondCategories)
+	}
+
+	firstRemain, err := svcCtx.DSeatModel.FindAvailableCountByShowTimeId(ctx, showTimeOneID)
+	if err != nil {
+		t.Fatalf("FindAvailableCountByShowTimeId(first) returned error: %v", err)
+	}
+	if len(firstRemain) != 1 || firstRemain[0].TicketCategoryId != ticketCategoryOne || firstRemain[0].RemainNumber != 2 {
+		t.Fatalf("expected first show time remain aggregate to be isolated, got %+v", firstRemain)
+	}
+
+	secondRemain, err := svcCtx.DSeatModel.FindAvailableCountByShowTimeId(ctx, showTimeTwoID)
+	if err != nil {
+		t.Fatalf("FindAvailableCountByShowTimeId(second) returned error: %v", err)
+	}
+	if len(secondRemain) != 1 || secondRemain[0].TicketCategoryId != ticketCategoryTwo || secondRemain[0].RemainNumber != 3 {
+		t.Fatalf("expected second show time remain aggregate to be isolated, got %+v", secondRemain)
+	}
+
+	if err := svcCtx.SqlConn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		seats, err := svcCtx.DSeatModel.FindByShowTimeAndIDsForUpdate(ctx, session, showTimeTwoID, []int64{89003, 89005})
+		if err != nil {
+			return err
+		}
+		if len(seats) != 2 {
+			t.Fatalf("expected 2 locked seats, got %+v", seats)
+		}
+		if seats[0].Id != 89003 || seats[1].Id != 89005 {
+			t.Fatalf("expected locked seats to stay scoped to second show time, got %+v", seats)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("FindByShowTimeAndIDsForUpdate transaction returned error: %v", err)
+	}
 }
 
 func TestReleaseSeatFreeze(t *testing.T) {
@@ -283,7 +423,7 @@ func TestReleaseSeatFreeze(t *testing.T) {
 
 		autoLogic := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		freezeResp, err := autoLogic.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-release-success",
@@ -331,7 +471,7 @@ func TestReleaseSeatFreeze(t *testing.T) {
 
 		autoLogic := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		freezeResp, err := autoLogic.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-release-idempotent",
@@ -380,8 +520,8 @@ func TestConcurrentSeatFreezeDoesNotOverlap(t *testing.T) {
 	)
 
 	requests := []*pb.AutoAssignAndFreezeSeatsReq{
-		{ProgramId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-1", FreezeSeconds: 900},
-		{ProgramId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-2", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-1", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-2", FreezeSeconds: 900},
 	}
 
 	for _, req := range requests {
@@ -463,8 +603,8 @@ func TestConcurrentSeatFreezeUsesDifferentHotspotKeysPerTicketCategory(t *testin
 		errs []error
 	)
 	requests := []*pb.AutoAssignAndFreezeSeatsReq{
-		{ProgramId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, RequestNo: "req-hotspot-cat-1", FreezeSeconds: 900},
-		{ProgramId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, RequestNo: "req-hotspot-cat-2", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, RequestNo: "req-hotspot-cat-1", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, RequestNo: "req-hotspot-cat-2", FreezeSeconds: 900},
 	}
 
 	for _, req := range requests {

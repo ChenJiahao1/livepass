@@ -27,7 +27,7 @@ func TestAutoAssignAndFreezeSeatsPrefersAdjacentSeats(t *testing.T) {
 	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 	resp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-seat-ledger-adjacent",
@@ -71,7 +71,7 @@ func TestAutoAssignAndFreezeSeatsFallsBackToSortedFirstN(t *testing.T) {
 	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 	resp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-seat-ledger-fallback",
@@ -115,7 +115,7 @@ func TestAutoAssignAndFreezeSeatsRejectsWhenSeatLedgerMissing(t *testing.T) {
 	clearProgramSeatLedger(t, svcCtx, programID, ticketCategoryID)
 
 	_, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-seat-ledger-missing",

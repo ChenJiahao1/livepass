@@ -21,9 +21,9 @@ type (
 		FindOneByOrderNumber(ctx context.Context, orderNumber int64) (*DOrder, error)
 		FindOneByOrderNumberForUpdate(ctx context.Context, session sqlx.Session, orderNumber int64) (*DOrder, error)
 		FindPageByUserAndStatus(ctx context.Context, userId, orderStatus, pageNumber, pageSize int64) ([]*DOrder, int64, error)
-		CountByUserProgramAndStatus(ctx context.Context, userId, programId, orderStatus int64) (int64, error)
-		CountActiveTicketsByUserProgram(ctx context.Context, userId, programId int64) (int64, error)
-		ListUnpaidReservationsByUserProgram(ctx context.Context, userId, programId int64) (map[int64]int64, error)
+		CountByUserShowTimeAndStatus(ctx context.Context, userId, showTimeId, orderStatus int64) (int64, error)
+		CountActiveTicketsByUserShowTime(ctx context.Context, userId, showTimeId int64) (int64, error)
+		ListUnpaidReservationsByUserShowTime(ctx context.Context, userId, showTimeId int64) (map[int64]int64, error)
 		FindExpiredUnpaid(ctx context.Context, before time.Time, limit int64) ([]*DOrder, error)
 		UpdateCancelStatus(ctx context.Context, session sqlx.Session, orderNumber int64, cancelTime time.Time) error
 		UpdatePayStatus(ctx context.Context, session sqlx.Session, orderNumber int64, payTime time.Time) error
@@ -65,7 +65,7 @@ func (m *customDOrderModel) withSession(session sqlx.Session) DOrderModel {
 
 func (m *customDOrderModel) InsertWithSession(ctx context.Context, session sqlx.Session, data *DOrder) (sql.Result, error) {
 	query := fmt.Sprintf(
-		"insert into %s (`id`, `order_number`, `program_id`, `program_title`, `program_item_picture`, `program_place`, `program_show_time`, `program_permit_choose_seat`, `user_id`, `distribution_mode`, `take_ticket_mode`, `ticket_count`, `order_price`, `order_status`, `freeze_token`, `order_expire_time`, `create_order_time`, `cancel_order_time`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"insert into %s (`id`, `order_number`, `program_id`, `show_time_id`, `program_title`, `program_item_picture`, `program_place`, `program_show_time`, `program_permit_choose_seat`, `user_id`, `distribution_mode`, `take_ticket_mode`, `ticket_count`, `order_price`, `order_status`, `freeze_token`, `order_expire_time`, `create_order_time`, `cancel_order_time`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		m.table,
 	)
 
@@ -75,6 +75,7 @@ func (m *customDOrderModel) InsertWithSession(ctx context.Context, session sqlx.
 		data.Id,
 		data.OrderNumber,
 		data.ProgramId,
+		data.ShowTimeId,
 		data.ProgramTitle,
 		data.ProgramItemPicture,
 		data.ProgramPlace,
@@ -172,42 +173,42 @@ func (m *customDOrderModel) FindPageByUserAndStatus(ctx context.Context, userId,
 	}
 }
 
-func (m *customDOrderModel) CountByUserProgramAndStatus(ctx context.Context, userId, programId, orderStatus int64) (int64, error) {
+func (m *customDOrderModel) CountByUserShowTimeAndStatus(ctx context.Context, userId, showTimeId, orderStatus int64) (int64, error) {
 	query := fmt.Sprintf(
-		"select coalesce(sum(`ticket_count`), 0) as `total` from %s where `status` = 1 and `user_id` = ? and `program_id` = ? and `order_status` = ?",
+		"select coalesce(sum(`ticket_count`), 0) as `total` from %s where `status` = 1 and `user_id` = ? and `show_time_id` = ? and `order_status` = ?",
 		m.table,
 	)
 
 	var total sumAggregate
-	if err := m.conn.QueryRowCtx(ctx, &total, query, userId, programId, orderStatus); err != nil {
+	if err := m.conn.QueryRowCtx(ctx, &total, query, userId, showTimeId, orderStatus); err != nil {
 		return 0, err
 	}
 
 	return total.Total, nil
 }
 
-func (m *customDOrderModel) CountActiveTicketsByUserProgram(ctx context.Context, userId, programId int64) (int64, error) {
+func (m *customDOrderModel) CountActiveTicketsByUserShowTime(ctx context.Context, userId, showTimeId int64) (int64, error) {
 	query := fmt.Sprintf(
-		"select coalesce(sum(`ticket_count`), 0) as `total` from %s where `status` = 1 and `user_id` = ? and `program_id` = ? and `order_status` in (1, 3)",
+		"select coalesce(sum(`ticket_count`), 0) as `total` from %s where `status` = 1 and `user_id` = ? and `show_time_id` = ? and `order_status` in (1, 3)",
 		m.table,
 	)
 
 	var total sumAggregate
-	if err := m.conn.QueryRowCtx(ctx, &total, query, userId, programId); err != nil {
+	if err := m.conn.QueryRowCtx(ctx, &total, query, userId, showTimeId); err != nil {
 		return 0, err
 	}
 
 	return total.Total, nil
 }
 
-func (m *customDOrderModel) ListUnpaidReservationsByUserProgram(ctx context.Context, userId, programId int64) (map[int64]int64, error) {
+func (m *customDOrderModel) ListUnpaidReservationsByUserShowTime(ctx context.Context, userId, showTimeId int64) (map[int64]int64, error) {
 	query := fmt.Sprintf(
-		"select `order_number`, `ticket_count` from %s where `status` = 1 and `user_id` = ? and `program_id` = ? and `order_status` = 1",
+		"select `order_number`, `ticket_count` from %s where `status` = 1 and `user_id` = ? and `show_time_id` = ? and `order_status` = 1",
 		m.table,
 	)
 
 	var rows []*orderReservation
-	err := m.conn.QueryRowsCtx(ctx, &rows, query, userId, programId)
+	err := m.conn.QueryRowsCtx(ctx, &rows, query, userId, showTimeId)
 	switch err {
 	case nil:
 	case sqlx.ErrNotFound:

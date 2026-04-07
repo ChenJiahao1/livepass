@@ -33,8 +33,8 @@ type RepeatGuardConfig struct {
 
 type KafkaConfig struct {
 	Brokers          []string `json:",optional"`
-	TopicOrderCreate string   `json:",default=order.create.command.v1"`
-	ConsumerGroup    string   `json:",default=damai-go-order-create"`
+	TopicOrderCreate string   `json:",default=ticketing.attempt.command.v1"`
+	ConsumerGroup    string   `json:",default=damai-go-ticketing-attempt"`
 	TopicPartitions  int      `json:",default=1"`
 	ConsumerWorkers  int      `json:",default=1"`
 	// MaxMessageDelay follows the Java open-source flow:

@@ -2,7 +2,7 @@ syntax = "v1"
 
 type (
 	CreatePurchaseTokenReq {
-		ProgramID        int64   `json:"programId"`
+		ShowTimeID       int64   `json:"showTimeId"`
 		TicketCategoryID int64   `json:"ticketCategoryId"`
 		TicketUserIds    []int64 `json:"ticketUserIds"`
 		DistributionMode string  `json:"distributionMode,optional"`
@@ -33,6 +33,7 @@ type (
 	OrderListInfo {
 		OrderNumber        int64  `json:"orderNumber"`
 		ProgramID          int64  `json:"programId"`
+		ShowTimeID         int64  `json:"showTimeId"`
 		ProgramTitle       string `json:"programTitle,optional"`
 		ProgramItemPicture string `json:"programItemPicture,optional"`
 		ProgramPlace       string `json:"programPlace,optional"`
@@ -68,6 +69,7 @@ type (
 	OrderDetailInfo {
 		OrderNumber             int64             `json:"orderNumber"`
 		ProgramID               int64             `json:"programId"`
+		ShowTimeID              int64             `json:"showTimeId"`
 		ProgramTitle            string            `json:"programTitle,optional"`
 		ProgramItemPicture      string            `json:"programItemPicture,optional"`
 		ProgramPlace            string            `json:"programPlace,optional"`
@@ -123,8 +125,8 @@ type (
 		RefundTime    string `json:"refundTime,optional"`
 	}
 	AccountOrderCountReq {
-		UserID    int64 `json:"userId"`
-		ProgramID int64 `json:"programId"`
+		UserID     int64 `json:"userId"`
+		ShowTimeID int64 `json:"showTimeId"`
 	}
 	AccountOrderCountResp {
 		Count int64 `json:"count"`

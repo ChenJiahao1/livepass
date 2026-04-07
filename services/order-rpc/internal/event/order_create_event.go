@@ -2,7 +2,7 @@ package event
 
 import (
 	"encoding/json"
-	"strconv"
+	"fmt"
 )
 
 const OrderCreateEventVersion = "v1"
@@ -15,11 +15,15 @@ type OrderCreateEvent struct {
 	OccurredAt             string                 `json:"occurredAt"`
 	UserID                 int64                  `json:"userId"`
 	ProgramID              int64                  `json:"programId"`
+	ShowTimeID             int64                  `json:"showTimeId"`
 	TicketCategoryID       int64                  `json:"ticketCategoryId"`
 	TicketUserIDs          []int64                `json:"ticketUserIds"`
 	TicketCount            int64                  `json:"ticketCount"`
+	Generation             string                 `json:"generation"`
 	DistributionMode       string                 `json:"distributionMode"`
 	TakeTicketMode         string                 `json:"takeTicketMode"`
+	SaleWindowEndAt        string                 `json:"saleWindowEndAt"`
+	ShowEndAt              string                 `json:"showEndAt"`
 	CommitCutoffAt         string                 `json:"commitCutoffAt"`
 	UserDeadlineAt         string                 `json:"userDeadlineAt"`
 	FreezeToken            string                 `json:"freezeToken"`
@@ -66,7 +70,7 @@ func (e *OrderCreateEvent) PartitionKey() string {
 		return ""
 	}
 
-	return strconv.FormatInt(e.OrderNumber, 10)
+	return fmt.Sprintf("%d#%d", e.ShowTimeID, e.TicketCategoryID)
 }
 
 func UnmarshalOrderCreateEvent(body []byte) (*OrderCreateEvent, error) {

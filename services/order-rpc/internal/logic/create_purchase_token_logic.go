@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"time"
 
 	"damai-go/pkg/xerr"
 	"damai-go/services/order-rpc/internal/rush"
@@ -37,8 +38,8 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 
-	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramDetailReq{
-		Id: in.GetProgramId(),
+	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramPreorderReq{
+		ShowTimeId: in.GetShowTimeId(),
 	})
 	if err != nil {
 		return nil, err
@@ -56,6 +57,9 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 	if _, ok := findPreorderTicketCategory(preorder.GetTicketCategoryVoList(), in.GetTicketCategoryId()); !ok {
 		return nil, status.Error(codes.NotFound, xerr.ErrProgramTicketCategoryNotFound.Error())
 	}
+	if err := ensureAdmissionQuotaAvailable(l.ctx, l.svcCtx, preorder, in.GetTicketCategoryId()); err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
 
 	ticketCount := int64(len(in.GetTicketUserIds()))
 	if preorder.GetPerOrderLimitPurchaseCount() > 0 && ticketCount > preorder.GetPerOrderLimitPurchaseCount() {
@@ -63,7 +67,7 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 	}
 
 	if preorder.GetPerAccountLimitPurchaseCount() > 0 {
-		activeCount, err := l.svcCtx.OrderRepository.CountActiveTicketsByUserProgram(l.ctx, in.GetUserId(), in.GetProgramId())
+		activeCount, err := l.svcCtx.OrderRepository.CountActiveTicketsByUserShowTime(l.ctx, in.GetUserId(), in.GetShowTimeId())
 		if err != nil {
 			return nil, mapOrderError(err)
 		}
@@ -73,13 +77,29 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 	}
 
 	orderNumber := allocateRushContractOrderNumber(in.GetUserId())
+	saleWindowEndAt, err := parsePurchaseTokenTime(preorder.GetRushSaleEndTime(), preorder.GetShowTime())
+	if err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	showEndAt, err := parsePurchaseTokenTime(preorder.GetShowTime(), preorder.GetRushSaleEndTime())
+	if err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	showTimeID := preorder.GetShowTimeId()
+	if showTimeID <= 0 {
+		showTimeID = in.GetShowTimeId()
+	}
 	token, err := l.svcCtx.PurchaseTokenCodec.Issue(rush.PurchaseTokenClaims{
 		OrderNumber:      orderNumber,
 		UserID:           in.GetUserId(),
-		ProgramID:        in.GetProgramId(),
+		ProgramID:        preorder.GetProgramId(),
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: in.GetTicketCategoryId(),
 		TicketUserIDs:    append([]int64(nil), in.GetTicketUserIds()...),
 		TicketCount:      ticketCount,
+		Generation:       rush.BuildRushGeneration(showTimeID),
+		SaleWindowEndAt:  saleWindowEndAt.Unix(),
+		ShowEndAt:        showEndAt.Unix(),
 		DistributionMode: in.GetDistributionMode(),
 		TakeTicketMode:   in.GetTakeTicketMode(),
 	})
@@ -91,7 +111,7 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 }
 
 func validateCreatePurchaseTokenReq(in *pb.CreatePurchaseTokenReq) error {
-	if in == nil || in.GetUserId() <= 0 || in.GetProgramId() <= 0 || in.GetTicketCategoryId() <= 0 || len(in.GetTicketUserIds()) == 0 {
+	if in == nil || in.GetUserId() <= 0 || in.GetShowTimeId() <= 0 || in.GetTicketCategoryId() <= 0 || len(in.GetTicketUserIds()) == 0 {
 		return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
@@ -102,4 +122,33 @@ func validateCreatePurchaseTokenReq(in *pb.CreatePurchaseTokenReq) error {
 	}
 
 	return nil
+}
+
+func parsePurchaseTokenTime(primary, fallback string) (time.Time, error) {
+	if primary != "" {
+		return parseOrderTime(primary)
+	}
+	if fallback != "" {
+		return parseOrderTime(fallback)
+	}
+	return time.Time{}, xerr.ErrInvalidParam
+}
+
+func ensureAdmissionQuotaAvailable(ctx context.Context, svcCtx *svc.ServiceContext, preorder *programrpc.ProgramPreorderInfo, ticketCategoryID int64) error {
+	if svcCtx == nil || svcCtx.AttemptStore == nil || preorder == nil || ticketCategoryID <= 0 {
+		return nil
+	}
+
+	showTimeID := preorder.GetShowTimeId()
+	if showTimeID <= 0 {
+		return xerr.ErrInvalidParam
+	}
+
+	ticketCategory, ok := findPreorderTicketCategory(preorder.GetTicketCategoryVoList(), ticketCategoryID)
+	if !ok || ticketCategory == nil {
+		return xerr.ErrProgramTicketCategoryNotFound
+	}
+
+	_, err := svcCtx.AttemptStore.SetQuotaAvailableIfAbsent(ctx, showTimeID, ticketCategoryID, ticketCategory.GetRemainNumber())
+	return err
 }

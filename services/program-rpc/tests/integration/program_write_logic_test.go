@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	logicpkg "damai-go/services/program-rpc/internal/logic"
@@ -258,6 +259,24 @@ func TestCreateTicketCategoryPersistsRecordAndInvalidatesProgramDetailCache(t *t
 	if resp.GetId() <= 0 {
 		t.Fatalf("expected generated id, got %+v", resp)
 	}
+}
+
+func TestProgramSchemaUsesShowTimeDimensionForRushInventory(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	requireProgramTableColumn(t, db, "d_program_show_time", "rush_sale_open_time")
+	requireProgramTableColumn(t, db, "d_program_show_time", "rush_sale_end_time")
+	requireProgramTableColumn(t, db, "d_program_show_time", "show_end_time")
+	requireProgramTableColumn(t, db, "d_ticket_category", "show_time_id")
+	requireProgramTableColumn(t, db, "d_seat", "show_time_id")
+	requireProgramIndex(t, db, "d_seat", "uk_show_time_row_col")
 }
 
 func TestGetTicketCategoryDetailReturnsRecord(t *testing.T) {
@@ -547,4 +566,36 @@ func replaceProgramCacheInvalidatorWithFailingRedis(t *testing.T, svcCtx *svc.Se
 	redis.Type = "invalid"
 
 	svcCtx.ProgramCacheInvalidator = programcache.NewProgramCacheInvalidator(redis, svcCtx.ProgramDetailCache)
+}
+
+func requireProgramTableColumn(t *testing.T, db *sql.DB, tableName, columnName string) {
+	t.Helper()
+
+	var count int
+	if err := db.QueryRow(
+		`SELECT COUNT(1) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+		tableName,
+		columnName,
+	).Scan(&count); err != nil {
+		t.Fatalf("query table column metadata error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected column %s.%s to exist", tableName, columnName)
+	}
+}
+
+func requireProgramIndex(t *testing.T, db *sql.DB, tableName, indexName string) {
+	t.Helper()
+
+	var count int
+	if err := db.QueryRow(
+		`SELECT COUNT(1) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?`,
+		tableName,
+		indexName,
+	).Scan(&count); err != nil {
+		t.Fatalf("query table index metadata error: %v", err)
+	}
+	if count == 0 {
+		t.Fatalf("expected index %s on %s to exist", indexName, tableName)
+	}
 }

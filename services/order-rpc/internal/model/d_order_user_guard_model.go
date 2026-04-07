@@ -13,6 +13,7 @@ type DOrderUserGuard struct {
 	Id          int64     `db:"id"`
 	OrderNumber int64     `db:"order_number"`
 	ProgramId   int64     `db:"program_id"`
+	ShowTimeId  int64     `db:"show_time_id"`
 	UserId      int64     `db:"user_id"`
 	CreateTime  time.Time `db:"create_time"`
 	EditTime    time.Time `db:"edit_time"`
@@ -45,7 +46,7 @@ func (m *customDOrderUserGuardModel) withSession(session sqlx.Session) *customDO
 
 func (m *customDOrderUserGuardModel) InsertWithSession(ctx context.Context, session sqlx.Session, data *DOrderUserGuard) (sql.Result, error) {
 	query := fmt.Sprintf(
-		"insert into %s (`id`, `order_number`, `program_id`, `user_id`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?)",
+		"insert into %s (`id`, `order_number`, `program_id`, `show_time_id`, `user_id`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?)",
 		m.table,
 	)
 
@@ -55,6 +56,7 @@ func (m *customDOrderUserGuardModel) InsertWithSession(ctx context.Context, sess
 		data.Id,
 		data.OrderNumber,
 		data.ProgramId,
+		data.ShowTimeId,
 		data.UserId,
 		data.CreateTime,
 		data.EditTime,

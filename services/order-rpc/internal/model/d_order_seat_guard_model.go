@@ -13,6 +13,7 @@ type DOrderSeatGuard struct {
 	Id          int64     `db:"id"`
 	OrderNumber int64     `db:"order_number"`
 	ProgramId   int64     `db:"program_id"`
+	ShowTimeId  int64     `db:"show_time_id"`
 	SeatId      int64     `db:"seat_id"`
 	CreateTime  time.Time `db:"create_time"`
 	EditTime    time.Time `db:"edit_time"`
@@ -49,14 +50,14 @@ func (m *customDOrderSeatGuardModel) InsertBatch(ctx context.Context, session sq
 	}
 
 	placeholders := make([]string, 0, len(rows))
-	args := make([]interface{}, 0, len(rows)*7)
+	args := make([]interface{}, 0, len(rows)*8)
 	for _, row := range rows {
-		placeholders = append(placeholders, "(?, ?, ?, ?, ?, ?, ?)")
-		args = append(args, row.Id, row.OrderNumber, row.ProgramId, row.SeatId, row.CreateTime, row.EditTime, row.Status)
+		placeholders = append(placeholders, "(?, ?, ?, ?, ?, ?, ?, ?)")
+		args = append(args, row.Id, row.OrderNumber, row.ProgramId, row.ShowTimeId, row.SeatId, row.CreateTime, row.EditTime, row.Status)
 	}
 
 	query := fmt.Sprintf(
-		"insert into %s (`id`, `order_number`, `program_id`, `seat_id`, `create_time`, `edit_time`, `status`) values %s",
+		"insert into %s (`id`, `order_number`, `program_id`, `show_time_id`, `seat_id`, `create_time`, `edit_time`, `status`) values %s",
 		m.table,
 		strings.Join(placeholders, ", "),
 	)

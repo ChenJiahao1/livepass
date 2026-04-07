@@ -9,10 +9,10 @@ import (
 )
 
 type fakeProgramRPC struct {
-	idResp    *programrpc.IdResp
-	idErr     error
-	boolResp  *programrpc.BoolResp
-	boolErr   error
+	idResp   *programrpc.IdResp
+	idErr    error
+	boolResp *programrpc.BoolResp
+	boolErr  error
 
 	createProgramResp    *programrpc.CreateProgramResp
 	createProgramErr     error
@@ -52,7 +52,7 @@ type fakeProgramRPC struct {
 
 	getProgramPreorderResp    *programrpc.ProgramPreorderInfo
 	getProgramPreorderErr     error
-	lastGetProgramPreorderReq *programrpc.GetProgramDetailReq
+	lastGetProgramPreorderReq *programrpc.GetProgramPreorderReq
 
 	listTicketCategoriesByProgramResp    *programrpc.TicketCategoryDetailListResp
 	listTicketCategoriesByProgramErr     error
@@ -145,7 +145,7 @@ func (f *fakeProgramRPC) GetProgramDetail(ctx context.Context, in *programrpc.Ge
 	return f.getProgramDetailResp, f.getProgramDetailErr
 }
 
-func (f *fakeProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramDetailReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
+func (f *fakeProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramPreorderReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
 	f.lastGetProgramPreorderReq = in
 	return f.getProgramPreorderResp, f.getProgramPreorderErr
 }

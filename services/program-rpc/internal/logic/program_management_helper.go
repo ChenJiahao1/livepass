@@ -55,11 +55,28 @@ func clearProgramSeatLedgers(ctx context.Context, svcCtx *svc.ServiceContext, pr
 		return nil
 	}
 
+	categories, err := svcCtx.DTicketCategoryModel.FindByProgramId(ctx, programID)
+	if err != nil && !errors.Is(err, model.ErrNotFound) {
+		return err
+	}
+
+	showTimeByCategoryID := make(map[int64]int64, len(categories))
+	for _, category := range categories {
+		if category == nil || category.Id <= 0 || category.ShowTimeId <= 0 {
+			continue
+		}
+		showTimeByCategoryID[category.Id] = category.ShowTimeId
+	}
+
 	for _, ticketCategoryID := range uniqueInt64Values(ticketCategoryIDs) {
 		if ticketCategoryID <= 0 {
 			continue
 		}
-		if err := svcCtx.SeatStockStore.Clear(ctx, programID, ticketCategoryID); err != nil && !errors.Is(err, xerr.ErrProgramSeatLedgerNotReady) {
+		showTimeID := showTimeByCategoryID[ticketCategoryID]
+		if showTimeID <= 0 {
+			continue
+		}
+		if err := svcCtx.SeatStockStore.Clear(ctx, showTimeID, ticketCategoryID); err != nil && !errors.Is(err, xerr.ErrProgramSeatLedgerNotReady) {
 			return err
 		}
 	}

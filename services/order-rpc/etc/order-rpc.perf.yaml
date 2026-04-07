@@ -78,8 +78,8 @@ RepeatGuard:
 Kafka:
   Brokers:
     - 127.0.0.1:9094
-  TopicOrderCreate: order.create.command.v1
-  ConsumerGroup: damai-go-order-create
+  TopicOrderCreate: ticketing.attempt.command.v1
+  ConsumerGroup: damai-go-ticketing-attempt
   TopicPartitions: 5
   ConsumerWorkers: 1
   MaxMessageDelay: 60s

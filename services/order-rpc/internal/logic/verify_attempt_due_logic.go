@@ -47,7 +47,7 @@ func (l *VerifyAttemptDueLogic) VerifyAttemptDue(in *pb.VerifyAttemptDueReq) (*p
 		return &pb.BoolResp{Success: true}, nil
 	}
 
-	_, err = advanceRushAttemptProjection(l.ctx, l.svcCtx, record, now)
+	_, err = verifyRushAttemptProjection(l.ctx, l.svcCtx, record, now)
 	if err != nil {
 		return nil, mapOrderError(err)
 	}

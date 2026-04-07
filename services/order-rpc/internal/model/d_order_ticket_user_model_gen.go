@@ -39,6 +39,7 @@ type (
 	DOrderTicketUser struct {
 		Id                 int64     `db:"id"`                    // primary key
 		OrderNumber        int64     `db:"order_number"`          // order number
+		ShowTimeId         int64     `db:"show_time_id"`          // show time id
 		UserId             int64     `db:"user_id"`               // 下单用户ID
 		TicketUserId       int64     `db:"ticket_user_id"`        // 观演人ID
 		TicketUserName     string    `db:"ticket_user_name"`      // 观演人姓名快照
@@ -86,14 +87,14 @@ func (m *defaultDOrderTicketUserModel) FindOne(ctx context.Context, id int64) (*
 }
 
 func (m *defaultDOrderTicketUserModel) Insert(ctx context.Context, data *DOrderTicketUser) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dOrderTicketUserRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.OrderNumber, data.UserId, data.TicketUserId, data.TicketUserName, data.TicketUserIdNumber, data.TicketCategoryId, data.TicketCategoryName, data.TicketPrice, data.SeatId, data.SeatRow, data.SeatCol, data.SeatPrice, data.OrderStatus, data.CreateOrderTime, data.EditTime, data.Status)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dOrderTicketUserRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.OrderNumber, data.ShowTimeId, data.UserId, data.TicketUserId, data.TicketUserName, data.TicketUserIdNumber, data.TicketCategoryId, data.TicketCategoryName, data.TicketPrice, data.SeatId, data.SeatRow, data.SeatCol, data.SeatPrice, data.OrderStatus, data.CreateOrderTime, data.EditTime, data.Status)
 	return ret, err
 }
 
 func (m *defaultDOrderTicketUserModel) Update(ctx context.Context, data *DOrderTicketUser) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dOrderTicketUserRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.OrderNumber, data.UserId, data.TicketUserId, data.TicketUserName, data.TicketUserIdNumber, data.TicketCategoryId, data.TicketCategoryName, data.TicketPrice, data.SeatId, data.SeatRow, data.SeatCol, data.SeatPrice, data.OrderStatus, data.CreateOrderTime, data.EditTime, data.Status, data.Id)
+	_, err := m.conn.ExecCtx(ctx, query, data.OrderNumber, data.ShowTimeId, data.UserId, data.TicketUserId, data.TicketUserName, data.TicketUserIdNumber, data.TicketCategoryId, data.TicketCategoryName, data.TicketPrice, data.SeatId, data.SeatRow, data.SeatCol, data.SeatPrice, data.OrderStatus, data.CreateOrderTime, data.EditTime, data.Status, data.Id)
 	return err
 }
 

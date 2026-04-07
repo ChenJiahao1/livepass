@@ -75,10 +75,11 @@ func (m *customDOrderTicketUserModel) InsertBatch(ctx context.Context, session s
 	placeholders := make([]string, 0, len(rows))
 	args := make([]interface{}, 0, len(rows)*18)
 	for _, row := range rows {
-		placeholders = append(placeholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		placeholders = append(placeholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 		args = append(args,
 			row.Id,
 			row.OrderNumber,
+			row.ShowTimeId,
 			row.UserId,
 			row.TicketUserId,
 			row.TicketUserName,
@@ -99,7 +100,7 @@ func (m *customDOrderTicketUserModel) InsertBatch(ctx context.Context, session s
 	}
 
 	query := fmt.Sprintf(
-		"insert into %s (`id`, `order_number`, `user_id`, `ticket_user_id`, `ticket_user_name`, `ticket_user_id_number`, `ticket_category_id`, `ticket_category_name`, `ticket_price`, `seat_id`, `seat_row`, `seat_col`, `seat_price`, `order_status`, `create_order_time`, `create_time`, `edit_time`, `status`) values %s",
+		"insert into %s (`id`, `order_number`, `show_time_id`, `user_id`, `ticket_user_id`, `ticket_user_name`, `ticket_user_id_number`, `ticket_category_id`, `ticket_category_name`, `ticket_price`, `seat_id`, `seat_row`, `seat_col`, `seat_price`, `order_status`, `create_order_time`, `create_time`, `edit_time`, `status`) values %s",
 		m.table,
 		strings.Join(placeholders, ", "),
 	)
