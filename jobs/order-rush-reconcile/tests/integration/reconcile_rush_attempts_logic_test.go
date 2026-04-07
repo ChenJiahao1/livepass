@@ -85,7 +85,7 @@ func (f *fakeOrderRushReconcileRPC) ReconcileRushAttempts(ctx context.Context, i
 	return f.reconcileResp, f.reconcileErr
 }
 
-func (f *fakeOrderRushReconcileRPC) CountActiveTicketsByUserProgram(ctx context.Context, in *orderrpc.CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*orderrpc.CountActiveTicketsByUserProgramResp, error) {
+func (f *fakeOrderRushReconcileRPC) CountActiveTicketsByUserShowTime(ctx context.Context, in *orderrpc.CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*orderrpc.CountActiveTicketsByUserShowTimeResp, error) {
 	return nil, nil
 }
 

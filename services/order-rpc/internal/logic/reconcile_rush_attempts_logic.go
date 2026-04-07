@@ -55,7 +55,7 @@ func (l *ReconcileRushAttemptsLogic) ReconcileRushAttempts(in *pb.ReconcileRushA
 			continue
 		}
 
-		changed, err := advanceRushAttemptProjection(l.ctx, l.svcCtx, record, now)
+		changed, err := reconcileRushAttemptProjection(l.ctx, l.svcCtx, record, now)
 		if err != nil {
 			return nil, mapOrderError(err)
 		}
