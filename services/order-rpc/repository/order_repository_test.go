@@ -371,13 +371,14 @@ func seedRepositoryOrderFixturesIntoTable(t *testing.T, table string, fixtures .
 		}
 		if _, err := db.Exec(
 			`INSERT INTO `+table+` (
-				id, order_number, program_id, program_title, program_item_picture, program_place, program_show_time,
+				id, order_number, program_id, show_time_id, program_title, program_item_picture, program_place, program_show_time,
 				program_permit_choose_seat, user_id, distribution_mode, take_ticket_mode, ticket_count, order_price,
 				order_status, freeze_token, order_expire_time, create_order_time, cancel_order_time, pay_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fixture.Id,
 			fixture.OrderNumber,
 			fixture.ProgramId,
+			fixture.ShowTimeId,
 			fixture.ProgramTitle,
 			fixture.ProgramItemPicture,
 			fixture.ProgramPlace,

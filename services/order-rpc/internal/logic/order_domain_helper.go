@@ -158,7 +158,7 @@ func mapOrderSummary(order *model.DOrder) *pb.OrderListInfo {
 	return &pb.OrderListInfo{
 		OrderNumber:        order.OrderNumber,
 		ProgramId:          order.ProgramId,
-		ShowTimeId:         0,
+		ShowTimeId:         order.ShowTimeId,
 		ProgramTitle:       order.ProgramTitle,
 		ProgramItemPicture: order.ProgramItemPicture,
 		ProgramPlace:       order.ProgramPlace,
@@ -180,7 +180,7 @@ func mapOrderDetail(order *model.DOrder, details []*model.DOrderTicketUser) *pb.
 	resp := &pb.OrderDetailInfo{
 		OrderNumber:             order.OrderNumber,
 		ProgramId:               order.ProgramId,
-		ShowTimeId:              0,
+		ShowTimeId:              order.ShowTimeId,
 		ProgramTitle:            order.ProgramTitle,
 		ProgramItemPicture:      order.ProgramItemPicture,
 		ProgramPlace:            order.ProgramPlace,
@@ -341,7 +341,7 @@ func finalizeOrderCancel(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		if err := tx.DeleteGuardsByOrderNumber(txCtx, order.OrderNumber); err != nil {
 			return err
 		}
-		closedOutbox, err := newOrderOutboxRow(cancelTime, order.OrderNumber, order.ProgramId, order.UserId, "order.closed")
+		closedOutbox, err := newOrderOutboxRow(cancelTime, order.OrderNumber, order.ProgramId, order.ShowTimeId, order.UserId, "order.closed")
 		if err != nil {
 			return err
 		}
@@ -562,7 +562,7 @@ func convergeOrderRefunded(ctx context.Context, svcCtx *svc.ServiceContext, orde
 		if err := tx.DeleteGuardsByOrderNumber(txCtx, order.OrderNumber); err != nil {
 			return err
 		}
-		refundedOutbox, err := newOrderOutboxRow(refundTime, order.OrderNumber, order.ProgramId, order.UserId, "order.refunded")
+		refundedOutbox, err := newOrderOutboxRow(refundTime, order.OrderNumber, order.ProgramId, order.ShowTimeId, order.UserId, "order.refunded")
 		if err != nil {
 			return err
 		}
@@ -689,7 +689,7 @@ func mapOrderServiceView(order *model.DOrder, payStatus, ticketStatus int64, pre
 	resp := &pb.OrderServiceViewResp{
 		OrderNumber:     order.OrderNumber,
 		ProgramId:       order.ProgramId,
-		ShowTimeId:      0,
+		ShowTimeId:      order.ShowTimeId,
 		OrderStatus:     order.OrderStatus,
 		PayStatus:       payStatus,
 		TicketStatus:    ticketStatus,

@@ -9,10 +9,11 @@ import (
 	"damai-go/services/order-rpc/internal/model"
 )
 
-func buildOrderOutboxPayload(orderNumber, programID, userID int64) (string, error) {
+func buildOrderOutboxPayload(orderNumber, programID, showTimeID, userID int64) (string, error) {
 	payload, err := json.Marshal(map[string]int64{
 		"orderNumber": orderNumber,
 		"programId":   programID,
+		"showTimeId":  showTimeID,
 		"userId":      userID,
 	})
 	if err != nil {
@@ -22,8 +23,8 @@ func buildOrderOutboxPayload(orderNumber, programID, userID int64) (string, erro
 	return string(payload), nil
 }
 
-func newOrderOutboxRow(now time.Time, orderNumber, programID, userID int64, eventType string) (*model.DOrderOutbox, error) {
-	payload, err := buildOrderOutboxPayload(orderNumber, programID, userID)
+func newOrderOutboxRow(now time.Time, orderNumber, programID, showTimeID, userID int64, eventType string) (*model.DOrderOutbox, error) {
+	payload, err := buildOrderOutboxPayload(orderNumber, programID, showTimeID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -31,6 +32,7 @@ func newOrderOutboxRow(now time.Time, orderNumber, programID, userID int64, even
 	return &model.DOrderOutbox{
 		Id:              xid.New(),
 		OrderNumber:     orderNumber,
+		ShowTimeId:      showTimeID,
 		EventType:       eventType,
 		Payload:         payload,
 		PublishedStatus: 0,

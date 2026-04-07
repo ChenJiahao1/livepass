@@ -28,7 +28,7 @@ func (l *CountActiveTicketsByUserShowTimeLogic) CountActiveTicketsByUserShowTime
 		return nil, err
 	}
 
-	count, err := l.svcCtx.OrderRepository.CountActiveTicketsByUserProgram(l.ctx, in.GetUserId(), in.GetShowTimeId())
+	count, err := l.svcCtx.OrderRepository.CountActiveTicketsByUserShowTime(l.ctx, in.GetUserId(), in.GetShowTimeId())
 	if err != nil {
 		return nil, err
 	}

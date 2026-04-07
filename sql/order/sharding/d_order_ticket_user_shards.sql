@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS `d_order_ticket_user_00`;
 CREATE TABLE `d_order_ticket_user_00` (
   `id` bigint NOT NULL COMMENT 'primary key',
   `order_number` bigint NOT NULL COMMENT 'order number',
+  `show_time_id` bigint NOT NULL COMMENT 'show time id',
   `user_id` bigint NOT NULL COMMENT '下单用户ID',
   `ticket_user_id` bigint NOT NULL COMMENT '观演人ID',
   `ticket_user_name` varchar(128) NOT NULL COMMENT '观演人姓名快照',
@@ -20,6 +21,7 @@ CREATE TABLE `d_order_ticket_user_00` (
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 active, 0 deleted',
   PRIMARY KEY (`id`),
   KEY `idx_order_number` (`order_number`),
+  KEY `idx_show_time_ticket_user` (`show_time_id`,`ticket_user_id`),
   KEY `idx_user_ticket_user` (`user_id`,`ticket_user_id`),
   KEY `idx_create_order_time` (`create_order_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单观演人明细表分片 00';

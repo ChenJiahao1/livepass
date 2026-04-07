@@ -44,12 +44,12 @@ func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {
 	seatGuardTable := "d_order_seat_guard"
 	outboxTable := "d_order_outbox"
 
-	requireOrderCoreFields(t, svcCtx.Config.MySQL.DataSource, orderTable, orderNumber, 10001, 3001)
-	requireTicketUsersAndSeats(t, svcCtx.Config.MySQL.DataSource, ticketTable, orderNumber, []int64{701, 702}, []int64{501, 502})
-	requireUserGuard(t, svcCtx.Config.MySQL.DataSource, userGuardTable, orderNumber, 10001, 3001)
-	requireViewerGuards(t, svcCtx.Config.MySQL.DataSource, viewerGuardTable, orderNumber, 10001, []int64{701, 702})
-	requireSeatGuards(t, svcCtx.Config.MySQL.DataSource, seatGuardTable, orderNumber, 10001, []int64{501, 502})
-	requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, outboxTable, orderNumber, "order.created")
+	requireOrderCoreFields(t, svcCtx.Config.MySQL.DataSource, orderTable, orderNumber, 10001, 10001, 3001)
+	requireTicketUsersAndSeats(t, svcCtx.Config.MySQL.DataSource, ticketTable, orderNumber, 10001, []int64{701, 702}, []int64{501, 502})
+	requireUserGuard(t, svcCtx.Config.MySQL.DataSource, userGuardTable, orderNumber, 10001, 10001, 3001)
+	requireViewerGuards(t, svcCtx.Config.MySQL.DataSource, viewerGuardTable, orderNumber, 10001, 10001, []int64{701, 702})
+	requireSeatGuards(t, svcCtx.Config.MySQL.DataSource, seatGuardTable, orderNumber, 10001, 10001, []int64{501, 502})
+	requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, outboxTable, orderNumber, 10001, 10001, 3001, "order.created")
 }
 
 func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
@@ -95,7 +95,7 @@ func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, userGuardTable, orderNumber)
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, viewerGuardTable, orderNumber)
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, seatGuardTable, orderNumber)
-	requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, outboxTable, orderNumber, "order.closed")
+	requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, outboxTable, orderNumber, 10001, 10001, 3001, "order.closed")
 }
 
 func TestCreateOrderGuardsRejectDuplicateSeatAcrossOrderSuffixes(t *testing.T) {
@@ -227,7 +227,7 @@ func mustMarshalOrderCreateEvent(t *testing.T, event *orderevent.OrderCreateEven
 	return body
 }
 
-func requireOrderCoreFields(t *testing.T, dataSource, table string, orderNumber, programID, userID int64) {
+func requireOrderCoreFields(t *testing.T, dataSource, table string, orderNumber, programID, showTimeID, userID int64) {
 	t.Helper()
 
 	db := openOrderTestDB(t, dataSource)
@@ -236,28 +236,29 @@ func requireOrderCoreFields(t *testing.T, dataSource, table string, orderNumber,
 	var (
 		gotOrderNumber int64
 		gotProgramID   int64
+		gotShowTimeID  int64
 		gotUserID      int64
 	)
 	err := db.QueryRow(
-		"SELECT order_number, program_id, user_id FROM "+table+" WHERE order_number = ? LIMIT 1",
+		"SELECT order_number, program_id, show_time_id, user_id FROM "+table+" WHERE order_number = ? LIMIT 1",
 		orderNumber,
-	).Scan(&gotOrderNumber, &gotProgramID, &gotUserID)
+	).Scan(&gotOrderNumber, &gotProgramID, &gotShowTimeID, &gotUserID)
 	if err != nil {
 		t.Fatalf("query order core fields error: %v", err)
 	}
-	if gotOrderNumber != orderNumber || gotProgramID != programID || gotUserID != userID {
-		t.Fatalf("order core fields mismatch, got=(%d,%d,%d)", gotOrderNumber, gotProgramID, gotUserID)
+	if gotOrderNumber != orderNumber || gotProgramID != programID || gotShowTimeID != showTimeID || gotUserID != userID {
+		t.Fatalf("order core fields mismatch, got=(%d,%d,%d,%d)", gotOrderNumber, gotProgramID, gotShowTimeID, gotUserID)
 	}
 }
 
-func requireTicketUsersAndSeats(t *testing.T, dataSource, table string, orderNumber int64, expectedViewerIDs, expectedSeatIDs []int64) {
+func requireTicketUsersAndSeats(t *testing.T, dataSource, table string, orderNumber, showTimeID int64, expectedViewerIDs, expectedSeatIDs []int64) {
 	t.Helper()
 
 	db := openOrderTestDB(t, dataSource)
 	defer db.Close()
 
 	rows, err := db.Query(
-		"SELECT ticket_user_id, seat_id FROM "+table+" WHERE order_number = ? ORDER BY ticket_user_id ASC",
+		"SELECT ticket_user_id, seat_id, show_time_id FROM "+table+" WHERE order_number = ? ORDER BY ticket_user_id ASC",
 		orderNumber,
 	)
 	if err != nil {
@@ -270,8 +271,12 @@ func requireTicketUsersAndSeats(t *testing.T, dataSource, table string, orderNum
 	for rows.Next() {
 		var viewerID int64
 		var seatID int64
-		if scanErr := rows.Scan(&viewerID, &seatID); scanErr != nil {
+		var gotShowTimeID int64
+		if scanErr := rows.Scan(&viewerID, &seatID, &gotShowTimeID); scanErr != nil {
 			t.Fatalf("scan ticket row error: %v", scanErr)
+		}
+		if gotShowTimeID != showTimeID {
+			t.Fatalf("ticket row show_time_id = %d, want %d", gotShowTimeID, showTimeID)
 		}
 		gotViewerIDs = append(gotViewerIDs, viewerID)
 		gotSeatIDs = append(gotSeatIDs, seatID)
@@ -284,7 +289,7 @@ func requireTicketUsersAndSeats(t *testing.T, dataSource, table string, orderNum
 	requireInt64SlicesEqual(t, gotSeatIDs, expectedSeatIDs)
 }
 
-func requireUserGuard(t *testing.T, dataSource, table string, orderNumber, programID, userID int64) {
+func requireUserGuard(t *testing.T, dataSource, table string, orderNumber, programID, showTimeID, userID int64) {
 	t.Helper()
 
 	db := openOrderTestDB(t, dataSource)
@@ -293,28 +298,29 @@ func requireUserGuard(t *testing.T, dataSource, table string, orderNumber, progr
 	var (
 		gotOrderNumber int64
 		gotProgramID   int64
+		gotShowTimeID  int64
 		gotUserID      int64
 	)
 	err := db.QueryRow(
-		"SELECT order_number, program_id, user_id FROM "+table+" WHERE order_number = ? LIMIT 1",
+		"SELECT order_number, program_id, show_time_id, user_id FROM "+table+" WHERE order_number = ? LIMIT 1",
 		orderNumber,
-	).Scan(&gotOrderNumber, &gotProgramID, &gotUserID)
+	).Scan(&gotOrderNumber, &gotProgramID, &gotShowTimeID, &gotUserID)
 	if err != nil {
 		t.Fatalf("query user guard error: %v", err)
 	}
-	if gotOrderNumber != orderNumber || gotProgramID != programID || gotUserID != userID {
-		t.Fatalf("user guard mismatch, got=(%d,%d,%d)", gotOrderNumber, gotProgramID, gotUserID)
+	if gotOrderNumber != orderNumber || gotProgramID != programID || gotShowTimeID != showTimeID || gotUserID != userID {
+		t.Fatalf("user guard mismatch, got=(%d,%d,%d,%d)", gotOrderNumber, gotProgramID, gotShowTimeID, gotUserID)
 	}
 }
 
-func requireViewerGuards(t *testing.T, dataSource, table string, orderNumber, programID int64, expectedViewerIDs []int64) {
+func requireViewerGuards(t *testing.T, dataSource, table string, orderNumber, programID, showTimeID int64, expectedViewerIDs []int64) {
 	t.Helper()
 
 	db := openOrderTestDB(t, dataSource)
 	defer db.Close()
 
 	rows, err := db.Query(
-		"SELECT viewer_id, program_id FROM "+table+" WHERE order_number = ? ORDER BY viewer_id ASC",
+		"SELECT viewer_id, program_id, show_time_id FROM "+table+" WHERE order_number = ? ORDER BY viewer_id ASC",
 		orderNumber,
 	)
 	if err != nil {
@@ -326,11 +332,15 @@ func requireViewerGuards(t *testing.T, dataSource, table string, orderNumber, pr
 	for rows.Next() {
 		var viewerID int64
 		var gotProgramID int64
-		if scanErr := rows.Scan(&viewerID, &gotProgramID); scanErr != nil {
+		var gotShowTimeID int64
+		if scanErr := rows.Scan(&viewerID, &gotProgramID, &gotShowTimeID); scanErr != nil {
 			t.Fatalf("scan viewer guard error: %v", scanErr)
 		}
 		if gotProgramID != programID {
 			t.Fatalf("viewer guard program_id = %d, want %d", gotProgramID, programID)
+		}
+		if gotShowTimeID != showTimeID {
+			t.Fatalf("viewer guard show_time_id = %d, want %d", gotShowTimeID, showTimeID)
 		}
 		gotViewerIDs = append(gotViewerIDs, viewerID)
 	}
@@ -341,14 +351,14 @@ func requireViewerGuards(t *testing.T, dataSource, table string, orderNumber, pr
 	requireInt64SlicesEqual(t, gotViewerIDs, expectedViewerIDs)
 }
 
-func requireSeatGuards(t *testing.T, dataSource, table string, orderNumber, programID int64, expectedSeatIDs []int64) {
+func requireSeatGuards(t *testing.T, dataSource, table string, orderNumber, programID, showTimeID int64, expectedSeatIDs []int64) {
 	t.Helper()
 
 	db := openOrderTestDB(t, dataSource)
 	defer db.Close()
 
 	rows, err := db.Query(
-		"SELECT seat_id, program_id FROM "+table+" WHERE order_number = ? ORDER BY seat_id ASC",
+		"SELECT seat_id, program_id, show_time_id FROM "+table+" WHERE order_number = ? ORDER BY seat_id ASC",
 		orderNumber,
 	)
 	if err != nil {
@@ -360,11 +370,15 @@ func requireSeatGuards(t *testing.T, dataSource, table string, orderNumber, prog
 	for rows.Next() {
 		var seatID int64
 		var gotProgramID int64
-		if scanErr := rows.Scan(&seatID, &gotProgramID); scanErr != nil {
+		var gotShowTimeID int64
+		if scanErr := rows.Scan(&seatID, &gotProgramID, &gotShowTimeID); scanErr != nil {
 			t.Fatalf("scan seat guard error: %v", scanErr)
 		}
 		if gotProgramID != programID {
 			t.Fatalf("seat guard program_id = %d, want %d", gotProgramID, programID)
+		}
+		if gotShowTimeID != showTimeID {
+			t.Fatalf("seat guard show_time_id = %d, want %d", gotShowTimeID, showTimeID)
 		}
 		gotSeatIDs = append(gotSeatIDs, seatID)
 	}
@@ -375,7 +389,7 @@ func requireSeatGuards(t *testing.T, dataSource, table string, orderNumber, prog
 	requireInt64SlicesEqual(t, gotSeatIDs, expectedSeatIDs)
 }
 
-func requireOutboxEvent(t *testing.T, dataSource, table string, orderNumber int64, expectedEventType string) {
+func requireOutboxEvent(t *testing.T, dataSource, table string, orderNumber, programID, showTimeID, userID int64, expectedEventType string) {
 	t.Helper()
 
 	db := openOrderTestDB(t, dataSource)
@@ -385,12 +399,13 @@ func requireOutboxEvent(t *testing.T, dataSource, table string, orderNumber int6
 		gotEventType    string
 		payload         string
 		publishedStatus int64
+		gotShowTimeID   int64
 	)
 	err := db.QueryRow(
-		"SELECT event_type, payload, published_status FROM "+table+" WHERE order_number = ? AND event_type = ? LIMIT 1",
+		"SELECT event_type, payload, published_status, show_time_id FROM "+table+" WHERE order_number = ? AND event_type = ? LIMIT 1",
 		orderNumber,
 		expectedEventType,
-	).Scan(&gotEventType, &payload, &publishedStatus)
+	).Scan(&gotEventType, &payload, &publishedStatus, &gotShowTimeID)
 	if err != nil {
 		t.Fatalf("query outbox event error: %v", err)
 	}
@@ -400,16 +415,20 @@ func requireOutboxEvent(t *testing.T, dataSource, table string, orderNumber int6
 	if publishedStatus != 0 {
 		t.Fatalf("published_status = %d, want 0", publishedStatus)
 	}
+	if gotShowTimeID != showTimeID {
+		t.Fatalf("outbox show_time_id = %d, want %d", gotShowTimeID, showTimeID)
+	}
 
 	var decoded map[string]int64
 	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
 		t.Fatalf("decode outbox payload error: %v", err)
 	}
-	if decoded["orderNumber"] != orderNumber || decoded["programId"] != 10001 || decoded["userId"] != 3001 {
+	if decoded["orderNumber"] != orderNumber || decoded["programId"] != programID || decoded["showTimeId"] != showTimeID || decoded["userId"] != userID {
 		t.Fatalf(
-			"unexpected outbox payload, got orderNumber=%d programId=%d userId=%d",
+			"unexpected outbox payload, got orderNumber=%d programId=%d showTimeId=%d userId=%d",
 			decoded["orderNumber"],
 			decoded["programId"],
+			decoded["showTimeId"],
 			decoded["userId"],
 		)
 	}

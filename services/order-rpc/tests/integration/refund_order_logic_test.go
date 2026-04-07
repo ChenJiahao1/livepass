@@ -158,7 +158,7 @@ func TestRefundOrder(t *testing.T) {
 		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_user_guard", 93001)
 		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_viewer_guard", 93001)
 		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_seat_guard", 93001)
-		requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, "d_order_outbox", 93001, "order.refunded")
+		requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, "d_order_outbox", 93001, 10001, 10001, 3001, "order.refunded")
 	})
 
 	t.Run("paid order converges when pay bill already refunded", func(t *testing.T) {
@@ -283,9 +283,10 @@ func seedRefundGuardFixtures(
 	defer db.Close()
 
 	if _, err := db.Exec(
-		"INSERT INTO d_order_user_guard (id, order_number, program_id, user_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, 1)",
+		"INSERT INTO d_order_user_guard (id, order_number, program_id, show_time_id, user_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
 		orderNumber+10000,
 		orderNumber,
+		programID,
 		programID,
 		userID,
 		now,
@@ -296,9 +297,10 @@ func seedRefundGuardFixtures(
 
 	for idx, viewerID := range viewerIDs {
 		if _, err := db.Exec(
-			"INSERT INTO d_order_viewer_guard (id, order_number, program_id, viewer_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, 1)",
+			"INSERT INTO d_order_viewer_guard (id, order_number, program_id, show_time_id, viewer_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
 			orderNumber+11000+int64(idx),
 			orderNumber,
+			programID,
 			programID,
 			viewerID,
 			now,
@@ -310,9 +312,10 @@ func seedRefundGuardFixtures(
 
 	for idx, seatID := range seatIDs {
 		if _, err := db.Exec(
-			"INSERT INTO d_order_seat_guard (id, order_number, program_id, seat_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, 1)",
+			"INSERT INTO d_order_seat_guard (id, order_number, program_id, show_time_id, seat_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
 			orderNumber+12000+int64(idx),
 			orderNumber,
+			programID,
 			programID,
 			seatID,
 			now,

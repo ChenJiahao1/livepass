@@ -8,8 +8,8 @@ import (
 )
 
 type activeTicketCounter interface {
-	CountActiveTicketsByUserProgram(ctx context.Context, userID, programID int64) (int64, error)
-	ListUnpaidReservationsByUserProgram(ctx context.Context, userID, programID int64) (map[int64]int64, error)
+	CountActiveTicketsByUserShowTime(ctx context.Context, userID, showTimeID int64) (int64, error)
+	ListUnpaidReservationsByUserShowTime(ctx context.Context, userID, showTimeID int64) (map[int64]int64, error)
 }
 
 type purchaseLimitLoader struct {
@@ -49,12 +49,12 @@ func (l *purchaseLimitLoader) Schedule(userID, programID int64) {
 
 func (l *purchaseLimitLoader) load(userID, programID int64) {
 	ctx := context.Background()
-	activeCount, err := l.orderModel.CountActiveTicketsByUserProgram(ctx, userID, programID)
+	activeCount, err := l.orderModel.CountActiveTicketsByUserShowTime(ctx, userID, programID)
 	if err != nil {
 		_, _ = l.redis.Del(loadingKey(l.prefix, userID, programID))
 		return
 	}
-	reservations, err := l.orderModel.ListUnpaidReservationsByUserProgram(ctx, userID, programID)
+	reservations, err := l.orderModel.ListUnpaidReservationsByUserShowTime(ctx, userID, programID)
 	if err != nil {
 		_, _ = l.redis.Del(loadingKey(l.prefix, userID, programID))
 		return

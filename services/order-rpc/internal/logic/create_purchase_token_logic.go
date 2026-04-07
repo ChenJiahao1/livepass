@@ -63,7 +63,7 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 	}
 
 	if preorder.GetPerAccountLimitPurchaseCount() > 0 {
-		activeCount, err := l.svcCtx.OrderRepository.CountActiveTicketsByUserProgram(l.ctx, in.GetUserId(), in.GetShowTimeId())
+		activeCount, err := l.svcCtx.OrderRepository.CountActiveTicketsByUserShowTime(l.ctx, in.GetUserId(), in.GetShowTimeId())
 		if err != nil {
 			return nil, mapOrderError(err)
 		}

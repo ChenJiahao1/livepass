@@ -50,6 +50,7 @@ type orderFixture struct {
 	ID                      int64
 	OrderNumber             int64
 	ProgramID               int64
+	ShowTimeID              int64
 	ProgramTitle            string
 	ProgramItemPicture      string
 	ProgramPlace            string
@@ -71,6 +72,7 @@ type orderFixture struct {
 type orderTicketUserFixture struct {
 	ID                 int64
 	OrderNumber        int64
+	ShowTimeID         int64
 	UserID             int64
 	TicketUserID       int64
 	TicketUserName     string
@@ -491,11 +493,11 @@ func requirePurchaseLimitLedgerAbsentFor(t *testing.T, svcCtx *svc.ServiceContex
 func primePurchaseLimitLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
 	t.Helper()
 
-	activeCount, err := svcCtx.OrderRepository.CountActiveTicketsByUserProgram(context.Background(), userID, programID)
+	activeCount, err := svcCtx.OrderRepository.CountActiveTicketsByUserShowTime(context.Background(), userID, programID)
 	if err != nil {
 		t.Fatalf("count active tickets for purchase limit ledger error: %v", err)
 	}
-	reservations, err := svcCtx.OrderRepository.ListUnpaidReservationsByUserProgram(context.Background(), userID, programID)
+	reservations, err := svcCtx.OrderRepository.ListUnpaidReservationsByUserShowTime(context.Background(), userID, programID)
 	if err != nil {
 		t.Fatalf("list unpaid reservations for purchase limit ledger error: %v", err)
 	}
@@ -879,6 +881,9 @@ func withOrderFixtureDefaults(fixture orderFixture) orderFixture {
 	if fixture.ProgramTitle == "" {
 		fixture.ProgramTitle = "订单测试演出"
 	}
+	if fixture.ShowTimeID == 0 {
+		fixture.ShowTimeID = fixture.ProgramID
+	}
 	if fixture.ProgramItemPicture == "" {
 		fixture.ProgramItemPicture = "https://example.com/order-program.jpg"
 	}
@@ -981,13 +986,14 @@ func seedOrderFixturesIntoTable(t *testing.T, dataSource, table string, fixtures
 			t,
 			db,
 			`INSERT INTO `+table+` (
-				id, order_number, program_id, program_title, program_item_picture, program_place, program_show_time,
+				id, order_number, program_id, show_time_id, program_title, program_item_picture, program_place, program_show_time,
 				program_permit_choose_seat, user_id, distribution_mode, take_ticket_mode, ticket_count, order_price,
 				order_status, freeze_token, order_expire_time, create_order_time, cancel_order_time, pay_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fixture.ID,
 			fixture.OrderNumber,
 			fixture.ProgramID,
+			fixture.ShowTimeID,
 			fixture.ProgramTitle,
 			fixture.ProgramItemPicture,
 			fixture.ProgramPlace,
@@ -1019,16 +1025,20 @@ func seedOrderTicketUserFixturesIntoTable(t *testing.T, dataSource, table string
 
 	for _, fixture := range fixtures {
 		fixture = withOrderTicketUserFixtureDefaults(fixture)
+		if fixture.ShowTimeID == 0 {
+			fixture.ShowTimeID = lookupOrderShowTimeID(t, db, strings.Replace(table, "d_order_ticket_user_", "d_order_", 1), fixture.OrderNumber)
+		}
 		mustExecOrderSQL(
 			t,
 			db,
 			`INSERT INTO `+table+` (
-				id, order_number, user_id, ticket_user_id, ticket_user_name, ticket_user_id_number,
+				id, order_number, show_time_id, user_id, ticket_user_id, ticket_user_name, ticket_user_id_number,
 				ticket_category_id, ticket_category_name, ticket_price, seat_id, seat_row, seat_col,
 				seat_price, order_status, create_order_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fixture.ID,
 			fixture.OrderNumber,
+			fixture.ShowTimeID,
 			fixture.UserID,
 			fixture.TicketUserID,
 			fixture.TicketUserName,
@@ -1047,6 +1057,17 @@ func seedOrderTicketUserFixturesIntoTable(t *testing.T, dataSource, table string
 			1,
 		)
 	}
+}
+
+func lookupOrderShowTimeID(t *testing.T, db *sql.DB, table string, orderNumber int64) int64 {
+	t.Helper()
+
+	var showTimeID int64
+	if err := db.QueryRow("SELECT show_time_id FROM "+table+" WHERE order_number = ? LIMIT 1", orderNumber).Scan(&showTimeID); err != nil {
+		t.Fatalf("lookup order show_time_id error: %v", err)
+	}
+
+	return showTimeID
 }
 
 func nullTimeIfEmpty(value string) interface{} {
@@ -1240,12 +1261,12 @@ func (r *tracingOrderRepository) FindExpiredUnpaidBySlot(ctx context.Context, lo
 	return r.base.FindExpiredUnpaidBySlot(ctx, logicSlot, before, limit)
 }
 
-func (r *tracingOrderRepository) CountActiveTicketsByUserProgram(ctx context.Context, userID, programID int64) (int64, error) {
-	return r.base.CountActiveTicketsByUserProgram(ctx, userID, programID)
+func (r *tracingOrderRepository) CountActiveTicketsByUserShowTime(ctx context.Context, userID, showTimeID int64) (int64, error) {
+	return r.base.CountActiveTicketsByUserShowTime(ctx, userID, showTimeID)
 }
 
-func (r *tracingOrderRepository) ListUnpaidReservationsByUserProgram(ctx context.Context, userID, programID int64) (map[int64]int64, error) {
-	return r.base.ListUnpaidReservationsByUserProgram(ctx, userID, programID)
+func (r *tracingOrderRepository) ListUnpaidReservationsByUserShowTime(ctx context.Context, userID, showTimeID int64) (map[int64]int64, error) {
+	return r.base.ListUnpaidReservationsByUserShowTime(ctx, userID, showTimeID)
 }
 
 func (r *tracingOrderRepository) RouteByUserID(ctx context.Context, userID int64) (sharding.Route, error) {
