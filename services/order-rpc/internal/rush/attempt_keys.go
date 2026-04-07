@@ -25,7 +25,6 @@ const (
 	attemptFieldVerifyStartedAt   = "verify_started_at"
 	attemptFieldLastDBProbeAt     = "last_db_probe_at"
 	attemptFieldDBProbeAttempts   = "db_probe_attempts"
-	attemptFieldNextDBProbeAt     = "next_db_probe_at"
 	attemptFieldCreatedAt         = "created_at"
 	attemptFieldTransitionAt      = "last_transition_at"
 )
@@ -52,10 +51,6 @@ func viewerActiveKey(prefix string, showTimeID int64, generation string, viewerI
 
 func quotaAvailableKey(prefix string, showTimeID int64, generation string, ticketCategoryID int64) string {
 	return fmt.Sprintf("%s:%s:quota:%d", prefix, rushScopeTag(showTimeID, generation), ticketCategoryID)
-}
-
-func orderProgressIndexKey(prefix string, showTimeID int64, generation string) string {
-	return fmt.Sprintf("%s:%s:progress_index", prefix, rushScopeTag(showTimeID, generation))
 }
 
 func seatOccupiedKey(prefix string, showTimeID int64, generation string, orderNumber int64) string {

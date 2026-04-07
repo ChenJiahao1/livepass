@@ -3,7 +3,6 @@
 --
 -- ARGV:
 -- 1: now(unix ms)
--- 2: next_db_probe_at(unix ms)
 
 if redis.call("EXISTS", KEYS[1]) == 0 then
     return -1
@@ -20,8 +19,7 @@ local probeAttempts = tonumber(redis.call("HGET", KEYS[1], "db_probe_attempts") 
 local updates = {
     "state", "VERIFYING",
     "last_db_probe_at", ARGV[1],
-    "db_probe_attempts", probeAttempts,
-    "next_db_probe_at", ARGV[2]
+    "db_probe_attempts", probeAttempts
 }
 
 if not verifyStartedAt or verifyStartedAt == "" or verifyStartedAt == "0" then

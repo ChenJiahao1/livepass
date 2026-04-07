@@ -32,7 +32,6 @@ type AttemptRecord struct {
 	VerifyStartedAt     time.Time
 	LastDBProbeAt       time.Time
 	DBProbeAttempts     int64
-	NextDBProbeAt       time.Time
 
 	CreatedAt        time.Time
 	LastTransitionAt time.Time

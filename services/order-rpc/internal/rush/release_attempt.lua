@@ -3,10 +3,9 @@
 -- 2: user active key(string)
 -- 3: user inflight key(string)
 -- 4: quota available key(string)
--- 5: order progress index(zset)
--- 6: seat occupied key(set)
--- 7: user fingerprint index key(hash)
--- 8..(7+viewer_count): viewer active keys(string)
+-- 5: seat occupied key(set)
+-- 6: user fingerprint index key(hash)
+-- 7..(6+viewer_count): viewer active keys(string)
 -- remaining: viewer inflight keys(string)
 --
 -- ARGV:
@@ -18,7 +17,7 @@
 -- 6: viewer_count
 
 local viewerCount = tonumber(ARGV[6]) or 0
-local viewerActiveStart = 8
+local viewerActiveStart = 7
 local viewerActiveEnd = viewerActiveStart + viewerCount - 1
 local viewerInflightStart = viewerActiveEnd + 1
 
@@ -45,7 +44,7 @@ end
 
 redis.call("DEL", KEYS[2])
 redis.call("DEL", KEYS[3])
-redis.call("DEL", KEYS[6])
+redis.call("DEL", KEYS[5])
 for idx = viewerActiveStart, viewerActiveEnd do
     redis.call("DEL", KEYS[idx])
 end
@@ -54,10 +53,8 @@ for idx = viewerInflightStart, #KEYS do
 end
 
 if ARGV[5] and ARGV[5] ~= "" then
-    redis.call("HDEL", KEYS[7], ARGV[5])
+    redis.call("HDEL", KEYS[6], ARGV[5])
 end
-
-redis.call("ZREM", KEYS[5], redis.call("HGET", KEYS[1], "order_number"))
 
 local finalAttemptTTL = tonumber(ARGV[4]) or 0
 if finalAttemptTTL > 0 then

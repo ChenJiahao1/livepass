@@ -3,9 +3,8 @@
 -- 2: user active key(string)
 -- 3: user inflight key(string)
 -- 4: quota available key(string)
--- 5: order progress index(zset)
--- 6: user fingerprint index(hash)
--- 7..(6+viewer_count): viewer active keys(string)
+-- 5: user fingerprint index(hash)
+-- 6..(5+viewer_count): viewer active keys(string)
 -- remaining: viewer inflight keys(string)
 --
 -- ARGV:
@@ -44,12 +43,12 @@ local inFlightTTL = tonumber(ARGV[14]) or 0
 local attemptTTL = tonumber(ARGV[15]) or 0
 local viewerIDsCSV = ARGV[16] or ""
 local viewerCount = tonumber(ARGV[17]) or 0
-local viewerActiveStart = 7
+local viewerActiveStart = 6
 local viewerActiveEnd = viewerActiveStart + viewerCount - 1
 local viewerInflightStart = viewerActiveEnd + 1
 
 if tokenFingerprint ~= "" then
-    local reusedOrderNo = redis.call("HGET", KEYS[6], tokenFingerprint)
+    local reusedOrderNo = redis.call("HGET", KEYS[5], tokenFingerprint)
     if reusedOrderNo and reusedOrderNo ~= "" then
         return {2, reusedOrderNo, 0}
     end
@@ -119,12 +118,10 @@ if inFlightTTL > 0 then
 end
 
 if tokenFingerprint ~= "" then
-    redis.call("HSET", KEYS[6], tokenFingerprint, orderNo)
+    redis.call("HSET", KEYS[5], tokenFingerprint, orderNo)
     if attemptTTL > 0 then
-        redis.call("EXPIRE", KEYS[6], attemptTTL)
+        redis.call("EXPIRE", KEYS[5], attemptTTL)
     end
 end
-
-redis.call("ZADD", KEYS[5], tonumber(nowUnixMs), orderNo)
 
 return {1, orderNo, 0}

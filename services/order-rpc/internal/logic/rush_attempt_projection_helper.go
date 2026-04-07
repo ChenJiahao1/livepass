@@ -48,7 +48,7 @@ func shouldReconcileRushAttempt(record *rush.AttemptRecord, now time.Time) bool 
 	case rush.AttemptStateCommitted:
 		return true
 	case rush.AttemptStateVerifying:
-		return record.NextDBProbeAt.IsZero() || !now.Before(record.NextDBProbeAt)
+		return true
 	case rush.AttemptStatePendingPublish, rush.AttemptStateQueued, rush.AttemptStateProcessing:
 		return record.UserDeadlineAt.IsZero() || !now.Before(record.UserDeadlineAt)
 	default:
@@ -129,7 +129,22 @@ func verifyRushAttemptProjection(ctx context.Context, svcCtx *svc.ServiceContext
 		return true, svcCtx.AttemptStore.Release(ctx, record, rush.AttemptReasonCommitCutoffExceed, now)
 	}
 
-	return true, svcCtx.AttemptStore.MarkVerifying(ctx, record.OrderNumber, now, nextRushAttemptProbeAt(svcCtx, now, record.CommitCutoffAt))
+	if err := svcCtx.AttemptStore.MarkVerifying(ctx, record.OrderNumber, now); err != nil {
+		return true, err
+	}
+	if svcCtx.AsyncCloseClient != nil {
+		nextProbeAt := nextRushAttemptProbeAt(svcCtx, now, record.CommitCutoffAt)
+		if err := svcCtx.AsyncCloseClient.EnqueueVerifyAttemptDue(ctx, record.OrderNumber, nextProbeAt); err != nil {
+			logx.WithContext(ctx).Errorf(
+				"enqueue verify attempt retry failed, orderNumber=%d dueAt=%s err=%v",
+				record.OrderNumber,
+				nextProbeAt.Format(time.RFC3339Nano),
+				err,
+			)
+		}
+	}
+
+	return true, nil
 }
 
 func handleLateArrivingOrderAfterRelease(ctx context.Context, svcCtx *svc.ServiceContext, order *model.DOrder) (bool, error) {

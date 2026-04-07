@@ -258,6 +258,62 @@ func TestAdmissionRejectsUserAndViewerWhenAlreadyActive(t *testing.T) {
 	}
 }
 
+func TestAdmissionDoesNotCreateProgressIndex(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	if svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
+	if store == nil {
+		t.Fatalf("expected attempt store to be configured")
+	}
+
+	ctx := context.Background()
+	now := time.Date(2026, 4, 5, 18, 32, 30, 0, time.Local)
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	showTimeID := programID + 151
+	generation := rush.BuildRushGeneration(showTimeID)
+	viewerIDs = viewerIDs[:1]
+
+	if err := store.SetQuotaAvailable(ctx, showTimeID, ticketCategoryID, 5); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+
+	if _, err := store.Admit(ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      orderNumbers[0],
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
+		TicketCategoryID: ticketCategoryID,
+		ViewerIDs:        viewerIDs,
+		TicketCount:      1,
+		Generation:       generation,
+		SaleWindowEndAt:  now.Add(30 * time.Minute),
+		ShowEndAt:        now.Add(2 * time.Hour),
+		TokenFingerprint: rush.BuildTokenFingerprint(userID, showTimeID, ticketCategoryID, viewerIDs, "express", "paper", generation),
+		CommitCutoffAt:   now.Add(10 * time.Second),
+		UserDeadlineAt:   now.Add(15 * time.Second),
+		Now:              now,
+	}); err != nil {
+		t.Fatalf("Admit() error = %v", err)
+	}
+
+	progressIndexKey := fmt.Sprintf("%s:{st:%d:g:%s}:progress_index", prefix, showTimeID, generation)
+	exists, err := svcCtx.Redis.ExistsCtx(ctx, progressIndexKey)
+	if err != nil {
+		t.Fatalf("ExistsCtx(progress_index) error = %v", err)
+	}
+	if exists {
+		t.Fatalf("expected no progress_index key, got %s", progressIndexKey)
+	}
+}
+
 func TestCommitAndReleaseProjectionManageSeatOccupiedAndTTL(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	if svcCtx.Redis == nil {

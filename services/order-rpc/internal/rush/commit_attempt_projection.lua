@@ -2,9 +2,8 @@
 -- 1: attempt record key(hash)
 -- 2: user active key(string)
 -- 3: user inflight key(string)
--- 4: order progress index(zset)
--- 5: seat occupied key(set)
--- 6..(5+viewer_count): viewer active keys(string)
+-- 4: seat occupied key(set)
+-- 5..(4+viewer_count): viewer active keys(string)
 -- remaining: viewer inflight keys(string)
 --
 -- ARGV:
@@ -20,7 +19,7 @@ local finalAttemptTTL = tonumber(ARGV[3]) or 0
 local seatIDsCSV = ARGV[4] or ""
 local viewerCount = tonumber(ARGV[5]) or 0
 local orderNo = ARGV[6]
-local viewerActiveStart = 6
+local viewerActiveStart = 5
 local viewerActiveEnd = viewerActiveStart + viewerCount - 1
 local viewerInflightStart = viewerActiveEnd + 1
 
@@ -53,11 +52,11 @@ end
 if seatIDsCSV ~= "" then
     for member in string.gmatch(seatIDsCSV, "([^,]+)") do
         if member ~= "" then
-            redis.call("SADD", KEYS[5], member)
+            redis.call("SADD", KEYS[4], member)
         end
     end
     if activeTTL > 0 then
-        redis.call("EXPIRE", KEYS[5], activeTTL)
+        redis.call("EXPIRE", KEYS[4], activeTTL)
     end
 end
 
@@ -65,8 +64,6 @@ redis.call("DEL", KEYS[3])
 for idx = viewerInflightStart, #KEYS do
     redis.call("DEL", KEYS[idx])
 end
-
-redis.call("ZREM", KEYS[4], orderNo)
 
 if finalAttemptTTL > 0 then
     redis.call("EXPIRE", KEYS[1], finalAttemptTTL)

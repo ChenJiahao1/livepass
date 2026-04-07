@@ -193,7 +193,6 @@ func (s *AttemptStore) Admit(ctx context.Context, req AdmitAttemptRequest) (*Adm
 		userActiveKey(s.prefix, req.ShowTimeID, generation, req.UserID),
 		userInflightKey(s.prefix, req.ShowTimeID, generation, req.UserID),
 		quotaAvailableKey(s.prefix, req.ShowTimeID, generation, req.TicketCategoryID),
-		orderProgressIndexKey(s.prefix, req.ShowTimeID, generation),
 		userFingerprintIndexKey(s.prefix, req.ShowTimeID, generation, req.UserID),
 	}
 	for _, viewerID := range viewerIDs {
@@ -326,7 +325,7 @@ func (s *AttemptStore) MarkQueued(ctx context.Context, orderNumber int64, now ti
 	return nil
 }
 
-func (s *AttemptStore) MarkVerifying(ctx context.Context, orderNumber int64, now, nextProbeAt time.Time) error {
+func (s *AttemptStore) MarkVerifying(ctx context.Context, orderNumber int64, now time.Time) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrInternal
 	}
@@ -335,9 +334,6 @@ func (s *AttemptStore) MarkVerifying(ctx context.Context, orderNumber int64, now
 	}
 	if now.IsZero() {
 		now = time.Now()
-	}
-	if nextProbeAt.IsZero() {
-		nextProbeAt = now
 	}
 
 	attemptKey, err := s.resolveAttemptRecordKey(ctx, orderNumber)
@@ -350,7 +346,6 @@ func (s *AttemptStore) MarkVerifying(ctx context.Context, orderNumber int64, now
 		markAttemptVerifyingScript,
 		[]string{attemptKey},
 		now.UnixMilli(),
-		nextProbeAt.UnixMilli(),
 	)
 	if err != nil {
 		return err
@@ -433,7 +428,6 @@ func (s *AttemptStore) CommitProjection(ctx context.Context, record *AttemptReco
 		attemptRecordKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
 		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
 		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		orderProgressIndexKey(s.prefix, record.ShowTimeID, generation),
 		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
 	}
 	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
@@ -489,7 +483,6 @@ func (s *AttemptStore) Release(ctx context.Context, record *AttemptRecord, reaso
 		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
 		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
 		quotaAvailableKey(s.prefix, record.ShowTimeID, generation, record.TicketCategoryID),
-		orderProgressIndexKey(s.prefix, record.ShowTimeID, generation),
 		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
 		userFingerprintIndexKey(s.prefix, record.ShowTimeID, generation, record.UserID),
 	}
@@ -543,7 +536,6 @@ func (s *AttemptStore) ReleaseClosedOrderProjection(ctx context.Context, record 
 		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
 		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
 		quotaAvailableKey(s.prefix, record.ShowTimeID, generation, record.TicketCategoryID),
-		orderProgressIndexKey(s.prefix, record.ShowTimeID, generation),
 		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
 		userFingerprintIndexKey(s.prefix, record.ShowTimeID, generation, record.UserID),
 	}
@@ -708,10 +700,6 @@ func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 		return nil, err
 	}
 	record.LastDBProbeAt, err = parseFieldTime(fields, attemptFieldLastDBProbeAt)
-	if err != nil {
-		return nil, err
-	}
-	record.NextDBProbeAt, err = parseFieldTime(fields, attemptFieldNextDBProbeAt)
 	if err != nil {
 		return nil, err
 	}

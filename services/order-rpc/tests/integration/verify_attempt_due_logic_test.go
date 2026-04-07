@@ -65,11 +65,27 @@ func TestVerifyAttemptDueMarksAttemptVerifyingAndReconcileReleasesMissingOrder(t
 	if record.State != rush.AttemptStateVerifying {
 		t.Fatalf("expected verifying attempt state, got %+v", record)
 	}
-	if record.VerifyStartedAt.IsZero() || record.LastDBProbeAt.IsZero() || record.NextDBProbeAt.IsZero() {
+	if record.VerifyStartedAt.IsZero() || record.LastDBProbeAt.IsZero() {
 		t.Fatalf("expected verify timestamps to be recorded, got %+v", record)
 	}
 	if record.DBProbeAttempts != 1 {
 		t.Fatalf("expected first DB probe attempt, got %+v", record)
+	}
+	asyncClient, ok := svcCtx.AsyncCloseClient.(*fakeAsyncCloseClient)
+	if !ok {
+		t.Fatalf("expected fake async close client")
+	}
+	if asyncClient.verifyEnqueueCalls != 1 {
+		t.Fatalf("expected verify attempt due to enqueue one retry, got %+v", asyncClient)
+	}
+	if asyncClient.verifyLastOrderNumber != orderNumber {
+		t.Fatalf("expected verify retry order number %d, got %d", orderNumber, asyncClient.verifyLastOrderNumber)
+	}
+	if !asyncClient.verifyLastDueAt.After(now) {
+		t.Fatalf("expected verify retry dueAt after now, got %s <= %s", asyncClient.verifyLastDueAt, now)
+	}
+	if asyncClient.verifyLastDueAt.After(record.CommitCutoffAt) {
+		t.Fatalf("expected verify retry dueAt <= cutoffAt, got dueAt=%s cutoffAt=%s", asyncClient.verifyLastDueAt, record.CommitCutoffAt)
 	}
 
 	time.Sleep(180 * time.Millisecond)
