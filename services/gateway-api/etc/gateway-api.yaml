@@ -81,6 +81,10 @@ Upstreams:
       - Method: post
         Path: /order/create
       - Method: post
+        Path: /order/poll
+      - Method: post
+        Path: /order/purchase/token
+      - Method: post
         Path: /order/get
       - Method: post
         Path: /order/get/cache

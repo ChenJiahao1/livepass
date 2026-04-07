@@ -28,9 +28,9 @@ func NewAccountOrderCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *AccountOrderCountLogic) AccountOrderCount(req *types.AccountOrderCountReq) (resp *types.AccountOrderCountResp, err error) {
-	rpcResp, err := l.svcCtx.OrderRpc.CountActiveTicketsByUserProgram(l.ctx, &orderrpc.CountActiveTicketsByUserProgramReq{
-		UserId:    req.UserID,
-		ProgramId: req.ProgramID,
+	rpcResp, err := l.svcCtx.OrderRpc.CountActiveTicketsByUserShowTime(l.ctx, &orderrpc.CountActiveTicketsByUserShowTimeReq{
+		UserId:     req.UserID,
+		ShowTimeId: req.ShowTimeID,
 	})
 	if err != nil {
 		return nil, err

@@ -25,6 +25,35 @@ func newOrderAPIServiceContext(fakeRPC *fakeOrderRPC) *svc.ServiceContext {
 	}
 }
 
+func TestCreatePurchaseTokenForwardsShowTimeAndTicketUsers(t *testing.T) {
+	fakeRPC := &fakeOrderRPC{
+		createPurchaseTokenResp: &orderrpc.CreatePurchaseTokenResp{PurchaseToken: "pt_show_time"},
+	}
+	ctx := xmiddleware.WithUserID(context.Background(), 3001)
+
+	l := logicpkg.NewCreatePurchaseTokenLogic(ctx, newOrderAPIServiceContext(fakeRPC))
+	resp, err := l.CreatePurchaseToken(&types.CreatePurchaseTokenReq{
+		ShowTimeID:       30001,
+		TicketCategoryID: 40001,
+		TicketUserIds:    []int64{50001, 50002},
+		DistributionMode: "express",
+		TakeTicketMode:   "mock",
+	})
+	if err != nil {
+		t.Fatalf("CreatePurchaseToken returned error: %v", err)
+	}
+	if resp.PurchaseToken != "pt_show_time" {
+		t.Fatalf("unexpected purchase token response: %+v", resp)
+	}
+	if fakeRPC.lastCreatePurchaseTokenReq == nil ||
+		fakeRPC.lastCreatePurchaseTokenReq.UserId != 3001 ||
+		fakeRPC.lastCreatePurchaseTokenReq.ShowTimeId != 30001 ||
+		fakeRPC.lastCreatePurchaseTokenReq.TicketCategoryId != 40001 ||
+		len(fakeRPC.lastCreatePurchaseTokenReq.TicketUserIds) != 2 {
+		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastCreatePurchaseTokenReq)
+	}
+}
+
 func TestCreateOrderReturnsPreAllocatedOrderNumber(t *testing.T) {
 	fakeRPC := &fakeOrderRPC{
 		createOrderResp: &orderrpc.CreateOrderResp{OrderNumber: 91001},
@@ -128,6 +157,13 @@ func TestListOrdersUsesDefaultPageValuesWhenOmitted(t *testing.T) {
 			PageNum:   1,
 			PageSize:  10,
 			TotalSize: 1,
+			List: []*orderrpc.OrderListInfo{
+				{
+					OrderNumber: 91001,
+					ProgramId:   10001,
+					ShowTimeId:  30001,
+				},
+			},
 		},
 	}
 	ctx := xmiddleware.WithUserID(context.Background(), 3001)
@@ -140,6 +176,9 @@ func TestListOrdersUsesDefaultPageValuesWhenOmitted(t *testing.T) {
 	if resp.PageNum != 1 || resp.PageSize != 10 {
 		t.Fatalf("unexpected page defaults: %+v", resp)
 	}
+	if len(resp.List) != 1 || resp.List[0].ShowTimeID != 30001 {
+		t.Fatalf("expected list response to carry showTimeId, got %+v", resp.List)
+	}
 	if fakeRPC.lastListOrdersReq == nil || fakeRPC.lastListOrdersReq.UserId != 3001 || fakeRPC.lastListOrdersReq.PageNumber != 1 || fakeRPC.lastListOrdersReq.PageSize != 10 {
 		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastListOrdersReq)
 	}
@@ -147,7 +186,7 @@ func TestListOrdersUsesDefaultPageValuesWhenOmitted(t *testing.T) {
 
 func TestGetOrderForwardsOrderNumber(t *testing.T) {
 	fakeRPC := &fakeOrderRPC{
-		getOrderResp: &orderrpc.OrderDetailInfo{OrderNumber: 91001},
+		getOrderResp: &orderrpc.OrderDetailInfo{OrderNumber: 91001, ProgramId: 10001, ShowTimeId: 30001},
 	}
 	ctx := xmiddleware.WithUserID(context.Background(), 3001)
 
@@ -158,6 +197,9 @@ func TestGetOrderForwardsOrderNumber(t *testing.T) {
 	}
 	if resp.OrderNumber != 91001 {
 		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if resp.ShowTimeID != 30001 {
+		t.Fatalf("expected showTimeId to be mapped, got %+v", resp)
 	}
 	if fakeRPC.lastGetOrderReq == nil || fakeRPC.lastGetOrderReq.UserId != 3001 || fakeRPC.lastGetOrderReq.OrderNumber != 91001 {
 		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastGetOrderReq)
@@ -284,13 +326,13 @@ func TestRefundOrderForwardsUserIDAndPayload(t *testing.T) {
 
 func TestAccountOrderCountForwardsExplicitUserAndProgram(t *testing.T) {
 	fakeRPC := &fakeOrderRPC{
-		countActiveTicketsByUserProgramResp: &orderrpc.CountActiveTicketsByUserProgramResp{ActiveTicketCount: 5},
+		countActiveTicketsByUserShowTimeResp: &orderrpc.CountActiveTicketsByUserShowTimeResp{ActiveTicketCount: 5},
 	}
 
 	l := logicpkg.NewAccountOrderCountLogic(context.Background(), newOrderAPIServiceContext(fakeRPC))
 	resp, err := l.AccountOrderCount(&types.AccountOrderCountReq{
-		UserID:    3001,
-		ProgramID: 10001,
+		UserID:     3001,
+		ShowTimeID: 30001,
 	})
 	if err != nil {
 		t.Fatalf("AccountOrderCount returned error: %v", err)
@@ -298,10 +340,10 @@ func TestAccountOrderCountForwardsExplicitUserAndProgram(t *testing.T) {
 	if resp.Count != 5 {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
-	if fakeRPC.lastCountActiveTicketsByUserProgramReq == nil ||
-		fakeRPC.lastCountActiveTicketsByUserProgramReq.UserId != 3001 ||
-		fakeRPC.lastCountActiveTicketsByUserProgramReq.ProgramId != 10001 {
-		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastCountActiveTicketsByUserProgramReq)
+	if fakeRPC.lastCountActiveTicketsByUserShowTimeReq == nil ||
+		fakeRPC.lastCountActiveTicketsByUserShowTimeReq.UserId != 3001 ||
+		fakeRPC.lastCountActiveTicketsByUserShowTimeReq.ShowTimeId != 30001 {
+		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastCountActiveTicketsByUserShowTimeReq)
 	}
 }
 

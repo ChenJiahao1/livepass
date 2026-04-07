@@ -182,7 +182,8 @@ func toProgramDetailInfo(program *model.DProgram, firstShowTime *model.DProgramS
 
 func toProgramPreorderInfo(program *model.DProgram, firstShowTime *model.DProgramShowTime, ticketCategories []*model.DTicketCategory, remainMap map[int64]int64) *pb.ProgramPreorderInfo {
 	return &pb.ProgramPreorderInfo{
-		Id:                           program.Id,
+		ProgramId:                    program.Id,
+		ShowTimeId:                   firstShowTime.Id,
 		ProgramGroupId:               program.ProgramGroupId,
 		Title:                        program.Title,
 		Actor:                        nullStringValue(program.Actor),
@@ -191,6 +192,8 @@ func toProgramPreorderInfo(program *model.DProgram, firstShowTime *model.DProgra
 		ShowTime:                     formatProgramShowTime(firstShowTime),
 		ShowDayTime:                  formatProgramShowDayTime(firstShowTime),
 		ShowWeekTime:                 programShowWeekTime(firstShowTime),
+		RushSaleOpenTime:             formatNullTime(firstShowTime.RushSaleOpenTime),
+		RushSaleEndTime:              formatNullTime(firstShowTime.RushSaleEndTime),
 		PerOrderLimitPurchaseCount:   program.PerOrderLimitPurchaseCount,
 		PerAccountLimitPurchaseCount: program.PerAccountLimitPurchaseCount,
 		PermitChooseSeat:             program.PermitChooseSeat,

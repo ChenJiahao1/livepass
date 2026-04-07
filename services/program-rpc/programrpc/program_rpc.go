@@ -25,6 +25,7 @@ type (
 	EvaluateRefundRuleReq             = pb.EvaluateRefundRuleReq
 	EvaluateRefundRuleResp            = pb.EvaluateRefundRuleResp
 	GetProgramDetailReq               = pb.GetProgramDetailReq
+	GetProgramPreorderReq             = pb.GetProgramPreorderReq
 	IdResp                            = pb.IdResp
 	ListHomeProgramsReq               = pb.ListHomeProgramsReq
 	ListTicketCategoriesByProgramReq  = pb.ListTicketCategoriesByProgramReq
@@ -77,7 +78,7 @@ type (
 		ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 		PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 		GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
-		GetProgramPreorder(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
+		GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
 		CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
 		CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error)
 		GetTicketCategoryDetail(ctx context.Context, in *TicketCategoryReq, opts ...grpc.CallOption) (*TicketCategoryDetailInfo, error)
@@ -158,7 +159,7 @@ func (m *defaultProgramRpc) GetProgramDetail(ctx context.Context, in *GetProgram
 	return client.GetProgramDetail(ctx, in, opts...)
 }
 
-func (m *defaultProgramRpc) GetProgramPreorder(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error) {
+func (m *defaultProgramRpc) GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.GetProgramPreorder(ctx, in, opts...)
 }

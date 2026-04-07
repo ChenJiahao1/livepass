@@ -19,23 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	OrderRpc_CreatePurchaseToken_FullMethodName             = "/order.OrderRpc/CreatePurchaseToken"
-	OrderRpc_CreateOrder_FullMethodName                     = "/order.OrderRpc/CreateOrder"
-	OrderRpc_PollOrderProgress_FullMethodName               = "/order.OrderRpc/PollOrderProgress"
-	OrderRpc_ListOrders_FullMethodName                      = "/order.OrderRpc/ListOrders"
-	OrderRpc_GetOrder_FullMethodName                        = "/order.OrderRpc/GetOrder"
-	OrderRpc_GetOrderCache_FullMethodName                   = "/order.OrderRpc/GetOrderCache"
-	OrderRpc_GetOrderServiceView_FullMethodName             = "/order.OrderRpc/GetOrderServiceView"
-	OrderRpc_CancelOrder_FullMethodName                     = "/order.OrderRpc/CancelOrder"
-	OrderRpc_PayOrder_FullMethodName                        = "/order.OrderRpc/PayOrder"
-	OrderRpc_PayCheck_FullMethodName                        = "/order.OrderRpc/PayCheck"
-	OrderRpc_PreviewRefundOrder_FullMethodName              = "/order.OrderRpc/PreviewRefundOrder"
-	OrderRpc_RefundOrder_FullMethodName                     = "/order.OrderRpc/RefundOrder"
-	OrderRpc_CloseExpiredOrder_FullMethodName               = "/order.OrderRpc/CloseExpiredOrder"
-	OrderRpc_CloseExpiredOrders_FullMethodName              = "/order.OrderRpc/CloseExpiredOrders"
-	OrderRpc_VerifyAttemptDue_FullMethodName                = "/order.OrderRpc/VerifyAttemptDue"
-	OrderRpc_ReconcileRushAttempts_FullMethodName           = "/order.OrderRpc/ReconcileRushAttempts"
-	OrderRpc_CountActiveTicketsByUserProgram_FullMethodName = "/order.OrderRpc/CountActiveTicketsByUserProgram"
+	OrderRpc_CreatePurchaseToken_FullMethodName              = "/order.OrderRpc/CreatePurchaseToken"
+	OrderRpc_CreateOrder_FullMethodName                      = "/order.OrderRpc/CreateOrder"
+	OrderRpc_PollOrderProgress_FullMethodName                = "/order.OrderRpc/PollOrderProgress"
+	OrderRpc_ListOrders_FullMethodName                       = "/order.OrderRpc/ListOrders"
+	OrderRpc_GetOrder_FullMethodName                         = "/order.OrderRpc/GetOrder"
+	OrderRpc_GetOrderCache_FullMethodName                    = "/order.OrderRpc/GetOrderCache"
+	OrderRpc_GetOrderServiceView_FullMethodName              = "/order.OrderRpc/GetOrderServiceView"
+	OrderRpc_CancelOrder_FullMethodName                      = "/order.OrderRpc/CancelOrder"
+	OrderRpc_PayOrder_FullMethodName                         = "/order.OrderRpc/PayOrder"
+	OrderRpc_PayCheck_FullMethodName                         = "/order.OrderRpc/PayCheck"
+	OrderRpc_PreviewRefundOrder_FullMethodName               = "/order.OrderRpc/PreviewRefundOrder"
+	OrderRpc_RefundOrder_FullMethodName                      = "/order.OrderRpc/RefundOrder"
+	OrderRpc_CloseExpiredOrder_FullMethodName                = "/order.OrderRpc/CloseExpiredOrder"
+	OrderRpc_CloseExpiredOrders_FullMethodName               = "/order.OrderRpc/CloseExpiredOrders"
+	OrderRpc_VerifyAttemptDue_FullMethodName                 = "/order.OrderRpc/VerifyAttemptDue"
+	OrderRpc_ReconcileRushAttempts_FullMethodName            = "/order.OrderRpc/ReconcileRushAttempts"
+	OrderRpc_CountActiveTicketsByUserShowTime_FullMethodName = "/order.OrderRpc/CountActiveTicketsByUserShowTime"
 )
 
 // OrderRpcClient is the client API for OrderRpc service.
@@ -58,7 +58,7 @@ type OrderRpcClient interface {
 	CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 	VerifyAttemptDue(ctx context.Context, in *VerifyAttemptDueReq, opts ...grpc.CallOption) (*BoolResp, error)
 	ReconcileRushAttempts(ctx context.Context, in *ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*ReconcileRushAttemptsResp, error)
-	CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
+	CountActiveTicketsByUserShowTime(ctx context.Context, in *CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserShowTimeResp, error)
 }
 
 type orderRpcClient struct {
@@ -229,10 +229,10 @@ func (c *orderRpcClient) ReconcileRushAttempts(ctx context.Context, in *Reconcil
 	return out, nil
 }
 
-func (c *orderRpcClient) CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error) {
+func (c *orderRpcClient) CountActiveTicketsByUserShowTime(ctx context.Context, in *CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserShowTimeResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CountActiveTicketsByUserProgramResp)
-	err := c.cc.Invoke(ctx, OrderRpc_CountActiveTicketsByUserProgram_FullMethodName, in, out, cOpts...)
+	out := new(CountActiveTicketsByUserShowTimeResp)
+	err := c.cc.Invoke(ctx, OrderRpc_CountActiveTicketsByUserShowTime_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ type OrderRpcServer interface {
 	CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error)
 	VerifyAttemptDue(context.Context, *VerifyAttemptDueReq) (*BoolResp, error)
 	ReconcileRushAttempts(context.Context, *ReconcileRushAttemptsReq) (*ReconcileRushAttemptsResp, error)
-	CountActiveTicketsByUserProgram(context.Context, *CountActiveTicketsByUserProgramReq) (*CountActiveTicketsByUserProgramResp, error)
+	CountActiveTicketsByUserShowTime(context.Context, *CountActiveTicketsByUserShowTimeReq) (*CountActiveTicketsByUserShowTimeResp, error)
 	mustEmbedUnimplementedOrderRpcServer()
 }
 
@@ -318,8 +318,8 @@ func (UnimplementedOrderRpcServer) VerifyAttemptDue(context.Context, *VerifyAtte
 func (UnimplementedOrderRpcServer) ReconcileRushAttempts(context.Context, *ReconcileRushAttemptsReq) (*ReconcileRushAttemptsResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReconcileRushAttempts not implemented")
 }
-func (UnimplementedOrderRpcServer) CountActiveTicketsByUserProgram(context.Context, *CountActiveTicketsByUserProgramReq) (*CountActiveTicketsByUserProgramResp, error) {
-	return nil, status.Error(codes.Unimplemented, "method CountActiveTicketsByUserProgram not implemented")
+func (UnimplementedOrderRpcServer) CountActiveTicketsByUserShowTime(context.Context, *CountActiveTicketsByUserShowTimeReq) (*CountActiveTicketsByUserShowTimeResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method CountActiveTicketsByUserShowTime not implemented")
 }
 func (UnimplementedOrderRpcServer) mustEmbedUnimplementedOrderRpcServer() {}
 func (UnimplementedOrderRpcServer) testEmbeddedByValue()                  {}
@@ -630,20 +630,20 @@ func _OrderRpc_ReconcileRushAttempts_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrderRpc_CountActiveTicketsByUserProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CountActiveTicketsByUserProgramReq)
+func _OrderRpc_CountActiveTicketsByUserShowTime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountActiveTicketsByUserShowTimeReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OrderRpcServer).CountActiveTicketsByUserProgram(ctx, in)
+		return srv.(OrderRpcServer).CountActiveTicketsByUserShowTime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: OrderRpc_CountActiveTicketsByUserProgram_FullMethodName,
+		FullMethod: OrderRpc_CountActiveTicketsByUserShowTime_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrderRpcServer).CountActiveTicketsByUserProgram(ctx, req.(*CountActiveTicketsByUserProgramReq))
+		return srv.(OrderRpcServer).CountActiveTicketsByUserShowTime(ctx, req.(*CountActiveTicketsByUserShowTimeReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -720,8 +720,8 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrderRpc_ReconcileRushAttempts_Handler,
 		},
 		{
-			MethodName: "CountActiveTicketsByUserProgram",
-			Handler:    _OrderRpc_CountActiveTicketsByUserProgram_Handler,
+			MethodName: "CountActiveTicketsByUserShowTime",
+			Handler:    _OrderRpc_CountActiveTicketsByUserShowTime_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

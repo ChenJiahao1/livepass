@@ -35,6 +35,10 @@ message GetProgramDetailReq {
   int64 id = 1;
 }
 
+message GetProgramPreorderReq {
+  int64 showTimeId = 1;
+}
+
 message ProgramInvalidReq {
   int64 id = 1;
 }
@@ -321,20 +325,23 @@ message TicketCategoryDetailListResp {
 }
 
 message ProgramPreorderInfo {
-  int64 id = 1;
-  int64 programGroupId = 2;
-  string title = 3;
-  string actor = 4;
-  string place = 5;
-  string itemPicture = 6;
-  string showTime = 7;
-  string showDayTime = 8;
-  string showWeekTime = 9;
-  int64 perOrderLimitPurchaseCount = 10;
-  int64 perAccountLimitPurchaseCount = 11;
-  int64 permitChooseSeat = 12;
-  string chooseSeatExplain = 13;
-  repeated ProgramPreorderTicketCategoryInfo ticketCategoryVoList = 14;
+  int64 programId = 1;
+  int64 showTimeId = 2;
+  int64 programGroupId = 3;
+  string title = 4;
+  string actor = 5;
+  string place = 6;
+  string itemPicture = 7;
+  string showTime = 8;
+  string showDayTime = 9;
+  string showWeekTime = 10;
+  string rushSaleOpenTime = 11;
+  string rushSaleEndTime = 12;
+  int64 perOrderLimitPurchaseCount = 13;
+  int64 perAccountLimitPurchaseCount = 14;
+  int64 permitChooseSeat = 15;
+  string chooseSeatExplain = 16;
+  repeated ProgramPreorderTicketCategoryInfo ticketCategoryVoList = 17;
 }
 
 message AutoAssignAndFreezeSeatsReq {
@@ -465,7 +472,7 @@ service ProgramRpc {
   rpc ListHomePrograms(ListHomeProgramsReq) returns (ProgramHomeListResp);
   rpc PagePrograms(PageProgramsReq) returns (ProgramPageResp);
   rpc GetProgramDetail(GetProgramDetailReq) returns (ProgramDetailInfo);
-  rpc GetProgramPreorder(GetProgramDetailReq) returns (ProgramPreorderInfo);
+  rpc GetProgramPreorder(GetProgramPreorderReq) returns (ProgramPreorderInfo);
   rpc CreateProgramShowTime(ProgramShowTimeAddReq) returns (IdResp);
   rpc CreateTicketCategory(TicketCategoryAddReq) returns (IdResp);
   rpc GetTicketCategoryDetail(TicketCategoryReq) returns (TicketCategoryDetailInfo);

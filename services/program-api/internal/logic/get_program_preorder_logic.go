@@ -28,7 +28,7 @@ func NewGetProgramPreorderLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *GetProgramPreorderLogic) GetProgramPreorder(req *types.GetProgramPreorderReq) (resp *types.ProgramPreorderInfo, err error) {
-	rpcResp, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramDetailReq{Id: req.ID})
+	rpcResp, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramPreorderReq{ShowTimeId: req.ShowTimeID})
 	if err != nil {
 		return nil, err
 	}

@@ -37,8 +37,8 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 
-	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramDetailReq{
-		Id: in.GetProgramId(),
+	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramPreorderReq{
+		ShowTimeId: in.GetShowTimeId(),
 	})
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 	}
 
 	if preorder.GetPerAccountLimitPurchaseCount() > 0 {
-		activeCount, err := l.svcCtx.OrderRepository.CountActiveTicketsByUserProgram(l.ctx, in.GetUserId(), in.GetProgramId())
+		activeCount, err := l.svcCtx.OrderRepository.CountActiveTicketsByUserProgram(l.ctx, in.GetUserId(), in.GetShowTimeId())
 		if err != nil {
 			return nil, mapOrderError(err)
 		}
@@ -76,7 +76,7 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 	token, err := l.svcCtx.PurchaseTokenCodec.Issue(rush.PurchaseTokenClaims{
 		OrderNumber:      orderNumber,
 		UserID:           in.GetUserId(),
-		ProgramID:        in.GetProgramId(),
+		ProgramID:        preorder.GetProgramId(),
 		TicketCategoryID: in.GetTicketCategoryId(),
 		TicketUserIDs:    append([]int64(nil), in.GetTicketUserIds()...),
 		TicketCount:      ticketCount,
@@ -91,7 +91,7 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 }
 
 func validateCreatePurchaseTokenReq(in *pb.CreatePurchaseTokenReq) error {
-	if in == nil || in.GetUserId() <= 0 || in.GetProgramId() <= 0 || in.GetTicketCategoryId() <= 0 || len(in.GetTicketUserIds()) == 0 {
+	if in == nil || in.GetUserId() <= 0 || in.GetShowTimeId() <= 0 || in.GetTicketCategoryId() <= 0 || len(in.GetTicketUserIds()) == 0 {
 		return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 

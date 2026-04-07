@@ -55,8 +55,8 @@ func validateUserOrderReq(userID, orderNumber int64) error {
 	return nil
 }
 
-func validateUserProgramReq(userID, programID int64) error {
-	if userID <= 0 || programID <= 0 {
+func validateUserShowTimeReq(userID, showTimeID int64) error {
+	if userID <= 0 || showTimeID <= 0 {
 		return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
@@ -158,6 +158,7 @@ func mapOrderSummary(order *model.DOrder) *pb.OrderListInfo {
 	return &pb.OrderListInfo{
 		OrderNumber:        order.OrderNumber,
 		ProgramId:          order.ProgramId,
+		ShowTimeId:         0,
 		ProgramTitle:       order.ProgramTitle,
 		ProgramItemPicture: order.ProgramItemPicture,
 		ProgramPlace:       order.ProgramPlace,
@@ -179,6 +180,7 @@ func mapOrderDetail(order *model.DOrder, details []*model.DOrderTicketUser) *pb.
 	resp := &pb.OrderDetailInfo{
 		OrderNumber:             order.OrderNumber,
 		ProgramId:               order.ProgramId,
+		ShowTimeId:              0,
 		ProgramTitle:            order.ProgramTitle,
 		ProgramItemPicture:      order.ProgramItemPicture,
 		ProgramPlace:            order.ProgramPlace,
@@ -686,6 +688,8 @@ func mapOrderServiceView(order *model.DOrder, payStatus, ticketStatus int64, pre
 
 	resp := &pb.OrderServiceViewResp{
 		OrderNumber:     order.OrderNumber,
+		ProgramId:       order.ProgramId,
+		ShowTimeId:      0,
 		OrderStatus:     order.OrderStatus,
 		PayStatus:       payStatus,
 		TicketStatus:    ticketStatus,

@@ -10,7 +10,7 @@ message BoolResp {
 
 message CreatePurchaseTokenReq {
   int64 userId = 1;
-  int64 programId = 2;
+  int64 showTimeId = 2;
   int64 ticketCategoryId = 3;
   repeated int64 ticketUserIds = 4;
   string distributionMode = 5;
@@ -51,16 +51,17 @@ message ListOrdersReq {
 message OrderListInfo {
   int64 orderNumber = 1;
   int64 programId = 2;
-  string programTitle = 3;
-  string programItemPicture = 4;
-  string programPlace = 5;
-  string programShowTime = 6;
-  int64 ticketCount = 7;
-  int64 orderPrice = 8;
-  int64 orderStatus = 9;
-  string orderExpireTime = 10;
-  string createOrderTime = 11;
-  string cancelOrderTime = 12;
+  int64 showTimeId = 3;
+  string programTitle = 4;
+  string programItemPicture = 5;
+  string programPlace = 6;
+  string programShowTime = 7;
+  int64 ticketCount = 8;
+  int64 orderPrice = 9;
+  int64 orderStatus = 10;
+  string orderExpireTime = 11;
+  string createOrderTime = 12;
+  string cancelOrderTime = 13;
 }
 
 message ListOrdersResp {
@@ -90,15 +91,17 @@ message GetOrderCacheResp {
 
 message OrderServiceViewResp {
   int64 orderNumber = 1;
-  int64 orderStatus = 2;
-  int64 payStatus = 3;
-  int64 ticketStatus = 4;
-  string programTitle = 5;
-  string programShowTime = 6;
-  int64 ticketCount = 7;
-  int64 orderPrice = 8;
-  bool canRefund = 9;
-  string refundBlockedReason = 10;
+  int64 programId = 2;
+  int64 showTimeId = 3;
+  int64 orderStatus = 4;
+  int64 payStatus = 5;
+  int64 ticketStatus = 6;
+  string programTitle = 7;
+  string programShowTime = 8;
+  int64 ticketCount = 9;
+  int64 orderPrice = 10;
+  bool canRefund = 11;
+  string refundBlockedReason = 12;
 }
 
 message OrderTicketInfo {
@@ -117,22 +120,23 @@ message OrderTicketInfo {
 message OrderDetailInfo {
   int64 orderNumber = 1;
   int64 programId = 2;
-  string programTitle = 3;
-  string programItemPicture = 4;
-  string programPlace = 5;
-  string programShowTime = 6;
-  int64 programPermitChooseSeat = 7;
-  int64 userId = 8;
-  string distributionMode = 9;
-  string takeTicketMode = 10;
-  int64 ticketCount = 11;
-  int64 orderPrice = 12;
-  int64 orderStatus = 13;
-  string freezeToken = 14;
-  string orderExpireTime = 15;
-  string createOrderTime = 16;
-  string cancelOrderTime = 17;
-  repeated OrderTicketInfo orderTicketInfoVoList = 18;
+  int64 showTimeId = 3;
+  string programTitle = 4;
+  string programItemPicture = 5;
+  string programPlace = 6;
+  string programShowTime = 7;
+  int64 programPermitChooseSeat = 8;
+  int64 userId = 9;
+  string distributionMode = 10;
+  string takeTicketMode = 11;
+  int64 ticketCount = 12;
+  int64 orderPrice = 13;
+  int64 orderStatus = 14;
+  string freezeToken = 15;
+  string orderExpireTime = 16;
+  string createOrderTime = 17;
+  string cancelOrderTime = 18;
+  repeated OrderTicketInfo orderTicketInfoVoList = 19;
 }
 
 message CancelOrderReq {
@@ -223,12 +227,12 @@ message ReconcileRushAttemptsResp {
   int64 reconciledCount = 1;
 }
 
-message CountActiveTicketsByUserProgramReq {
+message CountActiveTicketsByUserShowTimeReq {
   int64 userId = 1;
-  int64 programId = 2;
+  int64 showTimeId = 2;
 }
 
-message CountActiveTicketsByUserProgramResp {
+message CountActiveTicketsByUserShowTimeResp {
   int64 activeTicketCount = 1;
 }
 
@@ -249,5 +253,5 @@ service OrderRpc {
   rpc CloseExpiredOrders(CloseExpiredOrdersReq) returns (CloseExpiredOrdersResp);
   rpc VerifyAttemptDue(VerifyAttemptDueReq) returns (BoolResp);
   rpc ReconcileRushAttempts(ReconcileRushAttemptsReq) returns (ReconcileRushAttemptsResp);
-  rpc CountActiveTicketsByUserProgram(CountActiveTicketsByUserProgramReq) returns (CountActiveTicketsByUserProgramResp);
+  rpc CountActiveTicketsByUserShowTime(CountActiveTicketsByUserShowTimeReq) returns (CountActiveTicketsByUserShowTimeResp);
 }

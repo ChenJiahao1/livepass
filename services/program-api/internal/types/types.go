@@ -29,7 +29,7 @@ type GetProgramDetailReq struct {
 }
 
 type GetProgramPreorderReq struct {
-	ID int64 `json:"id"`
+	ShowTimeID int64 `json:"showTimeId"`
 }
 
 type IdResp struct {
@@ -244,7 +244,8 @@ type ProgramPageResp struct {
 }
 
 type ProgramPreorderInfo struct {
-	ID                           int64                               `json:"id"`
+	ProgramID                    int64                               `json:"programId"`
+	ShowTimeID                   int64                               `json:"showTimeId"`
 	ProgramGroupID               int64                               `json:"programGroupId"`
 	Title                        string                              `json:"title,optional"`
 	Actor                        string                              `json:"actor,optional"`
@@ -253,6 +254,8 @@ type ProgramPreorderInfo struct {
 	ShowTime                     string                              `json:"showTime,optional"`
 	ShowDayTime                  string                              `json:"showDayTime,optional"`
 	ShowWeekTime                 string                              `json:"showWeekTime,optional"`
+	RushSaleOpenTime             string                              `json:"rushSaleOpenTime,optional"`
+	RushSaleEndTime              string                              `json:"rushSaleEndTime,optional"`
 	PerOrderLimitPurchaseCount   int64                               `json:"perOrderLimitPurchaseCount"`
 	PerAccountLimitPurchaseCount int64                               `json:"perAccountLimitPurchaseCount"`
 	PermitChooseSeat             int64                               `json:"permitChooseSeat"`

@@ -14,40 +14,40 @@ import (
 )
 
 type (
-	BoolResp                            = pb.BoolResp
-	CancelOrderReq                      = pb.CancelOrderReq
-	CloseExpiredOrderReq                = pb.CloseExpiredOrderReq
-	CloseExpiredOrdersReq               = pb.CloseExpiredOrdersReq
-	CloseExpiredOrdersResp              = pb.CloseExpiredOrdersResp
-	CountActiveTicketsByUserProgramReq  = pb.CountActiveTicketsByUserProgramReq
-	CountActiveTicketsByUserProgramResp = pb.CountActiveTicketsByUserProgramResp
-	CreateOrderReq                      = pb.CreateOrderReq
-	CreateOrderResp                     = pb.CreateOrderResp
-	CreatePurchaseTokenReq              = pb.CreatePurchaseTokenReq
-	CreatePurchaseTokenResp             = pb.CreatePurchaseTokenResp
-	GetOrderCacheReq                    = pb.GetOrderCacheReq
-	GetOrderCacheResp                   = pb.GetOrderCacheResp
-	GetOrderReq                         = pb.GetOrderReq
-	GetOrderServiceViewReq              = pb.GetOrderServiceViewReq
-	ListOrdersReq                       = pb.ListOrdersReq
-	ListOrdersResp                      = pb.ListOrdersResp
-	OrderDetailInfo                     = pb.OrderDetailInfo
-	OrderListInfo                       = pb.OrderListInfo
-	OrderServiceViewResp                = pb.OrderServiceViewResp
-	OrderTicketInfo                     = pb.OrderTicketInfo
-	PayCheckReq                         = pb.PayCheckReq
-	PayCheckResp                        = pb.PayCheckResp
-	PayOrderReq                         = pb.PayOrderReq
-	PayOrderResp                        = pb.PayOrderResp
-	PollOrderProgressReq                = pb.PollOrderProgressReq
-	PollOrderProgressResp               = pb.PollOrderProgressResp
-	PreviewRefundOrderReq               = pb.PreviewRefundOrderReq
-	PreviewRefundOrderResp              = pb.PreviewRefundOrderResp
-	ReconcileRushAttemptsReq            = pb.ReconcileRushAttemptsReq
-	ReconcileRushAttemptsResp           = pb.ReconcileRushAttemptsResp
-	RefundOrderReq                      = pb.RefundOrderReq
-	RefundOrderResp                     = pb.RefundOrderResp
-	VerifyAttemptDueReq                 = pb.VerifyAttemptDueReq
+	BoolResp                             = pb.BoolResp
+	CancelOrderReq                       = pb.CancelOrderReq
+	CloseExpiredOrderReq                 = pb.CloseExpiredOrderReq
+	CloseExpiredOrdersReq                = pb.CloseExpiredOrdersReq
+	CloseExpiredOrdersResp               = pb.CloseExpiredOrdersResp
+	CountActiveTicketsByUserShowTimeReq  = pb.CountActiveTicketsByUserShowTimeReq
+	CountActiveTicketsByUserShowTimeResp = pb.CountActiveTicketsByUserShowTimeResp
+	CreateOrderReq                       = pb.CreateOrderReq
+	CreateOrderResp                      = pb.CreateOrderResp
+	CreatePurchaseTokenReq               = pb.CreatePurchaseTokenReq
+	CreatePurchaseTokenResp              = pb.CreatePurchaseTokenResp
+	GetOrderCacheReq                     = pb.GetOrderCacheReq
+	GetOrderCacheResp                    = pb.GetOrderCacheResp
+	GetOrderReq                          = pb.GetOrderReq
+	GetOrderServiceViewReq               = pb.GetOrderServiceViewReq
+	ListOrdersReq                        = pb.ListOrdersReq
+	ListOrdersResp                       = pb.ListOrdersResp
+	OrderDetailInfo                      = pb.OrderDetailInfo
+	OrderListInfo                        = pb.OrderListInfo
+	OrderServiceViewResp                 = pb.OrderServiceViewResp
+	OrderTicketInfo                      = pb.OrderTicketInfo
+	PayCheckReq                          = pb.PayCheckReq
+	PayCheckResp                         = pb.PayCheckResp
+	PayOrderReq                          = pb.PayOrderReq
+	PayOrderResp                         = pb.PayOrderResp
+	PollOrderProgressReq                 = pb.PollOrderProgressReq
+	PollOrderProgressResp                = pb.PollOrderProgressResp
+	PreviewRefundOrderReq                = pb.PreviewRefundOrderReq
+	PreviewRefundOrderResp               = pb.PreviewRefundOrderResp
+	ReconcileRushAttemptsReq             = pb.ReconcileRushAttemptsReq
+	ReconcileRushAttemptsResp            = pb.ReconcileRushAttemptsResp
+	RefundOrderReq                       = pb.RefundOrderReq
+	RefundOrderResp                      = pb.RefundOrderResp
+	VerifyAttemptDueReq                  = pb.VerifyAttemptDueReq
 
 	OrderRpc interface {
 		CreatePurchaseToken(ctx context.Context, in *CreatePurchaseTokenReq, opts ...grpc.CallOption) (*CreatePurchaseTokenResp, error)
@@ -66,7 +66,7 @@ type (
 		CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 		VerifyAttemptDue(ctx context.Context, in *VerifyAttemptDueReq, opts ...grpc.CallOption) (*BoolResp, error)
 		ReconcileRushAttempts(ctx context.Context, in *ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*ReconcileRushAttemptsResp, error)
-		CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error)
+		CountActiveTicketsByUserShowTime(ctx context.Context, in *CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserShowTimeResp, error)
 	}
 
 	defaultOrderRpc struct {
@@ -160,7 +160,7 @@ func (m *defaultOrderRpc) ReconcileRushAttempts(ctx context.Context, in *Reconci
 	return client.ReconcileRushAttempts(ctx, in, opts...)
 }
 
-func (m *defaultOrderRpc) CountActiveTicketsByUserProgram(ctx context.Context, in *CountActiveTicketsByUserProgramReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserProgramResp, error) {
+func (m *defaultOrderRpc) CountActiveTicketsByUserShowTime(ctx context.Context, in *CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserShowTimeResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
-	return client.CountActiveTicketsByUserProgram(ctx, in, opts...)
+	return client.CountActiveTicketsByUserShowTime(ctx, in, opts...)
 }

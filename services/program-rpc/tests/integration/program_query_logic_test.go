@@ -300,11 +300,11 @@ func TestGetProgramPreorderReturnsLiveRemainNumbersFromSeats(t *testing.T) {
 	)
 
 	l := logicpkg.NewGetProgramPreorderLogic(context.Background(), svcCtx)
-	resp, err := l.GetProgramPreorder(&pb.GetProgramDetailReq{Id: 10001})
+	resp, err := l.GetProgramPreorder(&pb.GetProgramPreorderReq{ShowTimeId: 30001})
 	if err != nil {
 		t.Fatalf("GetProgramPreorder returned error: %v", err)
 	}
-	if resp.Id != 10001 || resp.ProgramGroupId != 20001 || resp.Title != "Phase1 示例演出" {
+	if resp.ProgramId != 10001 || resp.ShowTimeId != 30001 || resp.ProgramGroupId != 20001 || resp.Title != "Phase1 示例演出" {
 		t.Fatalf("unexpected preorder base fields: %+v", resp)
 	}
 	if resp.ShowTime != "2026-12-31 19:30:00" || resp.PermitChooseSeat != 0 {
@@ -328,7 +328,7 @@ func TestResetProgramDomainStateSeedsCheckoutInventory(t *testing.T) {
 	resetProgramDomainState(t)
 
 	l := logicpkg.NewGetProgramPreorderLogic(context.Background(), svcCtx)
-	resp, err := l.GetProgramPreorder(&pb.GetProgramDetailReq{Id: 10001})
+	resp, err := l.GetProgramPreorder(&pb.GetProgramPreorderReq{ShowTimeId: 30001})
 	if err != nil {
 		t.Fatalf("GetProgramPreorder returned error: %v", err)
 	}
@@ -354,7 +354,7 @@ func TestGetProgramPreorderExcludesFrozenAndSoldSeats(t *testing.T) {
 	)
 
 	l := logicpkg.NewGetProgramPreorderLogic(context.Background(), svcCtx)
-	resp, err := l.GetProgramPreorder(&pb.GetProgramDetailReq{Id: 10001})
+	resp, err := l.GetProgramPreorder(&pb.GetProgramPreorderReq{ShowTimeId: 30001})
 	if err != nil {
 		t.Fatalf("GetProgramPreorder returned error: %v", err)
 	}
@@ -373,7 +373,7 @@ func TestGetProgramPreorderReturnsNotFoundWhenProgramMissing(t *testing.T) {
 	resetProgramDomainState(t)
 
 	l := logicpkg.NewGetProgramPreorderLogic(context.Background(), svcCtx)
-	_, err := l.GetProgramPreorder(&pb.GetProgramDetailReq{Id: 99999})
+	_, err := l.GetProgramPreorder(&pb.GetProgramPreorderReq{ShowTimeId: 99999})
 	if err == nil {
 		t.Fatalf("expected not found error")
 	}
@@ -392,7 +392,7 @@ func TestGetProgramPreorderReturnsEmptyTicketCategoryListWhenNoneSeeded(t *testi
 	mustExecProgramSQL(t, db, "DELETE FROM d_ticket_category WHERE program_id = ?", 51011)
 
 	l := logicpkg.NewGetProgramPreorderLogic(context.Background(), svcCtx)
-	resp, err := l.GetProgramPreorder(&pb.GetProgramDetailReq{Id: 51011})
+	resp, err := l.GetProgramPreorder(&pb.GetProgramPreorderReq{ShowTimeId: 71011})
 	if err != nil {
 		t.Fatalf("GetProgramPreorder returned error: %v", err)
 	}

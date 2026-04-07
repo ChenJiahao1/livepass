@@ -4,8 +4,8 @@
 package types
 
 type AccountOrderCountReq struct {
-	UserID    int64 `json:"userId"`
-	ProgramID int64 `json:"programId"`
+	UserID     int64 `json:"userId"`
+	ShowTimeID int64 `json:"showTimeId"`
 }
 
 type AccountOrderCountResp struct {
@@ -29,7 +29,7 @@ type CreateOrderResp struct {
 }
 
 type CreatePurchaseTokenReq struct {
-	ProgramID        int64   `json:"programId"`
+	ShowTimeID       int64   `json:"showTimeId"`
 	TicketCategoryID int64   `json:"ticketCategoryId"`
 	TicketUserIds    []int64 `json:"ticketUserIds"`
 	DistributionMode string  `json:"distributionMode,optional"`
@@ -68,6 +68,7 @@ type OrderCacheResp struct {
 type OrderDetailInfo struct {
 	OrderNumber             int64             `json:"orderNumber"`
 	ProgramID               int64             `json:"programId"`
+	ShowTimeID              int64             `json:"showTimeId"`
 	ProgramTitle            string            `json:"programTitle,optional"`
 	ProgramItemPicture      string            `json:"programItemPicture,optional"`
 	ProgramPlace            string            `json:"programPlace,optional"`
@@ -89,6 +90,7 @@ type OrderDetailInfo struct {
 type OrderListInfo struct {
 	OrderNumber        int64  `json:"orderNumber"`
 	ProgramID          int64  `json:"programId"`
+	ShowTimeID         int64  `json:"showTimeId"`
 	ProgramTitle       string `json:"programTitle,optional"`
 	ProgramItemPicture string `json:"programItemPicture,optional"`
 	ProgramPlace       string `json:"programPlace,optional"`

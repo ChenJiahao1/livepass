@@ -208,7 +208,8 @@ func mapProgramPreorderInfo(resp *programrpc.ProgramPreorderInfo) *types.Program
 	}
 
 	return &types.ProgramPreorderInfo{
-		ID:                           resp.Id,
+		ProgramID:                    resp.ProgramId,
+		ShowTimeID:                   resp.ShowTimeId,
 		ProgramGroupID:               resp.ProgramGroupId,
 		Title:                        resp.Title,
 		Actor:                        resp.Actor,
@@ -217,6 +218,8 @@ func mapProgramPreorderInfo(resp *programrpc.ProgramPreorderInfo) *types.Program
 		ShowTime:                     resp.ShowTime,
 		ShowDayTime:                  resp.ShowDayTime,
 		ShowWeekTime:                 resp.ShowWeekTime,
+		RushSaleOpenTime:             resp.RushSaleOpenTime,
+		RushSaleEndTime:              resp.RushSaleEndTime,
 		PerOrderLimitPurchaseCount:   resp.PerOrderLimitPurchaseCount,
 		PerAccountLimitPurchaseCount: resp.PerAccountLimitPurchaseCount,
 		PermitChooseSeat:             resp.PermitChooseSeat,

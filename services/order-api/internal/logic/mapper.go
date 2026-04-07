@@ -64,6 +64,7 @@ func mapOrderListInfoList(list []*orderrpc.OrderListInfo) []types.OrderListInfo 
 		resp = append(resp, types.OrderListInfo{
 			OrderNumber:        item.OrderNumber,
 			ProgramID:          item.ProgramId,
+			ShowTimeID:         item.ShowTimeId,
 			ProgramTitle:       item.ProgramTitle,
 			ProgramItemPicture: item.ProgramItemPicture,
 			ProgramPlace:       item.ProgramPlace,
@@ -88,6 +89,7 @@ func mapOrderDetailInfo(resp *orderrpc.OrderDetailInfo) *types.OrderDetailInfo {
 	return &types.OrderDetailInfo{
 		OrderNumber:             resp.OrderNumber,
 		ProgramID:               resp.ProgramId,
+		ShowTimeID:              resp.ShowTimeId,
 		ProgramTitle:            resp.ProgramTitle,
 		ProgramItemPicture:      resp.ProgramItemPicture,
 		ProgramPlace:            resp.ProgramPlace,

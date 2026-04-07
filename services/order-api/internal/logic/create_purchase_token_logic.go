@@ -39,7 +39,7 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(req *types.CreatePurchase
 
 	rpcResp, err := l.svcCtx.OrderRpc.CreatePurchaseToken(l.ctx, &orderrpc.CreatePurchaseTokenReq{
 		UserId:           userID,
-		ProgramId:        req.ProgramID,
+		ShowTimeId:       req.ShowTimeID,
 		TicketCategoryId: req.TicketCategoryID,
 		TicketUserIds:    req.TicketUserIds,
 		DistributionMode: req.DistributionMode,

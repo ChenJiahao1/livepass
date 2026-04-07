@@ -349,6 +349,50 @@ func (x *GetProgramDetailReq) GetId() int64 {
 	return 0
 }
 
+type GetProgramPreorderReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ShowTimeId    int64                  `protobuf:"varint,1,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProgramPreorderReq) Reset() {
+	*x = GetProgramPreorderReq{}
+	mi := &file_program_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProgramPreorderReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProgramPreorderReq) ProtoMessage() {}
+
+func (x *GetProgramPreorderReq) ProtoReflect() protoreflect.Message {
+	mi := &file_program_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProgramPreorderReq.ProtoReflect.Descriptor instead.
+func (*GetProgramPreorderReq) Descriptor() ([]byte, []int) {
+	return file_program_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetProgramPreorderReq) GetShowTimeId() int64 {
+	if x != nil {
+		return x.ShowTimeId
+	}
+	return 0
+}
+
 type ProgramInvalidReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -358,7 +402,7 @@ type ProgramInvalidReq struct {
 
 func (x *ProgramInvalidReq) Reset() {
 	*x = ProgramInvalidReq{}
-	mi := &file_program_proto_msgTypes[6]
+	mi := &file_program_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -370,7 +414,7 @@ func (x *ProgramInvalidReq) String() string {
 func (*ProgramInvalidReq) ProtoMessage() {}
 
 func (x *ProgramInvalidReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[6]
+	mi := &file_program_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -383,7 +427,7 @@ func (x *ProgramInvalidReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramInvalidReq.ProtoReflect.Descriptor instead.
 func (*ProgramInvalidReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{6}
+	return file_program_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ProgramInvalidReq) GetId() int64 {
@@ -402,7 +446,7 @@ type ProgramResetReq struct {
 
 func (x *ProgramResetReq) Reset() {
 	*x = ProgramResetReq{}
-	mi := &file_program_proto_msgTypes[7]
+	mi := &file_program_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -414,7 +458,7 @@ func (x *ProgramResetReq) String() string {
 func (*ProgramResetReq) ProtoMessage() {}
 
 func (x *ProgramResetReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[7]
+	mi := &file_program_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -427,7 +471,7 @@ func (x *ProgramResetReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramResetReq.ProtoReflect.Descriptor instead.
 func (*ProgramResetReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{7}
+	return file_program_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ProgramResetReq) GetProgramId() int64 {
@@ -446,7 +490,7 @@ type ProgramCategoryTypeReq struct {
 
 func (x *ProgramCategoryTypeReq) Reset() {
 	*x = ProgramCategoryTypeReq{}
-	mi := &file_program_proto_msgTypes[8]
+	mi := &file_program_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -458,7 +502,7 @@ func (x *ProgramCategoryTypeReq) String() string {
 func (*ProgramCategoryTypeReq) ProtoMessage() {}
 
 func (x *ProgramCategoryTypeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[8]
+	mi := &file_program_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -471,7 +515,7 @@ func (x *ProgramCategoryTypeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramCategoryTypeReq.ProtoReflect.Descriptor instead.
 func (*ProgramCategoryTypeReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{8}
+	return file_program_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ProgramCategoryTypeReq) GetType() int64 {
@@ -490,7 +534,7 @@ type ParentProgramCategoryReq struct {
 
 func (x *ParentProgramCategoryReq) Reset() {
 	*x = ParentProgramCategoryReq{}
-	mi := &file_program_proto_msgTypes[9]
+	mi := &file_program_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +546,7 @@ func (x *ParentProgramCategoryReq) String() string {
 func (*ParentProgramCategoryReq) ProtoMessage() {}
 
 func (x *ParentProgramCategoryReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[9]
+	mi := &file_program_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +559,7 @@ func (x *ParentProgramCategoryReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ParentProgramCategoryReq.ProtoReflect.Descriptor instead.
 func (*ParentProgramCategoryReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{9}
+	return file_program_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ParentProgramCategoryReq) GetParentProgramCategoryId() int64 {
@@ -536,7 +580,7 @@ type ProgramCategoryBatchItem struct {
 
 func (x *ProgramCategoryBatchItem) Reset() {
 	*x = ProgramCategoryBatchItem{}
-	mi := &file_program_proto_msgTypes[10]
+	mi := &file_program_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -548,7 +592,7 @@ func (x *ProgramCategoryBatchItem) String() string {
 func (*ProgramCategoryBatchItem) ProtoMessage() {}
 
 func (x *ProgramCategoryBatchItem) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[10]
+	mi := &file_program_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -561,7 +605,7 @@ func (x *ProgramCategoryBatchItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramCategoryBatchItem.ProtoReflect.Descriptor instead.
 func (*ProgramCategoryBatchItem) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{10}
+	return file_program_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ProgramCategoryBatchItem) GetParentId() int64 {
@@ -594,7 +638,7 @@ type ProgramCategoryBatchSaveReq struct {
 
 func (x *ProgramCategoryBatchSaveReq) Reset() {
 	*x = ProgramCategoryBatchSaveReq{}
-	mi := &file_program_proto_msgTypes[11]
+	mi := &file_program_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -606,7 +650,7 @@ func (x *ProgramCategoryBatchSaveReq) String() string {
 func (*ProgramCategoryBatchSaveReq) ProtoMessage() {}
 
 func (x *ProgramCategoryBatchSaveReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[11]
+	mi := &file_program_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -619,7 +663,7 @@ func (x *ProgramCategoryBatchSaveReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramCategoryBatchSaveReq.ProtoReflect.Descriptor instead.
 func (*ProgramCategoryBatchSaveReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{11}
+	return file_program_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ProgramCategoryBatchSaveReq) GetList() []*ProgramCategoryBatchItem {
@@ -683,7 +727,7 @@ type CreateProgramReq struct {
 
 func (x *CreateProgramReq) Reset() {
 	*x = CreateProgramReq{}
-	mi := &file_program_proto_msgTypes[12]
+	mi := &file_program_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -695,7 +739,7 @@ func (x *CreateProgramReq) String() string {
 func (*CreateProgramReq) ProtoMessage() {}
 
 func (x *CreateProgramReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[12]
+	mi := &file_program_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -708,7 +752,7 @@ func (x *CreateProgramReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProgramReq.ProtoReflect.Descriptor instead.
 func (*CreateProgramReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{12}
+	return file_program_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CreateProgramReq) GetProgramGroupId() int64 {
@@ -1042,7 +1086,7 @@ type CreateProgramResp struct {
 
 func (x *CreateProgramResp) Reset() {
 	*x = CreateProgramResp{}
-	mi := &file_program_proto_msgTypes[13]
+	mi := &file_program_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1054,7 +1098,7 @@ func (x *CreateProgramResp) String() string {
 func (*CreateProgramResp) ProtoMessage() {}
 
 func (x *CreateProgramResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[13]
+	mi := &file_program_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1067,7 +1111,7 @@ func (x *CreateProgramResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProgramResp.ProtoReflect.Descriptor instead.
 func (*CreateProgramResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{13}
+	return file_program_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CreateProgramResp) GetId() int64 {
@@ -1132,7 +1176,7 @@ type UpdateProgramReq struct {
 
 func (x *UpdateProgramReq) Reset() {
 	*x = UpdateProgramReq{}
-	mi := &file_program_proto_msgTypes[14]
+	mi := &file_program_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1144,7 +1188,7 @@ func (x *UpdateProgramReq) String() string {
 func (*UpdateProgramReq) ProtoMessage() {}
 
 func (x *UpdateProgramReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[14]
+	mi := &file_program_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1157,7 +1201,7 @@ func (x *UpdateProgramReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProgramReq.ProtoReflect.Descriptor instead.
 func (*UpdateProgramReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{14}
+	return file_program_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UpdateProgramReq) GetId() int64 {
@@ -1501,7 +1545,7 @@ type ProgramShowTimeAddReq struct {
 
 func (x *ProgramShowTimeAddReq) Reset() {
 	*x = ProgramShowTimeAddReq{}
-	mi := &file_program_proto_msgTypes[15]
+	mi := &file_program_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1513,7 +1557,7 @@ func (x *ProgramShowTimeAddReq) String() string {
 func (*ProgramShowTimeAddReq) ProtoMessage() {}
 
 func (x *ProgramShowTimeAddReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[15]
+	mi := &file_program_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1526,7 +1570,7 @@ func (x *ProgramShowTimeAddReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramShowTimeAddReq.ProtoReflect.Descriptor instead.
 func (*ProgramShowTimeAddReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{15}
+	return file_program_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ProgramShowTimeAddReq) GetProgramId() int64 {
@@ -1566,7 +1610,7 @@ type ListTicketCategoriesByProgramReq struct {
 
 func (x *ListTicketCategoriesByProgramReq) Reset() {
 	*x = ListTicketCategoriesByProgramReq{}
-	mi := &file_program_proto_msgTypes[16]
+	mi := &file_program_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1578,7 +1622,7 @@ func (x *ListTicketCategoriesByProgramReq) String() string {
 func (*ListTicketCategoriesByProgramReq) ProtoMessage() {}
 
 func (x *ListTicketCategoriesByProgramReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[16]
+	mi := &file_program_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1591,7 +1635,7 @@ func (x *ListTicketCategoriesByProgramReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTicketCategoriesByProgramReq.ProtoReflect.Descriptor instead.
 func (*ListTicketCategoriesByProgramReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{16}
+	return file_program_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListTicketCategoriesByProgramReq) GetProgramId() int64 {
@@ -1614,7 +1658,7 @@ type TicketCategoryAddReq struct {
 
 func (x *TicketCategoryAddReq) Reset() {
 	*x = TicketCategoryAddReq{}
-	mi := &file_program_proto_msgTypes[17]
+	mi := &file_program_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1626,7 +1670,7 @@ func (x *TicketCategoryAddReq) String() string {
 func (*TicketCategoryAddReq) ProtoMessage() {}
 
 func (x *TicketCategoryAddReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[17]
+	mi := &file_program_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1639,7 +1683,7 @@ func (x *TicketCategoryAddReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TicketCategoryAddReq.ProtoReflect.Descriptor instead.
 func (*TicketCategoryAddReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{17}
+	return file_program_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *TicketCategoryAddReq) GetProgramId() int64 {
@@ -1686,7 +1730,7 @@ type TicketCategoryReq struct {
 
 func (x *TicketCategoryReq) Reset() {
 	*x = TicketCategoryReq{}
-	mi := &file_program_proto_msgTypes[18]
+	mi := &file_program_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1698,7 +1742,7 @@ func (x *TicketCategoryReq) String() string {
 func (*TicketCategoryReq) ProtoMessage() {}
 
 func (x *TicketCategoryReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[18]
+	mi := &file_program_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1711,7 +1755,7 @@ func (x *TicketCategoryReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TicketCategoryReq.ProtoReflect.Descriptor instead.
 func (*TicketCategoryReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{18}
+	return file_program_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *TicketCategoryReq) GetId() int64 {
@@ -1733,7 +1777,7 @@ type ProgramCategoryInfo struct {
 
 func (x *ProgramCategoryInfo) Reset() {
 	*x = ProgramCategoryInfo{}
-	mi := &file_program_proto_msgTypes[19]
+	mi := &file_program_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1745,7 +1789,7 @@ func (x *ProgramCategoryInfo) String() string {
 func (*ProgramCategoryInfo) ProtoMessage() {}
 
 func (x *ProgramCategoryInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[19]
+	mi := &file_program_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1758,7 +1802,7 @@ func (x *ProgramCategoryInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramCategoryInfo.ProtoReflect.Descriptor instead.
 func (*ProgramCategoryInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{19}
+	return file_program_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ProgramCategoryInfo) GetId() int64 {
@@ -1800,7 +1844,7 @@ type ProgramSimpleInfo struct {
 
 func (x *ProgramSimpleInfo) Reset() {
 	*x = ProgramSimpleInfo{}
-	mi := &file_program_proto_msgTypes[20]
+	mi := &file_program_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1812,7 +1856,7 @@ func (x *ProgramSimpleInfo) String() string {
 func (*ProgramSimpleInfo) ProtoMessage() {}
 
 func (x *ProgramSimpleInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[20]
+	mi := &file_program_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1825,7 +1869,7 @@ func (x *ProgramSimpleInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramSimpleInfo.ProtoReflect.Descriptor instead.
 func (*ProgramSimpleInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{20}
+	return file_program_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ProgramSimpleInfo) GetProgramId() int64 {
@@ -1860,7 +1904,7 @@ type ProgramGroupInfo struct {
 
 func (x *ProgramGroupInfo) Reset() {
 	*x = ProgramGroupInfo{}
-	mi := &file_program_proto_msgTypes[21]
+	mi := &file_program_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1872,7 +1916,7 @@ func (x *ProgramGroupInfo) String() string {
 func (*ProgramGroupInfo) ProtoMessage() {}
 
 func (x *ProgramGroupInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[21]
+	mi := &file_program_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1885,7 +1929,7 @@ func (x *ProgramGroupInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramGroupInfo.ProtoReflect.Descriptor instead.
 func (*ProgramGroupInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{21}
+	return file_program_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ProgramGroupInfo) GetId() int64 {
@@ -1920,7 +1964,7 @@ type ProgramHomeSection struct {
 
 func (x *ProgramHomeSection) Reset() {
 	*x = ProgramHomeSection{}
-	mi := &file_program_proto_msgTypes[22]
+	mi := &file_program_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1932,7 +1976,7 @@ func (x *ProgramHomeSection) String() string {
 func (*ProgramHomeSection) ProtoMessage() {}
 
 func (x *ProgramHomeSection) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[22]
+	mi := &file_program_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1945,7 +1989,7 @@ func (x *ProgramHomeSection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramHomeSection.ProtoReflect.Descriptor instead.
 func (*ProgramHomeSection) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{22}
+	return file_program_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ProgramHomeSection) GetCategoryName() string {
@@ -1980,7 +2024,7 @@ type TicketCategoryInfo struct {
 
 func (x *TicketCategoryInfo) Reset() {
 	*x = TicketCategoryInfo{}
-	mi := &file_program_proto_msgTypes[23]
+	mi := &file_program_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1992,7 +2036,7 @@ func (x *TicketCategoryInfo) String() string {
 func (*TicketCategoryInfo) ProtoMessage() {}
 
 func (x *TicketCategoryInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[23]
+	mi := &file_program_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2005,7 +2049,7 @@ func (x *TicketCategoryInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TicketCategoryInfo.ProtoReflect.Descriptor instead.
 func (*TicketCategoryInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{23}
+	return file_program_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *TicketCategoryInfo) GetId() int64 {
@@ -2042,7 +2086,7 @@ type SeatInfo struct {
 
 func (x *SeatInfo) Reset() {
 	*x = SeatInfo{}
-	mi := &file_program_proto_msgTypes[24]
+	mi := &file_program_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2054,7 +2098,7 @@ func (x *SeatInfo) String() string {
 func (*SeatInfo) ProtoMessage() {}
 
 func (x *SeatInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[24]
+	mi := &file_program_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2067,7 +2111,7 @@ func (x *SeatInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeatInfo.ProtoReflect.Descriptor instead.
 func (*SeatInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{24}
+	return file_program_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SeatInfo) GetSeatId() int64 {
@@ -2120,7 +2164,7 @@ type SeatAddReq struct {
 
 func (x *SeatAddReq) Reset() {
 	*x = SeatAddReq{}
-	mi := &file_program_proto_msgTypes[25]
+	mi := &file_program_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2132,7 +2176,7 @@ func (x *SeatAddReq) String() string {
 func (*SeatAddReq) ProtoMessage() {}
 
 func (x *SeatAddReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[25]
+	mi := &file_program_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2145,7 +2189,7 @@ func (x *SeatAddReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeatAddReq.ProtoReflect.Descriptor instead.
 func (*SeatAddReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{25}
+	return file_program_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SeatAddReq) GetProgramId() int64 {
@@ -2208,7 +2252,7 @@ type SeatBatchRelateInfoAddReq struct {
 
 func (x *SeatBatchRelateInfoAddReq) Reset() {
 	*x = SeatBatchRelateInfoAddReq{}
-	mi := &file_program_proto_msgTypes[26]
+	mi := &file_program_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2220,7 +2264,7 @@ func (x *SeatBatchRelateInfoAddReq) String() string {
 func (*SeatBatchRelateInfoAddReq) ProtoMessage() {}
 
 func (x *SeatBatchRelateInfoAddReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[26]
+	mi := &file_program_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2233,7 +2277,7 @@ func (x *SeatBatchRelateInfoAddReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeatBatchRelateInfoAddReq.ProtoReflect.Descriptor instead.
 func (*SeatBatchRelateInfoAddReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{26}
+	return file_program_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *SeatBatchRelateInfoAddReq) GetTicketCategoryId() int64 {
@@ -2267,7 +2311,7 @@ type SeatBatchAddReq struct {
 
 func (x *SeatBatchAddReq) Reset() {
 	*x = SeatBatchAddReq{}
-	mi := &file_program_proto_msgTypes[27]
+	mi := &file_program_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2279,7 +2323,7 @@ func (x *SeatBatchAddReq) String() string {
 func (*SeatBatchAddReq) ProtoMessage() {}
 
 func (x *SeatBatchAddReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[27]
+	mi := &file_program_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2292,7 +2336,7 @@ func (x *SeatBatchAddReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeatBatchAddReq.ProtoReflect.Descriptor instead.
 func (*SeatBatchAddReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{27}
+	return file_program_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SeatBatchAddReq) GetProgramId() int64 {
@@ -2318,7 +2362,7 @@ type SeatListReq struct {
 
 func (x *SeatListReq) Reset() {
 	*x = SeatListReq{}
-	mi := &file_program_proto_msgTypes[28]
+	mi := &file_program_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2330,7 +2374,7 @@ func (x *SeatListReq) String() string {
 func (*SeatListReq) ProtoMessage() {}
 
 func (x *SeatListReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[28]
+	mi := &file_program_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2343,7 +2387,7 @@ func (x *SeatListReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeatListReq.ProtoReflect.Descriptor instead.
 func (*SeatListReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{28}
+	return file_program_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SeatListReq) GetProgramId() int64 {
@@ -2363,7 +2407,7 @@ type PriceSeatGroup struct {
 
 func (x *PriceSeatGroup) Reset() {
 	*x = PriceSeatGroup{}
-	mi := &file_program_proto_msgTypes[29]
+	mi := &file_program_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2375,7 +2419,7 @@ func (x *PriceSeatGroup) String() string {
 func (*PriceSeatGroup) ProtoMessage() {}
 
 func (x *PriceSeatGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[29]
+	mi := &file_program_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2388,7 +2432,7 @@ func (x *PriceSeatGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PriceSeatGroup.ProtoReflect.Descriptor instead.
 func (*PriceSeatGroup) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{29}
+	return file_program_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *PriceSeatGroup) GetPrice() string {
@@ -2419,7 +2463,7 @@ type SeatRelateInfo struct {
 
 func (x *SeatRelateInfo) Reset() {
 	*x = SeatRelateInfo{}
-	mi := &file_program_proto_msgTypes[30]
+	mi := &file_program_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2431,7 +2475,7 @@ func (x *SeatRelateInfo) String() string {
 func (*SeatRelateInfo) ProtoMessage() {}
 
 func (x *SeatRelateInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[30]
+	mi := &file_program_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2444,7 +2488,7 @@ func (x *SeatRelateInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeatRelateInfo.ProtoReflect.Descriptor instead.
 func (*SeatRelateInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{30}
+	return file_program_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *SeatRelateInfo) GetProgramId() int64 {
@@ -2502,7 +2546,7 @@ type TicketCategoryDetailInfo struct {
 
 func (x *TicketCategoryDetailInfo) Reset() {
 	*x = TicketCategoryDetailInfo{}
-	mi := &file_program_proto_msgTypes[31]
+	mi := &file_program_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2514,7 +2558,7 @@ func (x *TicketCategoryDetailInfo) String() string {
 func (*TicketCategoryDetailInfo) ProtoMessage() {}
 
 func (x *TicketCategoryDetailInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[31]
+	mi := &file_program_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2527,7 +2571,7 @@ func (x *TicketCategoryDetailInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TicketCategoryDetailInfo.ProtoReflect.Descriptor instead.
 func (*TicketCategoryDetailInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{31}
+	return file_program_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *TicketCategoryDetailInfo) GetProgramId() int64 {
@@ -2578,7 +2622,7 @@ type ProgramPreorderTicketCategoryInfo struct {
 
 func (x *ProgramPreorderTicketCategoryInfo) Reset() {
 	*x = ProgramPreorderTicketCategoryInfo{}
-	mi := &file_program_proto_msgTypes[32]
+	mi := &file_program_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2590,7 +2634,7 @@ func (x *ProgramPreorderTicketCategoryInfo) String() string {
 func (*ProgramPreorderTicketCategoryInfo) ProtoMessage() {}
 
 func (x *ProgramPreorderTicketCategoryInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[32]
+	mi := &file_program_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2603,7 +2647,7 @@ func (x *ProgramPreorderTicketCategoryInfo) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ProgramPreorderTicketCategoryInfo.ProtoReflect.Descriptor instead.
 func (*ProgramPreorderTicketCategoryInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{32}
+	return file_program_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ProgramPreorderTicketCategoryInfo) GetId() int64 {
@@ -2650,7 +2694,7 @@ type ProgramCategoryListResp struct {
 
 func (x *ProgramCategoryListResp) Reset() {
 	*x = ProgramCategoryListResp{}
-	mi := &file_program_proto_msgTypes[33]
+	mi := &file_program_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2662,7 +2706,7 @@ func (x *ProgramCategoryListResp) String() string {
 func (*ProgramCategoryListResp) ProtoMessage() {}
 
 func (x *ProgramCategoryListResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[33]
+	mi := &file_program_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2675,7 +2719,7 @@ func (x *ProgramCategoryListResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramCategoryListResp.ProtoReflect.Descriptor instead.
 func (*ProgramCategoryListResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{33}
+	return file_program_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ProgramCategoryListResp) GetList() []*ProgramCategoryInfo {
@@ -2710,7 +2754,7 @@ type ProgramListInfo struct {
 
 func (x *ProgramListInfo) Reset() {
 	*x = ProgramListInfo{}
-	mi := &file_program_proto_msgTypes[34]
+	mi := &file_program_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2722,7 +2766,7 @@ func (x *ProgramListInfo) String() string {
 func (*ProgramListInfo) ProtoMessage() {}
 
 func (x *ProgramListInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[34]
+	mi := &file_program_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2735,7 +2779,7 @@ func (x *ProgramListInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramListInfo.ProtoReflect.Descriptor instead.
 func (*ProgramListInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{34}
+	return file_program_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ProgramListInfo) GetId() int64 {
@@ -2866,7 +2910,7 @@ type ProgramHomeListResp struct {
 
 func (x *ProgramHomeListResp) Reset() {
 	*x = ProgramHomeListResp{}
-	mi := &file_program_proto_msgTypes[35]
+	mi := &file_program_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2878,7 +2922,7 @@ func (x *ProgramHomeListResp) String() string {
 func (*ProgramHomeListResp) ProtoMessage() {}
 
 func (x *ProgramHomeListResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[35]
+	mi := &file_program_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2891,7 +2935,7 @@ func (x *ProgramHomeListResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramHomeListResp.ProtoReflect.Descriptor instead.
 func (*ProgramHomeListResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{35}
+	return file_program_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ProgramHomeListResp) GetSections() []*ProgramHomeSection {
@@ -2913,7 +2957,7 @@ type ProgramPageResp struct {
 
 func (x *ProgramPageResp) Reset() {
 	*x = ProgramPageResp{}
-	mi := &file_program_proto_msgTypes[36]
+	mi := &file_program_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2925,7 +2969,7 @@ func (x *ProgramPageResp) String() string {
 func (*ProgramPageResp) ProtoMessage() {}
 
 func (x *ProgramPageResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[36]
+	mi := &file_program_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2938,7 +2982,7 @@ func (x *ProgramPageResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramPageResp.ProtoReflect.Descriptor instead.
 func (*ProgramPageResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{36}
+	return file_program_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ProgramPageResp) GetPageNum() int64 {
@@ -2978,7 +3022,7 @@ type TicketCategoryDetailListResp struct {
 
 func (x *TicketCategoryDetailListResp) Reset() {
 	*x = TicketCategoryDetailListResp{}
-	mi := &file_program_proto_msgTypes[37]
+	mi := &file_program_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2990,7 +3034,7 @@ func (x *TicketCategoryDetailListResp) String() string {
 func (*TicketCategoryDetailListResp) ProtoMessage() {}
 
 func (x *TicketCategoryDetailListResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[37]
+	mi := &file_program_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3003,7 +3047,7 @@ func (x *TicketCategoryDetailListResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TicketCategoryDetailListResp.ProtoReflect.Descriptor instead.
 func (*TicketCategoryDetailListResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{37}
+	return file_program_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *TicketCategoryDetailListResp) GetList() []*TicketCategoryDetailInfo {
@@ -3015,27 +3059,30 @@ func (x *TicketCategoryDetailListResp) GetList() []*TicketCategoryDetailInfo {
 
 type ProgramPreorderInfo struct {
 	state                        protoimpl.MessageState               `protogen:"open.v1"`
-	Id                           int64                                `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProgramGroupId               int64                                `protobuf:"varint,2,opt,name=programGroupId,proto3" json:"programGroupId,omitempty"`
-	Title                        string                               `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Actor                        string                               `protobuf:"bytes,4,opt,name=actor,proto3" json:"actor,omitempty"`
-	Place                        string                               `protobuf:"bytes,5,opt,name=place,proto3" json:"place,omitempty"`
-	ItemPicture                  string                               `protobuf:"bytes,6,opt,name=itemPicture,proto3" json:"itemPicture,omitempty"`
-	ShowTime                     string                               `protobuf:"bytes,7,opt,name=showTime,proto3" json:"showTime,omitempty"`
-	ShowDayTime                  string                               `protobuf:"bytes,8,opt,name=showDayTime,proto3" json:"showDayTime,omitempty"`
-	ShowWeekTime                 string                               `protobuf:"bytes,9,opt,name=showWeekTime,proto3" json:"showWeekTime,omitempty"`
-	PerOrderLimitPurchaseCount   int64                                `protobuf:"varint,10,opt,name=perOrderLimitPurchaseCount,proto3" json:"perOrderLimitPurchaseCount,omitempty"`
-	PerAccountLimitPurchaseCount int64                                `protobuf:"varint,11,opt,name=perAccountLimitPurchaseCount,proto3" json:"perAccountLimitPurchaseCount,omitempty"`
-	PermitChooseSeat             int64                                `protobuf:"varint,12,opt,name=permitChooseSeat,proto3" json:"permitChooseSeat,omitempty"`
-	ChooseSeatExplain            string                               `protobuf:"bytes,13,opt,name=chooseSeatExplain,proto3" json:"chooseSeatExplain,omitempty"`
-	TicketCategoryVoList         []*ProgramPreorderTicketCategoryInfo `protobuf:"bytes,14,rep,name=ticketCategoryVoList,proto3" json:"ticketCategoryVoList,omitempty"`
+	ProgramId                    int64                                `protobuf:"varint,1,opt,name=programId,proto3" json:"programId,omitempty"`
+	ShowTimeId                   int64                                `protobuf:"varint,2,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
+	ProgramGroupId               int64                                `protobuf:"varint,3,opt,name=programGroupId,proto3" json:"programGroupId,omitempty"`
+	Title                        string                               `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	Actor                        string                               `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
+	Place                        string                               `protobuf:"bytes,6,opt,name=place,proto3" json:"place,omitempty"`
+	ItemPicture                  string                               `protobuf:"bytes,7,opt,name=itemPicture,proto3" json:"itemPicture,omitempty"`
+	ShowTime                     string                               `protobuf:"bytes,8,opt,name=showTime,proto3" json:"showTime,omitempty"`
+	ShowDayTime                  string                               `protobuf:"bytes,9,opt,name=showDayTime,proto3" json:"showDayTime,omitempty"`
+	ShowWeekTime                 string                               `protobuf:"bytes,10,opt,name=showWeekTime,proto3" json:"showWeekTime,omitempty"`
+	RushSaleOpenTime             string                               `protobuf:"bytes,11,opt,name=rushSaleOpenTime,proto3" json:"rushSaleOpenTime,omitempty"`
+	RushSaleEndTime              string                               `protobuf:"bytes,12,opt,name=rushSaleEndTime,proto3" json:"rushSaleEndTime,omitempty"`
+	PerOrderLimitPurchaseCount   int64                                `protobuf:"varint,13,opt,name=perOrderLimitPurchaseCount,proto3" json:"perOrderLimitPurchaseCount,omitempty"`
+	PerAccountLimitPurchaseCount int64                                `protobuf:"varint,14,opt,name=perAccountLimitPurchaseCount,proto3" json:"perAccountLimitPurchaseCount,omitempty"`
+	PermitChooseSeat             int64                                `protobuf:"varint,15,opt,name=permitChooseSeat,proto3" json:"permitChooseSeat,omitempty"`
+	ChooseSeatExplain            string                               `protobuf:"bytes,16,opt,name=chooseSeatExplain,proto3" json:"chooseSeatExplain,omitempty"`
+	TicketCategoryVoList         []*ProgramPreorderTicketCategoryInfo `protobuf:"bytes,17,rep,name=ticketCategoryVoList,proto3" json:"ticketCategoryVoList,omitempty"`
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *ProgramPreorderInfo) Reset() {
 	*x = ProgramPreorderInfo{}
-	mi := &file_program_proto_msgTypes[38]
+	mi := &file_program_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3047,7 +3094,7 @@ func (x *ProgramPreorderInfo) String() string {
 func (*ProgramPreorderInfo) ProtoMessage() {}
 
 func (x *ProgramPreorderInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[38]
+	mi := &file_program_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3060,12 +3107,19 @@ func (x *ProgramPreorderInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramPreorderInfo.ProtoReflect.Descriptor instead.
 func (*ProgramPreorderInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{38}
+	return file_program_proto_rawDescGZIP(), []int{39}
 }
 
-func (x *ProgramPreorderInfo) GetId() int64 {
+func (x *ProgramPreorderInfo) GetProgramId() int64 {
 	if x != nil {
-		return x.Id
+		return x.ProgramId
+	}
+	return 0
+}
+
+func (x *ProgramPreorderInfo) GetShowTimeId() int64 {
+	if x != nil {
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -3126,6 +3180,20 @@ func (x *ProgramPreorderInfo) GetShowWeekTime() string {
 	return ""
 }
 
+func (x *ProgramPreorderInfo) GetRushSaleOpenTime() string {
+	if x != nil {
+		return x.RushSaleOpenTime
+	}
+	return ""
+}
+
+func (x *ProgramPreorderInfo) GetRushSaleEndTime() string {
+	if x != nil {
+		return x.RushSaleEndTime
+	}
+	return ""
+}
+
 func (x *ProgramPreorderInfo) GetPerOrderLimitPurchaseCount() int64 {
 	if x != nil {
 		return x.PerOrderLimitPurchaseCount
@@ -3176,7 +3244,7 @@ type AutoAssignAndFreezeSeatsReq struct {
 
 func (x *AutoAssignAndFreezeSeatsReq) Reset() {
 	*x = AutoAssignAndFreezeSeatsReq{}
-	mi := &file_program_proto_msgTypes[39]
+	mi := &file_program_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3188,7 +3256,7 @@ func (x *AutoAssignAndFreezeSeatsReq) String() string {
 func (*AutoAssignAndFreezeSeatsReq) ProtoMessage() {}
 
 func (x *AutoAssignAndFreezeSeatsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[39]
+	mi := &file_program_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3201,7 +3269,7 @@ func (x *AutoAssignAndFreezeSeatsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutoAssignAndFreezeSeatsReq.ProtoReflect.Descriptor instead.
 func (*AutoAssignAndFreezeSeatsReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{39}
+	return file_program_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *AutoAssignAndFreezeSeatsReq) GetProgramId() int64 {
@@ -3264,7 +3332,7 @@ type AutoAssignAndFreezeSeatsResp struct {
 
 func (x *AutoAssignAndFreezeSeatsResp) Reset() {
 	*x = AutoAssignAndFreezeSeatsResp{}
-	mi := &file_program_proto_msgTypes[40]
+	mi := &file_program_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3276,7 +3344,7 @@ func (x *AutoAssignAndFreezeSeatsResp) String() string {
 func (*AutoAssignAndFreezeSeatsResp) ProtoMessage() {}
 
 func (x *AutoAssignAndFreezeSeatsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[40]
+	mi := &file_program_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3289,7 +3357,7 @@ func (x *AutoAssignAndFreezeSeatsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutoAssignAndFreezeSeatsResp.ProtoReflect.Descriptor instead.
 func (*AutoAssignAndFreezeSeatsResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{40}
+	return file_program_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *AutoAssignAndFreezeSeatsResp) GetFreezeToken() string {
@@ -3325,7 +3393,7 @@ type ReleaseSeatFreezeReq struct {
 
 func (x *ReleaseSeatFreezeReq) Reset() {
 	*x = ReleaseSeatFreezeReq{}
-	mi := &file_program_proto_msgTypes[41]
+	mi := &file_program_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3337,7 +3405,7 @@ func (x *ReleaseSeatFreezeReq) String() string {
 func (*ReleaseSeatFreezeReq) ProtoMessage() {}
 
 func (x *ReleaseSeatFreezeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[41]
+	mi := &file_program_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3350,7 +3418,7 @@ func (x *ReleaseSeatFreezeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseSeatFreezeReq.ProtoReflect.Descriptor instead.
 func (*ReleaseSeatFreezeReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{41}
+	return file_program_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ReleaseSeatFreezeReq) GetFreezeToken() string {
@@ -3390,7 +3458,7 @@ type ReleaseSeatFreezeResp struct {
 
 func (x *ReleaseSeatFreezeResp) Reset() {
 	*x = ReleaseSeatFreezeResp{}
-	mi := &file_program_proto_msgTypes[42]
+	mi := &file_program_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3402,7 +3470,7 @@ func (x *ReleaseSeatFreezeResp) String() string {
 func (*ReleaseSeatFreezeResp) ProtoMessage() {}
 
 func (x *ReleaseSeatFreezeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[42]
+	mi := &file_program_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3415,7 +3483,7 @@ func (x *ReleaseSeatFreezeResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseSeatFreezeResp.ProtoReflect.Descriptor instead.
 func (*ReleaseSeatFreezeResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{42}
+	return file_program_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ReleaseSeatFreezeResp) GetSuccess() bool {
@@ -3436,7 +3504,7 @@ type ConfirmSeatFreezeReq struct {
 
 func (x *ConfirmSeatFreezeReq) Reset() {
 	*x = ConfirmSeatFreezeReq{}
-	mi := &file_program_proto_msgTypes[43]
+	mi := &file_program_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3448,7 +3516,7 @@ func (x *ConfirmSeatFreezeReq) String() string {
 func (*ConfirmSeatFreezeReq) ProtoMessage() {}
 
 func (x *ConfirmSeatFreezeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[43]
+	mi := &file_program_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3461,7 +3529,7 @@ func (x *ConfirmSeatFreezeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmSeatFreezeReq.ProtoReflect.Descriptor instead.
 func (*ConfirmSeatFreezeReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{43}
+	return file_program_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ConfirmSeatFreezeReq) GetFreezeToken() string {
@@ -3494,7 +3562,7 @@ type ConfirmSeatFreezeResp struct {
 
 func (x *ConfirmSeatFreezeResp) Reset() {
 	*x = ConfirmSeatFreezeResp{}
-	mi := &file_program_proto_msgTypes[44]
+	mi := &file_program_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3506,7 +3574,7 @@ func (x *ConfirmSeatFreezeResp) String() string {
 func (*ConfirmSeatFreezeResp) ProtoMessage() {}
 
 func (x *ConfirmSeatFreezeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[44]
+	mi := &file_program_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3519,7 +3587,7 @@ func (x *ConfirmSeatFreezeResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmSeatFreezeResp.ProtoReflect.Descriptor instead.
 func (*ConfirmSeatFreezeResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{44}
+	return file_program_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ConfirmSeatFreezeResp) GetSuccess() bool {
@@ -3540,7 +3608,7 @@ type EvaluateRefundRuleReq struct {
 
 func (x *EvaluateRefundRuleReq) Reset() {
 	*x = EvaluateRefundRuleReq{}
-	mi := &file_program_proto_msgTypes[45]
+	mi := &file_program_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3552,7 +3620,7 @@ func (x *EvaluateRefundRuleReq) String() string {
 func (*EvaluateRefundRuleReq) ProtoMessage() {}
 
 func (x *EvaluateRefundRuleReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[45]
+	mi := &file_program_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3565,7 +3633,7 @@ func (x *EvaluateRefundRuleReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateRefundRuleReq.ProtoReflect.Descriptor instead.
 func (*EvaluateRefundRuleReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{45}
+	return file_program_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *EvaluateRefundRuleReq) GetProgramId() int64 {
@@ -3601,7 +3669,7 @@ type EvaluateRefundRuleResp struct {
 
 func (x *EvaluateRefundRuleResp) Reset() {
 	*x = EvaluateRefundRuleResp{}
-	mi := &file_program_proto_msgTypes[46]
+	mi := &file_program_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3613,7 +3681,7 @@ func (x *EvaluateRefundRuleResp) String() string {
 func (*EvaluateRefundRuleResp) ProtoMessage() {}
 
 func (x *EvaluateRefundRuleResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[46]
+	mi := &file_program_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3626,7 +3694,7 @@ func (x *EvaluateRefundRuleResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateRefundRuleResp.ProtoReflect.Descriptor instead.
 func (*EvaluateRefundRuleResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{46}
+	return file_program_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *EvaluateRefundRuleResp) GetAllowRefund() bool {
@@ -3668,7 +3736,7 @@ type ReleaseSoldSeatsReq struct {
 
 func (x *ReleaseSoldSeatsReq) Reset() {
 	*x = ReleaseSoldSeatsReq{}
-	mi := &file_program_proto_msgTypes[47]
+	mi := &file_program_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3680,7 +3748,7 @@ func (x *ReleaseSoldSeatsReq) String() string {
 func (*ReleaseSoldSeatsReq) ProtoMessage() {}
 
 func (x *ReleaseSoldSeatsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[47]
+	mi := &file_program_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3693,7 +3761,7 @@ func (x *ReleaseSoldSeatsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseSoldSeatsReq.ProtoReflect.Descriptor instead.
 func (*ReleaseSoldSeatsReq) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{47}
+	return file_program_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ReleaseSoldSeatsReq) GetProgramId() int64 {
@@ -3726,7 +3794,7 @@ type ReleaseSoldSeatsResp struct {
 
 func (x *ReleaseSoldSeatsResp) Reset() {
 	*x = ReleaseSoldSeatsResp{}
-	mi := &file_program_proto_msgTypes[48]
+	mi := &file_program_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3738,7 +3806,7 @@ func (x *ReleaseSoldSeatsResp) String() string {
 func (*ReleaseSoldSeatsResp) ProtoMessage() {}
 
 func (x *ReleaseSoldSeatsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[48]
+	mi := &file_program_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3751,7 +3819,7 @@ func (x *ReleaseSoldSeatsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseSoldSeatsResp.ProtoReflect.Descriptor instead.
 func (*ReleaseSoldSeatsResp) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{48}
+	return file_program_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ReleaseSoldSeatsResp) GetSuccess() bool {
@@ -3822,7 +3890,7 @@ type ProgramDetailInfo struct {
 
 func (x *ProgramDetailInfo) Reset() {
 	*x = ProgramDetailInfo{}
-	mi := &file_program_proto_msgTypes[49]
+	mi := &file_program_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3834,7 +3902,7 @@ func (x *ProgramDetailInfo) String() string {
 func (*ProgramDetailInfo) ProtoMessage() {}
 
 func (x *ProgramDetailInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_program_proto_msgTypes[49]
+	mi := &file_program_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3847,7 +3915,7 @@ func (x *ProgramDetailInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgramDetailInfo.ProtoReflect.Descriptor instead.
 func (*ProgramDetailInfo) Descriptor() ([]byte, []int) {
-	return file_program_proto_rawDescGZIP(), []int{49}
+	return file_program_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *ProgramDetailInfo) GetId() int64 {
@@ -4247,7 +4315,11 @@ const file_program_proto_rawDesc = "" +
 	"\vendDateTime\x18\b \x01(\tR\vendDateTime\x12\x12\n" +
 	"\x04type\x18\t \x01(\x03R\x04type\"%\n" +
 	"\x13GetProgramDetailReq\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"#\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"7\n" +
+	"\x15GetProgramPreorderReq\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x01 \x01(\x03R\n" +
+	"showTimeId\"#\n" +
 	"\x11ProgramInvalidReq\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"/\n" +
 	"\x0fProgramResetReq\x12\x1c\n" +
@@ -4482,23 +4554,28 @@ const file_program_proto_rawDesc = "" +
 	"\ttotalSize\x18\x03 \x01(\x03R\ttotalSize\x12,\n" +
 	"\x04list\x18\x04 \x03(\v2\x18.program.ProgramListInfoR\x04list\"U\n" +
 	"\x1cTicketCategoryDetailListResp\x125\n" +
-	"\x04list\x18\x01 \x03(\v2!.program.TicketCategoryDetailInfoR\x04list\"\xd1\x04\n" +
-	"\x13ProgramPreorderInfo\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12&\n" +
-	"\x0eprogramGroupId\x18\x02 \x01(\x03R\x0eprogramGroupId\x12\x14\n" +
-	"\x05title\x18\x03 \x01(\tR\x05title\x12\x14\n" +
-	"\x05actor\x18\x04 \x01(\tR\x05actor\x12\x14\n" +
-	"\x05place\x18\x05 \x01(\tR\x05place\x12 \n" +
-	"\vitemPicture\x18\x06 \x01(\tR\vitemPicture\x12\x1a\n" +
-	"\bshowTime\x18\a \x01(\tR\bshowTime\x12 \n" +
-	"\vshowDayTime\x18\b \x01(\tR\vshowDayTime\x12\"\n" +
-	"\fshowWeekTime\x18\t \x01(\tR\fshowWeekTime\x12>\n" +
-	"\x1aperOrderLimitPurchaseCount\x18\n" +
-	" \x01(\x03R\x1aperOrderLimitPurchaseCount\x12B\n" +
-	"\x1cperAccountLimitPurchaseCount\x18\v \x01(\x03R\x1cperAccountLimitPurchaseCount\x12*\n" +
-	"\x10permitChooseSeat\x18\f \x01(\x03R\x10permitChooseSeat\x12,\n" +
-	"\x11chooseSeatExplain\x18\r \x01(\tR\x11chooseSeatExplain\x12^\n" +
-	"\x14ticketCategoryVoList\x18\x0e \x03(\v2*.program.ProgramPreorderTicketCategoryInfoR\x14ticketCategoryVoList\"\x8d\x02\n" +
+	"\x04list\x18\x01 \x03(\v2!.program.TicketCategoryDetailInfoR\x04list\"\xd5\x05\n" +
+	"\x13ProgramPreorderInfo\x12\x1c\n" +
+	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x02 \x01(\x03R\n" +
+	"showTimeId\x12&\n" +
+	"\x0eprogramGroupId\x18\x03 \x01(\x03R\x0eprogramGroupId\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x12\x14\n" +
+	"\x05actor\x18\x05 \x01(\tR\x05actor\x12\x14\n" +
+	"\x05place\x18\x06 \x01(\tR\x05place\x12 \n" +
+	"\vitemPicture\x18\a \x01(\tR\vitemPicture\x12\x1a\n" +
+	"\bshowTime\x18\b \x01(\tR\bshowTime\x12 \n" +
+	"\vshowDayTime\x18\t \x01(\tR\vshowDayTime\x12\"\n" +
+	"\fshowWeekTime\x18\n" +
+	" \x01(\tR\fshowWeekTime\x12*\n" +
+	"\x10rushSaleOpenTime\x18\v \x01(\tR\x10rushSaleOpenTime\x12(\n" +
+	"\x0frushSaleEndTime\x18\f \x01(\tR\x0frushSaleEndTime\x12>\n" +
+	"\x1aperOrderLimitPurchaseCount\x18\r \x01(\x03R\x1aperOrderLimitPurchaseCount\x12B\n" +
+	"\x1cperAccountLimitPurchaseCount\x18\x0e \x01(\x03R\x1cperAccountLimitPurchaseCount\x12*\n" +
+	"\x10permitChooseSeat\x18\x0f \x01(\x03R\x10permitChooseSeat\x12,\n" +
+	"\x11chooseSeatExplain\x18\x10 \x01(\tR\x11chooseSeatExplain\x12^\n" +
+	"\x14ticketCategoryVoList\x18\x11 \x03(\v2*.program.ProgramPreorderTicketCategoryInfoR\x14ticketCategoryVoList\"\x8d\x02\n" +
 	"\x1bAutoAssignAndFreezeSeatsReq\x12\x1c\n" +
 	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\x12*\n" +
 	"\x10ticketCategoryId\x18\x02 \x01(\x03R\x10ticketCategoryId\x12\x14\n" +
@@ -4603,7 +4680,7 @@ const file_program_proto_rawDesc = "" +
 	"\bshowTime\x182 \x01(\tR\bshowTime\x12 \n" +
 	"\vshowDayTime\x183 \x01(\tR\vshowDayTime\x12\"\n" +
 	"\fshowWeekTime\x184 \x01(\tR\fshowWeekTime\x12O\n" +
-	"\x14ticketCategoryVoList\x185 \x03(\v2\x1b.program.TicketCategoryInfoR\x14ticketCategoryVoList2\x82\x0f\n" +
+	"\x14ticketCategoryVoList\x185 \x03(\v2\x1b.program.TicketCategoryInfoR\x14ticketCategoryVoList2\x84\x0f\n" +
 	"\n" +
 	"ProgramRpc\x12F\n" +
 	"\rCreateProgram\x12\x19.program.CreateProgramReq\x1a\x1a.program.CreateProgramResp\x12=\n" +
@@ -4616,8 +4693,8 @@ const file_program_proto_rawDesc = "" +
 	"\x1cBatchCreateProgramCategories\x12$.program.ProgramCategoryBatchSaveReq\x1a\x11.program.BoolResp\x12N\n" +
 	"\x10ListHomePrograms\x12\x1c.program.ListHomeProgramsReq\x1a\x1c.program.ProgramHomeListResp\x12B\n" +
 	"\fPagePrograms\x12\x18.program.PageProgramsReq\x1a\x18.program.ProgramPageResp\x12L\n" +
-	"\x10GetProgramDetail\x12\x1c.program.GetProgramDetailReq\x1a\x1a.program.ProgramDetailInfo\x12P\n" +
-	"\x12GetProgramPreorder\x12\x1c.program.GetProgramDetailReq\x1a\x1c.program.ProgramPreorderInfo\x12H\n" +
+	"\x10GetProgramDetail\x12\x1c.program.GetProgramDetailReq\x1a\x1a.program.ProgramDetailInfo\x12R\n" +
+	"\x12GetProgramPreorder\x12\x1e.program.GetProgramPreorderReq\x1a\x1c.program.ProgramPreorderInfo\x12H\n" +
 	"\x15CreateProgramShowTime\x12\x1e.program.ProgramShowTimeAddReq\x1a\x0f.program.IdResp\x12F\n" +
 	"\x14CreateTicketCategory\x12\x1d.program.TicketCategoryAddReq\x1a\x0f.program.IdResp\x12X\n" +
 	"\x17GetTicketCategoryDetail\x12\x1a.program.TicketCategoryReq\x1a!.program.TicketCategoryDetailInfo\x12q\n" +
@@ -4644,7 +4721,7 @@ func file_program_proto_rawDescGZIP() []byte {
 	return file_program_proto_rawDescData
 }
 
-var file_program_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
+var file_program_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
 var file_program_proto_goTypes = []any{
 	(*Empty)(nil),                             // 0: program.Empty
 	(*BoolResp)(nil),                          // 1: program.BoolResp
@@ -4652,114 +4729,115 @@ var file_program_proto_goTypes = []any{
 	(*ListHomeProgramsReq)(nil),               // 3: program.ListHomeProgramsReq
 	(*PageProgramsReq)(nil),                   // 4: program.PageProgramsReq
 	(*GetProgramDetailReq)(nil),               // 5: program.GetProgramDetailReq
-	(*ProgramInvalidReq)(nil),                 // 6: program.ProgramInvalidReq
-	(*ProgramResetReq)(nil),                   // 7: program.ProgramResetReq
-	(*ProgramCategoryTypeReq)(nil),            // 8: program.ProgramCategoryTypeReq
-	(*ParentProgramCategoryReq)(nil),          // 9: program.ParentProgramCategoryReq
-	(*ProgramCategoryBatchItem)(nil),          // 10: program.ProgramCategoryBatchItem
-	(*ProgramCategoryBatchSaveReq)(nil),       // 11: program.ProgramCategoryBatchSaveReq
-	(*CreateProgramReq)(nil),                  // 12: program.CreateProgramReq
-	(*CreateProgramResp)(nil),                 // 13: program.CreateProgramResp
-	(*UpdateProgramReq)(nil),                  // 14: program.UpdateProgramReq
-	(*ProgramShowTimeAddReq)(nil),             // 15: program.ProgramShowTimeAddReq
-	(*ListTicketCategoriesByProgramReq)(nil),  // 16: program.ListTicketCategoriesByProgramReq
-	(*TicketCategoryAddReq)(nil),              // 17: program.TicketCategoryAddReq
-	(*TicketCategoryReq)(nil),                 // 18: program.TicketCategoryReq
-	(*ProgramCategoryInfo)(nil),               // 19: program.ProgramCategoryInfo
-	(*ProgramSimpleInfo)(nil),                 // 20: program.ProgramSimpleInfo
-	(*ProgramGroupInfo)(nil),                  // 21: program.ProgramGroupInfo
-	(*ProgramHomeSection)(nil),                // 22: program.ProgramHomeSection
-	(*TicketCategoryInfo)(nil),                // 23: program.TicketCategoryInfo
-	(*SeatInfo)(nil),                          // 24: program.SeatInfo
-	(*SeatAddReq)(nil),                        // 25: program.SeatAddReq
-	(*SeatBatchRelateInfoAddReq)(nil),         // 26: program.SeatBatchRelateInfoAddReq
-	(*SeatBatchAddReq)(nil),                   // 27: program.SeatBatchAddReq
-	(*SeatListReq)(nil),                       // 28: program.SeatListReq
-	(*PriceSeatGroup)(nil),                    // 29: program.PriceSeatGroup
-	(*SeatRelateInfo)(nil),                    // 30: program.SeatRelateInfo
-	(*TicketCategoryDetailInfo)(nil),          // 31: program.TicketCategoryDetailInfo
-	(*ProgramPreorderTicketCategoryInfo)(nil), // 32: program.ProgramPreorderTicketCategoryInfo
-	(*ProgramCategoryListResp)(nil),           // 33: program.ProgramCategoryListResp
-	(*ProgramListInfo)(nil),                   // 34: program.ProgramListInfo
-	(*ProgramHomeListResp)(nil),               // 35: program.ProgramHomeListResp
-	(*ProgramPageResp)(nil),                   // 36: program.ProgramPageResp
-	(*TicketCategoryDetailListResp)(nil),      // 37: program.TicketCategoryDetailListResp
-	(*ProgramPreorderInfo)(nil),               // 38: program.ProgramPreorderInfo
-	(*AutoAssignAndFreezeSeatsReq)(nil),       // 39: program.AutoAssignAndFreezeSeatsReq
-	(*AutoAssignAndFreezeSeatsResp)(nil),      // 40: program.AutoAssignAndFreezeSeatsResp
-	(*ReleaseSeatFreezeReq)(nil),              // 41: program.ReleaseSeatFreezeReq
-	(*ReleaseSeatFreezeResp)(nil),             // 42: program.ReleaseSeatFreezeResp
-	(*ConfirmSeatFreezeReq)(nil),              // 43: program.ConfirmSeatFreezeReq
-	(*ConfirmSeatFreezeResp)(nil),             // 44: program.ConfirmSeatFreezeResp
-	(*EvaluateRefundRuleReq)(nil),             // 45: program.EvaluateRefundRuleReq
-	(*EvaluateRefundRuleResp)(nil),            // 46: program.EvaluateRefundRuleResp
-	(*ReleaseSoldSeatsReq)(nil),               // 47: program.ReleaseSoldSeatsReq
-	(*ReleaseSoldSeatsResp)(nil),              // 48: program.ReleaseSoldSeatsResp
-	(*ProgramDetailInfo)(nil),                 // 49: program.ProgramDetailInfo
+	(*GetProgramPreorderReq)(nil),             // 6: program.GetProgramPreorderReq
+	(*ProgramInvalidReq)(nil),                 // 7: program.ProgramInvalidReq
+	(*ProgramResetReq)(nil),                   // 8: program.ProgramResetReq
+	(*ProgramCategoryTypeReq)(nil),            // 9: program.ProgramCategoryTypeReq
+	(*ParentProgramCategoryReq)(nil),          // 10: program.ParentProgramCategoryReq
+	(*ProgramCategoryBatchItem)(nil),          // 11: program.ProgramCategoryBatchItem
+	(*ProgramCategoryBatchSaveReq)(nil),       // 12: program.ProgramCategoryBatchSaveReq
+	(*CreateProgramReq)(nil),                  // 13: program.CreateProgramReq
+	(*CreateProgramResp)(nil),                 // 14: program.CreateProgramResp
+	(*UpdateProgramReq)(nil),                  // 15: program.UpdateProgramReq
+	(*ProgramShowTimeAddReq)(nil),             // 16: program.ProgramShowTimeAddReq
+	(*ListTicketCategoriesByProgramReq)(nil),  // 17: program.ListTicketCategoriesByProgramReq
+	(*TicketCategoryAddReq)(nil),              // 18: program.TicketCategoryAddReq
+	(*TicketCategoryReq)(nil),                 // 19: program.TicketCategoryReq
+	(*ProgramCategoryInfo)(nil),               // 20: program.ProgramCategoryInfo
+	(*ProgramSimpleInfo)(nil),                 // 21: program.ProgramSimpleInfo
+	(*ProgramGroupInfo)(nil),                  // 22: program.ProgramGroupInfo
+	(*ProgramHomeSection)(nil),                // 23: program.ProgramHomeSection
+	(*TicketCategoryInfo)(nil),                // 24: program.TicketCategoryInfo
+	(*SeatInfo)(nil),                          // 25: program.SeatInfo
+	(*SeatAddReq)(nil),                        // 26: program.SeatAddReq
+	(*SeatBatchRelateInfoAddReq)(nil),         // 27: program.SeatBatchRelateInfoAddReq
+	(*SeatBatchAddReq)(nil),                   // 28: program.SeatBatchAddReq
+	(*SeatListReq)(nil),                       // 29: program.SeatListReq
+	(*PriceSeatGroup)(nil),                    // 30: program.PriceSeatGroup
+	(*SeatRelateInfo)(nil),                    // 31: program.SeatRelateInfo
+	(*TicketCategoryDetailInfo)(nil),          // 32: program.TicketCategoryDetailInfo
+	(*ProgramPreorderTicketCategoryInfo)(nil), // 33: program.ProgramPreorderTicketCategoryInfo
+	(*ProgramCategoryListResp)(nil),           // 34: program.ProgramCategoryListResp
+	(*ProgramListInfo)(nil),                   // 35: program.ProgramListInfo
+	(*ProgramHomeListResp)(nil),               // 36: program.ProgramHomeListResp
+	(*ProgramPageResp)(nil),                   // 37: program.ProgramPageResp
+	(*TicketCategoryDetailListResp)(nil),      // 38: program.TicketCategoryDetailListResp
+	(*ProgramPreorderInfo)(nil),               // 39: program.ProgramPreorderInfo
+	(*AutoAssignAndFreezeSeatsReq)(nil),       // 40: program.AutoAssignAndFreezeSeatsReq
+	(*AutoAssignAndFreezeSeatsResp)(nil),      // 41: program.AutoAssignAndFreezeSeatsResp
+	(*ReleaseSeatFreezeReq)(nil),              // 42: program.ReleaseSeatFreezeReq
+	(*ReleaseSeatFreezeResp)(nil),             // 43: program.ReleaseSeatFreezeResp
+	(*ConfirmSeatFreezeReq)(nil),              // 44: program.ConfirmSeatFreezeReq
+	(*ConfirmSeatFreezeResp)(nil),             // 45: program.ConfirmSeatFreezeResp
+	(*EvaluateRefundRuleReq)(nil),             // 46: program.EvaluateRefundRuleReq
+	(*EvaluateRefundRuleResp)(nil),            // 47: program.EvaluateRefundRuleResp
+	(*ReleaseSoldSeatsReq)(nil),               // 48: program.ReleaseSoldSeatsReq
+	(*ReleaseSoldSeatsResp)(nil),              // 49: program.ReleaseSoldSeatsResp
+	(*ProgramDetailInfo)(nil),                 // 50: program.ProgramDetailInfo
 }
 var file_program_proto_depIdxs = []int32{
-	10, // 0: program.ProgramCategoryBatchSaveReq.list:type_name -> program.ProgramCategoryBatchItem
-	20, // 1: program.ProgramGroupInfo.programSimpleInfoVoList:type_name -> program.ProgramSimpleInfo
-	34, // 2: program.ProgramHomeSection.programListVoList:type_name -> program.ProgramListInfo
-	26, // 3: program.SeatBatchAddReq.seatBatchRelateInfoAddDtoList:type_name -> program.SeatBatchRelateInfoAddReq
-	24, // 4: program.PriceSeatGroup.seats:type_name -> program.SeatInfo
-	29, // 5: program.SeatRelateInfo.priceSeatGroupList:type_name -> program.PriceSeatGroup
-	19, // 6: program.ProgramCategoryListResp.list:type_name -> program.ProgramCategoryInfo
-	22, // 7: program.ProgramHomeListResp.sections:type_name -> program.ProgramHomeSection
-	34, // 8: program.ProgramPageResp.list:type_name -> program.ProgramListInfo
-	31, // 9: program.TicketCategoryDetailListResp.list:type_name -> program.TicketCategoryDetailInfo
-	32, // 10: program.ProgramPreorderInfo.ticketCategoryVoList:type_name -> program.ProgramPreorderTicketCategoryInfo
-	24, // 11: program.AutoAssignAndFreezeSeatsResp.seats:type_name -> program.SeatInfo
-	21, // 12: program.ProgramDetailInfo.programGroupVo:type_name -> program.ProgramGroupInfo
-	23, // 13: program.ProgramDetailInfo.ticketCategoryVoList:type_name -> program.TicketCategoryInfo
-	12, // 14: program.ProgramRpc.CreateProgram:input_type -> program.CreateProgramReq
-	14, // 15: program.ProgramRpc.UpdateProgram:input_type -> program.UpdateProgramReq
-	6,  // 16: program.ProgramRpc.InvalidProgram:input_type -> program.ProgramInvalidReq
-	7,  // 17: program.ProgramRpc.ResetProgram:input_type -> program.ProgramResetReq
+	11, // 0: program.ProgramCategoryBatchSaveReq.list:type_name -> program.ProgramCategoryBatchItem
+	21, // 1: program.ProgramGroupInfo.programSimpleInfoVoList:type_name -> program.ProgramSimpleInfo
+	35, // 2: program.ProgramHomeSection.programListVoList:type_name -> program.ProgramListInfo
+	27, // 3: program.SeatBatchAddReq.seatBatchRelateInfoAddDtoList:type_name -> program.SeatBatchRelateInfoAddReq
+	25, // 4: program.PriceSeatGroup.seats:type_name -> program.SeatInfo
+	30, // 5: program.SeatRelateInfo.priceSeatGroupList:type_name -> program.PriceSeatGroup
+	20, // 6: program.ProgramCategoryListResp.list:type_name -> program.ProgramCategoryInfo
+	23, // 7: program.ProgramHomeListResp.sections:type_name -> program.ProgramHomeSection
+	35, // 8: program.ProgramPageResp.list:type_name -> program.ProgramListInfo
+	32, // 9: program.TicketCategoryDetailListResp.list:type_name -> program.TicketCategoryDetailInfo
+	33, // 10: program.ProgramPreorderInfo.ticketCategoryVoList:type_name -> program.ProgramPreorderTicketCategoryInfo
+	25, // 11: program.AutoAssignAndFreezeSeatsResp.seats:type_name -> program.SeatInfo
+	22, // 12: program.ProgramDetailInfo.programGroupVo:type_name -> program.ProgramGroupInfo
+	24, // 13: program.ProgramDetailInfo.ticketCategoryVoList:type_name -> program.TicketCategoryInfo
+	13, // 14: program.ProgramRpc.CreateProgram:input_type -> program.CreateProgramReq
+	15, // 15: program.ProgramRpc.UpdateProgram:input_type -> program.UpdateProgramReq
+	7,  // 16: program.ProgramRpc.InvalidProgram:input_type -> program.ProgramInvalidReq
+	8,  // 17: program.ProgramRpc.ResetProgram:input_type -> program.ProgramResetReq
 	0,  // 18: program.ProgramRpc.ListProgramCategories:input_type -> program.Empty
-	8,  // 19: program.ProgramRpc.ListProgramCategoriesByType:input_type -> program.ProgramCategoryTypeReq
-	9,  // 20: program.ProgramRpc.ListProgramCategoriesByParent:input_type -> program.ParentProgramCategoryReq
-	11, // 21: program.ProgramRpc.BatchCreateProgramCategories:input_type -> program.ProgramCategoryBatchSaveReq
+	9,  // 19: program.ProgramRpc.ListProgramCategoriesByType:input_type -> program.ProgramCategoryTypeReq
+	10, // 20: program.ProgramRpc.ListProgramCategoriesByParent:input_type -> program.ParentProgramCategoryReq
+	12, // 21: program.ProgramRpc.BatchCreateProgramCategories:input_type -> program.ProgramCategoryBatchSaveReq
 	3,  // 22: program.ProgramRpc.ListHomePrograms:input_type -> program.ListHomeProgramsReq
 	4,  // 23: program.ProgramRpc.PagePrograms:input_type -> program.PageProgramsReq
 	5,  // 24: program.ProgramRpc.GetProgramDetail:input_type -> program.GetProgramDetailReq
-	5,  // 25: program.ProgramRpc.GetProgramPreorder:input_type -> program.GetProgramDetailReq
-	15, // 26: program.ProgramRpc.CreateProgramShowTime:input_type -> program.ProgramShowTimeAddReq
-	17, // 27: program.ProgramRpc.CreateTicketCategory:input_type -> program.TicketCategoryAddReq
-	18, // 28: program.ProgramRpc.GetTicketCategoryDetail:input_type -> program.TicketCategoryReq
-	16, // 29: program.ProgramRpc.ListTicketCategoriesByProgram:input_type -> program.ListTicketCategoriesByProgramReq
-	25, // 30: program.ProgramRpc.CreateSeat:input_type -> program.SeatAddReq
-	27, // 31: program.ProgramRpc.BatchCreateSeats:input_type -> program.SeatBatchAddReq
-	28, // 32: program.ProgramRpc.GetSeatRelateInfo:input_type -> program.SeatListReq
-	39, // 33: program.ProgramRpc.AutoAssignAndFreezeSeats:input_type -> program.AutoAssignAndFreezeSeatsReq
-	41, // 34: program.ProgramRpc.ReleaseSeatFreeze:input_type -> program.ReleaseSeatFreezeReq
-	43, // 35: program.ProgramRpc.ConfirmSeatFreeze:input_type -> program.ConfirmSeatFreezeReq
-	45, // 36: program.ProgramRpc.EvaluateRefundRule:input_type -> program.EvaluateRefundRuleReq
-	47, // 37: program.ProgramRpc.ReleaseSoldSeats:input_type -> program.ReleaseSoldSeatsReq
-	13, // 38: program.ProgramRpc.CreateProgram:output_type -> program.CreateProgramResp
+	6,  // 25: program.ProgramRpc.GetProgramPreorder:input_type -> program.GetProgramPreorderReq
+	16, // 26: program.ProgramRpc.CreateProgramShowTime:input_type -> program.ProgramShowTimeAddReq
+	18, // 27: program.ProgramRpc.CreateTicketCategory:input_type -> program.TicketCategoryAddReq
+	19, // 28: program.ProgramRpc.GetTicketCategoryDetail:input_type -> program.TicketCategoryReq
+	17, // 29: program.ProgramRpc.ListTicketCategoriesByProgram:input_type -> program.ListTicketCategoriesByProgramReq
+	26, // 30: program.ProgramRpc.CreateSeat:input_type -> program.SeatAddReq
+	28, // 31: program.ProgramRpc.BatchCreateSeats:input_type -> program.SeatBatchAddReq
+	29, // 32: program.ProgramRpc.GetSeatRelateInfo:input_type -> program.SeatListReq
+	40, // 33: program.ProgramRpc.AutoAssignAndFreezeSeats:input_type -> program.AutoAssignAndFreezeSeatsReq
+	42, // 34: program.ProgramRpc.ReleaseSeatFreeze:input_type -> program.ReleaseSeatFreezeReq
+	44, // 35: program.ProgramRpc.ConfirmSeatFreeze:input_type -> program.ConfirmSeatFreezeReq
+	46, // 36: program.ProgramRpc.EvaluateRefundRule:input_type -> program.EvaluateRefundRuleReq
+	48, // 37: program.ProgramRpc.ReleaseSoldSeats:input_type -> program.ReleaseSoldSeatsReq
+	14, // 38: program.ProgramRpc.CreateProgram:output_type -> program.CreateProgramResp
 	1,  // 39: program.ProgramRpc.UpdateProgram:output_type -> program.BoolResp
 	1,  // 40: program.ProgramRpc.InvalidProgram:output_type -> program.BoolResp
 	1,  // 41: program.ProgramRpc.ResetProgram:output_type -> program.BoolResp
-	33, // 42: program.ProgramRpc.ListProgramCategories:output_type -> program.ProgramCategoryListResp
-	33, // 43: program.ProgramRpc.ListProgramCategoriesByType:output_type -> program.ProgramCategoryListResp
-	33, // 44: program.ProgramRpc.ListProgramCategoriesByParent:output_type -> program.ProgramCategoryListResp
+	34, // 42: program.ProgramRpc.ListProgramCategories:output_type -> program.ProgramCategoryListResp
+	34, // 43: program.ProgramRpc.ListProgramCategoriesByType:output_type -> program.ProgramCategoryListResp
+	34, // 44: program.ProgramRpc.ListProgramCategoriesByParent:output_type -> program.ProgramCategoryListResp
 	1,  // 45: program.ProgramRpc.BatchCreateProgramCategories:output_type -> program.BoolResp
-	35, // 46: program.ProgramRpc.ListHomePrograms:output_type -> program.ProgramHomeListResp
-	36, // 47: program.ProgramRpc.PagePrograms:output_type -> program.ProgramPageResp
-	49, // 48: program.ProgramRpc.GetProgramDetail:output_type -> program.ProgramDetailInfo
-	38, // 49: program.ProgramRpc.GetProgramPreorder:output_type -> program.ProgramPreorderInfo
+	36, // 46: program.ProgramRpc.ListHomePrograms:output_type -> program.ProgramHomeListResp
+	37, // 47: program.ProgramRpc.PagePrograms:output_type -> program.ProgramPageResp
+	50, // 48: program.ProgramRpc.GetProgramDetail:output_type -> program.ProgramDetailInfo
+	39, // 49: program.ProgramRpc.GetProgramPreorder:output_type -> program.ProgramPreorderInfo
 	2,  // 50: program.ProgramRpc.CreateProgramShowTime:output_type -> program.IdResp
 	2,  // 51: program.ProgramRpc.CreateTicketCategory:output_type -> program.IdResp
-	31, // 52: program.ProgramRpc.GetTicketCategoryDetail:output_type -> program.TicketCategoryDetailInfo
-	37, // 53: program.ProgramRpc.ListTicketCategoriesByProgram:output_type -> program.TicketCategoryDetailListResp
+	32, // 52: program.ProgramRpc.GetTicketCategoryDetail:output_type -> program.TicketCategoryDetailInfo
+	38, // 53: program.ProgramRpc.ListTicketCategoriesByProgram:output_type -> program.TicketCategoryDetailListResp
 	2,  // 54: program.ProgramRpc.CreateSeat:output_type -> program.IdResp
 	1,  // 55: program.ProgramRpc.BatchCreateSeats:output_type -> program.BoolResp
-	30, // 56: program.ProgramRpc.GetSeatRelateInfo:output_type -> program.SeatRelateInfo
-	40, // 57: program.ProgramRpc.AutoAssignAndFreezeSeats:output_type -> program.AutoAssignAndFreezeSeatsResp
-	42, // 58: program.ProgramRpc.ReleaseSeatFreeze:output_type -> program.ReleaseSeatFreezeResp
-	44, // 59: program.ProgramRpc.ConfirmSeatFreeze:output_type -> program.ConfirmSeatFreezeResp
-	46, // 60: program.ProgramRpc.EvaluateRefundRule:output_type -> program.EvaluateRefundRuleResp
-	48, // 61: program.ProgramRpc.ReleaseSoldSeats:output_type -> program.ReleaseSoldSeatsResp
+	31, // 56: program.ProgramRpc.GetSeatRelateInfo:output_type -> program.SeatRelateInfo
+	41, // 57: program.ProgramRpc.AutoAssignAndFreezeSeats:output_type -> program.AutoAssignAndFreezeSeatsResp
+	43, // 58: program.ProgramRpc.ReleaseSeatFreeze:output_type -> program.ReleaseSeatFreezeResp
+	45, // 59: program.ProgramRpc.ConfirmSeatFreeze:output_type -> program.ConfirmSeatFreezeResp
+	47, // 60: program.ProgramRpc.EvaluateRefundRule:output_type -> program.EvaluateRefundRuleResp
+	49, // 61: program.ProgramRpc.ReleaseSoldSeats:output_type -> program.ReleaseSoldSeatsResp
 	38, // [38:62] is the sub-list for method output_type
 	14, // [14:38] is the sub-list for method input_type
 	14, // [14:14] is the sub-list for extension type_name
@@ -4778,7 +4856,7 @@ func file_program_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_program_proto_rawDesc), len(file_program_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   50,
+			NumMessages:   51,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

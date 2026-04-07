@@ -27,7 +27,7 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 	createPurchaseTokenLogic := logicpkg.NewCreatePurchaseTokenLogic(context.Background(), svcCtx)
 	_, err := createPurchaseTokenLogic.CreatePurchaseToken(&pb.CreatePurchaseTokenReq{
 		UserId:           userID,
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		TicketUserIds:    []int64{viewerIDs[0]},
 		DistributionMode: "express",
@@ -43,7 +43,7 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 	)
 	tokenResp, err := createPurchaseTokenLogic.CreatePurchaseToken(&pb.CreatePurchaseTokenReq{
 		UserId:           userID,
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		TicketUserIds:    []int64{viewerIDs[0]},
 		DistributionMode: "express",
@@ -108,7 +108,7 @@ func TestCreatePurchaseTokenRejectsDuplicateTicketUserIDs(t *testing.T) {
 	createPurchaseTokenLogic := logicpkg.NewCreatePurchaseTokenLogic(context.Background(), svcCtx)
 	_, err := createPurchaseTokenLogic.CreatePurchaseToken(&pb.CreatePurchaseTokenReq{
 		UserId:           userID,
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		TicketUserIds:    []int64{viewerIDs[0], viewerIDs[0]},
 		DistributionMode: "express",

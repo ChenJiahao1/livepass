@@ -223,8 +223,8 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		return orderEvent, nil, nil
 	}
 
-	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramDetailReq{
-		Id: orderEvent.ProgramID,
+	preorder, err := l.svcCtx.ProgramRpc.GetProgramPreorder(l.ctx, &programrpc.GetProgramPreorderReq{
+		ShowTimeId: orderEvent.ProgramID,
 	})
 	if err != nil {
 		return nil, nil, err

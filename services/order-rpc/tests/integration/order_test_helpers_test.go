@@ -90,7 +90,7 @@ type fakeOrderProgramRPC struct {
 	getProgramPreorderResp            *programrpc.ProgramPreorderInfo
 	getProgramPreorderRespByProgramID map[int64]*programrpc.ProgramPreorderInfo
 	getProgramPreorderErr             error
-	lastGetProgramPreorderReq         *programrpc.GetProgramDetailReq
+	lastGetProgramPreorderReq         *programrpc.GetProgramPreorderReq
 
 	autoAssignAndFreezeSeatsFunc    func(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq) (*programrpc.AutoAssignAndFreezeSeatsResp, error)
 	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
@@ -1070,7 +1070,8 @@ func orderProjectRoot(t *testing.T) string {
 
 func buildTestProgramPreorder(programID, ticketCategoryID, perOrderLimit, perAccountLimit, ticketPrice int64) *programrpc.ProgramPreorderInfo {
 	return &programrpc.ProgramPreorderInfo{
-		Id:                           programID,
+		ProgramId:                    programID,
+		ShowTimeId:                   programID,
 		ProgramGroupId:               programID + 1000,
 		Title:                        "订单测试演出",
 		Place:                        "测试场馆",
@@ -1144,9 +1145,9 @@ func (f *fakeOrderProgramRPC) GetProgramDetail(ctx context.Context, in *programr
 	return nil, nil
 }
 
-func (f *fakeOrderProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramDetailReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
+func (f *fakeOrderProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramPreorderReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
 	f.lastGetProgramPreorderReq = in
-	if resp, ok := f.getProgramPreorderRespByProgramID[in.GetId()]; ok {
+	if resp, ok := f.getProgramPreorderRespByProgramID[in.GetShowTimeId()]; ok {
 		return resp, f.getProgramPreorderErr
 	}
 	return f.getProgramPreorderResp, f.getProgramPreorderErr

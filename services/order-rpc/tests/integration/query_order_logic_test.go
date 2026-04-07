@@ -86,7 +86,7 @@ func TestGetOrderReturnsNotFoundForAnotherUser(t *testing.T) {
 	}
 }
 
-func TestCountActiveTicketsByUserProgramIncludesPaidOnly(t *testing.T) {
+func TestCountActiveTicketsByUserShowTimeIncludesPaidOnly(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	seedOrderFixtures(
@@ -100,13 +100,13 @@ func TestCountActiveTicketsByUserProgramIncludesPaidOnly(t *testing.T) {
 		orderFixture{ID: 8006, OrderNumber: 91006, ProgramID: 10001, UserID: 3002, TicketCount: 7, OrderStatus: testOrderStatusPaid, PayOrderTime: "2026-01-01 05:00:00"},
 	)
 
-	l := logicpkg.NewCountActiveTicketsByUserProgramLogic(context.Background(), svcCtx)
-	resp, err := l.CountActiveTicketsByUserProgram(&pb.CountActiveTicketsByUserProgramReq{
-		UserId:    3001,
-		ProgramId: 10001,
+	l := logicpkg.NewCountActiveTicketsByUserShowTimeLogic(context.Background(), svcCtx)
+	resp, err := l.CountActiveTicketsByUserShowTime(&pb.CountActiveTicketsByUserShowTimeReq{
+		UserId:     3001,
+		ShowTimeId: 10001,
 	})
 	if err != nil {
-		t.Fatalf("CountActiveTicketsByUserProgram returned error: %v", err)
+		t.Fatalf("CountActiveTicketsByUserShowTime returned error: %v", err)
 	}
 	if resp.ActiveTicketCount != 5 {
 		t.Fatalf("expected activeTicketCount=5, got %d", resp.ActiveTicketCount)
