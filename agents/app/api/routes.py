@@ -91,6 +91,7 @@ async def chat(
     session_payload = result.get("session_state", {})
     session.selected_order_id = session_payload.get("selected_order_id")
     session.recent_order_candidates = session_payload.get("recent_order_candidates", [])
+    session.last_refund_preview = session_payload.get("last_refund_preview")
     session.last_task_summary = session_payload.get("last_task_summary")
     session.last_handoff_ticket_id = session_payload.get("last_handoff_ticket_id")
     final_reply = result.get("final_reply") or result.get("reply") or ""

@@ -45,9 +45,10 @@ class SubagentRuntime:
         session_state: dict[str, Any],
         llm: Any | None = None,
     ) -> dict[str, Any]:
-        if resolution.skill.skill_id != task.skill_id:
+        resolution_skill_ids = [skill.skill_id for skill in resolution.skills]
+        if resolution_skill_ids != task.allowed_skills:
             raise PermissionError(
-                f"skill {resolution.skill.skill_id} does not match task skill {task.skill_id}"
+                f"resolved skills {resolution_skill_ids} do not match task skills {task.allowed_skills}"
             )
         if llm is None:
             raise ValueError("llm is required")
@@ -61,16 +62,26 @@ class SubagentRuntime:
         result = {
             "task_id": task.task_id,
             "task_type": task.task_type,
-            "skill_id": resolution.skill.skill_id,
+            "skill_id": task.allowed_skills[0],
+            "skill_ids": list(task.allowed_skills),
             "tool_calls": tool_calls,
             "output": output,
             "summary": summary,
-            "need_handoff": task.task_type == "handoff_create_ticket",
-            "selected_order_id": output.get("order_id") or session_state.get("selected_order_id"),
+            "need_handoff": task.task_type == "handoff_write",
+            "selected_order_id": self._extract_selected_order_id(output, session_state),
         }
-        if task.task_type == "order_list_recent":
+        if task.task_type in {"order_read", "refund_read"}:
             result["recent_order_candidates"] = output.get("orders", [])
-        if task.task_type == "handoff_create_ticket":
+        if task.task_type in {"refund_read"} and (
+            "allow_refund" in output or "refund_amount" in output or "reject_reason" in output
+        ):
+            result["last_refund_preview"] = {
+                "order_id": output.get("order_id") or result["selected_order_id"],
+                "allow_refund": output.get("allow_refund"),
+                "refund_amount": output.get("refund_amount"),
+                "reject_reason": output.get("reject_reason", ""),
+            }
+        if task.task_type == "handoff_write":
             result["handoff_ticket_id"] = output.get("ticket_id")
         return result
 
@@ -81,12 +92,12 @@ class SubagentRuntime:
         resolution: SkillResolution,
         llm: Any,
     ) -> tuple[dict[str, Any], list[str]]:
-        tools = await self.broker.get_skill_tools(resolution.skill.skill_id, task=task)
+        tools = await self.broker.get_task_tools(task)
         agent = create_agent(
             model=llm,
             tools=tools,
-            system_prompt=self._build_system_prompt(resolution.skill.skill_id),
-            name=resolution.skill.agent_type,
+            system_prompt=self._build_system_prompt(task.allowed_skills),
+            name=resolution.skills[0].agent_type,
         )
         result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": self._build_task_message(task)}]},
@@ -95,15 +106,19 @@ class SubagentRuntime:
         messages = result.get("messages", [])
         return self._extract_structured_output(messages), self._extract_tool_calls(messages)
 
-    def _build_system_prompt(self, skill_id: str) -> str:
+    def _build_system_prompt(self, skill_ids: list[str]) -> str:
         skill_prompt = ""
         if self.skill_registry is not None:
-            skill_prompt = self.skill_registry.load_skill_markdown(skill_id)
-        return f"{self.system_prompt}\n\n<loaded_skill id=\"{skill_id}\">\n{skill_prompt}\n</loaded_skill>"
+            loaded_skills = [
+                f"<loaded_skill id=\"{skill_id}\">\n{self.skill_registry.load_skill_markdown(skill_id)}\n</loaded_skill>"
+                for skill_id in skill_ids
+            ]
+            skill_prompt = "\n\n".join(loaded_skills)
+        return f"{self.system_prompt}\n\n{skill_prompt}"
 
     def _build_task_message(self, task: TaskCard) -> str:
         lines = [
-            f"skill_id: {task.skill_id}",
+            f"allowed_skills: {', '.join(task.allowed_skills)}",
             f"task_type: {task.task_type}",
             f"goal: {task.goal}",
             f"expected_output_schema: {task.expected_output_schema}",
@@ -160,17 +175,30 @@ class SubagentRuntime:
             return text
 
     def _build_summary(self, task_type: str, output: dict[str, Any]) -> str:
-        if task_type == "order_list_recent":
+        if task_type == "order_read":
             orders = output.get("orders", [])
             if not orders:
                 return "当前账号无可处理订单"
             return "已获取最近订单列表"
-        if task_type == "refund_preview":
+        if task_type == "refund_read":
             if output.get("allow_refund"):
                 return "退款资格已确认"
+            if output.get("orders"):
+                return "已获取退款相关订单信息"
             return output.get("reject_reason", "退款被拒绝")
-        if task_type == "refund_submit":
+        if task_type == "refund_write":
             return "退款申请已提交"
-        if task_type == "handoff_create_ticket":
+        if task_type == "handoff_write":
             return "人工工单已创建"
         return "任务已执行"
+
+    def _extract_selected_order_id(self, output: dict[str, Any], session_state: dict[str, Any]) -> str | None:
+        if output.get("order_id"):
+            return str(output["order_id"])
+        orders = output.get("orders", [])
+        if isinstance(orders, list) and orders:
+            first = orders[0]
+            if isinstance(first, dict) and first.get("order_id"):
+                return str(first["order_id"])
+        selected = session_state.get("selected_order_id")
+        return str(selected) if selected is not None else None

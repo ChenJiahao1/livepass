@@ -14,6 +14,12 @@ from tests.fakes import ScriptedChatModel, make_tool_call_message
 class FakeToolRegistry:
     async def get_provider_tools(self, server_name: str) -> list:
         return [
+            type("Tool", (), {"name": "list_user_orders", "description": "查询最近订单", "args_schema": None})(),
+            type(
+                "Tool",
+                (),
+                {"name": "get_order_detail_for_service", "description": "查询订单详情", "args_schema": None},
+            )(),
             type("Tool", (), {"name": "preview_refund_order", "description": "预览退款资格", "args_schema": None})(),
             type("Tool", (), {"name": "refund_order", "description": "提交退款", "args_schema": None})(),
         ]
@@ -41,21 +47,21 @@ async def test_subagent_runtime_rejects_unallowed_skill():
     skill_registry = SkillRegistry.from_config("app/skills/registry.yaml")
     provider_registry = ProviderRegistry.from_config("app/skills/registry.yaml")
     resolution = SkillResolution(
-        skill=skill_registry.get_skill("refund.preview"),
-        provider=provider_registry.get_provider_for_skill("refund.preview"),
+        skills=[skill_registry.get_skill("refund.read")],
+        providers=[provider_registry.get_provider_for_skill("refund.read")],
     )
     task = TaskCard(
         task_id="task-001",
         session_id="sess-001",
         domain="refund",
-        task_type="refund_preview",
-        skill_id="order.list_recent",
-        goal="确认订单是否可退款",
+        task_type="refund_read",
+        goal="处理退款咨询并确认退款资格",
         input_slots={"order_id": "ORD-10001", "user_id": 3001},
         required_slots=["order_id"],
+        allowed_skills=["order.read"],
         risk_level="medium",
         fallback_policy="handoff",
-        expected_output_schema="refund_preview_v1",
+        expected_output_schema="refund_read_result_v1",
     )
 
     with pytest.raises(PermissionError):
@@ -68,21 +74,21 @@ async def test_subagent_runtime_requires_llm():
     skill_registry = SkillRegistry.from_config("app/skills/registry.yaml")
     provider_registry = ProviderRegistry.from_config("app/skills/registry.yaml")
     resolution = SkillResolution(
-        skill=skill_registry.get_skill("refund.preview"),
-        provider=provider_registry.get_provider_for_skill("refund.preview"),
+        skills=[skill_registry.get_skill("refund.read")],
+        providers=[provider_registry.get_provider_for_skill("refund.read")],
     )
     task = TaskCard(
         task_id="task-llm",
         session_id="sess-llm",
         domain="refund",
-        task_type="refund_preview",
-        skill_id="refund.preview",
-        goal="确认订单是否可退款",
+        task_type="refund_read",
+        goal="处理退款咨询并确认退款资格",
         input_slots={"order_id": "ORD-10001", "user_id": 3001},
         required_slots=["order_id"],
+        allowed_skills=["refund.read"],
         risk_level="medium",
         fallback_policy="handoff",
-        expected_output_schema="refund_preview_v1",
+        expected_output_schema="refund_read_result_v1",
     )
 
     with pytest.raises(ValueError, match="llm is required"):
@@ -95,21 +101,21 @@ async def test_subagent_runtime_loads_skill_prompt_and_binds_only_skill_tools_fo
     skill_registry = SkillRegistry.from_config("app/skills/registry.yaml")
     provider_registry = ProviderRegistry.from_config("app/skills/registry.yaml")
     resolution = SkillResolution(
-        skill=skill_registry.get_skill("refund.preview"),
-        provider=provider_registry.get_provider_for_skill("refund.preview"),
+        skills=[skill_registry.get_skill("refund.read")],
+        providers=[provider_registry.get_provider_for_skill("refund.read")],
     )
     task = TaskCard(
         task_id="task-002",
         session_id="sess-002",
         domain="refund",
-        task_type="refund_preview",
-        skill_id="refund.preview",
-        goal="确认订单是否可退款",
+        task_type="refund_read",
+        goal="处理退款咨询并确认退款资格",
         input_slots={"order_id": "ORD-10001", "user_id": 3001},
         required_slots=["order_id"],
+        allowed_skills=["refund.read"],
         risk_level="medium",
         fallback_policy="handoff",
-        expected_output_schema="refund_preview_v1",
+        expected_output_schema="refund_read_result_v1",
     )
     llm = ScriptedChatModel(
         responses=[
@@ -126,6 +132,9 @@ async def test_subagent_runtime_loads_skill_prompt_and_binds_only_skill_tools_fo
     )
 
     assert llm.bound_tool_names
-    assert all(names == ["preview_refund_order"] for names in llm.bound_tool_names)
-    assert any("用于预览订单退款资格" in str(message.content) for message in llm.calls[0])
+    assert all(
+        names == ["list_user_orders", "get_order_detail_for_service", "preview_refund_order"]
+        for names in llm.bound_tool_names
+    )
+    assert any("只使用当前允许的读工具完成退款相关查询" in str(message.content) for message in llm.calls[0])
     assert result["output"]["tool_name"] == "preview_refund_order"

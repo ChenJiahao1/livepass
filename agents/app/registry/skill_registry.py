@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -46,6 +46,7 @@ class SkillSpec(BaseModel):
     domain: str
     agent_type: str
     skill_path: str
+    access_mode: Literal["read", "write"] = "read"
     name: str
     description: str
     license: str | None = None
@@ -90,6 +91,7 @@ class SkillRegistry:
                 domain=str(cfg.get("domain", "")),
                 agent_type=str(cfg.get("agent_type", "")),
                 skill_path=skill_path,
+                access_mode=str(cfg.get("access_mode", "read")),
                 name=document.name,
                 description=document.description,
                 license=document.license,

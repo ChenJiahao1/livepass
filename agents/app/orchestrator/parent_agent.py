@@ -22,19 +22,17 @@ from app.tools.policies import ToolPolicy
 
 ORDER_ID_PATTERN = re.compile(r"(ORD-\d+|\d+)", re.IGNORECASE)
 TASK_TYPES = (
-    "order_list_recent",
-    "order_get_detail",
-    "refund_preview",
-    "refund_submit",
-    "handoff_create_ticket",
+    "order_read",
+    "refund_read",
+    "refund_write",
+    "handoff_write",
 )
 ParentAction = Literal["reply", "clarify", "delegate", "knowledge"]
 ParentTaskType = Literal[
-    "order_list_recent",
-    "order_get_detail",
-    "refund_preview",
-    "refund_submit",
-    "handoff_create_ticket",
+    "order_read",
+    "refund_read",
+    "refund_write",
+    "handoff_write",
 ]
 
 PARENT_SYSTEM_PROMPT = """你是 damai-go 的父层客服编排 Agent。
@@ -49,15 +47,15 @@ PARENT_SYSTEM_PROMPT = """你是 damai-go 的父层客服编排 Agent。
 - 你自己不直接执行工具，也不假装拥有业务结果。
 - 一次只下发一张 TaskCard，只允许选择一个 task_type。
 - 只有在拿到前一步执行结果后，才能决定是否继续下发下一张 TaskCard。
-- 如果用户要人工客服，或自动处理明显不合适，优先选择 `delegate` + `handoff_create_ticket`。
+- 如果用户要人工客服，或自动处理明显不合适，优先选择 `delegate` + `handoff_write`。
 - 对明星实时新闻、八卦、热搜，不要当成知识问答主链；让知识模块返回边界提示。
+- `refund_write` 只用于用户已经明确确认退款的场景；若当前会话里还没有退款预览结果，不要选择它。
 
 可用 task_type：
-- order_list_recent: 查询最近订单
-- order_get_detail: 查询指定订单详情
-- refund_preview: 预览退款资格
-- refund_submit: 提交退款申请
-- handoff_create_ticket: 创建人工客服工单
+- order_read: 查询订单相关只读信息
+- refund_read: 查询退款相关只读信息，包括订单与退款预览
+- refund_write: 在确认后提交退款申请
+- handoff_write: 创建人工客服工单
 """
 
 
@@ -130,51 +128,53 @@ class ParentAgent:
         if order_id and "order_id" not in input_slots:
             input_slots["order_id"] = order_id
 
-        skill_id: str
+        allowed_skills: list[str]
         required_slots: list[str]
         expected_output_schema: str
         goal: str
         fallback_policy = "handoff"
+        requires_confirmation = False
+        risk_level: Literal["low", "medium", "high"] = "low"
 
-        if task_type == "order_list_recent":
-            skill_id = "order.list_recent"
+        if task_type == "order_read":
+            allowed_skills = ["order.read"]
             required_slots = []
-            expected_output_schema = "order_list_recent_v1"
-            goal = "查询最近订单"
+            expected_output_schema = "order_read_result_v1"
+            goal = "查询订单相关只读信息"
             fallback_policy = "return_parent"
-        elif task_type == "order_get_detail":
-            skill_id = "order.get_detail"
-            required_slots = ["order_id"]
-            expected_output_schema = "order_detail_v1"
-            goal = "查询订单详情"
-            fallback_policy = "return_parent"
-        elif task_type == "refund_submit":
-            skill_id = "refund.submit"
+        elif task_type == "refund_write":
+            allowed_skills = ["refund.write"]
             required_slots = ["order_id"]
             expected_output_schema = "refund_submit_v1"
             goal = "提交订单退款"
-        elif task_type == "handoff_create_ticket":
-            skill_id = "handoff.create_ticket"
+            requires_confirmation = True
+            risk_level = "high"
+        elif task_type == "handoff_write":
+            allowed_skills = ["handoff.write"]
             required_slots = []
             expected_output_schema = "handoff_ticket_v1"
             goal = "创建人工工单"
+            requires_confirmation = True
         else:
-            skill_id = "refund.preview"
-            required_slots = ["order_id"]
-            expected_output_schema = "refund_preview_v1"
-            goal = "确认订单是否可退款并返回预计退款金额"
+            allowed_skills = ["refund.read"]
+            required_slots = []
+            expected_output_schema = "refund_read_result_v1"
+            goal = "确认最近订单及退款资格"
+            fallback_policy = "return_parent"
+            risk_level = "medium"
 
         return TaskCard(
             task_id=f"task_{uuid4().hex[:12]}",
             session_id=str(session_state.get("session_id") or "session"),
-            domain=skill_id.split(".")[0],
+            domain=allowed_skills[0].split(".")[0],
             task_type=task_type,
-            skill_id=skill_id,
             goal=goal,
             source_message=user_message,
             input_slots=input_slots,
             required_slots=required_slots,
-            risk_level="medium" if "refund" in task_type else "low",
+            allowed_skills=allowed_skills,
+            risk_level=risk_level,
+            requires_confirmation=requires_confirmation,
             fallback_policy=fallback_policy,
             expected_output_schema=expected_output_schema,
         )
@@ -230,11 +230,23 @@ class ParentAgent:
                     status="completed",
                 )
 
+            if (decision.task_type == "refund_write") and not self._can_execute_refund_write(
+                user_message=user_message,
+                session_state=session_state,
+            ):
+                return self._finalize(
+                    reply="请先确认订单退款资格，确认可退款后再告诉我“确认退款”。",
+                    need_handoff=False,
+                    task_trace=task_trace,
+                    session_state=session_state,
+                    status="clarify",
+                )
+
             current_task = self.policy_engine.apply(
                 self.build_task(
                     user_message=user_message,
                     session_state=session_state,
-                    task_type=decision.task_type or "handoff_create_ticket",
+                    task_type=decision.task_type or "handoff_write",
                 )
             )
             try:
@@ -311,6 +323,7 @@ class ParentAgent:
             f"user_id: {session_state.get('user_id')}",
             f"selected_order_id: {session_state.get('selected_order_id')}",
             f"recent_order_candidates: {session_state.get('recent_order_candidates', [])}",
+            f"last_refund_preview: {session_state.get('last_refund_preview')}",
             f"last_task_summary: {session_state.get('last_task_summary')}",
             f"last_handoff_ticket_id: {session_state.get('last_handoff_ticket_id')}",
         ]
@@ -353,7 +366,7 @@ class ParentAgent:
             self.build_task(
                 user_message=user_message,
                 session_state=session_state,
-                task_type="handoff_create_ticket",
+                task_type="handoff_write",
             )
         )
         try:
@@ -381,7 +394,7 @@ class ParentAgent:
                     {
                         "task_id": handoff_task.task_id,
                         "task_type": handoff_task.task_type,
-                        "skill_id": "handoff.create_ticket",
+                        "skill_id": "handoff.write",
                         "tool_calls": [],
                     }
                 ],
@@ -399,6 +412,8 @@ class ParentAgent:
             session_state["selected_order_id"] = execution["selected_order_id"]
         if execution.get("recent_order_candidates") is not None:
             session_state["recent_order_candidates"] = execution["recent_order_candidates"]
+        if execution.get("last_refund_preview") is not None:
+            session_state["last_refund_preview"] = execution["last_refund_preview"]
         if execution.get("summary"):
             session_state["last_task_summary"] = execution["summary"]
         if execution.get("handoff_ticket_id"):
@@ -410,21 +425,37 @@ class ParentAgent:
         output = execution.get("output", {})
         if execution.get("need_handoff"):
             return "已为你转接人工客服，请稍候。"
-        if execution.get("task_type") == "refund_preview":
+        if execution.get("task_type") == "refund_read":
             if output.get("allow_refund"):
                 return (
                     f"订单 {output.get('order_id', session_state.get('selected_order_id'))} 当前可退款，"
-                    f"预计退款 {output.get('refund_amount')}。"
+                    f"预计退款 {output.get('refund_amount')}。是否确认退款？"
                 )
             return output.get("reject_reason", "当前订单不可退。")
-        if execution.get("task_type") == "refund_submit":
+        if execution.get("task_type") == "refund_write":
             return f"订单 {output.get('order_id', session_state.get('selected_order_id'))} 已提交退款。"
-        if execution.get("task_type") == "order_list_recent":
+        if execution.get("task_type") == "order_read":
             orders = output.get("orders", [])
             if orders:
                 return f"已找到最近订单 {orders[0].get('order_id')}。"
             return "当前账号下没有可查询订单。"
         return session_state.get("last_task_summary", "已处理完成。")
+
+    def _can_execute_refund_write(self, *, user_message: str, session_state: dict[str, Any]) -> bool:
+        preview = session_state.get("last_refund_preview")
+        if not isinstance(preview, dict):
+            return False
+        if not preview.get("allow_refund"):
+            return False
+        if not (preview.get("order_id") or session_state.get("selected_order_id")):
+            return False
+        return self._is_refund_confirmation_message(user_message)
+
+    def _is_refund_confirmation_message(self, message: str) -> bool:
+        normalized = message.replace(" ", "")
+        if ("确认" in normalized and "退款" in normalized) or ("提交" in normalized and "退款" in normalized):
+            return True
+        return any(keyword in normalized for keyword in ("退吧", "就退这单"))
 
     def _extract_order_id(self, message: str) -> str | None:
         match = ORDER_ID_PATTERN.search(message)

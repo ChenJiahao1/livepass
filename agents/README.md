@@ -1,6 +1,6 @@
 # agents
 
-`agents` 是 `damai-go` 的 Python 智能客服组件，当前基于 `FastAPI + MCP + Redis` 运行。主链路已经收敛为 `ParentAgent -> TaskCard -> SubagentRuntime -> ToolBroker -> MCP Provider`，其中父层负责 LLM 编排，subagent 只执行单一 skill。
+`agents` 是 `damai-go` 的 Python 智能客服组件，当前基于 `FastAPI + MCP + Redis` 运行。主链路已经收敛为 `ParentAgent -> TaskCard -> SubagentRuntime -> ToolBroker -> MCP Provider`，其中父层负责 LLM 编排与读写权限控制，subagent 在授权 skill bundle 内执行。
 
 ## 入口
 
@@ -50,11 +50,14 @@ USER_RPC_TARGET=127.0.0.1:8080
 - `SKILL.md` 按 Agent Skills / DeerFlow 兼容格式组织并做校验：当前支持 `name`、`description`、`license`、`compatibility`、`metadata`、`allowed-tools`，并兼容 DeerFlow 接受的 `version` / `author` 扩展键。
 - `allowed-tools` 按规范使用空格分隔字符串；`metadata` 约束为 string-to-string 映射。
 - 旧的 LangGraph `graph/coordinator/supervisor` 兼容层、旧专家代理目录和重复 `app/clients` 目录已移除。
-- `TaskCard` 当前只携带单一 `skill_id`，由父层选定 skill，subagent 不再接收 `allowed_skills` 这类多选策略字段。
-- `MCPToolRegistry` 按 provider 首次命中时懒加载并缓存 tool catalog；实际暴露给 subagent 的，只是当前 skill 绑定的那组 tools。
-- Python 侧 `ToolBroker` 负责 tool 白名单、上下文注入、provider 调度以及对当前 task 的 tool 绑定，不承载业务规则。
+- `TaskCard` 当前携带 `allowed_skills` 与 `requires_confirmation`。父层不再给读链路逐步指定单 tool，而是授权当前可用的 skill bundle。
+- `MCPToolRegistry` 按 provider 首次命中时懒加载并缓存 tool catalog；实际暴露给 subagent 的，是当前任务授权 skill bundle 求并集后的那组 tools。
+- Python 侧 `ToolBroker` 负责 tool 白名单、上下文注入、provider 调度以及对当前 task 的 tool 绑定；对写 skill 还会做确认态硬校验。
 - 明星基础百科问题走独立 `KnowledgeService`，不经过业务 subagent；实时新闻、八卦类问题会返回能力边界提示。
-- “帮我退最近那单” 会走 `ParentAgent(LLM)` -> `order.list_recent` -> `refund.preview` 链路；业务失败时回退到 `handoff.create_ticket`。
+- 退款链路采用读写分离：
+  - `refund.read` 暴露 `list_user_orders`、`get_order_detail_for_service`、`preview_refund_order`
+  - `refund.write` 只暴露 `refund_order`
+  - 用户先走 `refund.read`，明确确认后才允许进入 `refund.write`
 
 ## 测试
 

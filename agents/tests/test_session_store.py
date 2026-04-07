@@ -64,6 +64,12 @@ def test_state_store_persists_runtime_session_fields():
     session = store.get_or_create(user_id=3001, conversation_id=None)
     session.selected_order_id = "ORD-10001"
     session.recent_order_candidates = [{"order_id": "ORD-10001"}]
+    session.last_refund_preview = {
+        "order_id": "ORD-10001",
+        "allow_refund": True,
+        "refund_amount": "99.00",
+        "reject_reason": "",
+    }
     session.last_task_summary = "退款资格已确认"
     session.last_handoff_ticket_id = "HOF-1001"
     store.save(session)
@@ -72,5 +78,11 @@ def test_state_store_persists_runtime_session_fields():
 
     assert loaded.selected_order_id == "ORD-10001"
     assert loaded.recent_order_candidates == [{"order_id": "ORD-10001"}]
+    assert loaded.last_refund_preview == {
+        "order_id": "ORD-10001",
+        "allow_refund": True,
+        "refund_amount": "99.00",
+        "reject_reason": "",
+    }
     assert loaded.last_task_summary == "退款资格已确认"
     assert loaded.last_handoff_ticket_id == "HOF-1001"

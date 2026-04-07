@@ -17,6 +17,7 @@ class StoredConversation(BaseModel):
     user_id: int = Field(alias="userId")
     selected_order_id: str | None = Field(default=None, alias="selectedOrderId")
     recent_order_candidates: list[dict] = Field(default_factory=list, alias="recentOrderCandidates")
+    last_refund_preview: dict | None = Field(default=None, alias="lastRefundPreview")
     last_task_summary: str | None = Field(default=None, alias="lastTaskSummary")
     last_handoff_ticket_id: str | None = Field(default=None, alias="lastHandoffTicketId")
 

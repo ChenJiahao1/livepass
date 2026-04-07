@@ -25,11 +25,12 @@ def _write_skill_registry_fixture(
         "\n".join(
             [
                 "skills:",
-                "  refund.preview:",
+                "  refund.read:",
                 "    version: v1",
                 "    domain: refund",
                 "    agent_type: refund",
                 f"    {skill_path_key}: {skill_ref}",
+                "    access_mode: read",
                 "    provider: order",
                 "    tools: [preview_refund_order]",
                 "    termination_rule: got_preview_or_fail",
@@ -44,11 +45,18 @@ def _write_skill_registry_fixture(
 def test_skill_registry_loads_full_skill_markdown_for_runtime():
     registry = SkillRegistry.from_config(Path("app/skills/registry.yaml"))
 
-    markdown = registry.load_skill_markdown("refund.preview")
+    markdown = registry.load_skill_markdown("refund.read")
 
     assert markdown.startswith("---")
-    assert "allowed-tools: preview_refund_order" in markdown
-    assert "目标：确认指定订单当前是否可退款" in markdown
+    assert "allowed-tools: list_user_orders get_order_detail_for_service preview_refund_order" in markdown
+    assert "只使用当前允许的读工具完成退款相关查询" in markdown
+
+
+def test_skill_registry_loads_skill_access_mode():
+    registry = SkillRegistry.from_config(Path("app/skills/registry.yaml"))
+
+    assert registry.get_skill("refund.read").access_mode == "read"
+    assert registry.get_skill("refund.write").access_mode == "write"
 
 
 def test_skill_registry_rejects_legacy_prompt_template_config(tmp_path: Path):
@@ -60,7 +68,7 @@ def test_skill_registry_rejects_legacy_prompt_template_config(tmp_path: Path):
             "allowed-tools: preview_refund_order\n"
             "metadata:\n"
             "  domain: refund\n"
-            "  skill_id: refund.preview\n"
+            "  skill_id: refund.read\n"
         ),
         use_prompt_template=True,
     )
@@ -79,7 +87,7 @@ def test_skill_registry_rejects_non_string_allowed_tools(tmp_path: Path):
             "  - preview_refund_order\n"
             "metadata:\n"
             "  domain: refund\n"
-            "  skill_id: refund.preview\n"
+            "  skill_id: refund.read\n"
         ),
     )
 
@@ -114,7 +122,7 @@ def test_skill_registry_rejects_unknown_frontmatter_keys(tmp_path: Path):
             "foo: bar\n"
             "metadata:\n"
             "  domain: refund\n"
-            "  skill_id: refund.preview\n"
+            "  skill_id: refund.read\n"
         ),
     )
 

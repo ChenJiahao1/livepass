@@ -10,8 +10,8 @@ from app.tasking.task_card import TaskCard
 
 
 class SkillResolution(BaseModel):
-    skill: SkillSpec
-    provider: ProviderSpec
+    skills: list[SkillSpec]
+    providers: list[ProviderSpec]
 
 
 class SkillResolver:
@@ -20,6 +20,13 @@ class SkillResolver:
         self.provider_registry = provider_registry
 
     def resolve(self, task: TaskCard) -> SkillResolution:
-        skill = self.skill_registry.get_skill(task.skill_id)
-        provider = self.provider_registry.get_provider_for_skill(task.skill_id)
-        return SkillResolution(skill=skill, provider=provider)
+        skills = [self.skill_registry.get_skill(skill_id) for skill_id in task.allowed_skills]
+        providers: list[ProviderSpec] = []
+        seen_provider_names: set[str] = set()
+        for skill in skills:
+            provider = self.provider_registry.get_provider_for_skill(skill.skill_id)
+            if provider.name in seen_provider_names:
+                continue
+            seen_provider_names.add(provider.name)
+            providers.append(provider)
+        return SkillResolution(skills=skills, providers=providers)

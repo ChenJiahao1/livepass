@@ -35,6 +35,23 @@ class FakeAgentRuntime:
                 "current_agent": "handoff",
                 "need_handoff": True,
             }
+        if "退款预览" in message:
+            return {
+                **state_payload,
+                "final_reply": "订单 ORD-10001 当前可退款，预计退款 99.00。是否确认退款？",
+                "current_agent": "refund",
+                "need_handoff": False,
+                "session_state": {
+                    **context["session_state"],
+                    "selected_order_id": "ORD-10001",
+                    "last_refund_preview": {
+                        "order_id": "ORD-10001",
+                        "allow_refund": True,
+                        "refund_amount": "99.00",
+                        "reject_reason": "",
+                    },
+                },
+            }
         return {
             **state_payload,
             "final_reply": f"已处理：{message}",
@@ -143,3 +160,28 @@ def test_chat_api_reuses_conversation_id_and_starts_new_agent_turn_each_request(
     assert agent_runtime.calls[1]["config"]["configurable"]["thread_id"] == first.json()["conversationId"]
     assert agent_runtime.calls[0]["state"]["messages"] == [{"role": "user", "content": "帮我查订单"}]
     assert agent_runtime.calls[1]["state"]["messages"] == [{"role": "user", "content": "订单 93001 可以退款吗"}]
+
+
+def test_chat_api_persists_last_refund_preview_in_session():
+    app, agent_runtime, _store = build_test_app()
+    client = TestClient(app)
+
+    first = client.post(
+        "/agent/chat",
+        headers={"X-User-Id": "3001"},
+        json={"message": "帮我做退款预览"},
+    )
+    second = client.post(
+        "/agent/chat",
+        headers={"X-User-Id": "3001"},
+        json={"message": "确认退款", "conversationId": first.json()["conversationId"]},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert agent_runtime.calls[1]["context"]["session_state"]["last_refund_preview"] == {
+        "order_id": "ORD-10001",
+        "allow_refund": True,
+        "refund_amount": "99.00",
+        "reject_reason": "",
+    }

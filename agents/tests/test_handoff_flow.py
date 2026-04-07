@@ -10,7 +10,7 @@ async def test_runtime_returns_handoff_when_business_flow_fails():
     agent = build_flow_agent(force_tool_failure=True)
     llm = ScriptedChatModel(
         structured_responses=[
-            {"action": "delegate", "task_type": "order_list_recent"},
+            {"action": "delegate", "task_type": "refund_read"},
         ],
         responses=[
             make_tool_call_message("list_user_orders", {"user_id": 3001}),

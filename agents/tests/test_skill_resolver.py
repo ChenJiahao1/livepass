@@ -4,7 +4,7 @@ from app.registry.skill_registry import SkillRegistry
 from app.tasking.task_card import TaskCard
 
 
-def test_skill_resolver_resolves_refund_preview_to_order_provider():
+def test_skill_resolver_resolves_refund_read_to_order_provider():
     resolver = SkillResolver(
         skill_registry=SkillRegistry.from_config("app/skills/registry.yaml"),
         provider_registry=ProviderRegistry.from_config("app/skills/registry.yaml"),
@@ -13,18 +13,22 @@ def test_skill_resolver_resolves_refund_preview_to_order_provider():
         task_id="task-001",
         session_id="sess-001",
         domain="refund",
-        task_type="refund_preview",
-        skill_id="refund.preview",
-        goal="确认订单是否可退款",
+        task_type="refund_read",
+        goal="处理退款咨询并确认退款资格",
         input_slots={"order_id": "ORD-10001"},
         required_slots=["order_id"],
+        allowed_skills=["refund.read"],
         risk_level="medium",
         fallback_policy="handoff",
-        expected_output_schema="refund_preview_v1",
+        expected_output_schema="refund_read_result_v1",
     )
 
     resolution = resolver.resolve(task)
 
-    assert resolution.skill.skill_id == "refund.preview"
-    assert resolution.provider.server_name == "order"
-    assert resolution.skill.tools == ["preview_refund_order"]
+    assert [item.skill_id for item in resolution.skills] == ["refund.read"]
+    assert [item.server_name for item in resolution.providers] == ["order"]
+    assert resolution.skills[0].tools == [
+        "list_user_orders",
+        "get_order_detail_for_service",
+        "preview_refund_order",
+    ]

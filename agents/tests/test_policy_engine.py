@@ -8,15 +8,15 @@ def test_policy_engine_caps_task_max_steps():
         task_id="task-001",
         session_id="sess-001",
         domain="refund",
-        task_type="refund_preview",
-        skill_id="refund.preview",
-        goal="确认订单是否可退款",
+        task_type="refund_read",
+        goal="处理退款咨询并确认退款资格",
         input_slots={"order_id": "ORD-10001"},
         required_slots=["order_id"],
+        allowed_skills=["refund.read"],
         max_steps=5,
         risk_level="medium",
         fallback_policy="handoff",
-        expected_output_schema="refund_preview_v1",
+        expected_output_schema="refund_read_result_v1",
     )
 
     applied = engine.apply(task)

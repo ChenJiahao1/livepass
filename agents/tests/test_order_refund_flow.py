@@ -20,6 +20,14 @@ class FlowToolRegistry:
         async def _list_user_orders(user_id: int, session_id: str | None = None, task_id: str | None = None):
             return {"ok": True}
 
+        async def _get_order_detail_for_service(
+            order_id: str,
+            user_id: int | None = None,
+            session_id: str | None = None,
+            task_id: str | None = None,
+        ):
+            return {"ok": True}
+
         async def _preview_refund_order(
             order_id: str,
             user_id: int | None = None,
@@ -48,6 +56,11 @@ class FlowToolRegistry:
         toolsets = {
             "order": [
                 build_async_tool(name="list_user_orders", description="list_user_orders", coroutine=_list_user_orders),
+                build_async_tool(
+                    name="get_order_detail_for_service",
+                    description="get_order_detail_for_service",
+                    coroutine=_get_order_detail_for_service,
+                ),
                 build_async_tool(
                     name="preview_refund_order",
                     description="preview_refund_order",
@@ -91,6 +104,8 @@ class FlowToolRegistry:
             }
         if tool_name == "create_handoff_ticket":
             return {"ticket_id": "HOF-1001", "queued": True}
+        if tool_name == "refund_order":
+            return {"order_id": payload["order_id"], "accepted": True}
         raise AssertionError(tool_name)
 
 
@@ -115,17 +130,15 @@ def build_flow_agent(*, force_tool_failure: bool = False) -> ParentAgent:
 
 
 @pytest.mark.anyio
-async def test_parent_agent_splits_recent_order_refund_into_preview_flow():
+async def test_parent_agent_runs_refund_read_flow_with_read_bundle():
     agent = build_flow_agent()
     llm = ScriptedChatModel(
         structured_responses=[
-            {"action": "delegate", "task_type": "order_list_recent"},
-            {"action": "delegate", "task_type": "refund_preview"},
-            {"action": "reply", "reply": "订单 ORD-10002 当前可退款，预计退款 99.00。"},
+            {"action": "delegate", "task_type": "refund_read"},
+            {"action": "reply", "reply": "订单 ORD-10002 当前可退款，预计退款 99.00。是否确认退款？"},
         ],
         responses=[
             make_tool_call_message("list_user_orders", {"user_id": 3001}),
-            AIMessage(content="最近订单已返回。"),
             make_tool_call_message("preview_refund_order", {"order_id": "ORD-10002"}),
             AIMessage(content="订单可退款。"),
         ],
@@ -137,9 +150,49 @@ async def test_parent_agent_splits_recent_order_refund_into_preview_flow():
         context={"current_user_id": "3001", "llm": llm, "session_state": {"user_id": 3001}},
     )
 
-    assert result["task_trace"][0]["task_type"] == "order_list_recent"
-    assert result["task_trace"][1]["task_type"] == "refund_preview"
+    assert result["task_trace"][0]["task_type"] == "refund_read"
     assert result["selected_order_id"] == "ORD-10002"
-    assert result["reply"] == "订单 ORD-10002 当前可退款，预计退款 99.00。"
-    assert ["list_user_orders"] in llm.bound_tool_names
-    assert ["preview_refund_order"] in llm.bound_tool_names
+    assert result["reply"] == "订单 ORD-10002 当前可退款，预计退款 99.00。是否确认退款？"
+    assert set(llm.bound_tool_names[0]) == {
+        "list_user_orders",
+        "get_order_detail_for_service",
+        "preview_refund_order",
+    }
+
+
+@pytest.mark.anyio
+async def test_parent_agent_runs_refund_write_flow_only_after_confirmation():
+    agent = build_flow_agent()
+    llm = ScriptedChatModel(
+        structured_responses=[
+            {"action": "delegate", "task_type": "refund_write"},
+            {"action": "reply", "reply": "订单 ORD-10002 已提交退款。"},
+        ],
+        responses=[
+            make_tool_call_message("refund_order", {"order_id": "ORD-10002"}),
+            AIMessage(content="退款已提交。"),
+        ],
+    )
+
+    result = await agent.ainvoke(
+        {"messages": [{"role": "user", "content": "确认退款"}]},
+        config={"configurable": {"thread_id": "sess-001"}},
+        context={
+            "current_user_id": "3001",
+            "llm": llm,
+            "session_state": {
+                "user_id": 3001,
+                "selected_order_id": "ORD-10002",
+                "last_refund_preview": {
+                    "order_id": "ORD-10002",
+                    "allow_refund": True,
+                    "refund_amount": "99.00",
+                    "reject_reason": "",
+                },
+            },
+        },
+    )
+
+    assert result["task_trace"][0]["task_type"] == "refund_write"
+    assert result["reply"] == "订单 ORD-10002 已提交退款。"
+    assert llm.bound_tool_names[0] == ["refund_order"]
