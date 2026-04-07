@@ -3599,9 +3599,8 @@ func (x *ConfirmSeatFreezeResp) GetSuccess() bool {
 
 type EvaluateRefundRuleReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProgramId     int64                  `protobuf:"varint,1,opt,name=programId,proto3" json:"programId,omitempty"`
-	OrderShowTime string                 `protobuf:"bytes,2,opt,name=orderShowTime,proto3" json:"orderShowTime,omitempty"`
-	OrderAmount   int64                  `protobuf:"varint,3,opt,name=orderAmount,proto3" json:"orderAmount,omitempty"`
+	ShowTimeId    int64                  `protobuf:"varint,1,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
+	OrderAmount   int64                  `protobuf:"varint,2,opt,name=orderAmount,proto3" json:"orderAmount,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3636,18 +3635,11 @@ func (*EvaluateRefundRuleReq) Descriptor() ([]byte, []int) {
 	return file_program_proto_rawDescGZIP(), []int{46}
 }
 
-func (x *EvaluateRefundRuleReq) GetProgramId() int64 {
+func (x *EvaluateRefundRuleReq) GetShowTimeId() int64 {
 	if x != nil {
-		return x.ProgramId
+		return x.ShowTimeId
 	}
 	return 0
-}
-
-func (x *EvaluateRefundRuleReq) GetOrderShowTime() string {
-	if x != nil {
-		return x.OrderShowTime
-	}
-	return ""
 }
 
 func (x *EvaluateRefundRuleReq) GetOrderAmount() int64 {
@@ -4610,11 +4602,12 @@ const file_program_proto_rawDesc = "" +
 	"ownerEpoch\x18\x03 \x01(\x03R\n" +
 	"ownerEpoch\"1\n" +
 	"\x15ConfirmSeatFreezeResp\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"}\n" +
-	"\x15EvaluateRefundRuleReq\x12\x1c\n" +
-	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\x12$\n" +
-	"\rorderShowTime\x18\x02 \x01(\tR\rorderShowTime\x12 \n" +
-	"\vorderAmount\x18\x03 \x01(\x03R\vorderAmount\"\xa8\x01\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"Y\n" +
+	"\x15EvaluateRefundRuleReq\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x01 \x01(\x03R\n" +
+	"showTimeId\x12 \n" +
+	"\vorderAmount\x18\x02 \x01(\x03R\vorderAmount\"\xa8\x01\n" +
 	"\x16EvaluateRefundRuleResp\x12 \n" +
 	"\vallowRefund\x18\x01 \x01(\bR\vallowRefund\x12$\n" +
 	"\rrefundPercent\x18\x02 \x01(\x03R\rrefundPercent\x12\"\n" +

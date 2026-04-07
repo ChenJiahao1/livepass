@@ -382,9 +382,8 @@ message ConfirmSeatFreezeResp {
 }
 
 message EvaluateRefundRuleReq {
-  int64 programId = 1;
-  string orderShowTime = 2;
-  int64 orderAmount = 3;
+  int64 showTimeId = 1;
+  int64 orderAmount = 2;
 }
 
 message EvaluateRefundRuleResp {

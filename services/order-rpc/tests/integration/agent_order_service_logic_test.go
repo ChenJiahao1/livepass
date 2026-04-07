@@ -16,10 +16,12 @@ import (
 func TestGetOrderServiceViewReturnsPayAndRefundHintsForOwner(t *testing.T) {
 	svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	const showTimeID int64 = 21001
 	seedOrderFixtures(t, svcCtx, orderFixture{
 		ID:              99601,
 		OrderNumber:     93601,
 		ProgramID:       11001,
+		ShowTimeID:      showTimeID,
 		ProgramTitle:    "测试演出",
 		ProgramShowTime: "2026-12-31 20:00:00",
 		UserID:          3001,
@@ -63,7 +65,7 @@ func TestGetOrderServiceViewReturnsPayAndRefundHintsForOwner(t *testing.T) {
 	if !resp.CanRefund || resp.RefundBlockedReason != "" {
 		t.Fatalf("expected refundable service view, got %+v", resp)
 	}
-	if programRPC.lastEvaluateRefundRuleReq == nil || programRPC.lastEvaluateRefundRuleReq.ProgramId != 11001 {
+	if programRPC.lastEvaluateRefundRuleReq == nil || programRPC.lastEvaluateRefundRuleReq.ShowTimeId != showTimeID {
 		t.Fatalf("unexpected refund rule request: %+v", programRPC.lastEvaluateRefundRuleReq)
 	}
 }
@@ -95,10 +97,12 @@ func TestGetOrderServiceViewReturnsNotFoundForAnotherUser(t *testing.T) {
 func TestPreviewRefundOrderReturnsPreviewForRefundablePaidOrder(t *testing.T) {
 	svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	const showTimeID int64 = 21003
 	seedOrderFixtures(t, svcCtx, orderFixture{
 		ID:              99603,
 		OrderNumber:     93603,
 		ProgramID:       11002,
+		ShowTimeID:      showTimeID,
 		UserID:          3001,
 		OrderPrice:      598,
 		OrderStatus:     testOrderStatusPaid,
@@ -146,15 +150,20 @@ func TestPreviewRefundOrderReturnsPreviewForRefundablePaidOrder(t *testing.T) {
 	if programRPC.releaseSoldSeatsCalls != 0 {
 		t.Fatalf("expected preview not to release sold seats, got %d", programRPC.releaseSoldSeatsCalls)
 	}
+	if programRPC.lastEvaluateRefundRuleReq == nil || programRPC.lastEvaluateRefundRuleReq.ShowTimeId != showTimeID {
+		t.Fatalf("unexpected refund rule request: %+v", programRPC.lastEvaluateRefundRuleReq)
+	}
 }
 
 func TestPreviewRefundOrderRejectsNonRefundableOrder(t *testing.T) {
 	svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	const showTimeID int64 = 21004
 	seedOrderFixtures(t, svcCtx, orderFixture{
 		ID:              99604,
 		OrderNumber:     93604,
 		ProgramID:       11003,
+		ShowTimeID:      showTimeID,
 		UserID:          3001,
 		OrderPrice:      299,
 		OrderStatus:     testOrderStatusPaid,
@@ -193,5 +202,60 @@ func TestPreviewRefundOrderRejectsNonRefundableOrder(t *testing.T) {
 	}
 	if payRPC.refundCalls != 0 {
 		t.Fatalf("expected preview reject not to call refund rpc, got %d", payRPC.refundCalls)
+	}
+	if programRPC.lastEvaluateRefundRuleReq == nil || programRPC.lastEvaluateRefundRuleReq.ShowTimeId != showTimeID {
+		t.Fatalf("unexpected refund rule request: %+v", programRPC.lastEvaluateRefundRuleReq)
+	}
+	if programRPC.releaseSoldSeatsCalls != 0 {
+		t.Fatalf("expected preview reject not to release sold seats, got %d", programRPC.releaseSoldSeatsCalls)
+	}
+}
+
+func TestGetOrderServiceViewBlocksRefundDuringRushSaleWindow(t *testing.T) {
+	svcCtx, programRPC, _, payRPC := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	const showTimeID int64 = 21005
+	seedOrderFixtures(t, svcCtx, orderFixture{
+		ID:              99605,
+		OrderNumber:     93605,
+		ProgramID:       11004,
+		ShowTimeID:      showTimeID,
+		ProgramTitle:    "抢票场次",
+		ProgramShowTime: "2026-12-31 20:00:00",
+		UserID:          3001,
+		TicketCount:     1,
+		OrderPrice:      299,
+		OrderStatus:     testOrderStatusPaid,
+		PayOrderTime:    "2026-12-31 19:05:00",
+	})
+	payRPC.getPayBillResp = &payrpc.GetPayBillResp{
+		PayBillNo:   94605,
+		OrderNumber: 93605,
+		UserId:      3001,
+		Amount:      299,
+		PayStatus:   2,
+		PayTime:     "2026-12-31 19:05:00",
+	}
+	programRPC.evaluateRefundRuleResp = &programrpc.EvaluateRefundRuleResp{
+		AllowRefund:  false,
+		RejectReason: "秒杀活动进行中，暂不支持退票",
+	}
+
+	server := serverpkg.NewOrderRpcServer(svcCtx)
+	resp, err := server.GetOrderServiceView(context.Background(), &pb.GetOrderServiceViewReq{
+		UserId:      3001,
+		OrderNumber: 93605,
+	})
+	if err != nil {
+		t.Fatalf("GetOrderServiceView returned error: %v", err)
+	}
+	if resp.CanRefund {
+		t.Fatalf("expected refund blocked during rush sale window, got %+v", resp)
+	}
+	if resp.RefundBlockedReason != "秒杀活动进行中，暂不支持退票" {
+		t.Fatalf("unexpected blocked reason: %+v", resp)
+	}
+	if programRPC.lastEvaluateRefundRuleReq == nil || programRPC.lastEvaluateRefundRuleReq.ShowTimeId != showTimeID {
+		t.Fatalf("unexpected refund rule request: %+v", programRPC.lastEvaluateRefundRuleReq)
 	}
 }

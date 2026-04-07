@@ -30,21 +30,30 @@ func NewEvaluateRefundRuleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *EvaluateRefundRuleLogic) EvaluateRefundRule(in *pb.EvaluateRefundRuleReq) (*pb.EvaluateRefundRuleResp, error) {
-	if in.GetProgramId() <= 0 || in.GetOrderShowTime() == "" || in.GetOrderAmount() <= 0 {
+	if in.GetShowTimeId() <= 0 || in.GetOrderAmount() <= 0 {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
-	showTime, err := time.ParseInLocation(programDateTimeLayout, in.GetOrderShowTime(), time.Local)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
-	}
-
-	program, err := l.svcCtx.DProgramModel.FindOne(l.ctx, in.GetProgramId())
+	showTime, err := l.svcCtx.DProgramShowTimeModel.FindOne(l.ctx, in.GetShowTimeId())
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, programNotFoundError()
 		}
 		return nil, err
+	}
+
+	program, err := l.svcCtx.DProgramModel.FindOne(l.ctx, showTime.ProgramId)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return nil, programNotFoundError()
+		}
+		return nil, err
+	}
+	if isRefundBlockedDuringRushSale(showTime, time.Time{}) {
+		return &pb.EvaluateRefundRuleResp{
+			AllowRefund:  false,
+			RejectReason: rushSaleRefundBlockedReason,
+		}, nil
 	}
 
 	switch program.PermitRefund {
@@ -60,7 +69,7 @@ func (l *EvaluateRefundRuleLogic) EvaluateRefundRule(in *pb.EvaluateRefundRuleRe
 			RefundAmount:  in.GetOrderAmount(),
 		}, nil
 	case 1:
-		result, err := evaluateRefundRule(nullStringValue(program.RefundRuleJson), showTime, time.Now(), in.GetOrderAmount())
+		result, err := evaluateRefundRule(nullStringValue(program.RefundRuleJson), showTime.ShowTime, time.Now(), in.GetOrderAmount())
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}

@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
+	"time"
 
 	"damai-go/pkg/xerr"
 	"damai-go/services/program-rpc/internal/model"
@@ -33,9 +34,19 @@ func (l *ReleaseSoldSeatsLogic) ReleaseSoldSeats(in *pb.ReleaseSoldSeatsReq) (*p
 	if in.GetShowTimeId() <= 0 || len(in.GetSeatIds()) == 0 || in.GetRequestNo() == "" {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
+	showTime, err := l.svcCtx.DProgramShowTimeModel.FindOne(l.ctx, in.GetShowTimeId())
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "show time not found")
+		}
+		return nil, err
+	}
+	if isRefundBlockedDuringRushSale(showTime, time.Time{}) {
+		return nil, status.Error(codes.FailedPrecondition, rushSaleRefundBlockedReason)
+	}
 
 	seatIDs := uniqueSeatIDs(in.GetSeatIds())
-	err := l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
+	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
 		seatModel := model.NewDSeatModel(sqlx.NewSqlConnFromSession(session))
 		seats, err := seatModel.FindByShowTimeAndIDsForUpdate(ctx, session, in.GetShowTimeId(), seatIDs)
 		if err != nil {

@@ -15,7 +15,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const programDateTimeLayout = "2006-01-02 15:04:05"
+const (
+	programDateTimeLayout       = "2006-01-02 15:04:05"
+	rushSaleRefundBlockedReason = "秒杀活动进行中，暂不支持退票"
+)
 
 type ticketPriceRange struct {
 	MinPrice int64
@@ -306,6 +309,23 @@ func programRefundNoMatchReason(program *model.DProgram, fallback string) string
 	}
 
 	return fallback
+}
+
+func isRefundBlockedDuringRushSale(showTime *model.DProgramShowTime, now time.Time) bool {
+	if showTime == nil || !showTime.RushSaleOpenTime.Valid || !showTime.RushSaleEndTime.Valid {
+		return false
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	openAt := showTime.RushSaleOpenTime.Time
+	endAt := showTime.RushSaleEndTime.Time
+	if endAt.Before(openAt) {
+		return false
+	}
+
+	return !now.Before(openAt) && !now.After(endAt)
 }
 
 func nullStringValue(value sql.NullString) string {

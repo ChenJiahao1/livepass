@@ -660,9 +660,8 @@ func previewRefundOrder(ctx context.Context, svcCtx *svc.ServiceContext, order *
 	}
 
 	evaluateResp, err := svcCtx.ProgramRpc.EvaluateRefundRule(ctx, &programrpc.EvaluateRefundRuleReq{
-		ProgramId:     order.ProgramId,
-		OrderShowTime: formatOrderTime(order.ProgramShowTime),
-		OrderAmount:   int64(order.OrderPrice),
+		ShowTimeId:  order.ShowTimeId,
+		OrderAmount: int64(order.OrderPrice),
 	})
 	if err != nil {
 		return nil, err

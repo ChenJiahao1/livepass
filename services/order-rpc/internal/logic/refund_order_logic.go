@@ -119,9 +119,8 @@ func (l *RefundOrderLogic) refundOrReuse(order *model.DOrder, payBill *payrpc.Ge
 	}
 
 	evaluateResp, err := l.svcCtx.ProgramRpc.EvaluateRefundRule(l.ctx, &programrpc.EvaluateRefundRuleReq{
-		ProgramId:     order.ProgramId,
-		OrderShowTime: formatOrderTime(order.ProgramShowTime),
-		OrderAmount:   int64(order.OrderPrice),
+		ShowTimeId:  order.ShowTimeId,
+		OrderAmount: int64(order.OrderPrice),
 	})
 	if err != nil {
 		return nil, 0, err
