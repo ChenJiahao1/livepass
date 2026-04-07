@@ -15,11 +15,14 @@ type (
 		dSeatModel
 		withSession(session sqlx.Session) DSeatModel
 		FindByProgramID(ctx context.Context, programID int64) ([]*DSeat, error)
+		FindByShowTimeId(ctx context.Context, showTimeID int64) ([]*DSeat, error)
 		FindAvailableByProgramAndTicketCategoryForUpdate(ctx context.Context, session sqlx.Session, programId, ticketCategoryId int64) ([]*DSeat, error)
 		FindByProgramAndTicketCategoryAndSeatStatus(ctx context.Context, programId, ticketCategoryId, seatStatus int64) ([]*DSeat, error)
 		FindAvailableCountByProgramId(ctx context.Context, programId int64) ([]*SeatRemainAggregate, error)
+		FindAvailableCountByShowTimeId(ctx context.Context, showTimeId int64) ([]*SeatRemainAggregate, error)
 		FindByFreezeToken(ctx context.Context, freezeToken string) ([]*DSeat, error)
 		FindByProgramAndIDsForUpdate(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) ([]*DSeat, error)
+		FindByShowTimeAndIDsForUpdate(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64) ([]*DSeat, error)
 		BatchFreezeByIDs(ctx context.Context, session sqlx.Session, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		BatchConfirmByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		ReleaseByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
@@ -56,6 +59,25 @@ func (m *customDSeatModel) FindByProgramID(ctx context.Context, programID int64)
 
 	var resp []*DSeat
 	err := m.conn.QueryRowsCtx(ctx, &resp, query, programID)
+	switch err {
+	case nil:
+		return resp, nil
+	case sqlx.ErrNotFound:
+		return []*DSeat{}, nil
+	default:
+		return nil, err
+	}
+}
+
+func (m *customDSeatModel) FindByShowTimeId(ctx context.Context, showTimeID int64) ([]*DSeat, error) {
+	query := fmt.Sprintf(
+		"select %s from %s where `status` = 1 and `show_time_id` = ? order by `price` asc, `row_code` asc, `col_code` asc, `id` asc",
+		dSeatRows,
+		m.table,
+	)
+
+	var resp []*DSeat
+	err := m.conn.QueryRowsCtx(ctx, &resp, query, showTimeID)
 	switch err {
 	case nil:
 		return resp, nil
@@ -122,6 +144,24 @@ func (m *customDSeatModel) FindAvailableCountByProgramId(ctx context.Context, pr
 	}
 }
 
+func (m *customDSeatModel) FindAvailableCountByShowTimeId(ctx context.Context, showTimeId int64) ([]*SeatRemainAggregate, error) {
+	query := fmt.Sprintf(
+		"select `ticket_category_id`, count(1) as `remain_number` from %s where `status` = 1 and `show_time_id` = ? and `seat_status` = 1 group by `ticket_category_id` order by `ticket_category_id` asc",
+		m.table,
+	)
+
+	var resp []*SeatRemainAggregate
+	err := m.conn.QueryRowsCtx(ctx, &resp, query, showTimeId)
+	switch err {
+	case nil:
+		return resp, nil
+	case sqlx.ErrNotFound:
+		return []*SeatRemainAggregate{}, nil
+	default:
+		return nil, err
+	}
+}
+
 func (m *customDSeatModel) FindByFreezeToken(ctx context.Context, freezeToken string) ([]*DSeat, error) {
 	query := fmt.Sprintf(
 		"select %s from %s where `status` = 1 and `freeze_token` = ? order by `row_code` asc, `col_code` asc, `id` asc",
@@ -156,6 +196,32 @@ func (m *customDSeatModel) FindByProgramAndIDsForUpdate(ctx context.Context, ses
 
 	var resp []*DSeat
 	args = append([]interface{}{programId}, args...)
+	err := m.withSession(session).(*customDSeatModel).conn.QueryRowsCtx(ctx, &resp, query, args...)
+	switch err {
+	case nil:
+		return resp, nil
+	case sqlx.ErrNotFound:
+		return []*DSeat{}, nil
+	default:
+		return nil, err
+	}
+}
+
+func (m *customDSeatModel) FindByShowTimeAndIDsForUpdate(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64) ([]*DSeat, error) {
+	if len(seatIDs) == 0 {
+		return []*DSeat{}, nil
+	}
+
+	inClause, args := buildInt64InClause(seatIDs)
+	query := fmt.Sprintf(
+		"select %s from %s where `status` = 1 and `show_time_id` = ? and `id` in (%s) order by `id` asc for update",
+		dSeatRows,
+		m.table,
+		inClause,
+	)
+
+	var resp []*DSeat
+	args = append([]interface{}{showTimeId}, args...)
 	err := m.withSession(session).(*customDSeatModel).conn.QueryRowsCtx(ctx, &resp, query, args...)
 	switch err {
 	case nil:

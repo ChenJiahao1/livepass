@@ -29,6 +29,7 @@ const testProgramDateTimeLayout = "2006-01-02 15:04:05"
 
 type ticketCategoryFixture struct {
 	ID           int64
+	ShowTimeID   int64
 	Introduce    string
 	Price        float64
 	TotalNumber  int64
@@ -38,6 +39,7 @@ type ticketCategoryFixture struct {
 type seatFixture struct {
 	ID               int64
 	ProgramID        int64
+	ShowTimeID       int64
 	TicketCategoryID int64
 	RowCode          int
 	ColCode          int
@@ -77,9 +79,13 @@ type programFixture struct {
 	Detail                    string
 	HighHeat                  int64
 	IssueTime                 string
+	ShowTimeID                int64
 	ShowTime                  string
 	ShowDayTime               string
 	ShowWeekTime              string
+	RushSaleOpenTime          string
+	RushSaleEndTime           string
+	ShowEndTime               string
 	PermitRefund              int64
 	RefundTicketRule          string
 	RefundExplain             string
@@ -266,11 +272,12 @@ func seedSeatFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...seat
 			t,
 			db,
 			`INSERT INTO d_seat (
-				id, program_id, ticket_category_id, row_code, col_code, seat_type, price, seat_status,
+				id, program_id, show_time_id, ticket_category_id, row_code, col_code, seat_type, price, seat_status,
 				freeze_token, freeze_expire_time, create_time, edit_time, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fixture.ID,
 			fixture.ProgramID,
+			fixture.ShowTimeID,
 			fixture.TicketCategoryID,
 			fixture.RowCode,
 			fixture.ColCode,
@@ -465,6 +472,9 @@ func withProgramFixtureDefaults(fixture programFixture) programFixture {
 	if fixture.IssueTime == "" {
 		fixture.IssueTime = "2026-06-01 09:00:00"
 	}
+	if fixture.ShowTimeID == 0 {
+		fixture.ShowTimeID = fixture.ProgramID + 20000
+	}
 	if fixture.ShowWeekTime == "" {
 		fixture.ShowWeekTime = "周六"
 	}
@@ -500,6 +510,9 @@ func withSeatFixtureDefaults(fixture seatFixture) seatFixture {
 	if fixture.SeatType == 0 {
 		fixture.SeatType = 1
 	}
+	if fixture.ShowTimeID == 0 {
+		fixture.ShowTimeID = fixture.ProgramID + 20000
+	}
 	if fixture.Price == 0 {
 		fixture.Price = 299
 	}
@@ -533,7 +546,7 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		fixture.AreaID,
 		fixture.ProgramSimpleInfoAreaName,
 	)
-	showTimeID := fixture.ProgramID + 20000
+	showTimeID := fixture.ShowTimeID
 
 	mustExecProgramSQL(
 		t,
@@ -581,24 +594,37 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 	mustExecProgramSQL(
 		t,
 		db,
-		`INSERT INTO d_program_show_time (id, program_id, show_time, show_day_time, show_week_time, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO d_program_show_time (
+			id, program_id, show_time, show_day_time, show_week_time,
+			rush_sale_open_time, rush_sale_end_time, show_end_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		showTimeID,
 		fixture.ProgramID,
 		fixture.ShowTime,
 		fixture.ShowDayTime,
 		fixture.ShowWeekTime,
+		nullIfEmpty(fixture.RushSaleOpenTime),
+		nullIfEmpty(fixture.RushSaleEndTime),
+		nullIfEmpty(fixture.ShowEndTime),
 		"2026-01-01 00:00:00",
 		"2026-01-01 00:00:00",
 		1,
 	)
 
 	for _, ticketCategory := range fixture.TicketCategories {
+		ticketShowTimeID := ticketCategory.ShowTimeID
+		if ticketShowTimeID == 0 {
+			ticketShowTimeID = showTimeID
+		}
 		mustExecProgramSQL(
 			t,
 			db,
-			`INSERT INTO d_ticket_category (id, program_id, introduce, price, total_number, remain_number, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO d_ticket_category (
+				id, program_id, show_time_id, introduce, price, total_number, remain_number, create_time, edit_time, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			ticketCategory.ID,
 			fixture.ProgramID,
+			ticketShowTimeID,
 			ticketCategory.Introduce,
 			ticketCategory.Price,
 			ticketCategory.TotalNumber,

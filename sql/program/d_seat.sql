@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS `d_seat`;
 CREATE TABLE `d_seat` (
   `id` bigint NOT NULL COMMENT 'primary key',
   `program_id` bigint NOT NULL COMMENT 'program id',
+  `show_time_id` bigint NOT NULL COMMENT 'show time id',
   `ticket_category_id` bigint NOT NULL COMMENT 'ticket category id',
   `row_code` int NOT NULL COMMENT 'seat row code',
   `col_code` int NOT NULL COMMENT 'seat column code',
@@ -14,7 +15,7 @@ CREATE TABLE `d_seat` (
   `edit_time` datetime NOT NULL COMMENT 'updated at',
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 active, 0 deleted',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_program_row_col` (`program_id`,`row_code`,`col_code`),
-  KEY `idx_program_ticket_status` (`program_id`,`ticket_category_id`,`seat_status`),
+  UNIQUE KEY `uk_show_time_row_col` (`show_time_id`,`row_code`,`col_code`),
+  KEY `idx_show_time_ticket_status` (`show_time_id`,`ticket_category_id`,`seat_status`),
   KEY `idx_freeze_token` (`freeze_token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='program seat inventory';

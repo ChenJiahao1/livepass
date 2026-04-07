@@ -19,6 +19,7 @@ type (
 		InsertWithCreateTime(ctx context.Context, data *DTicketCategory) (sql.Result, error)
 		FindByProgramIds(ctx context.Context, programIds []int64) ([]*DTicketCategory, error)
 		FindByProgramId(ctx context.Context, programId int64) ([]*DTicketCategory, error)
+		FindByShowTimeId(ctx context.Context, showTimeId int64) ([]*DTicketCategory, error)
 		FindPriceAggregateByProgramIds(ctx context.Context, programIds []int64) ([]*TicketCategoryPriceAggregate, error)
 	}
 
@@ -46,7 +47,7 @@ func (m *customDTicketCategoryModel) withSession(session sqlx.Session) DTicketCa
 
 func (m *customDTicketCategoryModel) InsertWithCreateTime(ctx context.Context, data *DTicketCategory) (sql.Result, error) {
 	query := fmt.Sprintf(
-		"insert into %s (`id`, `program_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"insert into %s (`id`, `program_id`, `show_time_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		m.table,
 	)
 
@@ -55,6 +56,7 @@ func (m *customDTicketCategoryModel) InsertWithCreateTime(ctx context.Context, d
 		query,
 		data.Id,
 		data.ProgramId,
+		data.ShowTimeId,
 		data.Introduce,
 		data.Price,
 		data.TotalNumber,
@@ -96,6 +98,23 @@ func (m *customDTicketCategoryModel) FindByProgramId(ctx context.Context, progra
 	)
 	var resp []*DTicketCategory
 	if err := m.conn.QueryRowsCtx(ctx, &resp, query, programId); err != nil {
+		if err == sqlx.ErrNotFound {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (m *customDTicketCategoryModel) FindByShowTimeId(ctx context.Context, showTimeId int64) ([]*DTicketCategory, error) {
+	query := fmt.Sprintf(
+		"select %s from %s where `status` = 1 and `show_time_id` = ? order by `price` asc, `id` asc",
+		dTicketCategoryRows,
+		m.table,
+	)
+	var resp []*DTicketCategory
+	if err := m.conn.QueryRowsCtx(ctx, &resp, query, showTimeId); err != nil {
 		if err == sqlx.ErrNotFound {
 			return nil, ErrNotFound
 		}

@@ -39,6 +39,7 @@ type (
 	DTicketCategory struct {
 		Id           int64     `db:"id"`            // primary key
 		ProgramId    int64     `db:"program_id"`    // program id
+		ShowTimeId   int64     `db:"show_time_id"`  // show time id
 		Introduce    string    `db:"introduce"`     // ticket category introduction
 		Price        float64   `db:"price"`         // price
 		TotalNumber  int64     `db:"total_number"`  // total ticket number
@@ -77,14 +78,14 @@ func (m *defaultDTicketCategoryModel) FindOne(ctx context.Context, id int64) (*D
 }
 
 func (m *defaultDTicketCategoryModel) Insert(ctx context.Context, data *DTicketCategory) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, dTicketCategoryRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.Introduce, data.Price, data.TotalNumber, data.RemainNumber, data.EditTime, data.Status)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dTicketCategoryRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTimeId, data.Introduce, data.Price, data.TotalNumber, data.RemainNumber, data.EditTime, data.Status)
 	return ret, err
 }
 
 func (m *defaultDTicketCategoryModel) Update(ctx context.Context, data *DTicketCategory) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dTicketCategoryRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.ProgramId, data.Introduce, data.Price, data.TotalNumber, data.RemainNumber, data.EditTime, data.Status, data.Id)
+	_, err := m.conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTimeId, data.Introduce, data.Price, data.TotalNumber, data.RemainNumber, data.EditTime, data.Status, data.Id)
 	return err
 }
 

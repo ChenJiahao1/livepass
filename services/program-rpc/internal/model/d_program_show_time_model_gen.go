@@ -45,14 +45,17 @@ type (
 	}
 
 	DProgramShowTime struct {
-		Id           int64        `db:"id"`             // primary key
-		ProgramId    int64        `db:"program_id"`     // program id
-		ShowTime     time.Time    `db:"show_time"`      // show datetime
-		ShowDayTime  sql.NullTime `db:"show_day_time"`  // show day datetime
-		ShowWeekTime string       `db:"show_week_time"` // weekday text
-		CreateTime   sql.NullTime `db:"create_time"`    // created at
-		EditTime     sql.NullTime `db:"edit_time"`      // updated at
-		Status       int64        `db:"status"`         // 1 active, 0 deleted
+		Id               int64        `db:"id"`                  // primary key
+		ProgramId        int64        `db:"program_id"`          // program id
+		ShowTime         time.Time    `db:"show_time"`           // show datetime
+		ShowDayTime      sql.NullTime `db:"show_day_time"`       // show day datetime
+		ShowWeekTime     string       `db:"show_week_time"`      // weekday text
+		RushSaleOpenTime sql.NullTime `db:"rush_sale_open_time"` // rush sale open time
+		RushSaleEndTime  sql.NullTime `db:"rush_sale_end_time"`  // rush sale end time
+		ShowEndTime      sql.NullTime `db:"show_end_time"`       // show end time
+		CreateTime       sql.NullTime `db:"create_time"`         // created at
+		EditTime         sql.NullTime `db:"edit_time"`           // updated at
+		Status           int64        `db:"status"`              // 1 active, 0 deleted
 	}
 )
 
@@ -127,28 +130,28 @@ func (m *defaultDProgramShowTimeModel) FindOne(ctx context.Context, id int64) (*
 
 func (m *defaultDProgramShowTimeModel) Insert(ctx context.Context, data *DProgramShowTime) (sql.Result, error) {
 	if !m.cached {
-		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
-		return m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status)
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
+		return m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.RushSaleOpenTime, data.RushSaleEndTime, data.ShowEndTime, data.EditTime, data.Status)
 	}
 
 	dProgramShowTimeIdKey := fmt.Sprintf("%s%v", cacheDProgramShowTimeIdPrefix, data.Id)
 	return m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
-		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status)
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.RushSaleOpenTime, data.RushSaleEndTime, data.ShowEndTime, data.EditTime, data.Status)
 	}, dProgramShowTimeIdKey)
 }
 
 func (m *defaultDProgramShowTimeModel) Update(ctx context.Context, data *DProgramShowTime) error {
 	if !m.cached {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramShowTimeRowsWithPlaceHolder)
-		_, err := m.conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status, data.Id)
+		_, err := m.conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.RushSaleOpenTime, data.RushSaleEndTime, data.ShowEndTime, data.EditTime, data.Status, data.Id)
 		return err
 	}
 
 	dProgramShowTimeIdKey := fmt.Sprintf("%s%v", cacheDProgramShowTimeIdPrefix, data.Id)
 	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramShowTimeRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.EditTime, data.Status, data.Id)
+		return conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.RushSaleOpenTime, data.RushSaleEndTime, data.ShowEndTime, data.EditTime, data.Status, data.Id)
 	}, dProgramShowTimeIdKey)
 	return err
 }

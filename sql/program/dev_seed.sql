@@ -31,15 +31,18 @@ INSERT INTO `d_program` (
   '电子发票将发送至邮箱。', 1, 1, '2026-06-01 09:00:00', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1
 );
 
-INSERT INTO `d_program_show_time` (`id`, `program_id`, `show_time`, `show_day_time`, `show_week_time`, `create_time`, `edit_time`, `status`) VALUES
-  (30001, 10001, '2026-12-31 19:30:00', '2026-12-31 00:00:00', '周四', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
+INSERT INTO `d_program_show_time` (
+  `id`, `program_id`, `show_time`, `show_day_time`, `show_week_time`,
+  `rush_sale_open_time`, `rush_sale_end_time`, `show_end_time`, `create_time`, `edit_time`, `status`
+) VALUES
+  (30001, 10001, '2026-12-31 19:30:00', '2026-12-31 00:00:00', '周四', '2026-12-31 18:00:00', '2026-12-31 19:00:00', '2026-12-31 22:00:00', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
 
-INSERT INTO `d_ticket_category` (`id`, `program_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) VALUES
-  (40001, 10001, '普通票', 299, 100, 100, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),
-  (40002, 10001, 'VIP票', 599, 80, 80, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
+INSERT INTO `d_ticket_category` (`id`, `program_id`, `show_time_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) VALUES
+  (40001, 10001, 30001, '普通票', 299, 100, 100, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),
+  (40002, 10001, 30001, 'VIP票', 599, 80, 80, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
 
 INSERT INTO `d_seat` (
-  `id`, `program_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
+  `id`, `program_id`, `show_time_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
   `freeze_token`, `freeze_expire_time`, `create_time`, `edit_time`, `status`
 )
 WITH RECURSIVE `seq` AS (
@@ -50,6 +53,7 @@ WITH RECURSIVE `seq` AS (
 SELECT
   50000 + `n`,
   10001,
+  30001,
   40001,
   FLOOR((`n` - 1) / 10) + 1,
   MOD(`n` - 1, 10) + 1,
@@ -64,7 +68,7 @@ SELECT
 FROM `seq`;
 
 INSERT INTO `d_seat` (
-  `id`, `program_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
+  `id`, `program_id`, `show_time_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
   `freeze_token`, `freeze_expire_time`, `create_time`, `edit_time`, `status`
 )
 WITH RECURSIVE `seq` AS (
@@ -75,6 +79,7 @@ WITH RECURSIVE `seq` AS (
 SELECT
   60000 + `n`,
   10001,
+  30001,
   40002,
   FLOOR((`n` - 1) / 10) + 11,
   MOD(`n` - 1, 10) + 1,
