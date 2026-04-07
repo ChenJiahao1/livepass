@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"time"
 
 	"damai-go/pkg/xerr"
 	"damai-go/services/order-rpc/internal/rush"
@@ -73,13 +74,29 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 	}
 
 	orderNumber := allocateRushContractOrderNumber(in.GetUserId())
+	saleWindowEndAt, err := parsePurchaseTokenTime(preorder.GetRushSaleEndTime(), preorder.GetShowTime())
+	if err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	showEndAt, err := parsePurchaseTokenTime(preorder.GetShowTime(), preorder.GetRushSaleEndTime())
+	if err != nil {
+		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
+	}
+	showTimeID := preorder.GetShowTimeId()
+	if showTimeID <= 0 {
+		showTimeID = in.GetShowTimeId()
+	}
 	token, err := l.svcCtx.PurchaseTokenCodec.Issue(rush.PurchaseTokenClaims{
 		OrderNumber:      orderNumber,
 		UserID:           in.GetUserId(),
 		ProgramID:        preorder.GetProgramId(),
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: in.GetTicketCategoryId(),
 		TicketUserIDs:    append([]int64(nil), in.GetTicketUserIds()...),
 		TicketCount:      ticketCount,
+		Generation:       rush.BuildRushGeneration(showTimeID),
+		SaleWindowEndAt:  saleWindowEndAt.Unix(),
+		ShowEndAt:        showEndAt.Unix(),
 		DistributionMode: in.GetDistributionMode(),
 		TakeTicketMode:   in.GetTakeTicketMode(),
 	})
@@ -102,4 +119,14 @@ func validateCreatePurchaseTokenReq(in *pb.CreatePurchaseTokenReq) error {
 	}
 
 	return nil
+}
+
+func parsePurchaseTokenTime(primary, fallback string) (time.Time, error) {
+	if primary != "" {
+		return parseOrderTime(primary)
+	}
+	if fallback != "" {
+		return parseOrderTime(fallback)
+	}
+	return time.Time{}, xerr.ErrInvalidParam
 }

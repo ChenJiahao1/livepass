@@ -7,7 +7,6 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/limitcache"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
 	"damai-go/services/order-rpc/internal/rush"
@@ -34,7 +33,6 @@ type ServiceContext struct {
 	ShardSqlConns              map[string]sqlx.SqlConn
 	Redis                      *xredis.Client
 	AttemptStore               *rush.AttemptStore
-	PurchaseLimitStore         *limitcache.PurchaseLimitStore
 	OrderRouteMap              *sharding.RouteMap
 	OrderRouter                sharding.Router
 	OrderRepository            repository.OrderRepository
@@ -126,7 +124,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		ShardSqlConns:              shardConns,
 		Redis:                      rds,
 		AttemptStore:               attemptStore,
-		PurchaseLimitStore:         limitcache.NewPurchaseLimitStore(rds, orderRepository, limitcache.Config{}),
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,

@@ -86,7 +86,7 @@ func TestCloseExpiredOrderReleasesCommittedRushAttemptProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AttemptStore.Get() error = %v", err)
 	}
-	if err := store.CommitProjection(ctx, record, now); err != nil {
+	if err := store.CommitProjection(ctx, record, nil, now); err != nil {
 		t.Fatalf("CommitProjection() error = %v", err)
 	}
 

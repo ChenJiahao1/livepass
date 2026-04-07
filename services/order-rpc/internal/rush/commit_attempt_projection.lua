@@ -1,12 +1,28 @@
 -- KEYS:
 -- 1: attempt record key(hash)
--- 2: user inflight key(string)
--- 3: user fingerprint index key(hash)
--- 4..n: viewer inflight keys(string)
+-- 2: user active key(string)
+-- 3: user inflight key(string)
+-- 4: order progress index(zset)
+-- 5: seat occupied key(set)
+-- 6..(5+viewer_count): viewer active keys(string)
+-- remaining: viewer inflight keys(string)
 --
 -- ARGV:
 -- 1: now(unix ms)
--- 2: token_fingerprint
+-- 2: active ttl seconds
+-- 3: final attempt ttl seconds
+-- 4: seat ids csv
+-- 5: viewer_count
+-- 6: order_number
+
+local activeTTL = tonumber(ARGV[2]) or 0
+local finalAttemptTTL = tonumber(ARGV[3]) or 0
+local seatIDsCSV = ARGV[4] or ""
+local viewerCount = tonumber(ARGV[5]) or 0
+local orderNo = ARGV[6]
+local viewerActiveStart = 6
+local viewerActiveEnd = viewerActiveStart + viewerCount - 1
+local viewerInflightStart = viewerActiveEnd + 1
 
 if redis.call("EXISTS", KEYS[1]) == 0 then
     return -1
@@ -21,13 +37,39 @@ if state ~= "COMMITTED" then
     )
 end
 
-redis.call("DEL", KEYS[2])
-for idx = 4, #KEYS do
+if activeTTL > 0 then
+    redis.call("SETEX", KEYS[2], activeTTL, orderNo)
+else
+    redis.call("SET", KEYS[2], orderNo)
+end
+for idx = viewerActiveStart, viewerActiveEnd do
+    if activeTTL > 0 then
+        redis.call("SETEX", KEYS[idx], activeTTL, orderNo)
+    else
+        redis.call("SET", KEYS[idx], orderNo)
+    end
+end
+
+if seatIDsCSV ~= "" then
+    for member in string.gmatch(seatIDsCSV, "([^,]+)") do
+        if member ~= "" then
+            redis.call("SADD", KEYS[5], member)
+        end
+    end
+    if activeTTL > 0 then
+        redis.call("EXPIRE", KEYS[5], activeTTL)
+    end
+end
+
+redis.call("DEL", KEYS[3])
+for idx = viewerInflightStart, #KEYS do
     redis.call("DEL", KEYS[idx])
 end
 
-if ARGV[2] and ARGV[2] ~= "" then
-    redis.call("HDEL", KEYS[3], ARGV[2])
+redis.call("ZREM", KEYS[4], orderNo)
+
+if finalAttemptTTL > 0 then
+    redis.call("EXPIRE", KEYS[1], finalAttemptTTL)
 end
 
 return 1

@@ -15,7 +15,6 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/limitcache"
 	"damai-go/services/order-rpc/internal/model"
 	"damai-go/services/order-rpc/internal/mq"
 	"damai-go/services/order-rpc/internal/repeatguard"
@@ -36,8 +35,6 @@ import (
 )
 
 var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
-
-const testPurchaseLimitLedgerPrefix = "damai-go:test:order:purchase-limit"
 
 const (
 	testOrderStatusUnpaid    int64 = 1
@@ -279,11 +276,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		RouteMap: routeMap,
 		Router:   orderRouter,
 	})
-	purchaseLimitStore := limitcache.NewPurchaseLimitStore(redisClient, orderRepository, limitcache.Config{
-		Prefix:          testPurchaseLimitLedgerPrefix,
-		LedgerTTL:       time.Hour,
-		LoadingCooldown: 200 * time.Millisecond,
-	})
 	attemptStore := rush.NewAttemptStore(redisClient, rush.AttemptStoreConfig{
 		InFlightTTL:   cfg.RushOrder.InFlightTTL,
 		FinalStateTTL: cfg.RushOrder.FinalStateTTL,
@@ -298,7 +290,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		},
 		Redis:                      redisClient,
 		AttemptStore:               attemptStore,
-		PurchaseLimitStore:         purchaseLimitStore,
 		OrderRouteMap:              routeMap,
 		OrderRouter:                orderRouter,
 		OrderRepository:            orderRepository,
@@ -417,92 +408,6 @@ func mustInitOrderTestXid(t *testing.T) {
 	t.Cleanup(func() {
 		_ = xid.Close()
 	})
-}
-
-func clearPurchaseLimitLedger(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
-	t.Helper()
-
-	if svcCtx.PurchaseLimitStore == nil {
-		t.Fatalf("expected purchase limit store to be configured")
-	}
-	if err := svcCtx.PurchaseLimitStore.Clear(context.Background(), userID, programID); err != nil {
-		t.Fatalf("clear purchase limit ledger error: %v", err)
-	}
-}
-
-func seedPurchaseLimitLedger(t *testing.T, svcCtx *svc.ServiceContext, userID, programID, activeCount int64, reservations map[int64]int64) {
-	t.Helper()
-
-	if svcCtx.PurchaseLimitStore == nil {
-		t.Fatalf("expected purchase limit store to be configured")
-	}
-	if err := svcCtx.PurchaseLimitStore.Seed(context.Background(), userID, programID, activeCount, reservations); err != nil {
-		t.Fatalf("seed purchase limit ledger error: %v", err)
-	}
-}
-
-func requirePurchaseLimitSnapshot(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) *limitcache.PurchaseLimitSnapshot {
-	t.Helper()
-
-	if svcCtx.PurchaseLimitStore == nil {
-		t.Fatalf("expected purchase limit store to be configured")
-	}
-
-	snapshot, err := svcCtx.PurchaseLimitStore.Snapshot(context.Background(), userID, programID)
-	if err != nil {
-		t.Fatalf("snapshot purchase limit ledger error: %v", err)
-	}
-
-	return snapshot
-}
-
-func waitPurchaseLimitLedgerReady(t *testing.T, svcCtx *svc.ServiceContext, userID, programID, expectedActiveCount int64) *limitcache.PurchaseLimitSnapshot {
-	t.Helper()
-
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		snapshot := requirePurchaseLimitSnapshot(t, svcCtx, userID, programID)
-		if snapshot.Ready && snapshot.ActiveCount == expectedActiveCount {
-			return snapshot
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-
-	t.Fatalf("purchase limit ledger was not ready before deadline, userID=%d programID=%d", userID, programID)
-	return nil
-}
-
-func requirePurchaseLimitLedgerAbsentFor(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64, duration time.Duration) {
-	t.Helper()
-
-	deadline := time.Now().Add(duration)
-	for time.Now().Before(deadline) {
-		snapshot := requirePurchaseLimitSnapshot(t, svcCtx, userID, programID)
-		if snapshot.Ready || snapshot.Loading {
-			t.Fatalf(
-				"expected purchase limit ledger to stay absent, userID=%d programID=%d snapshot=%+v",
-				userID,
-				programID,
-				snapshot,
-			)
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-}
-
-func primePurchaseLimitLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, userID, programID int64) {
-	t.Helper()
-
-	activeCount, err := svcCtx.OrderRepository.CountActiveTicketsByUserShowTime(context.Background(), userID, programID)
-	if err != nil {
-		t.Fatalf("count active tickets for purchase limit ledger error: %v", err)
-	}
-	reservations, err := svcCtx.OrderRepository.ListUnpaidReservationsByUserShowTime(context.Background(), userID, programID)
-	if err != nil {
-		t.Fatalf("list unpaid reservations for purchase limit ledger error: %v", err)
-	}
-
-	seedPurchaseLimitLedger(t, svcCtx, userID, programID, activeCount, reservations)
 }
 
 func (f *fakeOrderCreateProducer) Send(_ context.Context, key string, value []byte) error {
@@ -1100,6 +1005,8 @@ func buildTestProgramPreorder(programID, ticketCategoryID, perOrderLimit, perAcc
 		ShowTime:                     "2026-12-31 19:30:00",
 		ShowDayTime:                  "2026-12-31 00:00:00",
 		ShowWeekTime:                 "周四",
+		RushSaleOpenTime:             "2026-12-31 18:00:00",
+		RushSaleEndTime:              "2026-12-31 19:00:00",
 		PerOrderLimitPurchaseCount:   perOrderLimit,
 		PerAccountLimitPurchaseCount: perAccountLimit,
 		PermitChooseSeat:             0,

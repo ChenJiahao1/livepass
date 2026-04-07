@@ -23,15 +23,19 @@ func compensateOrderCreateSendFailureFallback(ctx context.Context, svcCtx *svc.S
 }
 
 func compensateOrderCreateExpired(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64, freezeToken string) {
-	releaseOrderCreatePurchaseLimit(ctx, svcCtx, userID, programID, orderNumber)
+	_ = userID
+	_ = programID
+	_ = orderNumber
 	releaseOrderCreateFreeze(ctx, svcCtx, freezeToken, orderCreateExpiredReleaseReason)
 }
 
 func compensateOrderCreateSeatFreezeFailure(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64, freezeReq *programrpc.AutoAssignAndFreezeSeatsReq) {
+	_ = userID
+	_ = programID
+	_ = orderNumber
 	compensationCtx, cancel := newOrderCreateCompensationContext()
 	defer cancel()
 
-	releaseOrderCreatePurchaseLimit(compensationCtx, svcCtx, userID, programID, orderNumber)
 	recoverAndReleaseOrderCreateFreeze(compensationCtx, svcCtx, freezeReq)
 }
 
@@ -45,7 +49,9 @@ func compensateOrderCreateSendFailure(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func compensateOrderCreateBeforeSendFailure(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64, freezeToken string) {
-	releaseOrderCreatePurchaseLimit(ctx, svcCtx, userID, programID, orderNumber)
+	_ = userID
+	_ = programID
+	_ = orderNumber
 	releaseOrderCreateFreeze(ctx, svcCtx, freezeToken, orderCreateSendFailedReleaseReason)
 }
 
@@ -93,35 +99,4 @@ func recoverAndReleaseOrderCreateFreeze(ctx context.Context, svcCtx *svc.Service
 
 func newOrderCreateCompensationContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), orderCreateCompensationTimeout)
-}
-
-func releaseOrderCreatePurchaseLimit(ctx context.Context, svcCtx *svc.ServiceContext, userID, programID, orderNumber int64) {
-	if userID <= 0 || programID <= 0 || orderNumber <= 0 || svcCtx == nil || svcCtx.PurchaseLimitStore == nil {
-		return
-	}
-
-	snapshot, err := svcCtx.PurchaseLimitStore.Snapshot(ctx, userID, programID)
-	if err != nil {
-		logx.WithContext(ctx).Errorf(
-			"snapshot purchase limit compensation failed, userID=%d programID=%d orderNumber=%d err=%v",
-			userID,
-			programID,
-			orderNumber,
-			err,
-		)
-		return
-	}
-	if !snapshot.Ready || snapshot.Reservations[orderNumber] <= 0 {
-		return
-	}
-
-	if err := svcCtx.PurchaseLimitStore.Release(ctx, userID, programID, orderNumber); err != nil {
-		logx.WithContext(ctx).Errorf(
-			"release purchase limit compensation failed, userID=%d programID=%d orderNumber=%d err=%v",
-			userID,
-			programID,
-			orderNumber,
-			err,
-		)
-	}
 }

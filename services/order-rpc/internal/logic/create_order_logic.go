@@ -53,12 +53,16 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		OrderNumber:      claims.OrderNumber,
 		UserID:           claims.UserID,
 		ProgramID:        claims.ProgramID,
+		ShowTimeID:       claims.ShowTimeID,
 		TicketCategoryID: claims.TicketCategoryID,
 		ViewerIDs:        append([]int64(nil), claims.TicketUserIDs...),
 		TicketCount:      claims.TicketCount,
+		Generation:       claims.Generation,
+		SaleWindowEndAt:  time.Unix(claims.SaleWindowEndAt, 0),
 		TokenFingerprint: claims.TokenFingerprint,
 		CommitCutoffAt:   now.Add(l.svcCtx.Config.RushOrder.CommitCutoff),
 		UserDeadlineAt:   now.Add(l.svcCtx.Config.RushOrder.UserDeadline),
+		ShowEndAt:        time.Unix(claims.ShowEndAt, 0),
 		Now:              now,
 	})
 	if err != nil {

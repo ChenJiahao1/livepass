@@ -156,7 +156,10 @@ func buildAttemptCreateEvent(attempt *rush.AttemptRecord, claims *rush.PurchaseT
 	if attempt.OrderNumber <= 0 || claims.OrderNumber <= 0 || attempt.OrderNumber != claims.OrderNumber {
 		return nil, xerr.ErrInvalidParam
 	}
-	if attempt.UserID != claims.UserID || attempt.ProgramID != claims.ProgramID || attempt.TicketCategoryID != claims.TicketCategoryID {
+	if attempt.UserID != claims.UserID || attempt.ProgramID != claims.ProgramID || attempt.ShowTimeID != claims.ShowTimeID || attempt.TicketCategoryID != claims.TicketCategoryID {
+		return nil, xerr.ErrInvalidParam
+	}
+	if attempt.Generation != claims.Generation {
 		return nil, xerr.ErrInvalidParam
 	}
 	if attempt.TicketCount <= 0 || attempt.TicketCount != claims.TicketCount {

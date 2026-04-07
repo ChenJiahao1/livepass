@@ -20,8 +20,12 @@ func TestPurchaseTokenRoundTrip(t *testing.T) {
 		OrderNumber:      91001,
 		UserID:           3001,
 		ProgramID:        10001,
+		ShowTimeID:       20001,
 		TicketCategoryID: 40001,
 		TicketUserIDs:    []int64{701, 702},
+		Generation:       BuildRushGeneration(20001),
+		SaleWindowEndAt:  base.Add(30 * time.Minute).Unix(),
+		ShowEndAt:        base.Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
 		TakeTicketMode:   "paper",
 	})
@@ -33,11 +37,14 @@ func TestPurchaseTokenRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Verify returned error: %v", err)
 	}
-	if claims.OrderNumber != 91001 || claims.UserID != 3001 || claims.ProgramID != 10001 {
+	if claims.OrderNumber != 91001 || claims.UserID != 3001 || claims.ProgramID != 10001 || claims.ShowTimeID != 20001 {
 		t.Fatalf("unexpected claims: %+v", claims)
 	}
-	if claims.TicketCount != 2 || claims.TokenFingerprint == "" {
+	if claims.TicketCount != 2 || claims.TokenFingerprint == "" || claims.Generation != BuildRushGeneration(20001) {
 		t.Fatalf("expected ticket count and fingerprint, got %+v", claims)
+	}
+	if claims.SaleWindowEndAt != base.Add(30*time.Minute).Unix() || claims.ShowEndAt != base.Add(2*time.Hour).Unix() {
+		t.Fatalf("unexpected window claims: %+v", claims)
 	}
 }
 
@@ -51,6 +58,7 @@ func TestPurchaseTokenRejectsTamperedPayload(t *testing.T) {
 		OrderNumber:      91001,
 		UserID:           3001,
 		ProgramID:        10001,
+		ShowTimeID:       20001,
 		TicketCategoryID: 40001,
 		TicketUserIDs:    []int64{701},
 	})
@@ -76,6 +84,7 @@ func TestPurchaseTokenRejectsExpiredToken(t *testing.T) {
 		OrderNumber:      91001,
 		UserID:           3001,
 		ProgramID:        10001,
+		ShowTimeID:       20001,
 		TicketCategoryID: 40001,
 		TicketUserIDs:    []int64{701},
 	})
@@ -101,8 +110,10 @@ func TestPurchaseTokenVerifyReturnsNormalizedClaims(t *testing.T) {
 		OrderNumber:      91001,
 		UserID:           3001,
 		ProgramID:        10001,
+		ShowTimeID:       20001,
 		TicketCategoryID: 40001,
 		TicketUserIDs:    []int64{701, 702},
+		Generation:       BuildRushGeneration(20001),
 		ExpireAt:         base.Add(time.Minute).Unix(),
 	})
 	if err != nil {
@@ -125,5 +136,8 @@ func TestPurchaseTokenVerifyReturnsNormalizedClaims(t *testing.T) {
 	}
 	if claims.TokenFingerprint == "" {
 		t.Fatalf("expected normalized token fingerprint, got empty")
+	}
+	if claims.Generation != BuildRushGeneration(20001) || claims.ShowTimeID != 20001 {
+		t.Fatalf("expected normalized show time generation claims, got %+v", claims)
 	}
 }

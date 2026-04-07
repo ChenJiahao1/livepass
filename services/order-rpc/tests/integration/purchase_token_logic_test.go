@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	logicpkg "damai-go/services/order-rpc/internal/logic"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/pb"
 	userrpc "damai-go/services/user-rpc/userrpc"
 
@@ -59,11 +60,14 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Verify() error = %v", err)
 	}
-	if claims.UserID != userID || claims.ProgramID != programID || claims.TicketCategoryID != ticketCategoryID {
+	if claims.UserID != userID || claims.ProgramID != programID || claims.ShowTimeID != programID || claims.TicketCategoryID != ticketCategoryID {
 		t.Fatalf("unexpected claims: %+v", claims)
 	}
 	if claims.DistributionMode != "express" || claims.TakeTicketMode != "paper" {
 		t.Fatalf("unexpected transport claims: %+v", claims)
+	}
+	if claims.Generation != rush.BuildRushGeneration(programID) || claims.SaleWindowEndAt == 0 || claims.ShowEndAt == 0 {
+		t.Fatalf("expected show time generation window claims, got %+v", claims)
 	}
 	if err := svcCtx.AttemptStore.SetQuotaAvailable(context.Background(), programID, ticketCategoryID, 4); err != nil {
 		t.Fatalf("SetQuotaAvailable() error = %v", err)

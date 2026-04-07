@@ -73,7 +73,7 @@ func advanceRushAttemptProjection(ctx context.Context, svcCtx *svc.ServiceContex
 		if record.State == rush.AttemptStateCommitted {
 			return false, nil
 		}
-		return true, svcCtx.AttemptStore.CommitProjection(ctx, record, now)
+		return true, svcCtx.AttemptStore.CommitProjection(ctx, record, nil, now)
 	}
 	if err != nil && !errors.Is(err, model.ErrNotFound) {
 		return false, err
