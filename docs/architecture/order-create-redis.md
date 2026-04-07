@@ -18,7 +18,7 @@ pay_order_logic.go:31。
     ticketing.attempt.command.v1 发一条“创建抢票 attempt”消息，最后把 attempt 标成 QUEUED 并把 orderNumber 直接返回给前端。也就是说，前端此时只拿到了一个“排队中的订单号”。
 4. Kafka consumer 消费到这条消息后，先把 attempt 从 PENDING_PUBLISH/QUEUED 抢成 PROCESSING，并给 processing_epoch 加一。然后它会再读 preorder、再读 ticketUser 列表，并调用 program-
     rpc.AutoAssignAndFreezeSeats 真正做系统排座。这里的冻座发生在节目域 Redis seat-ledger，不在 MySQL：Lua 会从 available zset 里优先挑连坐，不够再顺序补齐，把座位从 available 挪到
-    frozen:<freezeToken>，同时把 stock.available_count 减掉。随后再写一份 freeze metadata，记录 freezeToken/requestNo/showTimeId/ticketCategoryId/ownerOrderNumber/ownerEpoch/expireAt。这一阶段 MySQL
+    frozen:<freezeToken>，同时把 stock 字符串库存值减掉。随后再写一份 freeze metadata，记录 freezeToken/requestNo/showTimeId/ticketCategoryId/ownerOrderNumber/ownerEpoch/expireAt。这一阶段 MySQL
     的 d_seat 还不变，冻结态只存在于 Redis。
 5. 冻座成功后，consumer 在订单域开启 MySQL 事务落库，写六类事实：d_order_xx 主单、d_order_ticket_user_xx 明细、d_order_user_guard、d_order_viewer_guard、d_order_seat_guard、
     d_order_outbox(order.created)。事务成功后，再把 Redis attempt 投影改成 COMMITTED，删除 inflight，占上 user_active/viewer_active，并登记一个 close_timeout 延迟任务，等订单过期时自动关单。到这里 /
@@ -110,9 +110,8 @@ damai-go:program:seat-ledger:freeze:meta:<freeze_token>
 damai-go:program:seat-ledger:freeze:req:<request_no>
 damai-go:program:seat-ledger:freeze:index:<scope_tag>:<ticket_category_id>
 
-- stock 是 Hash。
-  示例：
-  available_count="128"
+- stock 是 String。
+  示例 value：`128`
   含义：该 showTime + ticketCategory 当前真实可冻结座位数。
 - available 是 ZSET。
   示例 member：`88001|40001|12|8|380`
@@ -157,7 +156,7 @@ damai-go:program:seat-ledger:freeze:index:<scope_tag>:<ticket_category_id>
   member=`freeze-90001`
   score=`1775552000`
   含义：按过期时间索引当前仍处于 frozen 状态的 freezeToken，供过期回收扫描。
-- 这里的 stock.available_count 是“真实排座可冻结数”；和订单侧 quota 是两套口径，允许短时不一致。
+- 这里的 stock 字符串值是“真实排座可冻结数”；和订单侧 quota 是两套口径，允许短时不一致。
 
 Kafka：
 
@@ -183,4 +182,4 @@ MySQL：
 
 - poll SUCCESS 的含义是“Redis attempt 已 COMMITTED，MySQL 已有未支付订单”，不是“用户已支付成功”。
 - 当前代码里，座位冻结是 Redis-only；MySQL d_seat 直到支付确认才写成已售。所以未支付取消时不会去改 d_seat，只会释放 Redis 冻结。
-- quota 和 seat-ledger.available_count 是双轨模型。前者只负责热路径 admission，后者才负责真实排座冻结；两者会短时不一致，这是当前实现刻意接受的。
+- quota 和 seat-ledger.stock 是双轨模型。前者只负责热路径 admission，后者才负责真实排座冻结；两者会短时不一致，这是当前实现刻意接受的。

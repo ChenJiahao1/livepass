@@ -3,8 +3,7 @@ package seatcache
 import "fmt"
 
 const (
-	defaultSeatLedgerPrefix      = "damai-go:program:seat-ledger"
-	seatStockAvailableCountField = "available_count"
+	defaultSeatLedgerPrefix = "damai-go:program:seat-ledger"
 )
 
 func stockKey(prefix string, showTimeID, ticketCategoryID int64) string {

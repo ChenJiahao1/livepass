@@ -9,7 +9,7 @@ end
 local count = tonumber(ARGV[1]) or 0
 local stockTTLSeconds = tonumber(ARGV[2]) or 0
 local seatTTLSeconds = tonumber(ARGV[3]) or 0
-local availableCount = tonumber(redis.call("HGET", stockKey, "available_count") or "0")
+local availableCount = tonumber(redis.call("GET", stockKey) or "0")
 if availableCount < count then
 	return {0}
 end
@@ -108,7 +108,7 @@ for _, member in ipairs(selectedSeats) do
 	redis.call("ZADD", frozenKey, rowCode * 1000000 + colCode, member)
 end
 
-redis.call("HINCRBY", stockKey, "available_count", -count)
+redis.call("INCRBY", stockKey, -count)
 if stockTTLSeconds > 0 then
 	redis.call("EXPIRE", stockKey, stockTTLSeconds)
 end

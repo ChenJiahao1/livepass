@@ -279,7 +279,7 @@ func (s *SeatStockStore) Snapshot(ctx context.Context, showTimeID, ticketCategor
 		return snapshot, nil
 	}
 
-	availableCountRaw, err := s.redis.HgetCtx(ctx, stockKey(s.prefix, showTimeID, ticketCategoryID), seatStockAvailableCountField)
+	availableCountRaw, err := s.redis.GetCtx(ctx, stockKey(s.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return nil, err
 	}

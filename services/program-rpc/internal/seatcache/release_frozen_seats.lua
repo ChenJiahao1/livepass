@@ -44,7 +44,7 @@ for _, member in ipairs(frozenSeats) do
 end
 
 redis.call("DEL", frozenKey)
-redis.call("HINCRBY", stockKey, "available_count", #frozenSeats)
+redis.call("INCRBY", stockKey, #frozenSeats)
 if stockTTLSeconds > 0 then
 	redis.call("EXPIRE", stockKey, stockTTLSeconds)
 end

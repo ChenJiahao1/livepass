@@ -95,11 +95,13 @@ func (l *seatStockLoader) loadWithContext(ctx context.Context, showTimeID, ticke
 	}
 
 	stockRedisKey := stockKey(l.prefix, showTimeID, ticketCategoryID)
-	if err := l.redis.HsetCtx(ctx, stockRedisKey, seatStockAvailableCountField, strconv.FormatInt(int64(len(availableSeats)), 10)); err != nil {
-		return err
-	}
+	availableCount := strconv.FormatInt(int64(len(availableSeats)), 10)
 	if l.stockTTLSeconds > 0 {
-		if err := l.redis.ExpireCtx(ctx, stockRedisKey, l.stockTTLSeconds); err != nil {
+		if err := l.redis.SetexCtx(ctx, stockRedisKey, availableCount, l.stockTTLSeconds); err != nil {
+			return err
+		}
+	} else {
+		if err := l.redis.SetCtx(ctx, stockRedisKey, availableCount); err != nil {
 			return err
 		}
 	}
