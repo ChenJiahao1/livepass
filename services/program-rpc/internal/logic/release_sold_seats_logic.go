@@ -30,14 +30,14 @@ func NewReleaseSoldSeatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *ReleaseSoldSeatsLogic) ReleaseSoldSeats(in *pb.ReleaseSoldSeatsReq) (*pb.ReleaseSoldSeatsResp, error) {
-	if in.GetProgramId() <= 0 || len(in.GetSeatIds()) == 0 || in.GetRequestNo() == "" {
+	if in.GetShowTimeId() <= 0 || len(in.GetSeatIds()) == 0 || in.GetRequestNo() == "" {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
 	seatIDs := uniqueSeatIDs(in.GetSeatIds())
 	err := l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
 		seatModel := model.NewDSeatModel(sqlx.NewSqlConnFromSession(session))
-		seats, err := seatModel.FindByProgramAndIDsForUpdate(ctx, session, in.GetProgramId(), seatIDs)
+		seats, err := seatModel.FindByShowTimeAndIDsForUpdate(ctx, session, in.GetShowTimeId(), seatIDs)
 		if err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ func (l *ReleaseSoldSeatsLogic) ReleaseSoldSeats(in *pb.ReleaseSoldSeatsReq) (*p
 			}
 		}
 
-		return seatModel.ReleaseSoldByIDs(ctx, session, in.GetProgramId(), seatIDs)
+		return seatModel.ReleaseSoldByShowTimeAndIDs(ctx, session, in.GetShowTimeId(), seatIDs)
 	})
 	if err != nil {
 		if status.Code(err) != codes.Unknown || errors.Is(err, xerr.ErrInvalidParam) {

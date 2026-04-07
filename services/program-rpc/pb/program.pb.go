@@ -3231,7 +3231,7 @@ func (x *ProgramPreorderInfo) GetTicketCategoryVoList() []*ProgramPreorderTicket
 
 type AutoAssignAndFreezeSeatsReq struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	ProgramId        int64                  `protobuf:"varint,1,opt,name=programId,proto3" json:"programId,omitempty"`
+	ShowTimeId       int64                  `protobuf:"varint,1,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	TicketCategoryId int64                  `protobuf:"varint,2,opt,name=ticketCategoryId,proto3" json:"ticketCategoryId,omitempty"`
 	Count            int64                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
 	RequestNo        string                 `protobuf:"bytes,4,opt,name=requestNo,proto3" json:"requestNo,omitempty"`
@@ -3272,9 +3272,9 @@ func (*AutoAssignAndFreezeSeatsReq) Descriptor() ([]byte, []int) {
 	return file_program_proto_rawDescGZIP(), []int{40}
 }
 
-func (x *AutoAssignAndFreezeSeatsReq) GetProgramId() int64 {
+func (x *AutoAssignAndFreezeSeatsReq) GetShowTimeId() int64 {
 	if x != nil {
-		return x.ProgramId
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -3727,7 +3727,7 @@ func (x *EvaluateRefundRuleResp) GetRejectReason() string {
 
 type ReleaseSoldSeatsReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProgramId     int64                  `protobuf:"varint,1,opt,name=programId,proto3" json:"programId,omitempty"`
+	ShowTimeId    int64                  `protobuf:"varint,1,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	SeatIds       []int64                `protobuf:"varint,2,rep,packed,name=seatIds,proto3" json:"seatIds,omitempty"`
 	RequestNo     string                 `protobuf:"bytes,3,opt,name=requestNo,proto3" json:"requestNo,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -3764,9 +3764,9 @@ func (*ReleaseSoldSeatsReq) Descriptor() ([]byte, []int) {
 	return file_program_proto_rawDescGZIP(), []int{48}
 }
 
-func (x *ReleaseSoldSeatsReq) GetProgramId() int64 {
+func (x *ReleaseSoldSeatsReq) GetShowTimeId() int64 {
 	if x != nil {
-		return x.ProgramId
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -4575,9 +4575,11 @@ const file_program_proto_rawDesc = "" +
 	"\x1cperAccountLimitPurchaseCount\x18\x0e \x01(\x03R\x1cperAccountLimitPurchaseCount\x12*\n" +
 	"\x10permitChooseSeat\x18\x0f \x01(\x03R\x10permitChooseSeat\x12,\n" +
 	"\x11chooseSeatExplain\x18\x10 \x01(\tR\x11chooseSeatExplain\x12^\n" +
-	"\x14ticketCategoryVoList\x18\x11 \x03(\v2*.program.ProgramPreorderTicketCategoryInfoR\x14ticketCategoryVoList\"\x8d\x02\n" +
-	"\x1bAutoAssignAndFreezeSeatsReq\x12\x1c\n" +
-	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\x12*\n" +
+	"\x14ticketCategoryVoList\x18\x11 \x03(\v2*.program.ProgramPreorderTicketCategoryInfoR\x14ticketCategoryVoList\"\x8f\x02\n" +
+	"\x1bAutoAssignAndFreezeSeatsReq\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x01 \x01(\x03R\n" +
+	"showTimeId\x12*\n" +
 	"\x10ticketCategoryId\x18\x02 \x01(\x03R\x10ticketCategoryId\x12\x14\n" +
 	"\x05count\x18\x03 \x01(\x03R\x05count\x12\x1c\n" +
 	"\trequestNo\x18\x04 \x01(\tR\trequestNo\x12$\n" +
@@ -4617,9 +4619,11 @@ const file_program_proto_rawDesc = "" +
 	"\vallowRefund\x18\x01 \x01(\bR\vallowRefund\x12$\n" +
 	"\rrefundPercent\x18\x02 \x01(\x03R\rrefundPercent\x12\"\n" +
 	"\frefundAmount\x18\x03 \x01(\x03R\frefundAmount\x12\"\n" +
-	"\frejectReason\x18\x04 \x01(\tR\frejectReason\"k\n" +
-	"\x13ReleaseSoldSeatsReq\x12\x1c\n" +
-	"\tprogramId\x18\x01 \x01(\x03R\tprogramId\x12\x18\n" +
+	"\frejectReason\x18\x04 \x01(\tR\frejectReason\"m\n" +
+	"\x13ReleaseSoldSeatsReq\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x01 \x01(\x03R\n" +
+	"showTimeId\x12\x18\n" +
 	"\aseatIds\x18\x02 \x03(\x03R\aseatIds\x12\x1c\n" +
 	"\trequestNo\x18\x03 \x01(\tR\trequestNo\"0\n" +
 	"\x14ReleaseSoldSeatsResp\x12\x18\n" +

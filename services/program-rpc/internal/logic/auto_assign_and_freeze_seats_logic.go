@@ -50,21 +50,14 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 		return nil, mapAutoAssignSeatError(xerr.ErrProgramSeatLedgerNotReady)
 	}
 
-	unlock := ensureSeatFreezeLocker(l.svcCtx).Lock(seatFreezeLockKey(in.GetProgramId(), in.GetTicketCategoryId()))
+	unlock := ensureSeatFreezeLocker(l.svcCtx).Lock(seatFreezeLockKey(in.GetShowTimeId(), in.GetTicketCategoryId()))
 	defer unlock()
 
 	now := time.Now()
 	var freezeToken string
 	var reservedSeats []seatcache.Seat
 
-	if _, err := l.svcCtx.DProgramModel.FindOne(l.ctx, in.GetProgramId()); err != nil {
-		if errors.Is(err, model.ErrNotFound) {
-			return nil, programNotFoundError()
-		}
-		return nil, mapAutoAssignSeatError(err)
-	}
-
-	showTime, err := l.svcCtx.DProgramShowTimeModel.FindFirstByProgramId(l.ctx, in.GetProgramId())
+	showTime, err := l.svcCtx.DProgramShowTimeModel.FindOne(l.ctx, in.GetShowTimeId())
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, mapAutoAssignSeatError(xerr.ErrProgramShowTimeNotFound)
@@ -72,7 +65,7 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 		return nil, mapAutoAssignSeatError(err)
 	}
 
-	ticketCategories, err := l.svcCtx.DTicketCategoryModel.FindByProgramId(l.ctx, in.GetProgramId())
+	ticketCategories, err := l.svcCtx.DTicketCategoryModel.FindByShowTimeId(l.ctx, in.GetShowTimeId())
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, mapAutoAssignSeatError(xerr.ErrProgramTicketCategoryNotFound)
@@ -96,15 +89,15 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 		return resp, nil
 	}
 
-	if err := recycleExpiredSeatFreezes(l.ctx, seatStore, in.GetProgramId(), in.GetTicketCategoryId(), now); err != nil {
+	if err := recycleExpiredSeatFreezes(l.ctx, seatStore, in.GetShowTimeId(), in.GetTicketCategoryId(), now); err != nil {
 		return nil, mapAutoAssignSeatError(err)
 	}
 
 	freezeToken = generateFreezeToken()
-	reservedSeats, err = seatStore.FreezeAutoAssignedSeats(l.ctx, in.GetProgramId(), in.GetTicketCategoryId(), freezeToken, in.GetCount())
+	reservedSeats, err = seatStore.FreezeAutoAssignedSeats(l.ctx, in.GetShowTimeId(), in.GetTicketCategoryId(), freezeToken, in.GetCount())
 	if err != nil {
 		if freezeToken != "" && len(reservedSeats) > 0 {
-			_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetProgramId(), in.GetTicketCategoryId(), freezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch())
+			_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetShowTimeId(), in.GetTicketCategoryId(), freezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch())
 		}
 		return nil, mapAutoAssignSeatError(err)
 	}
@@ -114,7 +107,8 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 	freeze := &seatcache.SeatFreezeMetadata{
 		FreezeToken:      freezeToken,
 		RequestNo:        in.GetRequestNo(),
-		ProgramID:        in.GetProgramId(),
+		ProgramID:        showTime.ProgramId,
+		ShowTimeID:       in.GetShowTimeId(),
 		TicketCategoryID: in.GetTicketCategoryId(),
 		OwnerOrderNumber: in.GetOwnerOrderNumber(),
 		OwnerEpoch:       in.GetOwnerEpoch(),
@@ -124,7 +118,7 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 		UpdatedAt:        now.Unix(),
 	}
 	if err := seatStore.SaveFreezeMetadata(l.ctx, freeze); err != nil {
-		_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetProgramId(), in.GetTicketCategoryId(), freezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch())
+		_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetShowTimeId(), in.GetTicketCategoryId(), freezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch())
 		return nil, mapAutoAssignSeatError(err)
 	}
 
@@ -136,7 +130,7 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 }
 
 func validateAutoAssignAndFreezeSeatsReq(in *pb.AutoAssignAndFreezeSeatsReq) error {
-	if in.GetProgramId() <= 0 || in.GetTicketCategoryId() <= 0 || in.GetCount() <= 0 || in.GetRequestNo() == "" {
+	if in.GetShowTimeId() <= 0 || in.GetTicketCategoryId() <= 0 || in.GetCount() <= 0 || in.GetRequestNo() == "" {
 		return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 	if !hasSeatFreezeOwner(in.GetOwnerOrderNumber(), in.GetOwnerEpoch()) &&
@@ -148,7 +142,7 @@ func validateAutoAssignAndFreezeSeatsReq(in *pb.AutoAssignAndFreezeSeatsReq) err
 }
 
 func buildExistingSeatFreezeResp(ctx context.Context, seatStore *seatcache.SeatStockStore, existingFreeze *seatcache.SeatFreezeMetadata, in *pb.AutoAssignAndFreezeSeatsReq, now time.Time) (*pb.AutoAssignAndFreezeSeatsResp, error) {
-	if existingFreeze.ProgramID != in.GetProgramId() ||
+	if existingFreeze.ShowTimeID != in.GetShowTimeId() ||
 		existingFreeze.TicketCategoryID != in.GetTicketCategoryId() ||
 		existingFreeze.SeatCount != in.GetCount() ||
 		existingFreeze.OwnerOrderNumber != in.GetOwnerOrderNumber() ||
@@ -159,7 +153,7 @@ func buildExistingSeatFreezeResp(ctx context.Context, seatStore *seatcache.SeatS
 		return nil, xerr.ErrSeatFreezeRequestConflict
 	}
 
-	seats, err := seatStore.FrozenSeats(ctx, existingFreeze.ProgramID, existingFreeze.TicketCategoryID, existingFreeze.FreezeToken)
+	seats, err := seatStore.FrozenSeats(ctx, existingFreeze.ShowTimeID, existingFreeze.TicketCategoryID, existingFreeze.FreezeToken)
 	if err != nil {
 		return nil, err
 	}
@@ -174,8 +168,8 @@ func buildExistingSeatFreezeResp(ctx context.Context, seatStore *seatcache.SeatS
 	}, nil
 }
 
-func recycleExpiredSeatFreezes(ctx context.Context, seatStore *seatcache.SeatStockStore, programId, ticketCategoryId int64, now time.Time) error {
-	expiredFreezeTokens, err := seatStore.ListExpiredFreezeTokens(ctx, programId, ticketCategoryId, now)
+func recycleExpiredSeatFreezes(ctx context.Context, seatStore *seatcache.SeatStockStore, showTimeID, ticketCategoryId int64, now time.Time) error {
+	expiredFreezeTokens, err := seatStore.ListExpiredFreezeTokens(ctx, showTimeID, ticketCategoryId, now)
 	if err != nil {
 		return err
 	}
@@ -184,7 +178,7 @@ func recycleExpiredSeatFreezes(ctx context.Context, seatStore *seatcache.SeatSto
 	}
 
 	for _, freezeToken := range expiredFreezeTokens {
-		if err := seatStore.ReleaseFrozenSeats(ctx, programId, ticketCategoryId, freezeToken, 0, 0); err != nil {
+		if err := seatStore.ReleaseFrozenSeats(ctx, showTimeID, ticketCategoryId, freezeToken, 0, 0); err != nil {
 			return err
 		}
 		if _, err := seatStore.MarkFreezeExpired(ctx, freezeToken, now); err != nil {

@@ -345,7 +345,7 @@ message ProgramPreorderInfo {
 }
 
 message AutoAssignAndFreezeSeatsReq {
-  int64 programId = 1;
+  int64 showTimeId = 1;
   int64 ticketCategoryId = 2;
   int64 count = 3;
   string requestNo = 4;
@@ -395,7 +395,7 @@ message EvaluateRefundRuleResp {
 }
 
 message ReleaseSoldSeatsReq {
-  int64 programId = 1;
+  int64 showTimeId = 1;
   repeated int64 seatIds = 2;
   string requestNo = 3;
 }

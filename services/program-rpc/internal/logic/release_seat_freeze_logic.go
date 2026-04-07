@@ -62,7 +62,7 @@ func (l *ReleaseSeatFreezeLogic) ReleaseSeatFreeze(in *pb.ReleaseSeatFreezeReq) 
 		return &pb.ReleaseSeatFreezeResp{Success: true}, nil
 	}
 
-	if err := seatStore.ReleaseFrozenSeats(l.ctx, freeze.ProgramID, freeze.TicketCategoryID, freeze.FreezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch()); err != nil {
+	if err := seatStore.ReleaseFrozenSeats(l.ctx, freeze.ShowTimeID, freeze.TicketCategoryID, freeze.FreezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch()); err != nil {
 		return nil, mapReleaseSeatFreezeError(err)
 	}
 

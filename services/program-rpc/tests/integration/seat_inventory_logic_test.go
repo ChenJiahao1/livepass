@@ -41,7 +41,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-seat-success",
@@ -95,7 +95,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-seat-split-fallback",
@@ -131,7 +131,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		first, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-seat-idempotent",
@@ -142,7 +142,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 		}
 
 		second, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-seat-idempotent",
@@ -190,7 +190,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-expired-new",
@@ -227,7 +227,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		_, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-insufficient",
@@ -255,7 +255,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 
 		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		_, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-show-time-missing",
@@ -423,7 +423,7 @@ func TestReleaseSeatFreeze(t *testing.T) {
 
 		autoLogic := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		freezeResp, err := autoLogic.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-release-success",
@@ -471,7 +471,7 @@ func TestReleaseSeatFreeze(t *testing.T) {
 
 		autoLogic := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
 		freezeResp, err := autoLogic.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ProgramId:        programID,
+			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
 			RequestNo:        "req-release-idempotent",
@@ -520,8 +520,8 @@ func TestConcurrentSeatFreezeDoesNotOverlap(t *testing.T) {
 	)
 
 	requests := []*pb.AutoAssignAndFreezeSeatsReq{
-		{ProgramId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-1", FreezeSeconds: 900},
-		{ProgramId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-2", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-1", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-2", FreezeSeconds: 900},
 	}
 
 	for _, req := range requests {
@@ -603,8 +603,8 @@ func TestConcurrentSeatFreezeUsesDifferentHotspotKeysPerTicketCategory(t *testin
 		errs []error
 	)
 	requests := []*pb.AutoAssignAndFreezeSeatsReq{
-		{ProgramId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, RequestNo: "req-hotspot-cat-1", FreezeSeconds: 900},
-		{ProgramId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, RequestNo: "req-hotspot-cat-2", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, RequestNo: "req-hotspot-cat-1", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, RequestNo: "req-hotspot-cat-2", FreezeSeconds: 900},
 	}
 
 	for _, req := range requests {

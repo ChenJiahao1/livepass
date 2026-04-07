@@ -78,16 +78,16 @@ func recoverAndReleaseOrderCreateFreeze(ctx context.Context, svcCtx *svc.Service
 	if svcCtx == nil || svcCtx.ProgramRpc == nil || freezeReq == nil {
 		return
 	}
-	if freezeReq.GetProgramId() <= 0 || freezeReq.GetTicketCategoryId() <= 0 || freezeReq.GetCount() <= 0 || freezeReq.GetRequestNo() == "" {
+	if freezeReq.GetShowTimeId() <= 0 || freezeReq.GetTicketCategoryId() <= 0 || freezeReq.GetCount() <= 0 || freezeReq.GetRequestNo() == "" {
 		return
 	}
 
 	freezeResp, err := svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(ctx, freezeReq)
 	if err != nil {
 		logx.WithContext(ctx).Errorf(
-			"recover seat freeze compensation failed, requestNo=%s programId=%d ticketCategoryId=%d err=%v",
+			"recover seat freeze compensation failed, requestNo=%s showTimeId=%d ticketCategoryId=%d err=%v",
 			freezeReq.GetRequestNo(),
-			freezeReq.GetProgramId(),
+			freezeReq.GetShowTimeId(),
 			freezeReq.GetTicketCategoryId(),
 			err,
 		)

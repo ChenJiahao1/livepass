@@ -8,7 +8,7 @@ import (
 )
 
 type seatLedgerSource interface {
-	FindByProgramAndTicketCategoryAndSeatStatus(ctx context.Context, programID, ticketCategoryID, seatStatus int64) ([]*model.DSeat, error)
+	FindByShowTimeAndTicketCategoryAndSeatStatus(ctx context.Context, showTimeID, ticketCategoryID, seatStatus int64) ([]*model.DSeat, error)
 }
 
 type seatStockLoader struct {
@@ -35,57 +35,57 @@ func newSeatStockLoader(redis redisClient, seatModel seatLedgerSource, prefix st
 	}
 }
 
-func (l *seatStockLoader) Schedule(programID, ticketCategoryID int64) {
+func (l *seatStockLoader) Schedule(showTimeID, ticketCategoryID int64) {
 	if l == nil {
 		return
 	}
 
-	ok, err := l.redis.SetnxEx(loadingKey(l.prefix, programID, ticketCategoryID), "1", l.loadingCooldownSeconds)
+	ok, err := l.redis.SetnxEx(loadingKey(l.prefix, showTimeID, ticketCategoryID), "1", l.loadingCooldownSeconds)
 	if err != nil || !ok {
 		return
 	}
 
-	go l.load(programID, ticketCategoryID)
+	go l.load(showTimeID, ticketCategoryID)
 }
 
-func (l *seatStockLoader) LoadSync(ctx context.Context, programID, ticketCategoryID int64) error {
+func (l *seatStockLoader) LoadSync(ctx context.Context, showTimeID, ticketCategoryID int64) error {
 	if l == nil {
 		return nil
 	}
 
-	return l.loadWithContext(ctx, programID, ticketCategoryID)
+	return l.loadWithContext(ctx, showTimeID, ticketCategoryID)
 }
 
-func (l *seatStockLoader) load(programID, ticketCategoryID int64) {
+func (l *seatStockLoader) load(showTimeID, ticketCategoryID int64) {
 	ctx := context.Background()
-	_ = l.loadWithContext(ctx, programID, ticketCategoryID)
-	_, _ = l.redis.Del(loadingKey(l.prefix, programID, ticketCategoryID))
+	_ = l.loadWithContext(ctx, showTimeID, ticketCategoryID)
+	_, _ = l.redis.Del(loadingKey(l.prefix, showTimeID, ticketCategoryID))
 }
 
-func (l *seatStockLoader) loadWithContext(ctx context.Context, programID, ticketCategoryID int64) error {
-	availableSeats, err := l.seatModel.FindByProgramAndTicketCategoryAndSeatStatus(ctx, programID, ticketCategoryID, seatStatusAvailable)
+func (l *seatStockLoader) loadWithContext(ctx context.Context, showTimeID, ticketCategoryID int64) error {
+	availableSeats, err := l.seatModel.FindByShowTimeAndTicketCategoryAndSeatStatus(ctx, showTimeID, ticketCategoryID, seatStatusAvailable)
 	if err != nil {
 		return err
 	}
-	frozenSeats, err := l.seatModel.FindByProgramAndTicketCategoryAndSeatStatus(ctx, programID, ticketCategoryID, seatStatusFrozen)
+	frozenSeats, err := l.seatModel.FindByShowTimeAndTicketCategoryAndSeatStatus(ctx, showTimeID, ticketCategoryID, seatStatusFrozen)
 	if err != nil {
 		return err
 	}
-	soldSeats, err := l.seatModel.FindByProgramAndTicketCategoryAndSeatStatus(ctx, programID, ticketCategoryID, seatStatusSold)
+	soldSeats, err := l.seatModel.FindByShowTimeAndTicketCategoryAndSeatStatus(ctx, showTimeID, ticketCategoryID, seatStatusSold)
 	if err != nil {
 		return err
 	}
 
-	frozenKeys, err := l.redis.KeysCtx(ctx, frozenSeatsPattern(l.prefix, programID, ticketCategoryID))
+	frozenKeys, err := l.redis.KeysCtx(ctx, frozenSeatsPattern(l.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return err
 	}
 
 	keysToDelete := []string{
-		stockKey(l.prefix, programID, ticketCategoryID),
-		availableSeatsKey(l.prefix, programID, ticketCategoryID),
-		soldSeatsKey(l.prefix, programID, ticketCategoryID),
-		loadingKey(l.prefix, programID, ticketCategoryID),
+		stockKey(l.prefix, showTimeID, ticketCategoryID),
+		availableSeatsKey(l.prefix, showTimeID, ticketCategoryID),
+		soldSeatsKey(l.prefix, showTimeID, ticketCategoryID),
+		loadingKey(l.prefix, showTimeID, ticketCategoryID),
 	}
 	keysToDelete = append(keysToDelete, frozenKeys...)
 	if len(keysToDelete) > 0 {
@@ -94,7 +94,7 @@ func (l *seatStockLoader) loadWithContext(ctx context.Context, programID, ticket
 		}
 	}
 
-	stockRedisKey := stockKey(l.prefix, programID, ticketCategoryID)
+	stockRedisKey := stockKey(l.prefix, showTimeID, ticketCategoryID)
 	if err := l.redis.HsetCtx(ctx, stockRedisKey, seatStockAvailableCountField, strconv.FormatInt(int64(len(availableSeats)), 10)); err != nil {
 		return err
 	}
@@ -105,12 +105,12 @@ func (l *seatStockLoader) loadWithContext(ctx context.Context, programID, ticket
 	}
 
 	for _, seat := range availableSeats {
-		if err := l.addSeat(ctx, availableSeatsKey(l.prefix, programID, ticketCategoryID), newSeatFromModel(seat)); err != nil {
+		if err := l.addSeat(ctx, availableSeatsKey(l.prefix, showTimeID, ticketCategoryID), newSeatFromModel(seat)); err != nil {
 			return err
 		}
 	}
 	for _, seat := range soldSeats {
-		if err := l.addSeat(ctx, soldSeatsKey(l.prefix, programID, ticketCategoryID), newSeatFromModel(seat)); err != nil {
+		if err := l.addSeat(ctx, soldSeatsKey(l.prefix, showTimeID, ticketCategoryID), newSeatFromModel(seat)); err != nil {
 			return err
 		}
 	}
@@ -122,7 +122,7 @@ func (l *seatStockLoader) loadWithContext(ctx context.Context, programID, ticket
 		frozenSeatGroups[seat.FreezeToken.String] = append(frozenSeatGroups[seat.FreezeToken.String], seat)
 	}
 	for freezeToken, seats := range frozenSeatGroups {
-		redisKey := frozenSeatsKey(l.prefix, programID, ticketCategoryID, freezeToken)
+		redisKey := frozenSeatsKey(l.prefix, showTimeID, ticketCategoryID, freezeToken)
 		for _, seat := range seats {
 			if err := l.addSeat(ctx, redisKey, newSeatFromModel(seat)); err != nil {
 				return err

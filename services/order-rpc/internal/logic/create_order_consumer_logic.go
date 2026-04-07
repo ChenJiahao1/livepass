@@ -257,7 +257,7 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		return nil, nil, err
 	}
 	freezeReq := &programrpc.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        orderEvent.ProgramID,
+		ShowTimeId:       showTimeID,
 		TicketCategoryId: orderEvent.TicketCategoryID,
 		Count:            orderEvent.TicketCount,
 		RequestNo:        orderEvent.RequestNo,

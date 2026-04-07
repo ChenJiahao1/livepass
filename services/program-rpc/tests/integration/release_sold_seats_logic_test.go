@@ -24,9 +24,9 @@ func TestReleaseSoldSeats(t *testing.T) {
 
 		l := logicpkg.NewReleaseSoldSeatsLogic(context.Background(), svcCtx)
 		resp, err := l.ReleaseSoldSeats(&pb.ReleaseSoldSeatsReq{
-			ProgramId: programID,
-			SeatIds:   []int64{85001, 85002},
-			RequestNo: "refund-release-success",
+			ShowTimeId: programID,
+			SeatIds:    []int64{85001, 85002},
+			RequestNo:  "refund-release-success",
 		})
 		if err != nil {
 			t.Fatalf("ReleaseSoldSeats returned error: %v", err)
@@ -60,17 +60,17 @@ func TestReleaseSoldSeats(t *testing.T) {
 
 		l := logicpkg.NewReleaseSoldSeatsLogic(context.Background(), svcCtx)
 		if _, err := l.ReleaseSoldSeats(&pb.ReleaseSoldSeatsReq{
-			ProgramId: programID,
-			SeatIds:   []int64{85101, 85102},
-			RequestNo: "refund-release-idempotent",
+			ShowTimeId: programID,
+			SeatIds:    []int64{85101, 85102},
+			RequestNo:  "refund-release-idempotent",
 		}); err != nil {
 			t.Fatalf("first ReleaseSoldSeats returned error: %v", err)
 		}
 
 		resp, err := l.ReleaseSoldSeats(&pb.ReleaseSoldSeatsReq{
-			ProgramId: programID,
-			SeatIds:   []int64{85101, 85102},
-			RequestNo: "refund-release-idempotent",
+			ShowTimeId: programID,
+			SeatIds:    []int64{85101, 85102},
+			RequestNo:  "refund-release-idempotent",
 		})
 		if err != nil {
 			t.Fatalf("second ReleaseSoldSeats returned error: %v", err)

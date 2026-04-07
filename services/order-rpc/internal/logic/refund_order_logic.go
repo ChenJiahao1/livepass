@@ -79,9 +79,9 @@ func (l *RefundOrderLogic) RefundOrder(in *pb.RefundOrderReq) (*pb.RefundOrderRe
 
 	if len(orderTicketSeatIDs(orderTickets)) > 0 {
 		if _, err := l.svcCtx.ProgramRpc.ReleaseSoldSeats(l.ctx, &programrpc.ReleaseSoldSeatsReq{
-			ProgramId: order.ProgramId,
-			SeatIds:   orderTicketSeatIDs(orderTickets),
-			RequestNo: buildRefundRequestNo(order.OrderNumber),
+			ShowTimeId: order.ShowTimeId,
+			SeatIds:    orderTicketSeatIDs(orderTickets),
+			RequestNo:  buildRefundRequestNo(order.OrderNumber),
 		}); err != nil {
 			return nil, mapOrderError(err)
 		}

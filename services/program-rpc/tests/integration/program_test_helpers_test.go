@@ -55,6 +55,7 @@ type seatFreezeFixture struct {
 	FreezeToken      string
 	RequestNo        string
 	ProgramID        int64
+	ShowTimeID       int64
 	TicketCategoryID int64
 	OwnerOrderNumber int64
 	OwnerEpoch       int64
@@ -151,7 +152,8 @@ func clearProgramSeatLedger(t *testing.T, svcCtx *svc.ServiceContext, programID,
 	if svcCtx.SeatStockStore == nil {
 		t.Fatalf("expected seat stock store to be configured")
 	}
-	if err := svcCtx.SeatStockStore.Clear(context.Background(), programID, ticketCategoryID); err != nil {
+	showTimeID := resolveSeatLedgerShowTimeID(t, svcCtx, programID, ticketCategoryID)
+	if err := svcCtx.SeatStockStore.Clear(context.Background(), showTimeID, ticketCategoryID); err != nil {
 		t.Fatalf("clear program seat ledger error: %v", err)
 	}
 }
@@ -162,7 +164,8 @@ func primeProgramSeatLedgerFromDB(t *testing.T, svcCtx *svc.ServiceContext, prog
 	if svcCtx.SeatStockStore == nil {
 		t.Fatalf("expected seat stock store to be configured")
 	}
-	if err := svcCtx.SeatStockStore.PrimeFromDB(context.Background(), programID, ticketCategoryID); err != nil {
+	showTimeID := resolveSeatLedgerShowTimeID(t, svcCtx, programID, ticketCategoryID)
+	if err := svcCtx.SeatStockStore.PrimeFromDB(context.Background(), showTimeID, ticketCategoryID); err != nil {
 		t.Fatalf("prime program seat ledger from db error: %v", err)
 	}
 }
@@ -174,7 +177,8 @@ func requireProgramSeatLedgerSnapshot(t *testing.T, svcCtx *svc.ServiceContext, 
 		t.Fatalf("expected seat stock store to be configured")
 	}
 
-	snapshot, err := svcCtx.SeatStockStore.Snapshot(context.Background(), programID, ticketCategoryID)
+	showTimeID := resolveSeatLedgerShowTimeID(t, svcCtx, programID, ticketCategoryID)
+	snapshot, err := svcCtx.SeatStockStore.Snapshot(context.Background(), showTimeID, ticketCategoryID)
 	if err != nil {
 		t.Fatalf("snapshot program seat ledger error: %v", err)
 	}
@@ -196,6 +200,26 @@ func waitProgramSeatLedgerReady(t *testing.T, svcCtx *svc.ServiceContext, progra
 
 	t.Fatalf("program seat ledger was not ready before deadline, programID=%d ticketCategoryID=%d", programID, ticketCategoryID)
 	return nil
+}
+
+func resolveSeatLedgerShowTimeID(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) int64 {
+	t.Helper()
+
+	if ticketCategoryID > 0 && svcCtx != nil && svcCtx.DTicketCategoryModel != nil {
+		ticketCategory, err := svcCtx.DTicketCategoryModel.FindOne(context.Background(), ticketCategoryID)
+		if err == nil && ticketCategory != nil && ticketCategory.ShowTimeId > 0 {
+			return ticketCategory.ShowTimeId
+		}
+	}
+	if programID > 0 && svcCtx != nil && svcCtx.DProgramShowTimeModel != nil {
+		showTime, err := svcCtx.DProgramShowTimeModel.FindFirstByProgramId(context.Background(), programID)
+		if err == nil && showTime != nil && showTime.Id > 0 {
+			return showTime.Id
+		}
+	}
+
+	t.Fatalf("resolve seat ledger show time id failed, programID=%d ticketCategoryID=%d", programID, ticketCategoryID)
+	return 0
 }
 
 func resetProgramDomainState(t *testing.T) {
@@ -308,7 +332,7 @@ func seedRedisSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixtur
 
 	if _, err := svcCtx.SeatStockStore.FreezeAutoAssignedSeats(
 		context.Background(),
-		fixture.ProgramID,
+		fixture.ShowTimeID,
 		fixture.TicketCategoryID,
 		fixture.FreezeToken,
 		int64(fixture.SeatCount),
@@ -320,6 +344,7 @@ func seedRedisSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixtur
 		FreezeToken:      fixture.FreezeToken,
 		RequestNo:        fixture.RequestNo,
 		ProgramID:        fixture.ProgramID,
+		ShowTimeID:       fixture.ShowTimeID,
 		TicketCategoryID: fixture.TicketCategoryID,
 		OwnerOrderNumber: fixture.OwnerOrderNumber,
 		OwnerEpoch:       fixture.OwnerEpoch,
@@ -473,7 +498,7 @@ func withProgramFixtureDefaults(fixture programFixture) programFixture {
 		fixture.IssueTime = "2026-06-01 09:00:00"
 	}
 	if fixture.ShowTimeID == 0 {
-		fixture.ShowTimeID = fixture.ProgramID + 20000
+		fixture.ShowTimeID = fixture.ProgramID
 	}
 	if fixture.ShowWeekTime == "" {
 		fixture.ShowWeekTime = "周六"
@@ -511,7 +536,7 @@ func withSeatFixtureDefaults(fixture seatFixture) seatFixture {
 		fixture.SeatType = 1
 	}
 	if fixture.ShowTimeID == 0 {
-		fixture.ShowTimeID = fixture.ProgramID + 20000
+		fixture.ShowTimeID = fixture.ProgramID
 	}
 	if fixture.Price == 0 {
 		fixture.Price = 299
@@ -526,6 +551,9 @@ func withSeatFixtureDefaults(fixture seatFixture) seatFixture {
 func withSeatFreezeFixtureDefaults(fixture seatFreezeFixture) seatFreezeFixture {
 	if fixture.SeatCount == 0 {
 		fixture.SeatCount = 1
+	}
+	if fixture.ShowTimeID == 0 {
+		fixture.ShowTimeID = fixture.ProgramID
 	}
 	if fixture.FreezeStatus == 0 {
 		fixture.FreezeStatus = 1

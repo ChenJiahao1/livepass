@@ -26,7 +26,7 @@ func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
 	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 	autoResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-seat-ledger-release",
@@ -88,7 +88,7 @@ func TestReleaseSeatFreezeRejectsConfirmedFreeze(t *testing.T) {
 	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
 
 	autoResp, err := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx).AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-		ProgramId:        programID,
+		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
 		RequestNo:        "req-seat-release-confirmed",
