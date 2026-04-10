@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -26,6 +27,12 @@ var testProgramMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1
 
 const testProgramSeatLedgerPrefix = "damai-go:test:program:seat-ledger"
 const testProgramDateTimeLayout = "2006-01-02 15:04:05"
+
+var (
+	programDomainStateMu      sync.Mutex
+	programDomainStateOwners  = make(map[string]struct{})
+	programDomainStateOwnersM sync.Mutex
+)
 
 type ticketCategoryFixture struct {
 	ID           int64
@@ -98,6 +105,7 @@ type programFixture struct {
 
 func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
+	acquireProgramDomainState(t)
 
 	_ = xid.Close()
 	if err := xid.InitEtcd(context.Background(), xid.Config{
@@ -224,6 +232,7 @@ func resolveSeatLedgerShowTimeID(t *testing.T, svcCtx *svc.ServiceContext, progr
 
 func resetProgramDomainState(t *testing.T) {
 	t.Helper()
+	acquireProgramDomainState(t)
 
 	db := openProgramTestDB(t, testProgramMySQLDataSource)
 	defer db.Close()
@@ -241,6 +250,31 @@ func resetProgramDomainState(t *testing.T) {
 	}
 
 	clearProgramRedisState(t)
+}
+
+func acquireProgramDomainState(t *testing.T) {
+	t.Helper()
+
+	rootName := t.Name()
+	if idx := strings.IndexByte(rootName, '/'); idx >= 0 {
+		rootName = rootName[:idx]
+	}
+
+	programDomainStateOwnersM.Lock()
+	if _, ok := programDomainStateOwners[rootName]; ok {
+		programDomainStateOwnersM.Unlock()
+		return
+	}
+	programDomainStateOwners[rootName] = struct{}{}
+	programDomainStateOwnersM.Unlock()
+
+	programDomainStateMu.Lock()
+	t.Cleanup(func() {
+		programDomainStateOwnersM.Lock()
+		delete(programDomainStateOwners, rootName)
+		programDomainStateOwnersM.Unlock()
+		programDomainStateMu.Unlock()
+	})
 }
 
 func clearProgramRedisState(t *testing.T) {

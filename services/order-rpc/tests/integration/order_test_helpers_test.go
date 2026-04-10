@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -36,6 +37,12 @@ import (
 )
 
 var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
+
+var (
+	orderDomainStateMu      sync.Mutex
+	orderDomainStateOwners  = make(map[string]struct{})
+	orderDomainStateOwnersM sync.Mutex
+)
 
 const (
 	testOrderStatusUnpaid    int64 = 1
@@ -209,6 +216,7 @@ type tracingOrderTx struct {
 
 func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderProgramRPC, *fakeOrderUserRPC, *fakeOrderPayRPC) {
 	t.Helper()
+	acquireOrderDomainState(t)
 
 	mustInitOrderTestXid(t)
 
@@ -307,6 +315,7 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 
 func rebindOrderTestAttemptStore(t *testing.T, svcCtx *svc.ServiceContext) *rush.AttemptStore {
 	t.Helper()
+	acquireOrderDomainState(t)
 
 	if svcCtx == nil || svcCtx.Redis == nil {
 		t.Fatalf("expected redis-backed service context")
@@ -491,6 +500,7 @@ func (f *fakeOrderRepeatGuard) Lock(_ context.Context, key string) (repeatguard.
 
 func resetOrderDomainState(t *testing.T) {
 	t.Helper()
+	acquireOrderDomainState(t)
 
 	db := openOrderTestDB(t, testOrderMySQLDataSource)
 	defer db.Close()
@@ -505,6 +515,31 @@ func resetOrderDomainState(t *testing.T) {
 	} {
 		execOrderSQLFile(t, db, relativePath)
 	}
+}
+
+func acquireOrderDomainState(t *testing.T) {
+	t.Helper()
+
+	rootName := t.Name()
+	if idx := strings.IndexByte(rootName, '/'); idx >= 0 {
+		rootName = rootName[:idx]
+	}
+
+	orderDomainStateOwnersM.Lock()
+	if _, ok := orderDomainStateOwners[rootName]; ok {
+		orderDomainStateOwnersM.Unlock()
+		return
+	}
+	orderDomainStateOwners[rootName] = struct{}{}
+	orderDomainStateOwnersM.Unlock()
+
+	orderDomainStateMu.Lock()
+	t.Cleanup(func() {
+		orderDomainStateOwnersM.Lock()
+		delete(orderDomainStateOwners, rootName)
+		orderDomainStateOwnersM.Unlock()
+		orderDomainStateMu.Unlock()
+	})
 }
 
 func seedOrderFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...orderFixture) {

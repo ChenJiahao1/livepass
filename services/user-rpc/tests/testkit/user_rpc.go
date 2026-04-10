@@ -95,9 +95,7 @@ func ResetDomainState(t *testing.T) {
 
 	rdb := NewRedisClient(t)
 	defer rdb.Close()
-	if err := rdb.FlushDB(context.Background()).Err(); err != nil {
-		t.Fatalf("FlushDB error: %v", err)
-	}
+	clearUserRedisState(t, rdb)
 }
 
 func MustSeedUser(t *testing.T, svcCtx *svc.ServiceContext, seed UserSeed) *model.DUser {
@@ -182,6 +180,28 @@ func NewRedisClient(t *testing.T) *red.Client {
 
 func LoginStateKey(userID int64) string {
 	return "user:login:token:" + strconv.FormatInt(userID, 10)
+}
+
+func clearUserRedisState(t *testing.T, rdb *red.Client) {
+	t.Helper()
+
+	ctx := context.Background()
+	for _, pattern := range []string{
+		"user:login:token:*",
+		"user:login:fail:mobile:*",
+		"user:login:fail:email:*",
+	} {
+		keys, err := rdb.Keys(ctx, pattern).Result()
+		if err != nil {
+			t.Fatalf("list redis keys by pattern %q error: %v", pattern, err)
+		}
+		if len(keys) == 0 {
+			continue
+		}
+		if err := rdb.Del(ctx, keys...).Err(); err != nil {
+			t.Fatalf("delete redis keys by pattern %q error: %v", pattern, err)
+		}
+	}
 }
 
 func MD5Hex(value string) string {
