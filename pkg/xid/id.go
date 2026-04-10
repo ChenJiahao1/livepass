@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
@@ -26,6 +27,17 @@ var global struct {
 	gen *generator
 }
 
+const (
+	generatorStateReady uint32 = iota
+	generatorStateClosed
+	generatorStateLeaseLost
+)
+
+var (
+	ErrLeaseLost       = errors.New("xid lease lost")
+	errGeneratorClosed = errors.New("xid generator closed")
+)
+
 type Config struct {
 	Hosts           []string
 	Prefix          string
@@ -33,6 +45,7 @@ type Config struct {
 	SessionTTL      int64
 	DialTimeout     time.Duration
 	AllocateTimeout time.Duration
+	OnLeaseLost     func(error)
 }
 
 type generator struct {
@@ -43,6 +56,9 @@ type generator struct {
 	leaseID         clientv3.LeaseID
 	keepAliveCancel context.CancelFunc
 	closeOnce       sync.Once
+	sessionTTL      time.Duration
+	state           atomic.Uint32
+	onLeaseLost     func(error)
 }
 
 func InitEtcd(ctx context.Context, cfg Config) error {
@@ -77,7 +93,12 @@ func New() int64 {
 		panic("xid not initialized")
 	}
 
-	return gen.node.Generate().Int64()
+	id, err := gen.newID()
+	if err != nil {
+		panic(err)
+	}
+
+	return id
 }
 
 func Close() error {
@@ -154,9 +175,11 @@ func newGeneratorWithClient(ctx context.Context, client *clientv3.Client, cfg Co
 		nodeID:          nodeID,
 		leaseID:         leaseResp.ID,
 		keepAliveCancel: keepAliveCancel,
+		sessionTTL:      time.Duration(cfg.SessionTTL) * time.Second,
+		onLeaseLost:     cfg.OnLeaseLost,
 	}
 
-	go drainKeepAlive(keepAliveCh)
+	go gen.watchKeepAlive(keepAliveCh)
 
 	return gen, nil
 }
@@ -218,15 +241,82 @@ func normalizeConfig(cfg Config) Config {
 	return cfg
 }
 
-func drainKeepAlive(ch <-chan *clientv3.LeaseKeepAliveResponse) {
-	for range ch {
+func (g *generator) newID() (int64, error) {
+	switch g.state.Load() {
+	case generatorStateLeaseLost:
+		return 0, ErrLeaseLost
+	case generatorStateClosed:
+		return 0, errGeneratorClosed
+	default:
+		return g.node.Generate().Int64(), nil
 	}
+}
+
+func (g *generator) watchKeepAlive(ch <-chan *clientv3.LeaseKeepAliveResponse) {
+	timer := time.NewTimer(g.keepAliveTimeout(0))
+	defer timer.Stop()
+
+	for {
+		select {
+		case resp, ok := <-ch:
+			if !ok {
+				g.markLeaseLost()
+				return
+			}
+			if resp == nil || resp.TTL <= 0 {
+				g.markLeaseLost()
+				return
+			}
+
+			resetTimer(timer, g.keepAliveTimeout(resp.TTL))
+		case <-timer.C:
+			g.markLeaseLost()
+			return
+		}
+	}
+}
+
+func (g *generator) keepAliveTimeout(ttl int64) time.Duration {
+	if ttl > 0 {
+		return time.Duration(ttl) * time.Second
+	}
+	if g.sessionTTL > 0 {
+		return g.sessionTTL
+	}
+
+	return time.Second
+}
+
+func resetTimer(timer *time.Timer, d time.Duration) {
+	if !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+
+	timer.Reset(d)
+}
+
+func (g *generator) markLeaseLost() {
+	if !g.state.CompareAndSwap(generatorStateReady, generatorStateLeaseLost) {
+		return
+	}
+
+	if g.onLeaseLost != nil {
+		g.onLeaseLost(ErrLeaseLost)
+		return
+	}
+
+	os.Exit(1)
 }
 
 func (g *generator) close() error {
 	var closeErr error
 
 	g.closeOnce.Do(func() {
+		g.state.CompareAndSwap(generatorStateReady, generatorStateClosed)
+
 		if g.keepAliveCancel != nil {
 			g.keepAliveCancel()
 		}
