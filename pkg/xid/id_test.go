@@ -2,6 +2,7 @@ package xid
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -127,6 +128,110 @@ func TestInitEtcdReturnsErrorWhenClusterUnavailable(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected InitEtcd to fail when etcd is unavailable")
+	}
+}
+
+func TestNewPanicsAfterLeaseLost(t *testing.T) {
+	t.Cleanup(func() {
+		_ = Close()
+	})
+
+	_ = Close()
+
+	if err := InitEtcd(context.Background(), Config{
+		Hosts:      mustTestEtcdEndpoints(t),
+		Prefix:     testPrefix(t),
+		Service:    "pkg-xid-test-lease-lost",
+		SessionTTL: 1,
+		OnLeaseLost: func(error) {
+		},
+	}); err != nil {
+		t.Fatalf("InitEtcd error: %v", err)
+	}
+
+	if first := New(); first <= 0 {
+		t.Fatalf("expected first id > 0, got %d", first)
+	}
+
+	global.mu.RLock()
+	gen := global.gen
+	global.mu.RUnlock()
+	if gen == nil {
+		t.Fatal("expected global generator initialized")
+	}
+
+	client := newTestEtcdClient(t, mustTestEtcdEndpoints(t))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if _, err := client.Revoke(ctx, gen.leaseID); err != nil {
+		t.Fatalf("Revoke lease error: %v", err)
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if didPanic := func() (did bool) {
+			defer func() {
+				if recover() != nil {
+					did = true
+				}
+			}()
+
+			_ = New()
+			return false
+		}(); didPanic {
+			return
+		}
+
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Fatal("expected New to panic after lease loss")
+}
+
+func TestLeaseLossInvokesExitHook(t *testing.T) {
+	t.Cleanup(func() {
+		_ = Close()
+	})
+
+	_ = Close()
+
+	lost := make(chan error, 1)
+	if err := InitEtcd(context.Background(), Config{
+		Hosts:      mustTestEtcdEndpoints(t),
+		Prefix:     testPrefix(t),
+		Service:    "pkg-xid-test-exit-hook",
+		SessionTTL: 1,
+		OnLeaseLost: func(err error) {
+			select {
+			case lost <- err:
+			default:
+			}
+		},
+	}); err != nil {
+		t.Fatalf("InitEtcd error: %v", err)
+	}
+
+	global.mu.RLock()
+	gen := global.gen
+	global.mu.RUnlock()
+	if gen == nil {
+		t.Fatal("expected global generator initialized")
+	}
+
+	client := newTestEtcdClient(t, mustTestEtcdEndpoints(t))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if _, err := client.Revoke(ctx, gen.leaseID); err != nil {
+		t.Fatalf("Revoke lease error: %v", err)
+	}
+
+	select {
+	case err := <-lost:
+		if !errors.Is(err, ErrLeaseLost) {
+			t.Fatalf("lease loss hook error = %v, want %v", err, ErrLeaseLost)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected lease loss hook to be invoked")
 	}
 }
 
