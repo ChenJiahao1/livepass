@@ -34,6 +34,7 @@ func mapPollOrderResp(resp *orderrpc.PollOrderProgressResp) *types.PollOrderResp
 		OrderNumber: resp.OrderNumber,
 		OrderStatus: resp.OrderStatus,
 		Done:        resp.Done,
+		ReasonCode:  resp.ReasonCode,
 	}
 }
 

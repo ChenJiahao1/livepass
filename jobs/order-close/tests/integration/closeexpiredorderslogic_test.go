@@ -77,14 +77,6 @@ func (f *fakeJobOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.C
 	return f.closeExpiredOrdersResp, f.closeExpiredOrdersErr
 }
 
-func (f *fakeJobOrderRPC) VerifyAttemptDue(ctx context.Context, in *orderrpc.VerifyAttemptDueReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
-	return nil, nil
-}
-
-func (f *fakeJobOrderRPC) ReconcileRushAttempts(ctx context.Context, in *orderrpc.ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*orderrpc.ReconcileRushAttemptsResp, error) {
-	return nil, nil
-}
-
 func (f *fakeJobOrderRPC) CountActiveTicketsByUserShowTime(ctx context.Context, in *orderrpc.CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*orderrpc.CountActiveTicketsByUserShowTimeResp, error) {
 	return nil, nil
 }

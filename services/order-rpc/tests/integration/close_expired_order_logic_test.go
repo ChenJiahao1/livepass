@@ -50,7 +50,7 @@ func TestCloseExpiredOrderClosesOnlyExpiredUnpaidOrder(t *testing.T) {
 	}
 }
 
-func TestCloseExpiredOrderReleasesCommittedRushAttemptProjection(t *testing.T) {
+func TestCloseExpiredOrderFinalizesCommittedAttemptAsClosedReleased(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
@@ -75,9 +75,7 @@ func TestCloseExpiredOrderReleasesCommittedRushAttemptProjection(t *testing.T) {
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
-		CommitCutoffAt:   now.Add(10 * time.Second),
-		UserDeadlineAt:   now.Add(15 * time.Second),
+		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
@@ -86,8 +84,15 @@ func TestCloseExpiredOrderReleasesCommittedRushAttemptProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AttemptStore.Get() error = %v", err)
 	}
-	if err := store.CommitProjection(ctx, record, nil, now); err != nil {
-		t.Fatalf("CommitProjection() error = %v", err)
+	claimed, epoch, err := store.ClaimProcessing(ctx, orderNumber, now.Add(time.Millisecond))
+	if err != nil {
+		t.Fatalf("ClaimProcessing() error = %v", err)
+	}
+	if !claimed || epoch <= 0 {
+		t.Fatalf("expected claim processing success, got claimed=%t epoch=%d", claimed, epoch)
+	}
+	if err := store.FinalizeSuccess(ctx, record, epoch, []int64{512}, now.Add(2*time.Millisecond)); err != nil {
+		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 
 	seedOrderFixtures(
@@ -126,7 +131,7 @@ func TestCloseExpiredOrderReleasesCommittedRushAttemptProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AttemptStore.Get() after close error = %v", err)
 	}
-	if record.State != rush.AttemptStateReleased || record.ReasonCode != rush.AttemptReasonClosedOrderReleased {
+	if record.State != rush.AttemptStateFailed || record.ReasonCode != rush.AttemptReasonClosedOrderReleased {
 		t.Fatalf("expected closed order to release rush attempt projection, got %+v", record)
 	}
 
@@ -135,6 +140,6 @@ func TestCloseExpiredOrderReleasesCommittedRushAttemptProjection(t *testing.T) {
 		t.Fatalf("GetQuotaAvailable() error = %v", err)
 	}
 	if !ok || available != 4 {
-		t.Fatalf("expected closed committed attempt to restore quota, got ok=%t available=%d", ok, available)
+		t.Fatalf("expected closed committed attempt to release quota exactly once, got ok=%t available=%d", ok, available)
 	}
 }

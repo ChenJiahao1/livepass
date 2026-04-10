@@ -1,22 +1,20 @@
 package rush
 
 const (
-	AttemptStatePendingPublish = "PENDING_PUBLISH"
-	AttemptStateQueued         = "QUEUED"
-	AttemptStateProcessing     = "PROCESSING"
-	AttemptStateVerifying      = "VERIFYING"
-	AttemptStateCommitted      = "COMMITTED"
-	AttemptStateReleased       = "RELEASED"
+	AttemptStateAccepted   = "ACCEPTED"
+	AttemptStateProcessing = "PROCESSING"
+	AttemptStateSuccess    = "SUCCESS"
+	AttemptStateFailed     = "FAILED"
 )
 
 const (
-	AttemptReasonOrderCommitted      = "ORDER_COMMITTED"
-	AttemptReasonUserHoldConflict    = "USER_HOLD_CONFLICT"
-	AttemptReasonViewerHoldConflict  = "VIEWER_HOLD_CONFLICT"
-	AttemptReasonQuotaExhausted      = "QUOTA_EXHAUSTED"
-	AttemptReasonSeatExhausted       = "SEAT_EXHAUSTED"
-	AttemptReasonCommitCutoffExceed  = "COMMIT_CUTOFF_EXCEEDED"
-	AttemptReasonClosedOrderReleased = "CLOSED_ORDER_RELEASED"
+	AttemptReasonOrderCommitted        = "ORDER_COMMITTED"
+	AttemptReasonUserHoldConflict      = "USER_HOLD_CONFLICT"
+	AttemptReasonViewerHoldConflict    = "VIEWER_HOLD_CONFLICT"
+	AttemptReasonQuotaExhausted        = "QUOTA_EXHAUSTED"
+	AttemptReasonSeatExhausted         = "SEAT_EXHAUSTED"
+	AttemptReasonClosedOrderReleased   = "CLOSED_ORDER_RELEASED"
+	AttemptReasonAlreadyHasActiveOrder = "ALREADY_HAS_ACTIVE_ORDER"
 )
 
 const (
@@ -24,6 +22,16 @@ const (
 	PollOrderStatusVerifying  int64 = 2
 	PollOrderStatusSuccess    int64 = 3
 	PollOrderStatusFailed     int64 = 4
+)
+
+type AttemptTransitionOutcome string
+
+const (
+	AttemptTransitioned     AttemptTransitionOutcome = "transitioned"
+	AttemptAlreadyFailed    AttemptTransitionOutcome = "already_failed"
+	AttemptAlreadySucceeded AttemptTransitionOutcome = "already_succeeded"
+	AttemptLostOwnership    AttemptTransitionOutcome = "lost_ownership"
+	AttemptStateMissing     AttemptTransitionOutcome = "state_missing"
 )
 
 const (

@@ -2,72 +2,117 @@ package integration_test
 
 import (
 	"context"
+	"strconv"
 	"testing"
+	"time"
 
-	"damai-go/pkg/xredis"
 	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/svc"
+	"damai-go/services/order-rpc/internal/model"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/pb"
+	"damai-go/services/order-rpc/repository"
 )
 
-func newOrderCacheServiceContext(t *testing.T) *svc.ServiceContext {
-	t.Helper()
+func TestGetOrderCacheReturnsOrderNumberWhenAttemptProcessing(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	store := svcCtx.AttemptStore
+	if store == nil {
+		t.Fatalf("expected attempt store to be configured")
+	}
 
-	redisClient, err := xredis.New(xredis.Config{
-		Host: "127.0.0.1:6379",
-		Type: "node",
+	ctx := context.Background()
+	now := time.Now()
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	viewerIDs = viewerIDs[:1]
+	orderNumber := orderNumbers[0]
+
+	if err := store.SetQuotaAvailable(ctx, programID, ticketCategoryID, 2); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+	if _, err := store.Admit(ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      orderNumber,
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       programID,
+		TicketCategoryID: ticketCategoryID,
+		ViewerIDs:        viewerIDs,
+		TicketCount:      1,
+		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
+		Now:              now,
+	}); err != nil {
+		t.Fatalf("Admit() error = %v", err)
+	}
+
+	resp, err := logicpkg.NewGetOrderCacheLogic(ctx, svcCtx).GetOrderCache(&pb.GetOrderCacheReq{OrderNumber: orderNumber})
+	if err != nil {
+		t.Fatalf("GetOrderCache() error = %v", err)
+	}
+	if resp.GetCache() != strconv.FormatInt(orderNumber, 10) {
+		t.Fatalf("expected processing projection cache to be orderNumber, got %+v", resp)
+	}
+}
+
+func TestGetOrderCacheReturnsEmptyWhenAttemptMissingButDBOrderExists(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	ctx := context.Background()
+	now := time.Now()
+	userID, programID, _, _, orderNumbers := nextRushTestIDs()
+	orderNumber := orderNumbers[0]
+
+	err := svcCtx.OrderRepository.TransactByOrderNumber(ctx, orderNumber, func(txCtx context.Context, tx repository.OrderTx) error {
+		return tx.InsertOrder(txCtx, &model.DOrder{
+			Id:                      1,
+			OrderNumber:             orderNumber,
+			ProgramId:               programID,
+			ShowTimeId:              programID,
+			ProgramTitle:            "测试演出",
+			ProgramPlace:            "测试场馆",
+			ProgramShowTime:         now.Add(2 * time.Hour),
+			ProgramPermitChooseSeat: 0,
+			UserId:                  userID,
+			DistributionMode:        "express",
+			TakeTicketMode:          "paper",
+			TicketCount:             1,
+			OrderPrice:              299,
+			OrderStatus:             1,
+			FreezeToken:             "freeze-cache-attempt-miss",
+			OrderExpireTime:         now.Add(15 * time.Minute),
+			CreateOrderTime:         now,
+			CreateTime:              now,
+			EditTime:                now,
+			Status:                  1,
+		})
 	})
 	if err != nil {
-		t.Skipf("skip integration test, redis unavailable: %v", err)
+		t.Fatalf("insert order error = %v", err)
 	}
 
-	return &svc.ServiceContext{
-		Redis: redisClient,
+	l := logicpkg.NewGetOrderCacheLogic(ctx, svcCtx)
+	resp, err := l.GetOrderCache(&pb.GetOrderCacheReq{OrderNumber: orderNumber})
+	if err != nil {
+		t.Fatalf("GetOrderCache() error = %v", err)
+	}
+	if resp.GetCache() != "" {
+		t.Fatalf("expected empty cache when attempt missing and DB hit, got %+v", resp)
 	}
 }
 
-func TestSetOrderCreateMarkerWritesPendingMarker(t *testing.T) {
-	svcCtx := newOrderCacheServiceContext(t)
+func TestGetOrderCacheReturnsEmptyWhenAttemptAndDBMissing(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
 
-	if err := logicpkg.SetOrderCreateMarker(context.Background(), svcCtx.Redis, 91001); err != nil {
-		t.Fatalf("SetOrderCreateMarker returned error: %v", err)
-	}
+	ctx := context.Background()
+	_, _, _, _, orderNumbers := nextRushTestIDs()
+	orderNumber := orderNumbers[0]
 
-	value, err := svcCtx.Redis.GetCtx(context.Background(), "order:create:marker:91001")
+	l := logicpkg.NewGetOrderCacheLogic(ctx, svcCtx)
+	resp, err := l.GetOrderCache(&pb.GetOrderCacheReq{OrderNumber: orderNumber})
 	if err != nil {
-		t.Fatalf("expected cache marker, got err=%v", err)
+		t.Fatalf("GetOrderCache() error = %v", err)
 	}
-	if value != "91001" {
-		t.Fatalf("unexpected cache marker value: %s", value)
-	}
-}
-
-func TestGetOrderCacheReturnsPendingMarker(t *testing.T) {
-	svcCtx := newOrderCacheServiceContext(t)
-
-	if err := logicpkg.SetOrderCreateMarker(context.Background(), svcCtx.Redis, 91001); err != nil {
-		t.Fatalf("SetOrderCreateMarker returned error: %v", err)
-	}
-
-	l := logicpkg.NewGetOrderCacheLogic(context.Background(), svcCtx)
-	resp, err := l.GetOrderCache(&pb.GetOrderCacheReq{OrderNumber: 91001})
-	if err != nil {
-		t.Fatalf("GetOrderCache returned error: %v", err)
-	}
-	if resp.Cache != "91001" {
-		t.Fatalf("unexpected response: %+v", resp)
-	}
-}
-
-func TestGetOrderCacheReturnsEmptyWhenMarkerMissing(t *testing.T) {
-	svcCtx := newOrderCacheServiceContext(t)
-
-	l := logicpkg.NewGetOrderCacheLogic(context.Background(), svcCtx)
-	resp, err := l.GetOrderCache(&pb.GetOrderCacheReq{OrderNumber: 99999})
-	if err != nil {
-		t.Fatalf("GetOrderCache returned error: %v", err)
-	}
-	if resp.Cache != "" {
-		t.Fatalf("expected empty cache marker, got %+v", resp)
+	if resp.GetCache() != "" {
+		t.Fatalf("expected empty cache when attempt/db both missing, got %+v", resp)
 	}
 }

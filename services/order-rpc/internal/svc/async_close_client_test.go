@@ -56,38 +56,6 @@ func TestAsynqAsyncCloseClientEnqueueCloseTimeout(t *testing.T) {
 	}
 }
 
-func TestAsynqAsyncCloseClientEnqueueVerifyAttemptDue(t *testing.T) {
-	dueAt := time.Date(2026, time.April, 5, 20, 15, 0, 0, time.UTC)
-	enqueuer := &fakeAsynqEnqueuer{}
-	client := &asynqAsyncCloseClient{
-		enqueuer:  enqueuer,
-		queue:     "order_close",
-		maxRetry:  8,
-		uniqueTTL: 30 * time.Minute,
-	}
-
-	err := client.EnqueueVerifyAttemptDue(context.Background(), 91001, dueAt)
-	if err != nil {
-		t.Fatalf("EnqueueVerifyAttemptDue returned error: %v", err)
-	}
-	if enqueuer.enqueueCalls != 1 {
-		t.Fatalf("expected enqueue once, got %d", enqueuer.enqueueCalls)
-	}
-	if enqueuer.lastTask == nil {
-		t.Fatalf("expected task to be enqueued")
-	}
-	if enqueuer.lastTask.Type() != closequeue.TaskTypeVerifyAttemptDue {
-		t.Fatalf("expected task type %s, got %s", closequeue.TaskTypeVerifyAttemptDue, enqueuer.lastTask.Type())
-	}
-	payload, err := closequeue.ParseVerifyAttemptPayload(enqueuer.lastTask.Payload())
-	if err != nil {
-		t.Fatalf("ParseVerifyAttemptPayload returned error: %v", err)
-	}
-	if payload.OrderNumber != 91001 {
-		t.Fatalf("unexpected payload: %+v", payload)
-	}
-}
-
 func TestNewAsyncCloseClientReturnsNilWhenDisabled(t *testing.T) {
 	client, err := newAsyncCloseClient(config.AsyncCloseConfig{})
 	if err != nil {

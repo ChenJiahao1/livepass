@@ -156,6 +156,7 @@ func (c *PurchaseTokenCodec) normalizeClaims(claims PurchaseTokenClaims) (Purcha
 	}
 	if claims.TokenFingerprint == "" {
 		claims.TokenFingerprint = BuildTokenFingerprint(
+			claims.OrderNumber,
 			claims.UserID,
 			claims.ShowTimeID,
 			claims.TicketCategoryID,
@@ -176,7 +177,7 @@ func (c *PurchaseTokenCodec) sign(payload []byte) []byte {
 }
 
 func BuildTokenFingerprint(
-	userID, showTimeID, ticketCategoryID int64,
+	orderNumber, userID, showTimeID, ticketCategoryID int64,
 	ticketUserIDs []int64,
 	distributionMode, takeTicketMode string,
 	generation ...string,
@@ -191,6 +192,7 @@ func BuildTokenFingerprint(
 		generationValue = generation[0]
 	}
 	payload, _ := json.Marshal(struct {
+		OrderNumber      int64   `json:"orderNumber"`
 		UserID           int64   `json:"userId"`
 		ShowTimeID       int64   `json:"showTimeId"`
 		TicketCategoryID int64   `json:"ticketCategoryId"`
@@ -199,6 +201,7 @@ func BuildTokenFingerprint(
 		DistributionMode string  `json:"distributionMode,omitempty"`
 		TakeTicketMode   string  `json:"takeTicketMode,omitempty"`
 	}{
+		OrderNumber:      orderNumber,
 		UserID:           userID,
 		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,

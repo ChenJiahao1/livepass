@@ -1,281 +1,238 @@
-# /order/create 快速失败 + Redis TTL 状态机替换式调整设计
+# /order/create 快速失败秒杀链路设计
 
 ## 文档目的
 
-这份 spec 不是对仓库主线历史方案的抽象讨论，而是**基于当前 worktree**
-`feat/order-create-accept-async` 的现状，重新收口下一步要调整成什么样。
+这份 spec 只讨论当前 worktree `feat/order-create-accept-async` 的替换式收口，不再兼容旧的
+`verify/reconcile/cutoff/deadline/MaxMessageDelay` 模型。
 
-当前 worktree 已经完成了几件关键事情：
+当前 worktree 已经完成的基础改造有：
 
-- attempt 状态机已收敛为 `ACCEPTED / PROCESSING / SUCCESS / FAILED`
-- `verify_attempt_due` / `reconcile_rush_attempts` / `commitCutoff` / `userDeadline` / `MaxMessageDelay` 已经从主链路移除
-- `/order/create` 当前实现为：Redis admission 成功后立即返回，Kafka 发送在 goroutine 中异步进行
-- `/order/poll` 当前实现为：先读 Redis，非终态时回查 DB 未支付订单
-- `program-rpc` 已经落地 `d_seat` 冻结态生命周期：冻结 `2`、支付成功转已售 `3`、释放转可售 `1`
+- attempt 状态机已经收敛为 `ACCEPTED / PROCESSING / SUCCESS / FAILED`
+- `program-rpc` 已经把 `d_seat` 生命周期切成：
+  - 冻结成功写 `seat_status = 2`
+  - 支付成功转 `seat_status = 3`
+  - 释放转 `seat_status = 1`
+- 旧 `verify_attempt_due` / `reconcile_rush_attempts` 链路已经删除
 
-本次 spec 要解决的，不是旧 verify/reconcile 模型，而是：
+但当前 worktree 仍有两个关键偏差：
 
-- 当前 worktree 的 `create -> goroutine send Kafka` 仍然是“已受理但消息可能根本没送出去”的模型
-- 现在决定切到**快速失败模型**
-- 即：**Kafka send timeout / send error 是创建接口的失败线**
+- `/order/create` 还是 admission 成功后 goroutine 异步发 Kafka，接口本身不等 handoff 结果
+- `/order/poll` 还是直接读 attempt，但文档里又想额外加一份 order progress cache，架构上会形成双写冗余
+
+本次 spec 的目标，是把秒杀链路收口成：
+
+- **attempt 是唯一 Redis 进度事实源**
+- `order cache` 只保留为逻辑视图概念，不再单独落一个 Redis key
 
 ## 当前 worktree 基线
 
-当前 worktree 的实现口径可以概括为：
+### `/order/create`
 
-1. `/order/create`
-   - 先做 Redis admission
-   - 写 attempt = `ACCEPTED`
-   - 启 goroutine 发 Kafka
-   - 不等 Kafka 结果，直接返回 `orderNumber`
+- 验证 purchase token
+- Redis admission 成功后写 attempt=`ACCEPTED`
+- 另起 goroutine 发 Kafka
+- 立即返回 `orderNumber`
 
-2. `consumer`
-   - 抢 `PROCESSING`
-   - 锁座、落单、写 guard、写 outbox
-   - 成功后 `SUCCESS`
-   - 明确业务失败后 `FAILED`
+这仍然是 `accept + async`，不是快速失败。
 
-3. `/order/poll`
-   - Redis 有记录：按 attempt 映射
-   - Redis 非终态：再查 DB 未支付订单
-   - 当前 Redis 缺失时还没有明确收口到新的快速失败语义
+### `/order/poll`
 
-4. 删除项
-   - 旧 verify/reconcile 任务链路已经删掉
-   - 当前没有额外的“受理后补投递”机制
+- 先查 attempt
+- attempt 非终态时，DB 有未支付订单则翻译成 `SUCCESS`
+- Redis miss 语义还没有按新口径收口
 
-这意味着当前 worktree 仍然符合“accept + async”，但**不符合本次要落地的快速失败模型**。
+### `order cache`
 
-## 本次决策
+仓库里现有的 `order cache` 只是一个 1 分钟 marker：
 
-本次采用**方案 A：快速失败模型**，并明确以下业务语义：
+- key: `order:create:marker:{orderNumber}`
+- value: `orderNumber`
 
-- Kafka send timeout / send error 是 `/order/create` 的失败线
-- Producer 可以在 Redis 中把 `ACCEPTED` 收口为 `FAILED`
-- Consumer 只处理仍然有效的状态，不接管已经失败或已过期的请求
-- 不再新增 verify/reconcile/repair job 去补判最终结果
-- Redis key TTL 是状态生命周期的一部分，不再额外引入 stale accepted 扫描器
-- `/order/poll` 在 Redis 缺失时**必须查 DB**
-  - DB 有未支付订单事实 => `SUCCESS`
-  - DB 无订单事实 => `FAILED`
+它不是状态缓存，不能承担最终设计里的职责。
 
-也就是说，本方案不是“永远相信 Redis”，而是：
+## 本次最终口径
 
-- Redis 负责热路径状态机与并发裁决
-- MySQL 负责最终订单事实兜底
+本次采用**快速失败模型**，并明确以下语义：
 
-## 目标
+- `/order/create` 的成功线是：
+  - purchase token 校验通过
+  - Redis admission 成功
+  - Kafka send 返回成功
+- Kafka send `timeout / error` 会触发 Producer 的快速失败分支
+- Producer 快速失败和 Consumer 抢处理权，都通过同一个 attempt 状态机 Lua 做 CAS
+- 只有一个分支能赢：
+  - Producer 赢：`ACCEPTED -> FAILED`，回补 quota / inflight
+  - Consumer 赢：`ACCEPTED -> PROCESSING`，继续落单
+- 所有失败回补都必须以 attempt 状态迁移成功为前提
+- 只有第一次把 attempt 推进到 `FAILED` 的分支，才允许执行 quota / inflight / seat 等回补
+- 如果 attempt 已经是 `FAILED`，当前分支只能返回幂等 no-op，不再做任何回补，防止超补
+- `poll` 面向的是**订单进度视图**
+- 这个“订单进度视图”直接由 attempt 映射得到，不再单独存一份 `order progress cache`
+- attempt miss 时，再查 DB
+- `Redis miss + DB miss => FAILED`
+- 为了避免“DB 正在落库时 Redis miss + DB miss”的误判窗口，Consumer 在处理期间必须持续续
+  attempt TTL
+- 15 秒只是前端等待窗口，不是后端失败线
+- purchase token 是一次性尝试凭证，失败后必须重新申请新 token；旧 token 不能开启新的抢票尝试
 
-- 将当前 worktree 从“已受理但 Kafka 可能没送出去”的模型，调整为“Kafka handoff 明确失败则立即失败”
-- 保留 Redis admission + Kafka + consumer + DB 幂等落单的主体结构
-- 保留现有 `program-rpc` 冻结生命周期实现
-- 保留四态 attempt 状态机
-- 明确 `/order/poll` 在 Redis 缺失时的 DB 收口语义
-- 不重新引入 verify/reconcile 型后台判案任务
+## 为什么删除独立 order progress cache
 
-## 非目标
+上一版 spec 的问题是：
 
-- 不改回同步落单
-- 不改支付链路主语义
-- 不改取消与超时关单主语义
-- 不在本次引入新的 DB outbox relay 或额外消息中间件
-- 不在本次做跨服务分布式事务
+- attempt 表达：
+  - `ACCEPTED`
+  - `PROCESSING`
+  - `SUCCESS`
+  - `FAILED`
+- order progress cache 表达：
+  - `PROCESSING`
+  - `SUCCESS`
+  - `FAILED`
 
-## 状态机
+两者本质上表达的是同一笔请求的同一份进度事实，只差一层简单映射：
 
-attempt 仍只保留四态：
+- `ACCEPTED -> PROCESSING`
+- `PROCESSING -> PROCESSING`
+- `SUCCESS -> SUCCESS`
+- `FAILED -> FAILED`
 
-- `ACCEPTED`
+如果为了这层映射，额外再存一个 Redis key，会带来：
+
+- create / consumer / finalize 全链路双写
+- 双 TTL 维护
+- 双写不一致窗口
+- create 成功线额外依赖“第二个 key 必须写成功”
+
+这个复杂度不值。
+
+所以本次架构收口为：
+
+- **物理事实源只有 attempt**
+- **order cache 只是逻辑视图，不是第二个 Redis 对象**
+
+## 对外语义
+
+### `/order/create`
+
+成功返回 `orderNumber` 的含义是：
+
+- 这笔请求已经成功 handoff 给 Kafka
+- Redis 中已经存在 attempt 记录
+- 用户可以开始轮询 `orderNumber`
+
+接口不会把内部 `ACCEPTED` 暴露给前端。
+
+### `/order/poll`
+
+前端轮询看到的永远是**订单进度视图**：
+
 - `PROCESSING`
 - `SUCCESS`
 - `FAILED`
 
-### 状态语义
+这个视图由 attempt 实时映射：
 
-#### `ACCEPTED`
+- `ACCEPTED -> PROCESSING`
+- `PROCESSING -> PROCESSING`
+- `SUCCESS -> SUCCESS`
+- `FAILED -> FAILED`
 
-- Redis admission 已成功
-- quota / inflight / token 指纹索引已写入
-- Kafka handoff 尚未被 consumer 接管
-- key 带 `accepted_ttl`
+### 前端交互
 
-#### `PROCESSING`
+- 用户拿一次 purchase token 发起一次 `/order/create`
+- 前端最多轮询 15 秒
+- 15 秒后退出初始等待页
+- 如果最终失败，必须重新申请 token，再发起新的抢票尝试
 
-- Consumer 已成功抢到处理权
-- 当前消息正在锁座、写单、写 guard、写 outbox
-- key 带 `processing_ttl`
-- 处理中的 Consumer 需要续 TTL
-- 处理权通过 `processing_epoch` 标识
+## 完整秒杀链路
 
-#### `SUCCESS`
+下面按时序讲完整条链路。
 
-- DB 订单事实已成立
-- Redis 投影已收口成功
-- key 带终态 TTL（可短一些，但必须覆盖前端查询窗口）
+### 0. 前置约束
 
-#### `FAILED`
+- 用户先调用 purchase token 接口，拿到一次性的 `purchaseToken`
+- `purchaseToken` 内部承载：
+  - `orderNumber`
+  - `userId`
+  - `showTimeId`
+  - `ticketCategoryId`
+  - `ticketUserIds`
+  - `ticketCount`
+  - `generation`
+  - `tokenFingerprint`
+- 一个 token 只允许绑定一个 `orderNumber`
+- 旧 token 重复提交，不开启新的 attempt，只能命中旧 `orderNumber`
+- 如果旧 `orderNumber` 最终失败，用户必须重新申请新 token
 
-- Producer handoff 失败已回滚
-- 或 Consumer 明确业务失败已回滚
-- key 带终态 TTL（可短一些，但必须覆盖前端查询窗口）
+### 1. `/order/create` 入口
 
-## TTL 语义
+#### 1.1 token 校验
 
-本方案接受“状态过期即退出系统视野”的设计，但必须明确如下规则。
+`/order/create` 收到请求后，先做两件事：
 
-### `accepted_ttl`
+- 校验 `purchaseToken` 是否有效
+- 校验 token 内 `userId` 是否与当前请求用户一致
 
-用途：
+#### 成功
 
-- 覆盖 Producer send 阶段与 Kafka 正常抖动
-- 避免 Producer 崩溃后 attempt 永远悬挂
+- 进入 Redis admission
 
-语义：
+#### 失败
 
-- `ACCEPTED` key 过期后，不再保留“处理中”语义
-- 后续消息如果才到达，Consumer 发现状态不存在，直接丢弃
-- `/order/poll` 如果发现 Redis 不存在，则转查 DB 决定最终结果
+- 直接返回参数错误或 token 无效
+- 不写 Redis
+- 不返回 `orderNumber`
 
-### `processing_ttl`
+#### 超时
 
-用途：
+- 这一步没有独立“超时后继续”的语义
+- 超时就按接口失败处理
+- 不写 Redis
 
-- 表达当前 Consumer 的处理租期
-- 不是单纯“展示超时”，而是处理权 lease
+### 2. Redis admission
 
-语义：
+这是 create 主链路的第一段核心原子操作。这里不是散着写多个 Redis 命令，而是一段 Lua 一次做完。
 
-- Consumer 抢到 `PROCESSING` 后必须周期性续 TTL
-- 续 TTL 时必须校验：
-  - `state == PROCESSING`
-  - `processing_epoch == myEpoch`
-- 如果续 TTL 失败，说明自己已经不再是合法持有者，必须停止后续 finalize
+#### 2.1 这一步会操作哪些 Redis 内容
 
-### `success_ttl / failed_ttl`
+admission Lua 会读写这些 key：
 
-用途：
-
-- 支撑前端短时轮询和可观测性
-- 不是 correctness 依赖
-
-语义：
-
-- 终态 TTL 过期后，Redis 可以自然清理
-- `/order/poll` 如果 Redis 缺失，则回查 DB
-  - DB 有订单 => `SUCCESS`
-  - DB 无订单 => `FAILED`
-
-## `/order/create` 新语义
-
-`/order/create` 的成功含义调整为：
-
-- purchase token 验签通过
-- Redis admission 成功
-- Kafka send 返回成功
-
-也就是说：
-
-- **不再是 admission 成功就立即返回**
-- 而是 admission 成功后，还要同步完成 Kafka handoff 判定
-
-### 返回规则
-
-#### 1. admission rejected
-
-直接返回业务错误：
-
-- 用户/观演人 inflight 冲突
-- quota 不足
-
-#### 2. admission accepted，Kafka send 成功
-
-返回：
-
-- `orderNumber`
-
-此时 Redis 状态仍然是 `ACCEPTED`，等待 consumer 抢占为 `PROCESSING`。
-
-#### 3. admission accepted，Kafka send timeout / send error
-
-Producer 立即执行：
-
-- `FailBeforeProcessing`
-
-只允许：
-
-- `ACCEPTED -> FAILED`
-
-并原子回滚：
-
+- attempt hash
+  - `damai-go:order:rush:{scope}:attempt:{orderNumber}`
+- user active
+  - `...:user_active:{userId}`
+- user inflight
+  - `...:user_inflight:{userId}`
 - quota
-- `user_inflight`
-- `viewer_inflight`
-- token 幂等索引
+  - `...:quota:{ticketCategoryId}`
+- fingerprint hash
+  - `...:fingerprint:{userId}`
+- viewer active
+  - `...:viewer_active:{viewerId}`
+- viewer inflight
+  - `...:viewer_inflight:{viewerId}`
 
-如果回滚成功：
+#### 2.2 admission 要做什么
 
-- `/order/create` 直接返回失败
-- 不再把这次请求当成“已受理”
+Lua 内一次完成这些检查与写入：
 
-如果回滚失败：
+1. 查 `fingerprint`
+   - 如果旧 token 已经绑定过 `orderNumber`，直接返回复用命中
+2. 查 `user_active / viewer_active`
+   - 如果用户或观演人已有活跃单，直接拒绝
+3. 查 `user_inflight / viewer_inflight`
+   - 如果用户或观演人已有进行中请求，直接拒绝
+4. 查 `quota`
+   - 如果库存不够，直接拒绝
+5. 扣减 `quota`
+6. 写 attempt=`ACCEPTED`
+7. 写 `user_inflight / viewer_inflight`
+8. 写 `fingerprint -> orderNumber`
+9. 给 attempt / inflight / fingerprint 设置 TTL
 
-- 说明状态已经不再是 `ACCEPTED`
-- 一般意味着 consumer 已经先一步抢到了 `PROCESSING`
-- 此时接口不能再对外宣告失败
-- 应返回 `orderNumber`，视为“已被异步链路接管”
+#### 2.3 Redis 里写入什么内容
 
-> 这里采用的是“快速失败优先，但尊重状态赢家”的口径，而不是“Producer 超时一律对外报错”。
-
-## `/order/poll` 新语义
-
-`/order/poll(orderNumber)` 必须按以下顺序执行：
-
-### 1. 先查 Redis attempt
-
-#### Redis 命中且为 `SUCCESS`
-
-返回：
-
-- `SUCCESS`
-
-#### Redis 命中且为 `FAILED`
-
-返回：
-
-- `FAILED`
-- 透传 `reasonCode`
-
-#### Redis 命中且为 `ACCEPTED / PROCESSING`
-
-继续查 DB：
-
-- DB 有未支付订单事实 => `SUCCESS`
-- DB 无未支付订单事实 => `PROCESSING`
-
-### 2. Redis 未命中
-
-这里不能直接返回 `not found`，必须查 DB：
-
-- DB 有未支付订单事实 => `SUCCESS`
-- DB 无订单事实 => `FAILED`
-
-推荐 reason code：
-
-- `ATTEMPT_EXPIRED_OR_DROPPED`
-
-这条规则是本次 spec 的关键口径之一：
-
-> Redis 不存在，不等于“查无此单”；  
-> Redis 不存在时，必须让 DB 来做最终事实兜底。
-
-## Redis 侧数据模型
-
-本次不引入新的全局请求 ID，继续使用现有：
-
-- `orderNumber` 作为唯一命令号
-- `tokenFingerprint` 作为 admission 幂等辅助索引
-
-attempt hash 最少保留以下字段：
+attempt 至少要写这些字段：
 
 - `order_number`
 - `user_id`
@@ -286,286 +243,712 @@ attempt hash 最少保留以下字段：
 - `ticket_count`
 - `generation`
 - `token_fingerprint`
-- `state`
-- `reason_code`
+- `state = ACCEPTED`
+- `reason_code = ""`
 - `accepted_at`
-- `processing_started_at`
-- `finished_at`
-- `publish_attempts`
-- `processing_epoch`
-- `created_at`
+- `finished_at = 0`
+- `processing_epoch = 0`
 - `last_transition_at`
 
-不再保留：
+#### 2.4 TTL 约束
 
-- `commitCutoffAt`
-- `userDeadlineAt`
-- `VERIFYING`
-- `COMMITTED`
-- `RELEASED`
+这里有三种不同语义的 TTL，不能简单视为一个值：
 
-## Lua 脚本职责
+- `inflight_ttl`
+  - 保护 admission 并发窗口
+- `attempt_ttl`
+  - 保护 attempt 生命周期
+- `fingerprint_ttl`
+  - 保护 token 一次性语义
 
-### 1. `admit_attempt.lua`
+其中 `fingerprint_ttl` 不能短于 token 自身有效期，至少要覆盖：
 
-职责：
+- `purchaseToken` 的自然过期时间
+- 或 `saleWindowEndAt`
 
-- 校验 quota / inflight / active
-- 写 attempt = `ACCEPTED`
-- 写 inflight
-- 扣 quota
-- 写 token index
-- 设置 `accepted_ttl`
+否则 fingerprint 先过期、token 还没过期时，旧 token 仍可能再次开启新 attempt。
 
-### 2. `fail_before_processing.lua`
+#### 成功
 
-职责：
+Redis admission 成功后，状态是：
 
-- 只允许 `ACCEPTED -> FAILED`
-- 原子回滚 admission 副作用：
-  - quota 回补
-  - 删除 inflight
-  - 删除 token index
-- 设置 `failed_ttl`
+- attempt=`ACCEPTED`
+- quota 已扣减
+- user/viewer inflight 已写入
+- fingerprint 已绑定当前 `orderNumber`
 
-返回：
+然后继续进入 Kafka handoff。
 
-- `1`：成功回滚并进入 `FAILED`
-- `0`：当前状态不是 `ACCEPTED`
+#### 失败
 
-### 3. `claim_processing.lua`
+Redis admission 失败时，直接在 create 入口返回，不进入 Kafka。
 
-职责：
+失败分支包括：
 
-- 只允许 `ACCEPTED -> PROCESSING`
+- `quota` 不足
+- 用户已有 active order
+- 观演人已有 active order
+- 用户已有 inflight order
+- 观演人已有 inflight order
+
+这里对外返回业务错误，不返回新的 `orderNumber`。
+
+#### 复用命中
+
+如果命中旧 token 的 `fingerprint -> orderNumber`：
+
+- 不开启新的 attempt
+- 不再扣新的 quota
+- 直接返回旧 `orderNumber`
+
+这个分支不是失败，也不是新受理，而是“命中旧请求”。
+
+#### 超时
+
+如果 Redis admission 本身超时或执行失败：
+
+- create 直接返回失败
+- 不对外承诺这次已经受理
+- 不进入 Kafka
+
+### 3. Kafka handoff
+
+Redis admission 成功后，create 线程继续同步发 Kafka，不再允许 goroutine fire-and-forget。
+
+#### 3.1 这一步要发什么
+
+Kafka 消息体至少带上：
+
+- `orderNumber`
+- `userId`
+- `programId`
+- `showTimeId`
+- `ticketCategoryId`
+- `ticketUserIds`
+- `ticketCount`
+- `generation`
+- `occurredAt`
+
+如果后续继续沿用内嵌快照模式，也带：
+
+- `requestNo`
+- 用户/节目/票档/观演人快照
+
+#### 成功
+
+Kafka send 返回成功后，`/order/create` 就可以返回成功。
+
+这里不再额外写一份 progress cache，因为：
+
+- attempt 已经存在
+- 前端第一次 poll 时会把 `ACCEPTED` 映射成 `PROCESSING`
+
+#### 失败
+
+Kafka 明确返回 error 时：
+
+1. 立即执行 `FailBeforeProcessing` Lua
+2. 这个 Lua 只允许：
+   - `ACCEPTED -> FAILED`
+3. 如果 attempt 已经不是 `ACCEPTED`：
+   - 已经是 `FAILED` => 返回幂等 no-op
+   - 已经被 Consumer 抢成 `PROCESSING / SUCCESS` => 返回失去竞争
+4. 只有 CAS 成功时，才在同一个 Lua 里完成：
+   - attempt 改 `FAILED`
+   - quota 回补
+   - 删除 `user_inflight / viewer_inflight`
+   - fingerprint 保留到 TTL 结束
+
+然后分两种情况：
+
+- Producer 赢
+  - 说明 attempt 还停留在 `ACCEPTED`
+  - create 直接返回失败
+- Producer 输
+  - 说明 Consumer 已经先一步把 attempt 从 `ACCEPTED` 抢走了
+  - create 不能再对外宣告失败
+  - 直接返回 `orderNumber`
+
+如果 `FailBeforeProcessing` 返回“已是 `FAILED`”：
+
+- 视为失败幂等命中
+- create 仍返回失败
+- 但不能再做第二次回补
+
+#### 超时
+
+Kafka send timeout 和 Kafka send error 走同一条处理逻辑：
+
+- 先尝试 `FailBeforeProcessing`
+- Producer 赢就失败返回
+- Producer 输就返回 `orderNumber`
+
+这里的 timeout 是 Producer 的失败触发器，不是“无条件报错”。
+
+### 4. `/order/create` 成功返回
+
+现在 create 的成功线回到三段式：
+
+- token 校验成功
+- Redis admission 成功
+- Kafka send 成功
+
+此时接口返回：
+
+- `orderNumber`
+
+create 返回时，Redis 中至少已经有：
+
+- attempt=`ACCEPTED`
+- quota/inflight/fingerprint 副作用
+
+这已经足够支撑前端第一次 poll。
+
+### 5. Consumer 收到 Kafka 消息
+
+到这里为止，create 线程已经结束。接下来进入异步消费链路。
+
+Consumer 收到消息后，第一件事不是写 DB，而是先用 Redis 抢处理权。
+
+#### 5.1 这一步会操作哪些 Redis 内容
+
+核心操作对象是：
+
+- attempt hash
+
+#### 5.2 这一步要做什么
+
+Consumer 执行 `ClaimProcessing` Lua，只允许：
+
+- `ACCEPTED -> PROCESSING`
+
+并在一个 Lua 内完成：
+
+- attempt 改 `PROCESSING`
 - `processing_epoch += 1`
 - 写 `processing_started_at`
-- 设置 `processing_ttl`
+- 刷新 attempt `processing_ttl`
 
-返回：
+#### 成功
 
-- `claimed`
-- `epoch`
+Consumer 抢到处理权后：
 
-### 4. `renew_processing.lua`
+- 当前消息成为唯一合法处理者
+- 获得本次 `processing_epoch`
+- 继续执行业务链路
 
-职责：
+#### 失败
 
-- 仅当：
-  - `state == PROCESSING`
-  - `processing_epoch == myEpoch`
-- 才允许续 `processing_ttl`
+以下情况，Consumer 直接 ack 丢弃消息：
 
-### 5. `commit_success.lua`
+- attempt 已经是 `FAILED`
+- attempt 已经是 `SUCCESS`
+- attempt key 已不存在
 
-职责：
+这表示：
 
-- 仅当：
-  - `state == PROCESSING`
-  - `processing_epoch == myEpoch`
-- 才允许 `PROCESSING -> SUCCESS`
-- 删除 inflight
-- 建立 active 投影
-- 写 seat occupied 投影
-- 设置 `success_ttl`
+- 这条消息已经过时
+- 或者请求已经被快速失败回滚
+- 或者 TTL 已经过期失效
 
-### 6. `fail_after_processing.lua`
+#### 超时
 
-职责：
+如果 `ClaimProcessing` 这步 Redis Lua 超时或报错：
 
-- 仅当：
-  - `state == PROCESSING`
-  - `processing_epoch == myEpoch`
-- 才允许 `PROCESSING -> FAILED`
-- 回滚业务副作用：
-  - quota 恢复
-  - inflight 删除
-  - 删除 token index（按当前业务保持可重新参与）
-- 设置 `failed_ttl`
+- Consumer 不 ack
+- 让消息重试
+- 不做本地猜测式 finalize
 
-## Consumer 处理流程
+### 6. Consumer 持续续 Redis lease
 
-Consumer 收到 Kafka 消息后，不是直接落库，而是：
+Consumer 抢到 `PROCESSING` 后，整个后续执行期间都必须续租，而不是抢到一次就不管。
 
-### 1. 先 `claim_processing`
+#### 6.1 要续哪些 Redis 内容
 
-如果 claim 失败：
+每次续租更新：
 
-- 状态不存在 => 直接丢弃
-- 状态不是 `ACCEPTED` => 直接丢弃
+- attempt 的 `processing_ttl`
 
-### 2. 抢到处理权后开始续 TTL
+并且必须校验：
 
-Consumer 在处理过程中要启动 heartbeat：
+- attempt 仍然是 `PROCESSING`
+- `processing_epoch == myEpoch`
 
-- 周期性调用 `renew_processing`
-- 续 TTL 失败则必须停止 finalize
+#### 成功
 
-### 3. 执行业务主链路
+- 继续执行业务逻辑
 
-- 读取 preorder / 观演人等事实
-- `program-rpc.AutoAssignAndFreezeSeats`
-- `d_seat` 写冻结态
-- 组装订单写模型
-- DB 事务写：
-  - `d_order_xx`
-  - `d_order_ticket_user_xx`
-  - `d_order_user_guard`
-  - `d_order_viewer_guard`
-  - `d_order_seat_guard`
-  - `d_order_outbox(order.created)`
+#### 失败
 
-### 4. DB 成功后 finalize success
+如果续租失败，表示当前 Consumer 已经不再是合法持有者：
 
-- 调 `commit_success`
+- 停止后续 finalize
+- 不再写 `SUCCESS / FAILED`
 
-### 5. 明确业务失败后 finalize failed
+#### 超时
 
-例如：
+- 视为 lease 丢失
+- 当前 Consumer 停止处理
+- 由后续重试、DB 事实和 poll 兜底
 
-- 锁座失败
-- guard 冲突
-- quota / seat 明确不足
+### 7. 锁座
 
-则：
+Consumer 拿到处理权后，开始执行业务阶段。第一步是锁座。
 
-- 调 `fail_after_processing`
+#### 7.1 这一步会操作什么
 
-### 6. DB 提交不确定时的处理
+这里主要不是 Redis，而是 `program-rpc.AutoAssignAndFreezeSeats`。
 
-对于：
+座位服务要完成：
 
-- commit timeout
-- 连接中断
-- 不确定事务是否已提交
+- 自动选座
+- 写 `d_seat.seat_status = 2`
+- 记录：
+  - `owner_order_number`
+  - `owner_epoch`
 
-不能直接改 `FAILED`。
+请求幂等键使用：
 
-应执行：
+- `requestNo = orderNumber-epoch`
 
-1. 按 `orderNumber` 查 DB
-2. 若订单已存在 => `commit_success`
-3. 若订单不存在 => 允许重试；若最终 lease 失效，则由 TTL 驱动退出
+#### 成功
 
-因此本方案明确接受：
+- 拿到冻结座位结果
+- 继续进入 DB 落单
 
-- Producer -> Kafka 边界走快速失败
-- Consumer -> DB 边界仍然靠“唯一约束 + 幂等 + 查事实”兜底
+#### 失败
 
-## DB 幂等要求
+如果是明确业务失败，例如：
 
-Consumer 侧必须继续依赖 DB 唯一约束保证幂等：
+- `SEAT_EXHAUSTED`
+- 票档不可售
+- 场次不可售
 
-- `d_order.order_number`
-- `d_order_outbox(order_number, event_type)`
+则走失败收口：
+
+- 执行 `FinalizeFailure`
+- 只有当前 Consumer 成功把 attempt 从 `PROCESSING(myEpoch)` 推进到 `FAILED` 时，才执行 quota 回补、删除 inflight、释放冻结座位
+- 如果 attempt 已经是 `FAILED`，视为幂等命中，当前 Consumer 不再重复回补或释放
+
+#### 超时
+
+如果锁座 RPC 超时：
+
+- 不能直接盲判失败
+- 必须先按 `requestNo` 查事实
+
+处理规则：
+
+- 能确认已经冻结成功 => 继续后续链路
+- 能确认冻结失败 => 走失败收口
+- 结果仍然不确定 => 返回错误，让消息重试
+
+### 8. DB 落单
+
+锁座成功后，Consumer 才进入 DB 事务。
+
+#### 8.1 这一步会写哪些 DB 内容
+
+事务内至少写：
+
+- `d_order`
+- `d_order_ticket_user`
 - `d_order_user_guard`
 - `d_order_viewer_guard`
 - `d_order_seat_guard`
+- `d_order_outbox(order.created)`
 
-重试时如果发现：
+#### 成功
 
-- 订单已存在
-- outbox 已存在
-- guard 已存在
+事务提交成功后：
 
-应优先按“成功事实已存在”补收口，而不是简单报错退出。
+- 订单事实已经成立
+- 继续做 Redis success finalize
 
-## reasonCode 规范
+#### 失败
 
-建议在现有 reasonCode 基础上补充以下值：
+如果是明确业务失败，例如 guard 冲突：
 
-- `PRODUCER_SEND_TIMEOUT`
-- `PRODUCER_SEND_ERROR`
-- `ATTEMPT_EXPIRED_OR_DROPPED`
-- `ALREADY_HAS_ACTIVE_ORDER`
+- 对外统一映射成 `ALREADY_HAS_ACTIVE_ORDER`
+- 执行失败 finalize
+- 先看 `FinalizeFailure` 返回的当前状态裁决结果，再决定是否继续本地重试或结束
+- 只有拿到 attempt 状态机的失败 CAS 成功结果后，才继续释放冻结座位
+- 如果当前状态已经是 `FAILED`，直接按幂等结束
+- 如果当前状态已经被别的分支推进到 `SUCCESS` 或其他 `PROCESSING(epoch)`，当前 Consumer 跟随赢家，不再重复回补
+
+#### 超时
+
+DB commit timeout、连接中断、事务结果未知时：
+
+- 不能直接把 timeout 判成 `FAILED`
+- 必须先按 `orderNumber` 查 DB 事实
+
+处理规则：
+
+- DB 查到订单
+  - 说明事务其实已经成功
+  - 后续按 success finalize 收口
+- DB 明确没订单，且错误可确定是失败
+  - 按失败 finalize 收口
+- DB 仍无法确认
+  - 返回错误，让消息重试
+
+这里依赖三件事：
+
+- `orderNumber` 唯一约束
+- DB 幂等写入
+- 重试时按事实查询
+
+### 9. Redis success finalize
+
+DB 成功后，还要把 Redis 热状态收口成成功。
+
+#### 9.1 这一步会操作哪些 Redis 内容
+
+success finalize 至少要改这些内容：
+
+- attempt hash
+- user inflight
+- viewer inflight
+- user active
+- viewer active
+- seat occupied
+- fingerprint
+
+#### 9.2 这一步要做什么
+
+通过单个 Lua 完成：
+
+- attempt=`SUCCESS`
+- `reason_code=ORDER_COMMITTED`
+- 删除 `user_inflight / viewer_inflight`
+- 写 `user_active / viewer_active`
+- 写 `seat_occupied`
+- 把 attempt / active 投影续到终态 TTL
+- fingerprint 保留到 `fingerprint_ttl` 结束
+
+#### 成功
+
+- Redis 热状态与 DB 事实对齐
+- poll 直接可见 `SUCCESS`
+
+#### 失败
+
+如果 DB 已成功，但 success finalize 失败：
+
+- 不回滚 DB
+- 不把订单改回失败
+- 后续 poll 在 Redis miss 时回查 DB，仍然返回 `SUCCESS`
+
+#### 超时
+
+- 与失败同处理
+- 仍以 DB 事实为准
+
+### 10. Redis failed finalize
+
+如果链路在锁座、guard、业务校验等阶段明确失败，需要把 Redis 热状态收口成失败。
+
+#### 10.1 这一步会操作哪些 Redis 内容
+
+failed finalize 至少要改这些内容：
+
+- attempt hash
+- quota
+- user inflight
+- viewer inflight
+- user active
+- viewer active
+- seat occupied
+- fingerprint
+
+#### 10.2 这一步要做什么
+
+`FinalizeFailure` 不是简单的“执行成功 / 执行失败”二值语义，而是返回当前状态机裁决结果。
+
+单次 Lua 调用内按当前 attempt 状态处理：
+
+- 如果当前是 `PROCESSING(myEpoch)`：
+  - 尝试 CAS 为 `FAILED`
+  - 只有 CAS 成功时，才在同一个 Lua 内：
+    - 写失败 `reasonCode`
+    - quota 回补
+    - 删除 `user_inflight / viewer_inflight`
+    - 删除 `user_active / viewer_active`
+    - 删除 `seat_occupied`
+    - fingerprint 保留到 `fingerprint_ttl` 结束
+  - 返回 `transitioned`
+- 如果当前已经是 `FAILED`：
+  - 返回 `already_failed`
+- 如果当前已经是 `SUCCESS`：
+  - 返回 `already_succeeded`
+- 如果当前是别的 `PROCESSING(epoch)`：
+  - 返回 `lost_ownership`
+- 如果 attempt key 不存在：
+  - 返回 `state_missing`
+
+调用方根据返回值处理，而不是一律把它当成“Redis failed finalize 失败”：
+
+- `transitioned`
+  - 当前调用赢得失败收口
+  - 允许继续执行外部冻结座位释放
+- `already_failed`
+  - 失败收口已经完成
+  - 当前重试按幂等结束，不再重复回补
+- `already_succeeded` / `lost_ownership`
+  - 说明其他分支已经赢了状态机
+  - 当前 Consumer 跟随当前状态，不再做任何回补或释放
+- `state_missing`
+  - 不猜测结果
+  - 交给调用方结合 DB 事实与后续重试决定
+
+#### 成功
+
+- Lua 返回 `transitioned` 时，这次请求正式收口为失败
+- Lua 返回 `already_failed` 时，说明失败收口已经完成，当前重试只做幂等结束
+- 上面两种情况下，poll 会按 attempt 当前状态看到 `FAILED`
+- Lua 返回 `already_succeeded` / `lost_ownership` 时，说明当前调用输了竞争，按赢家状态继续
+- 这种情况下，poll 跟随 attempt 当前状态，可能是 `SUCCESS`，也可能仍是别的 `PROCESSING`
+
+#### 失败
+
+- 只有“Redis 脚本本身报错 / 当前状态仍无法确认”才算这里的失败
+- 此时不要直接做本地猜测
+- 先重新读取 attempt 当前状态，再决定是否本地重试或让消息重试：
+  - 读到 `PROCESSING(myEpoch)` => 当前 Consumer 仍持有处理权，可以重试 `FinalizeFailure`
+  - 读到 `FAILED` => 说明别的重试或上一次调用已经完成失败收口，直接结束
+  - 读到 `SUCCESS` / `PROCESSING(otherEpoch)` => 跟随当前赢家，直接结束
+  - 仍读不到稳定状态 => Consumer 不 ack，让消息重试
+
+#### 超时
+
+- 与失败同处理
+- timeout 后先读当前 attempt 状态，不直接假设“已经回补成功”或“还没回补”
+
+### 11. `/order/poll`
+
+前端拿到 `orderNumber` 后，最多轮询 15 秒。
+
+#### 11.1 先查什么
+
+`poll` 先查 attempt。
+
+这里的“order cache”不再是单独 Redis key，而是**attempt 的逻辑投影视图**。
+
+#### Redis 命中 `ACCEPTED`
+
+返回对外视图：
+
+- `orderStatus = PROCESSING`
+- `done = false`
+
+#### Redis 命中 `PROCESSING`
+
+返回对外视图：
+
+- `orderStatus = PROCESSING`
+- `done = false`
+
+#### Redis 命中 `SUCCESS`
+
+返回：
+
+- `orderStatus = SUCCESS`
+- `done = true`
+
+#### Redis 命中 `FAILED`
+
+返回：
+
+- `orderStatus = FAILED`
+- `done = true`
+- `reasonCode`
+
+#### Redis miss
+
+如果 attempt miss，再查 DB 订单事实。
+
+- DB 有订单
+  - 返回 `SUCCESS`
+- DB 无订单
+  - 返回 `FAILED`
+  - 可选 reason：
+    - `PROCESSING_TIMEOUT`
+    - `STATE_EXPIRED`
+
+另外，poll 在读 attempt 和读 DB 时，都必须校验 `userId` 归属；归属不匹配仍按
+`order not found` 处理。
+
+## 为什么 `Redis miss + DB miss` 可以直接按失败收口
+
+用户关心的核心风险是：
+
+1. create 已经返回了 `orderNumber`
+2. 但 poll 时 Redis miss
+3. DB 也还没看到订单
+4. 会不会把“还在处理中”的请求错判成失败
+
+本方案的回答是：正常处理中的请求，不应该出现这个窗口。
+
+因为链路里有两层保护：
+
+### 1. create 成功返回前，attempt 已经存在
+
+也就是说，前端第一次 poll 开始时，Redis 已经有可见状态：
+
+- attempt=`ACCEPTED`
+
+对外会映射成：
+
+- `PROCESSING`
+
+### 2. Consumer 抢到处理权后，持续续 attempt TTL
+
+续租覆盖整个处理阶段：
+
+- 拉快照
+- 锁座
+- 写 DB
+- finalize
+
+所以正常慢处理不会出现：
+
+- Redis miss
+- DB miss
+
+只有这些 fail-stop 场景，才会出现 Redis miss：
+
+- Consumer 崩溃
+- Redis 长时间不可用
+- lease 丢失后无人接管
+- 处理时间超过 TTL 且没有续上
+
+这些场景在本方案里统一按“这次尝试已经失效”处理，因此：
+
+- Redis miss + DB miss => `FAILED`
+
+## Redis 内容汇总
+
+### 1. attempt
+
+key：
+
+- `damai-go:order:rush:{scope}:attempt:{orderNumber}`
+
+type：
+
+- `hash`
+
+状态：
+
+- `ACCEPTED`
+- `PROCESSING`
+- `SUCCESS`
+- `FAILED`
+
+用途：
+
+- 内部状态机
+- Producer / Consumer 并发裁决
+- 对外进度视图的唯一 Redis 事实源
+
+TTL：
+
+- `accepted_ttl`
+- `processing_ttl`
+- `final_ttl`
+
+### 2. 资源占用 key
+
+包括：
+
+- `quota:{ticketCategoryId}`
+- `user_inflight:{userId}`
+- `viewer_inflight:{viewerId}`
+- `user_active:{userId}`
+- `viewer_active:{viewerId}`
+- `seat_occupied:{orderNumber}`
+- `fingerprint:{userId}`
+
+职责：
+
+- `quota / inflight` 表达受理期占用
+- `active / seat_occupied` 表达成功后的活跃占用
+- `fingerprint` 表达 token 幂等与“旧 token 不能开启新尝试”
+
+TTL 约束：
+
+- `fingerprint_ttl >= purchaseToken` 有效期
+- 不能让 fingerprint 比 token 更早过期
+
+## reasonCode 口径
+
+对外失败 reason 至少覆盖：
+
+- `KAFKA_HANDOFF_TIMEOUT`
+- `KAFKA_HANDOFF_ERROR`
 - `SEAT_EXHAUSTED`
-- `QUOTA_EXHAUSTED`
-- `USER_HOLD_CONFLICT`
-- `VIEWER_HOLD_CONFLICT`
+- `ALREADY_HAS_ACTIVE_ORDER`
+- `PROCESSING_TIMEOUT`
+- `STATE_EXPIRED`
 
-对外不新增状态，只新增失败原因。
+`ALREADY_HAS_ACTIVE_ORDER` 只在对外映射层暴露，不要求前端理解内部 guard 细节。
 
-## 对当前 worktree 的改造点
+## 对当前 worktree 的替换式改动点
 
-### 1. `services/order-rpc/internal/logic/create_order_logic.go`
+### 1. `/order/create`
 
-当前：
+- 去掉 goroutine 异步发 Kafka 后立即返回
+- 改成同步 send
+- send timeout/error 时执行 `FailBeforeProcessing`
+- 不再新增独立 progress cache 写入步骤
 
-- admission 后起 goroutine 异步 send
+### 2. `order cache`
 
-目标：
+- 删除 `order:create:marker:{orderNumber}`
+- 不新增新的 `order:create:progress:{orderNumber}`
+- 如果继续保留 `GetOrderCache`，它应返回“attempt 投影视图”，而不是读第二份 Redis 状态
 
-- admission 后同步 send
-- send 失败时调用 `fail_before_processing`
-- 根据 CAS 结果决定：
-  - 直接失败
-  - 或返回 `orderNumber`
+### 3. `/order/poll`
 
-### 2. `services/order-rpc/internal/rush/attempt_store.go`
+- 逻辑上仍然是“查订单进度视图”
+- 物理上改成“先查 attempt，做状态映射，miss 再查 DB”
 
-新增方法：
+### 4. attempt store / Lua
+
+需要新增或替换这几类原子操作：
 
 - `FailBeforeProcessing`
-- `RenewProcessing`
-- `CommitSuccess`（可复用现有 `CommitProjection`，但要补 epoch 校验）
-- `FailAfterProcessing`（可复用现有 `Release`，但要补 epoch 校验）
+- `ClaimProcessing`
+- `RefreshProcessingLease`
+- `FinalizeSuccess`
+- `FinalizeFailure`
 
-### 3. `services/order-rpc/internal/rush/*.lua`
+### 5. Consumer
 
-需要新增或重写：
+- 抢到处理权后启动心跳续租
+- 成功/失败 finalize 时只维护 attempt 及资源占用 key
+- `PROCESSING` 失租后停止 finalize
 
-- `fail_before_processing.lua`
-- `renew_processing.lua`
-- `claim_processing.lua`（补 TTL/epoch 语义）
-- `commit_success.lua`（或升级现有 commit 脚本）
-- `fail_after_processing.lua`（或升级现有 release 脚本）
+### 6. 测试
 
-### 4. `services/order-rpc/internal/logic/create_order_consumer_logic.go`
+至少补齐：
 
-需要补：
+- Redis admission 成功 / 拒绝 / 复用命中
+- Kafka timeout Producer 赢 / 输两条分支
+- `FailBeforeProcessing` 重试命中 `FAILED` 时，不会重复 quota 回补
+- poll 对 `ACCEPTED / PROCESSING / SUCCESS / FAILED` 的状态映射
+- attempt miss + DB hit => `SUCCESS`
+- attempt miss + DB miss => `FAILED`
+- Consumer 处理期间持续续 TTL，poll 不误判失败
+- `FinalizeFailure` 重试或重复消息命中 `FAILED` 时，不会重复回补或释放
+- `FinalizeFailure` 脚本报错或超时后，若 attempt 仍是 `PROCESSING(myEpoch)`，会按当前状态本地重试
+- `FinalizeFailure` 后续读到 `SUCCESS` / `PROCESSING(otherEpoch)` 时，会跟随赢家，不重复回补
+- 旧 token 重复提交不会开启新 attempt
 
-- claim 后 heartbeat/renew
-- finalize 前 epoch 校验
-- Redis 缺失/非合法状态时直接丢弃
+## 非目标
 
-### 5. `services/order-rpc/internal/logic/poll_order_progress_logic.go`
-
-需要调整为：
-
-- Redis 缺失时查 DB
-- DB 无订单则返回 `FAILED`
-- 不返回裸 `order not found`
-
-### 6. 文档与测试
-
-需要同步更新：
-
-- README
-- `docs/architecture/order-create-accept-async.md`（若继续保留该文档，应明确它已不再代表目标方案）
-- RPC/API 契约测试
-- integration tests
-
-## 与当前 accept + async 文档的关系
-
-当前 worktree 内已有的
-`docs/architecture/order-create-accept-async.md`
-描述的是“admission 成功即返回，不以 Kafka send 结果为失败线”的模型。
-
-本 spec 明确替换该口径：
-
-- 当前架构文档可视为**上一版工作树语义的记录**
-- 后续如果按本 spec 实施，应同步重写该架构文档
-
-## 验收标准
-
-本次按本 spec 改造完成后，应满足：
-
-- `/order/create` 不再使用 goroutine fire-and-forget Kafka send
-- Kafka send timeout / send error 能在 Redis 中把 `ACCEPTED` 收口为 `FAILED`
-- Producer 与 Consumer 通过 Redis CAS 裁决唯一赢家
-- `PROCESSING` 使用 TTL + renew + `processing_epoch`
-- Consumer finalize 必须带 epoch 校验
-- `/order/poll` 在 Redis 缺失时必须查 DB
-- Redis 缺失 + DB 无订单时，对外返回 `FAILED`，而不是裸 `not found`
-- 不重新引入 verify/reconcile/cutoff/deadline/maxDelay
-
+- 不恢复 verify/reconcile/stale scanner
+- 不引入 processing 接管 worker
+- 不把 15 秒前端轮询窗口变成后端失败线
+- 不再引入第二份 Redis 进度状态对象

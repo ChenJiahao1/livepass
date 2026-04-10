@@ -58,8 +58,6 @@ RushOrder:
   Enabled: true
   TokenSecret: rush-order-local-secret
   TokenTTL: 2m
-  CommitCutoff: 10s
-  UserDeadline: 15s
   InFlightTTL: 30s
   FinalStateTTL: 30m
 AsyncClose:
@@ -82,6 +80,5 @@ Kafka:
   ConsumerGroup: damai-go-ticketing-attempt
   TopicPartitions: 5
   ConsumerWorkers: 1
-  MaxMessageDelay: 60s
   ProducerTimeout: 3s
   RetryBackoff: 1s

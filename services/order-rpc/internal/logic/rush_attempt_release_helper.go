@@ -1,0 +1,64 @@
+package logic
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"damai-go/pkg/xerr"
+	"damai-go/services/order-rpc/internal/rush"
+	"damai-go/services/order-rpc/internal/svc"
+	programrpc "damai-go/services/program-rpc/programrpc"
+
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+func syncClosedRushAttempt(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64, now time.Time) error {
+	if svcCtx == nil || svcCtx.AttemptStore == nil {
+		return nil
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	record, err := svcCtx.AttemptStore.Get(ctx, orderNumber)
+	if err != nil {
+		if errors.Is(err, xerr.ErrOrderNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	outcome, err := svcCtx.AttemptStore.FinalizeClosedOrder(ctx, record, now)
+	if err != nil {
+		return err
+	}
+
+	switch outcome {
+	case rush.AttemptTransitioned, rush.AttemptAlreadyFailed:
+		return nil
+	case rush.AttemptAlreadySucceeded, rush.AttemptLostOwnership, rush.AttemptStateMissing:
+		return xerr.ErrInternal
+	default:
+		return xerr.ErrInternal
+	}
+}
+
+func releaseOrderCreateFreeze(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken, reason string) {
+	releaseOrderCreateFreezeWithOwner(ctx, svcCtx, freezeToken, reason, 0, 0)
+}
+
+func releaseOrderCreateFreezeWithOwner(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken, reason string, ownerOrderNumber, ownerEpoch int64) {
+	if freezeToken == "" || svcCtx == nil || svcCtx.ProgramRpc == nil {
+		return
+	}
+
+	if _, err := svcCtx.ProgramRpc.ReleaseSeatFreeze(ctx, &programrpc.ReleaseSeatFreezeReq{
+		FreezeToken:      freezeToken,
+		ReleaseReason:    reason,
+		OwnerOrderNumber: ownerOrderNumber,
+		OwnerEpoch:       ownerEpoch,
+	}); err != nil {
+		logx.WithContext(ctx).Errorf("release seat freeze failed, freezeToken=%s err=%v", freezeToken, err)
+	}
+}

@@ -19,8 +19,6 @@ type RushOrderConfig struct {
 	Enabled       bool          `json:",default=false"`
 	TokenSecret   string        `json:",optional"`
 	TokenTTL      time.Duration `json:",default=2m"`
-	CommitCutoff  time.Duration `json:",default=10s"`
-	UserDeadline  time.Duration `json:",default=15s"`
 	InFlightTTL   time.Duration `json:",default=30s"`
 	FinalStateTTL time.Duration `json:",default=30m"`
 }
@@ -37,10 +35,6 @@ type KafkaConfig struct {
 	ConsumerGroup    string   `json:",default=damai-go-ticketing-attempt"`
 	TopicPartitions  int      `json:",default=1"`
 	ConsumerWorkers  int      `json:",default=1"`
-	// MaxMessageDelay follows the Java open-source flow:
-	// once exceeded, the consumer treats the create command as an expired order,
-	// releases the seat freeze, and skips order persistence.
-	MaxMessageDelay time.Duration `json:",default=5s"`
 	ProducerTimeout time.Duration `json:",default=3s"`
 	RetryBackoff    time.Duration `json:",default=1s"`
 }

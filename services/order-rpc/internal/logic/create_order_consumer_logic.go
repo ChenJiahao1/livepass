@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"damai-go/pkg/xerr"
@@ -20,6 +21,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+const orderCreateGuardConflictReleaseReason = "order_create_guard_conflict"
+const orderCreatePersistFailureReason = "ORDER_PERSIST_FAILED"
 
 type CreateOrderConsumerLogic struct {
 	ctx    context.Context
@@ -49,67 +53,47 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	if err != nil {
 		return err
 	}
-	attempt, shouldProcess, err := l.prepareAttemptForConsume(orderEvent.OrderNumber, now)
+	attempt, processingEpoch, shouldProcess, err := l.prepareAttemptForConsume(orderEvent.OrderNumber, now)
 	if err != nil {
-		if !errors.Is(err, xerr.ErrOrderNotFound) || !hasEmbeddedOrderCreateSnapshots(orderEvent) {
+		if errors.Is(err, xerr.ErrOrderNotFound) && hasEmbeddedOrderCreateSnapshots(orderEvent) {
+			shouldProcess = true
+		} else if errors.Is(err, xerr.ErrOrderNotFound) {
+			return nil
+		} else {
 			return err
 		}
-		shouldProcess = true
-	}
-
-	if existing, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, orderEvent.OrderNumber); err == nil && existing != nil {
-		if attempt != nil && l.svcCtx.AttemptStore != nil {
-			if err := l.svcCtx.AttemptStore.CommitProjection(l.ctx, attempt, extractSeatIDs(orderEvent.SeatSnapshot), now); err != nil {
-				l.Errorf("commit rush attempt projection failed after duplicate consume, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-			}
-		}
-		return nil
-	} else if err != nil && !errors.Is(err, model.ErrNotFound) {
-		return err
 	}
 	if !shouldProcess {
 		return nil
 	}
-	if maxDelay := l.svcCtx.Config.Kafka.MaxMessageDelay; maxDelay > 0 && now.Sub(occurredAt) > maxDelay {
-		if attempt != nil {
-			if err := l.releaseAttemptProjection(attempt, rush.AttemptReasonCommitCutoffExceed, "", ""); err != nil {
-				l.Errorf("release expired rush attempt failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-			}
-		} else {
-			compensateOrderCreateExpired(l.ctx, l.svcCtx, orderEvent.UserID, orderEvent.ProgramID, orderEvent.OrderNumber, orderEvent.FreezeToken)
-		}
-		l.Infof("skip expired rush order create event, orderNumber=%d occurredAt=%s", orderEvent.OrderNumber, orderEvent.OccurredAt)
-		return nil
-	}
-	if expired, err := isCommitCutoffExceeded(orderEvent.CommitCutoffAt, now); err != nil {
-		return err
-	} else if expired {
-		if err := l.releaseAttemptProjection(attempt, rush.AttemptReasonCommitCutoffExceed, "", ""); err != nil {
-			l.Errorf("release commit-cutoff rush attempt failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-		}
-		l.Infof("skip commit-cutoff-exceeded rush order create event, orderNumber=%d cutoffAt=%s", orderEvent.OrderNumber, orderEvent.CommitCutoffAt)
-		return nil
+
+	var lease *processingLease
+	if attempt != nil && processingEpoch > 0 {
+		lease = startProcessingLease(l.ctx, l.svcCtx.AttemptStore, attempt.OrderNumber, processingEpoch, processingLeaseInterval(l.svcCtx))
+		defer lease.stop()
 	}
 
-	enrichedEvent, freezeResp, err := l.buildConsumerOrderEvent(orderEvent, attempt, occurredAt)
+	if existing, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, orderEvent.OrderNumber); err == nil && existing != nil {
+		l.finalizeSuccess(attempt, processingEpoch, extractSeatIDs(orderEvent.SeatSnapshot), now, lease)
+		return nil
+	} else if err != nil && !errors.Is(err, model.ErrNotFound) {
+		return err
+	}
+
+	enrichedEvent, freezeResp, err := l.buildConsumerOrderEvent(orderEvent, attempt, processingEpoch, occurredAt)
 	if err != nil {
 		var freezeErr *seatFreezeError
 		if errors.As(err, &freezeErr) && isTerminalSeatFreezeError(freezeErr.err) {
-			if releaseErr := l.releaseAttemptProjection(attempt, rush.AttemptReasonSeatExhausted, "", ""); releaseErr != nil {
-				return releaseErr
-			}
-			return nil
+			return l.finalizeFailure(attempt, processingEpoch, rush.AttemptReasonSeatExhausted, "", "")
 		}
 		return err
+	}
+	if lease != nil && lease.lost.Load() {
+		return nil
 	}
 
 	writeModels, err := mapEventToOrderWriteModels(enrichedEvent, now)
 	if err != nil {
-		freezeToken := ""
-		if freezeResp != nil {
-			freezeToken = freezeResp.GetFreezeToken()
-		}
-		_ = l.releaseAttemptProjection(attempt, rush.AttemptReasonCommitCutoffExceed, freezeToken, orderCreateSendFailedReleaseReason)
 		return err
 	}
 
@@ -138,13 +122,13 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		return nil
 	})
 	if err != nil {
-		return err
-	}
-	if attempt != nil && l.svcCtx.AttemptStore != nil {
-		if err := l.svcCtx.AttemptStore.CommitProjection(l.ctx, attempt, extractSeatIDs(orderEvent.SeatSnapshot), now); err != nil {
-			return err
+		if isGuardConflictErr(err) {
+			return l.finalizeFailure(attempt, processingEpoch, rush.AttemptReasonAlreadyHasActiveOrder, writeModels.order.FreezeToken, orderCreateGuardConflictReleaseReason)
 		}
+		return l.resolveOrderPersistFailure(orderEvent.OrderNumber, attempt, processingEpoch, extractSeatIDs(enrichedEvent.SeatSnapshot), freezeResp, err, now, lease)
 	}
+
+	l.finalizeSuccess(attempt, processingEpoch, extractSeatIDs(enrichedEvent.SeatSnapshot), now, lease)
 	if l.svcCtx.AsyncCloseClient != nil {
 		if err := l.svcCtx.AsyncCloseClient.EnqueueCloseTimeout(l.ctx, orderEvent.OrderNumber, writeModels.order.OrderExpireTime); err != nil {
 			l.Errorf("enqueue order async close failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
@@ -206,35 +190,40 @@ func isDuplicateOrderNumberErr(err error) bool {
 	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
 }
 
-func (l *CreateOrderConsumerLogic) prepareAttemptForConsume(orderNumber int64, now time.Time) (*rush.AttemptRecord, bool, error) {
+func (l *CreateOrderConsumerLogic) prepareAttemptForConsume(orderNumber int64, now time.Time) (*rush.AttemptRecord, int64, bool, error) {
 	if l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
-		return nil, false, xerr.ErrInternal
+		return nil, 0, false, xerr.ErrInternal
 	}
 
 	record, err := l.svcCtx.AttemptStore.Get(l.ctx, orderNumber)
 	if err != nil {
-		return nil, false, err
+		return nil, 0, false, err
 	}
 	switch record.State {
-	case rush.AttemptStateCommitted, rush.AttemptStateReleased:
-		return record, false, nil
+	case rush.AttemptStateSuccess, rush.AttemptStateFailed:
+		return record, 0, false, nil
 	case rush.AttemptStateProcessing:
-		return record, true, nil
-	case rush.AttemptStatePendingPublish, rush.AttemptStateQueued:
-		if _, _, err := l.svcCtx.AttemptStore.ClaimProcessing(l.ctx, orderNumber, now); err != nil && !errors.Is(err, xerr.ErrOrderNotFound) {
-			return nil, false, err
+		return record, 0, false, nil
+	case rush.AttemptStateAccepted:
+		claimed, epoch, err := l.svcCtx.AttemptStore.ClaimProcessing(l.ctx, orderNumber, now)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		if !claimed {
+			return record, 0, false, nil
 		}
 		record, err = l.svcCtx.AttemptStore.Get(l.ctx, orderNumber)
 		if err != nil {
-			return nil, false, err
+			return nil, 0, false, err
 		}
-		return record, true, nil
+		record.ProcessingEpoch = epoch
+		return record, epoch, true, nil
 	default:
-		return record, false, fmt.Errorf("unexpected attempt state %s", record.State)
+		return record, 0, false, fmt.Errorf("unexpected attempt state %s", record.State)
 	}
 }
 
-func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *orderevent.OrderCreateEvent, attempt *rush.AttemptRecord, occurredAt time.Time) (*orderevent.OrderCreateEvent, *programrpc.AutoAssignAndFreezeSeatsResp, error) {
+func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *orderevent.OrderCreateEvent, attempt *rush.AttemptRecord, processingEpoch int64, occurredAt time.Time) (*orderevent.OrderCreateEvent, *programrpc.AutoAssignAndFreezeSeatsResp, error) {
 	if hasEmbeddedOrderCreateSnapshots(orderEvent) {
 		return orderEvent, nil, nil
 	}
@@ -265,15 +254,15 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 	}
 	if attempt != nil {
 		freezeReq.OwnerOrderNumber = attempt.OrderNumber
-		freezeReq.OwnerEpoch = attempt.ProcessingEpoch
-		if attempt.ProcessingEpoch > 0 {
-			freezeReq.RequestNo = fmt.Sprintf("%d-%d", attempt.OrderNumber, attempt.ProcessingEpoch)
+		freezeReq.OwnerEpoch = processingEpoch
+		if processingEpoch > 0 {
+			freezeReq.RequestNo = fmt.Sprintf("%d-%d", attempt.OrderNumber, processingEpoch)
 		}
 	}
 	if freezeReq.RequestNo == "" {
 		freezeReq.RequestNo = fmt.Sprintf("order-create-%d", orderEvent.OrderNumber)
 	}
-	freezeResp, err := l.svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(l.ctx, freezeReq)
+	freezeResp, err := l.freezeSeatsWithRetry(freezeReq)
 	if err != nil {
 		return nil, nil, &seatFreezeError{err: err}
 	}
@@ -305,8 +294,6 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 	event.Generation = orderEvent.Generation
 	event.SaleWindowEndAt = orderEvent.SaleWindowEndAt
 	event.ShowEndAt = orderEvent.ShowEndAt
-	event.CommitCutoffAt = orderEvent.CommitCutoffAt
-	event.UserDeadlineAt = orderEvent.UserDeadlineAt
 
 	return event, freezeResp, nil
 }
@@ -321,33 +308,6 @@ func (e *seatFreezeError) Error() string {
 
 func (e *seatFreezeError) Unwrap() error {
 	return e.err
-}
-
-func (l *CreateOrderConsumerLogic) releaseAttemptProjection(attempt *rush.AttemptRecord, reason, freezeToken, releaseReason string) error {
-	if attempt == nil || l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
-		return nil
-	}
-	if err := l.svcCtx.AttemptStore.Release(l.ctx, attempt, reason, time.Now()); err != nil {
-		return err
-	}
-	if freezeToken != "" {
-		releaseOrderCreateFreezeWithOwner(l.ctx, l.svcCtx, freezeToken, releaseReason, attempt.OrderNumber, attempt.ProcessingEpoch)
-	}
-
-	return nil
-}
-
-func isCommitCutoffExceeded(cutoffAt string, now time.Time) (bool, error) {
-	if cutoffAt == "" {
-		return false, nil
-	}
-
-	parsed, err := parseOrderTime(cutoffAt)
-	if err != nil {
-		return false, err
-	}
-
-	return !now.Before(parsed), nil
 }
 
 func durationToFreezeSeconds(value time.Duration) int64 {
@@ -391,4 +351,134 @@ func hasEmbeddedOrderCreateSnapshots(orderEvent *orderevent.OrderCreateEvent) bo
 		return false
 	}
 	return len(orderEvent.TicketUserSnapshot) == len(orderEvent.SeatSnapshot)
+}
+
+func isGuardConflictErr(err error) bool {
+	var mysqlErr *mysqlDriver.MySQLError
+	if !errors.As(err, &mysqlErr) || mysqlErr.Number != 1062 {
+		return false
+	}
+
+	message := mysqlErr.Message
+	if strings.Contains(message, "uk_show_time_user") {
+		return true
+	}
+	if strings.Contains(message, "uk_show_time_viewer") {
+		return true
+	}
+	if strings.Contains(message, "uk_show_time_seat") {
+		return true
+	}
+
+	return false
+}
+
+func processingLeaseInterval(svcCtx *svc.ServiceContext) time.Duration {
+	if svcCtx == nil {
+		return 100 * time.Millisecond
+	}
+
+	ttl := svcCtx.Config.RushOrder.InFlightTTL
+	if ttl <= 0 {
+		return 100 * time.Millisecond
+	}
+
+	interval := ttl / 3
+	if interval < 100*time.Millisecond {
+		return 100 * time.Millisecond
+	}
+
+	return interval
+}
+
+func (l *CreateOrderConsumerLogic) freezeSeatsWithRetry(req *programrpc.AutoAssignAndFreezeSeatsReq) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
+	resp, err := l.svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(l.ctx, req)
+	if !isSeatFreezeTimeout(err) {
+		return resp, err
+	}
+
+	return l.svcCtx.ProgramRpc.AutoAssignAndFreezeSeats(l.ctx, req)
+}
+
+func isSeatFreezeTimeout(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	return status.Code(err) == codes.DeadlineExceeded
+}
+
+func (l *CreateOrderConsumerLogic) finalizeSuccess(attempt *rush.AttemptRecord, processingEpoch int64, seatIDs []int64, now time.Time, lease *processingLease) {
+	if attempt == nil || processingEpoch <= 0 || l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
+		return
+	}
+	if lease != nil && lease.lost.Load() {
+		return
+	}
+	if err := l.svcCtx.AttemptStore.FinalizeSuccess(l.ctx, attempt, processingEpoch, seatIDs, now); err != nil {
+		l.Errorf("finalize rush attempt success failed, orderNumber=%d epoch=%d err=%v", attempt.OrderNumber, processingEpoch, err)
+	}
+}
+
+func (l *CreateOrderConsumerLogic) finalizeFailure(attempt *rush.AttemptRecord, processingEpoch int64, reason, freezeToken, releaseReason string) error {
+	if attempt == nil || processingEpoch <= 0 || l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
+		return nil
+	}
+
+	outcome, err := l.svcCtx.AttemptStore.FinalizeFailure(l.ctx, attempt, processingEpoch, reason, time.Now())
+	if err != nil {
+		latest, getErr := l.svcCtx.AttemptStore.Get(l.ctx, attempt.OrderNumber)
+		if getErr == nil && shouldRetryFinalizeFailure(attempt, latest, err) {
+			return err
+		}
+		if getErr != nil && !errors.Is(getErr, xerr.ErrOrderNotFound) {
+			return err
+		}
+		return err
+	}
+
+	releaseFreeze, outcomeErr := handleFinalizeFailureOutcome(outcome, nil)
+	if outcomeErr != nil {
+		return outcomeErr
+	}
+	if releaseFreeze && freezeToken != "" {
+		releaseOrderCreateFreezeWithOwner(l.ctx, l.svcCtx, freezeToken, releaseReason, attempt.OrderNumber, processingEpoch)
+	}
+
+	return nil
+}
+
+func (l *CreateOrderConsumerLogic) resolveOrderPersistFailure(
+	orderNumber int64,
+	attempt *rush.AttemptRecord,
+	processingEpoch int64,
+	seatIDs []int64,
+	freezeResp *programrpc.AutoAssignAndFreezeSeatsResp,
+	persistErr error,
+	now time.Time,
+	lease *processingLease,
+) error {
+	if lease != nil && lease.lost.Load() {
+		return nil
+	}
+
+	if order, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, orderNumber); err == nil && order != nil {
+		l.finalizeSuccess(attempt, processingEpoch, seatIDs, now, lease)
+		return nil
+	} else if err != nil && !errors.Is(err, model.ErrNotFound) {
+		return persistErr
+	}
+
+	freezeToken := ""
+	if freezeResp != nil {
+		freezeToken = freezeResp.GetFreezeToken()
+	}
+	if err := l.finalizeFailure(attempt, processingEpoch, orderCreatePersistFailureReason, freezeToken, orderCreatePersistFailureReason); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -141,3 +141,52 @@ func TestPurchaseTokenVerifyReturnsNormalizedClaims(t *testing.T) {
 		t.Fatalf("expected normalized show time generation claims, got %+v", claims)
 	}
 }
+
+func TestPurchaseTokenFingerprintDiffersAcrossOrderNumbers(t *testing.T) {
+	codec, err := NewPurchaseTokenCodec("test-secret", 2*time.Minute)
+	if err != nil {
+		t.Fatalf("NewPurchaseTokenCodec returned error: %v", err)
+	}
+
+	firstToken, err := codec.Issue(PurchaseTokenClaims{
+		OrderNumber:      91001,
+		UserID:           3001,
+		ProgramID:        10001,
+		ShowTimeID:       20001,
+		TicketCategoryID: 40001,
+		TicketUserIDs:    []int64{701, 702},
+		Generation:       BuildRushGeneration(20001),
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+	})
+	if err != nil {
+		t.Fatalf("Issue(first) returned error: %v", err)
+	}
+	secondToken, err := codec.Issue(PurchaseTokenClaims{
+		OrderNumber:      91002,
+		UserID:           3001,
+		ProgramID:        10001,
+		ShowTimeID:       20001,
+		TicketCategoryID: 40001,
+		TicketUserIDs:    []int64{702, 701},
+		Generation:       BuildRushGeneration(20001),
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+	})
+	if err != nil {
+		t.Fatalf("Issue(second) returned error: %v", err)
+	}
+
+	firstClaims, err := codec.Verify(firstToken)
+	if err != nil {
+		t.Fatalf("Verify(first) returned error: %v", err)
+	}
+	secondClaims, err := codec.Verify(secondToken)
+	if err != nil {
+		t.Fatalf("Verify(second) returned error: %v", err)
+	}
+
+	if firstClaims.TokenFingerprint == secondClaims.TokenFingerprint {
+		t.Fatalf("expected different fingerprints for different order numbers, got %q", firstClaims.TokenFingerprint)
+	}
+}

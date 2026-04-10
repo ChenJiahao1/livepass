@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -153,10 +154,12 @@ type fakeOrderRepeatGuard struct {
 
 type fakeOrderCreateProducer struct {
 	sendErr    error
+	sendHook   func()
+	sendFunc   func(context.Context, string, []byte) error
 	lastKey    string
 	lastBody   []byte
-	sendCalls  int
-	closeCalls int
+	sendCalls  int32
+	closeCalls int32
 }
 
 type fakeOrderCreateConsumer struct {
@@ -229,8 +232,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 			Enabled:       true,
 			TokenSecret:   "order-rpc-test-secret",
 			TokenTTL:      2 * time.Minute,
-			CommitCutoff:  10 * time.Second,
-			UserDeadline:  15 * time.Second,
 			InFlightTTL:   30 * time.Second,
 			FinalStateTTL: 30 * time.Minute,
 		},
@@ -333,13 +334,6 @@ func (f *fakeAsyncCloseClient) EnqueueCloseTimeout(_ context.Context, orderNumbe
 	return f.enqueueErr
 }
 
-func (f *fakeAsyncCloseClient) EnqueueVerifyAttemptDue(_ context.Context, orderNumber int64, dueAt time.Time) error {
-	f.verifyEnqueueCalls++
-	f.verifyLastOrderNumber = orderNumber
-	f.verifyLastDueAt = dueAt
-	return f.verifyEnqueueErr
-}
-
 func buildOrderTestShardingConfig() config.ShardingConfig {
 	return config.ShardingConfig{
 		Mode: "shard_only",
@@ -408,16 +402,26 @@ func mustInitOrderTestXid(t *testing.T) {
 	})
 }
 
-func (f *fakeOrderCreateProducer) Send(_ context.Context, key string, value []byte) error {
+func (f *fakeOrderCreateProducer) Send(ctx context.Context, key string, value []byte) error {
 	f.lastKey = key
 	f.lastBody = append(f.lastBody[:0], value...)
-	f.sendCalls++
+	atomic.AddInt32(&f.sendCalls, 1)
+	if f.sendHook != nil {
+		f.sendHook()
+	}
+	if f.sendFunc != nil {
+		return f.sendFunc(ctx, key, append([]byte(nil), value...))
+	}
 	return f.sendErr
 }
 
 func (f *fakeOrderCreateProducer) Close() error {
-	f.closeCalls++
+	atomic.AddInt32(&f.closeCalls, 1)
 	return nil
+}
+
+func (f *fakeOrderCreateProducer) SendCalls() int {
+	return int(atomic.LoadInt32(&f.sendCalls))
 }
 
 func (f *fakeOrderCreateConsumer) Start(ctx context.Context, handler func(context.Context, []byte) error) error {

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestMapAttemptRecordToPoll(t *testing.T) {
+func TestMapAttemptRecordToPollMapsAcceptedAndProcessingToProcessing(t *testing.T) {
 	now := time.Date(2026, 4, 5, 18, 0, 0, 0, time.Local)
 
 	tests := []struct {
@@ -16,32 +16,30 @@ func TestMapAttemptRecordToPoll(t *testing.T) {
 		wantDone   bool
 	}{
 		{
-			name: "pending publish before deadline is processing",
+			name: "accepted is processing",
 			record: &AttemptRecord{
-				OrderNumber:    91001,
-				State:          AttemptStatePendingPublish,
-				UserDeadlineAt: now.Add(3 * time.Second),
+				OrderNumber: 91001,
+				State:       AttemptStateAccepted,
 			},
 			now:        now,
 			wantStatus: PollOrderStatusProcessing,
 			wantDone:   false,
 		},
 		{
-			name: "processing after deadline is verifying",
+			name: "processing is processing",
 			record: &AttemptRecord{
-				OrderNumber:    91002,
-				State:          AttemptStateProcessing,
-				UserDeadlineAt: now.Add(-time.Second),
+				OrderNumber: 91002,
+				State:       AttemptStateProcessing,
 			},
 			now:        now,
-			wantStatus: PollOrderStatusVerifying,
+			wantStatus: PollOrderStatusProcessing,
 			wantDone:   false,
 		},
 		{
-			name: "committed is success",
+			name: "success is success",
 			record: &AttemptRecord{
 				OrderNumber: 91003,
-				State:       AttemptStateCommitted,
+				State:       AttemptStateSuccess,
 				ReasonCode:  AttemptReasonOrderCommitted,
 			},
 			now:        now,
@@ -49,10 +47,10 @@ func TestMapAttemptRecordToPoll(t *testing.T) {
 			wantDone:   true,
 		},
 		{
-			name: "released is failed",
+			name: "failed is failed",
 			record: &AttemptRecord{
 				OrderNumber: 91004,
-				State:       AttemptStateReleased,
+				State:       AttemptStateFailed,
 				ReasonCode:  AttemptReasonQuotaExhausted,
 			},
 			now:        now,
@@ -77,5 +75,15 @@ func TestMapAttemptRecordToPoll(t *testing.T) {
 				)
 			}
 		})
+	}
+}
+
+func TestMapAttemptRecordToPollRejectsLegacyVerifyingState(t *testing.T) {
+	_, _, err := MapAttemptRecordToPoll(&AttemptRecord{
+		OrderNumber: 91005,
+		State:       "VERIFYING",
+	}, time.Date(2026, 4, 5, 18, 0, 0, 0, time.Local))
+	if err == nil {
+		t.Fatalf("expected error for legacy VERIFYING state")
 	}
 }

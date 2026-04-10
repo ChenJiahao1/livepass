@@ -93,16 +93,6 @@ func (s *OrderRpcServer) CloseExpiredOrders(ctx context.Context, in *pb.CloseExp
 	return l.CloseExpiredOrders(in)
 }
 
-func (s *OrderRpcServer) VerifyAttemptDue(ctx context.Context, in *pb.VerifyAttemptDueReq) (*pb.BoolResp, error) {
-	l := logic.NewVerifyAttemptDueLogic(ctx, s.svcCtx)
-	return l.VerifyAttemptDue(in)
-}
-
-func (s *OrderRpcServer) ReconcileRushAttempts(ctx context.Context, in *pb.ReconcileRushAttemptsReq) (*pb.ReconcileRushAttemptsResp, error) {
-	l := logic.NewReconcileRushAttemptsLogic(ctx, s.svcCtx)
-	return l.ReconcileRushAttempts(in)
-}
-
 func (s *OrderRpcServer) CountActiveTicketsByUserShowTime(ctx context.Context, in *pb.CountActiveTicketsByUserShowTimeReq) (*pb.CountActiveTicketsByUserShowTimeResp, error) {
 	l := logic.NewCountActiveTicketsByUserShowTimeLogic(ctx, s.svcCtx)
 	return l.CountActiveTicketsByUserShowTime(in)

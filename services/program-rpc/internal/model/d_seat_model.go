@@ -25,9 +25,11 @@ type (
 		FindByProgramAndIDsForUpdate(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) ([]*DSeat, error)
 		FindByShowTimeAndIDsForUpdate(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64) ([]*DSeat, error)
 		BatchFreezeByIDs(ctx context.Context, session sqlx.Session, seatIDs []int64, freezeToken string, expireTime time.Time) error
+		BatchFreezeByShowTimeAndIDs(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		BatchConfirmByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		BatchConfirmByShowTimeAndIDs(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64, freezeToken string, expireTime time.Time) error
 		ReleaseByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
+		ReleaseFrozenByShowTimeAndIDs(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64, freezeToken string) error
 		ReleaseSoldByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64) error
 		ReleaseSoldByShowTimeAndIDs(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64) error
 		ConfirmByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error
@@ -273,6 +275,24 @@ func (m *customDSeatModel) BatchFreezeByIDs(ctx context.Context, session sqlx.Se
 	return err
 }
 
+func (m *customDSeatModel) BatchFreezeByShowTimeAndIDs(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64, freezeToken string, expireTime time.Time) error {
+	if len(seatIDs) == 0 {
+		return nil
+	}
+
+	inClause, args := buildInt64InClause(seatIDs)
+	query := fmt.Sprintf(
+		"update %s set `seat_status` = 2, `freeze_token` = ?, `freeze_expire_time` = ?, `edit_time` = ? where `status` = 1 and `show_time_id` = ? and `seat_status` = 1 and `id` in (%s)",
+		m.table,
+		inClause,
+	)
+
+	now := time.Now()
+	args = append([]interface{}{freezeToken, expireTime, now, showTimeId}, args...)
+	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, args...)
+	return err
+}
+
 func (m *customDSeatModel) BatchConfirmByIDs(ctx context.Context, session sqlx.Session, programId int64, seatIDs []int64, freezeToken string, expireTime time.Time) error {
 	if len(seatIDs) == 0 {
 		return nil
@@ -280,12 +300,12 @@ func (m *customDSeatModel) BatchConfirmByIDs(ctx context.Context, session sqlx.S
 
 	inClause, args := buildInt64InClause(seatIDs)
 	query := fmt.Sprintf(
-		"update %s set `seat_status` = 3, `freeze_token` = ?, `freeze_expire_time` = ?, `edit_time` = ? where `status` = 1 and `program_id` = ? and `seat_status` = 1 and `id` in (%s)",
+		"update %s set `seat_status` = 3, `freeze_token` = ?, `freeze_expire_time` = ?, `edit_time` = ? where `status` = 1 and `program_id` = ? and `seat_status` = 2 and `freeze_token` = ? and `id` in (%s)",
 		m.table,
 		inClause,
 	)
 
-	args = append([]interface{}{freezeToken, expireTime, time.Now(), programId}, args...)
+	args = append([]interface{}{freezeToken, expireTime, time.Now(), programId, freezeToken}, args...)
 	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, args...)
 	return err
 }
@@ -297,23 +317,40 @@ func (m *customDSeatModel) BatchConfirmByShowTimeAndIDs(ctx context.Context, ses
 
 	inClause, args := buildInt64InClause(seatIDs)
 	query := fmt.Sprintf(
-		"update %s set `seat_status` = 3, `freeze_token` = ?, `freeze_expire_time` = ?, `edit_time` = ? where `status` = 1 and `show_time_id` = ? and `seat_status` = 1 and `id` in (%s)",
+		"update %s set `seat_status` = 3, `freeze_token` = ?, `freeze_expire_time` = ?, `edit_time` = ? where `status` = 1 and `show_time_id` = ? and `seat_status` = 2 and `freeze_token` = ? and `id` in (%s)",
 		m.table,
 		inClause,
 	)
 
-	args = append([]interface{}{freezeToken, expireTime, time.Now(), showTimeId}, args...)
+	args = append([]interface{}{freezeToken, expireTime, time.Now(), showTimeId, freezeToken}, args...)
 	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, args...)
 	return err
 }
 
 func (m *customDSeatModel) ReleaseByFreezeToken(ctx context.Context, session sqlx.Session, freezeToken string) error {
 	query := fmt.Sprintf(
-		"update %s set `seat_status` = 1, `freeze_token` = null, `freeze_expire_time` = null, `edit_time` = ? where `status` = 1 and `freeze_token` = ?",
+		"update %s set `seat_status` = 1, `freeze_token` = null, `freeze_expire_time` = null, `edit_time` = ? where `status` = 1 and `seat_status` = 2 and `freeze_token` = ?",
 		m.table,
 	)
 
 	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, time.Now(), freezeToken)
+	return err
+}
+
+func (m *customDSeatModel) ReleaseFrozenByShowTimeAndIDs(ctx context.Context, session sqlx.Session, showTimeId int64, seatIDs []int64, freezeToken string) error {
+	if len(seatIDs) == 0 {
+		return nil
+	}
+
+	inClause, args := buildInt64InClause(seatIDs)
+	query := fmt.Sprintf(
+		"update %s set `seat_status` = 1, `freeze_token` = null, `freeze_expire_time` = null, `edit_time` = ? where `status` = 1 and `show_time_id` = ? and `seat_status` = 2 and `freeze_token` = ? and `id` in (%s)",
+		m.table,
+		inClause,
+	)
+
+	args = append([]interface{}{time.Now(), showTimeId, freezeToken}, args...)
+	_, err := m.withSession(session).(*customDSeatModel).conn.ExecCtx(ctx, query, args...)
 	return err
 }
 

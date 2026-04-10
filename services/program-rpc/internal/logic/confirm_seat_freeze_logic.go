@@ -85,7 +85,7 @@ func (l *ConfirmSeatFreezeLogic) ConfirmSeatFreeze(in *pb.ConfirmSeatFreezeReq) 
 			return xerr.ErrSeatFreezeStatusInvalid
 		}
 		for _, seat := range seats {
-			if seat.SeatStatus != 1 && seat.SeatStatus != 3 {
+			if seat.SeatStatus != 2 || !seat.FreezeToken.Valid || seat.FreezeToken.String != freeze.FreezeToken {
 				return xerr.ErrSeatFreezeStatusInvalid
 			}
 		}

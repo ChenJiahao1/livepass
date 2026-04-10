@@ -264,8 +264,8 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		return false, xerr.ErrOrderNotFound
 	}
 	if order.OrderStatus == orderStatusCancelled {
-		if err := syncClosedRushAttemptProjection(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
-			logx.WithContext(ctx).Errorf("sync closed rush attempt projection failed, orderNumber=%d err=%v", order.OrderNumber, err)
+		if err := syncClosedRushAttempt(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
+			logx.WithContext(ctx).Errorf("sync closed rush attempt failed, orderNumber=%d err=%v", order.OrderNumber, err)
 		}
 		return false, nil
 	}
@@ -285,8 +285,8 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		return false, err
 	}
 	if changed {
-		if err := syncClosedRushAttemptProjection(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
-			logx.WithContext(ctx).Errorf("sync closed rush attempt projection failed, orderNumber=%d err=%v", order.OrderNumber, err)
+		if err := syncClosedRushAttempt(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
+			logx.WithContext(ctx).Errorf("sync closed rush attempt failed, orderNumber=%d err=%v", order.OrderNumber, err)
 		}
 	}
 

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 
@@ -36,22 +35,18 @@ func (l *PollOrderProgressLogic) PollOrderProgress(in *pb.PollOrderProgressReq) 
 		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 
-	record, err := l.svcCtx.AttemptStore.Get(l.ctx, in.GetOrderNumber())
+	projection, err := projectOrderProgress(l.ctx, l.svcCtx, in.GetOrderNumber(), time.Now())
 	if err != nil {
 		return nil, mapOrderError(err)
 	}
-	if record.UserID != in.GetUserId() {
+	if projection.UserID > 0 && projection.UserID != in.GetUserId() {
 		return nil, mapOrderError(xerr.ErrOrderNotFound)
 	}
 
-	orderStatus, done, err := rush.MapAttemptRecordToPoll(record, time.Now())
-	if err != nil {
-		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
-	}
-
 	return &pb.PollOrderProgressResp{
-		OrderNumber: record.OrderNumber,
-		OrderStatus: orderStatus,
-		Done:        done,
+		OrderNumber: projection.OrderNumber,
+		OrderStatus: projection.OrderStatus,
+		Done:        projection.Done,
+		ReasonCode:  projection.ReasonCode,
 	}, nil
 }

@@ -9,8 +9,20 @@ if redis.call("EXISTS", KEYS[1]) == 0 then
 end
 
 local state = redis.call("HGET", KEYS[1], "state")
-if state == "PENDING_PUBLISH" then
-    redis.call("HSET", KEYS[1], "state", "QUEUED", "last_transition_at", ARGV[1])
+if state == "SUCCESS" or state == "FAILED" then
+    return 0
 end
+
+local publishAttempts = tonumber(redis.call("HGET", KEYS[1], "publish_attempts") or "0") + 1
+if state ~= "ACCEPTED" then
+    redis.call("HSET", KEYS[1],
+        "state", "ACCEPTED",
+        "publish_attempts", publishAttempts,
+        "last_transition_at", ARGV[1]
+    )
+    return 1
+end
+
+redis.call("HSET", KEYS[1], "publish_attempts", publishAttempts)
 
 return 1

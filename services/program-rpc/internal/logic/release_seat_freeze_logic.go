@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"damai-go/pkg/xerr"
+	"damai-go/services/program-rpc/internal/model"
 	"damai-go/services/program-rpc/internal/seatcache"
 	"damai-go/services/program-rpc/internal/svc"
 	"damai-go/services/program-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -60,6 +62,39 @@ func (l *ReleaseSeatFreezeLogic) ReleaseSeatFreeze(in *pb.ReleaseSeatFreezeReq) 
 	if freeze.FreezeStatus == seatcache.SeatFreezeStatusReleased ||
 		freeze.FreezeStatus == seatcache.SeatFreezeStatusExpired {
 		return &pb.ReleaseSeatFreezeResp{Success: true}, nil
+	}
+
+	frozenSeats, err := seatStore.FrozenSeats(l.ctx, freeze.ShowTimeID, freeze.TicketCategoryID, freeze.FreezeToken)
+	if err != nil {
+		return nil, mapReleaseSeatFreezeError(err)
+	}
+	if len(frozenSeats) == 0 || int64(len(frozenSeats)) != freeze.SeatCount {
+		return nil, mapReleaseSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
+	}
+	seatIDs := make([]int64, 0, len(frozenSeats))
+	for _, seat := range frozenSeats {
+		seatIDs = append(seatIDs, seat.SeatID)
+	}
+
+	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
+		seatModel := model.NewDSeatModel(sqlx.NewSqlConnFromSession(session))
+		seats, err := seatModel.FindByShowTimeAndIDsForUpdate(ctx, session, freeze.ShowTimeID, seatIDs)
+		if err != nil {
+			return err
+		}
+		if len(seats) != len(seatIDs) {
+			return xerr.ErrSeatFreezeStatusInvalid
+		}
+		for _, seat := range seats {
+			if seat.SeatStatus != 2 || !seat.FreezeToken.Valid || seat.FreezeToken.String != freeze.FreezeToken {
+				return xerr.ErrSeatFreezeStatusInvalid
+			}
+		}
+
+		return seatModel.ReleaseFrozenByShowTimeAndIDs(ctx, session, freeze.ShowTimeID, seatIDs, freeze.FreezeToken)
+	})
+	if err != nil {
+		return nil, mapReleaseSeatFreezeError(err)
 	}
 
 	if err := seatStore.ReleaseFrozenSeats(l.ctx, freeze.ShowTimeID, freeze.TicketCategoryID, freeze.FreezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch()); err != nil {

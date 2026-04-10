@@ -24,8 +24,6 @@ type OrderCreateEvent struct {
 	TakeTicketMode         string                 `json:"takeTicketMode"`
 	SaleWindowEndAt        string                 `json:"saleWindowEndAt"`
 	ShowEndAt              string                 `json:"showEndAt"`
-	CommitCutoffAt         string                 `json:"commitCutoffAt"`
-	UserDeadlineAt         string                 `json:"userDeadlineAt"`
 	FreezeToken            string                 `json:"freezeToken"`
 	FreezeExpireTime       string                 `json:"freezeExpireTime"`
 	ProgramSnapshot        ProgramSnapshot        `json:"programSnapshot"`

@@ -147,9 +147,10 @@ type PollOrderReq struct {
 }
 
 type PollOrderResp struct {
-	OrderNumber int64 `json:"orderNumber"`
-	OrderStatus int64 `json:"orderStatus"`
-	Done        bool  `json:"done"`
+	OrderNumber int64  `json:"orderNumber"`
+	OrderStatus int64  `json:"orderStatus"`
+	Done        bool   `json:"done"`
+	ReasonCode  string `json:"reasonCode,optional"`
 }
 
 type RefundOrderReq struct {

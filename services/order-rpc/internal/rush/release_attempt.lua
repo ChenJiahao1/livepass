@@ -26,14 +26,15 @@ if redis.call("EXISTS", KEYS[1]) == 0 then
 end
 
 local state = redis.call("HGET", KEYS[1], "state")
-if state == "COMMITTED" then
+if state == "SUCCESS" then
     return 0
 end
 
-if state ~= "RELEASED" then
+if state ~= "FAILED" then
     redis.call("HSET", KEYS[1],
-        "state", "RELEASED",
+        "state", "FAILED",
         "reason_code", ARGV[1],
+        "finished_at", ARGV[3],
         "last_transition_at", ARGV[3]
     )
     local ticketCount = tonumber(ARGV[2]) or 0

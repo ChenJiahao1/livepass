@@ -29,10 +29,6 @@ func (f *fakeOrderCloseRPC) CloseExpiredOrder(ctx context.Context, in *orderrpc.
 	return f.closeExpiredOrderResp, f.closeExpiredOrderErr
 }
 
-func (f *fakeOrderCloseRPC) VerifyAttemptDue(ctx context.Context, in *orderrpc.VerifyAttemptDueReq) (*orderrpc.BoolResp, error) {
-	return &orderrpc.BoolResp{Success: true}, nil
-}
-
 func TestCloseTimeoutTaskLogicHandleCallsOrderRPC(t *testing.T) {
 	body, err := closequeue.MarshalCloseTimeoutPayload(91001, time.Date(2026, time.March, 29, 19, 45, 0, 0, time.UTC))
 	if err != nil {

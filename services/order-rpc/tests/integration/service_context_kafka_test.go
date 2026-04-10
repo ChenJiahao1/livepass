@@ -129,7 +129,6 @@ Kafka:
   ConsumerGroup: damai-go-ticketing-attempt
   TopicPartitions: 5
   ConsumerWorkers: 1
-  MaxMessageDelay: 60s
 Sharding:
   Mode: shard_only
   Shards:
@@ -159,9 +158,6 @@ Sharding:
 	}
 	if c.Kafka.ConsumerWorkers != 1 {
 		t.Fatalf("expected consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
-	}
-	if c.Kafka.MaxMessageDelay != 60*time.Second {
-		t.Fatalf("expected max message delay 60s, got %s", c.Kafka.MaxMessageDelay)
 	}
 	if c.Sharding.Mode != "shard_only" {
 		t.Fatalf("expected sharding mode shard_only, got %s", c.Sharding.Mode)
@@ -265,7 +261,6 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 			ConsumerGroup:    "damai-go-ticketing-attempt",
 			TopicPartitions:  5,
 			ConsumerWorkers:  1,
-			MaxMessageDelay:  5 * time.Second,
 			ProducerTimeout:  3 * time.Second,
 			RetryBackoff:     time.Second,
 		},

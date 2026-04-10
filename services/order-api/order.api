@@ -21,9 +21,10 @@ type (
 		OrderNumber int64 `json:"orderNumber"`
 	}
 	PollOrderResp {
-		OrderNumber int64 `json:"orderNumber"`
-		OrderStatus int64 `json:"orderStatus"`
-		Done        bool  `json:"done"`
+		OrderNumber int64  `json:"orderNumber"`
+		OrderStatus int64  `json:"orderStatus"`
+		Done        bool   `json:"done"`
+		ReasonCode  string `json:"reasonCode,optional"`
 	}
 	ListOrdersReq {
 		PageNumber  int64 `json:"pageNumber,optional"`
