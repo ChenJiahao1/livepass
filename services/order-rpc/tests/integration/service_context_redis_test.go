@@ -72,8 +72,6 @@ func TestOrderServiceContextRedis(t *testing.T) {
 			Enabled:       true,
 			TokenSecret:   "order-rpc-test-secret",
 			TokenTTL:      2 * time.Minute,
-			CommitCutoff:  10 * time.Second,
-			UserDeadline:  15 * time.Second,
 			InFlightTTL:   30 * time.Second,
 			FinalStateTTL: 30 * time.Minute,
 		}

@@ -22,14 +22,14 @@ type AttemptRecord struct {
 	ShowEndAt        time.Time
 	TokenFingerprint string
 
-	State          string
-	ReasonCode     string
-	CommitCutoffAt time.Time
-	UserDeadlineAt time.Time
+	State           string
+	ReasonCode      string
+	AcceptedAt      time.Time
+	FinishedAt      time.Time
+	PublishAttempts int64
 
 	ProcessingEpoch     int64
 	ProcessingStartedAt time.Time
-	VerifyStartedAt     time.Time
 
 	CreatedAt        time.Time
 	LastTransitionAt time.Time
@@ -44,19 +44,14 @@ func MapAttemptRecordToPoll(record *AttemptRecord, now time.Time) (status int64,
 	}
 
 	switch record.State {
-	case AttemptStatePendingPublish, AttemptStateQueued, AttemptStateProcessing:
-		if !record.UserDeadlineAt.IsZero() && !now.Before(record.UserDeadlineAt) {
-			return PollOrderStatusVerifying, false, nil
-		}
+	case AttemptStateAccepted, AttemptStateProcessing:
 		return PollOrderStatusProcessing, false, nil
-	case AttemptStateVerifying:
-		return PollOrderStatusVerifying, false, nil
-	case AttemptStateCommitted:
+	case AttemptStateSuccess:
 		if record.ReasonCode != "" && record.ReasonCode != AttemptReasonOrderCommitted {
 			return 0, false, fmt.Errorf("invalid committed reason code: %s", record.ReasonCode)
 		}
 		return PollOrderStatusSuccess, true, nil
-	case AttemptStateReleased:
+	case AttemptStateFailed:
 		return PollOrderStatusFailed, true, nil
 	default:
 		return 0, false, fmt.Errorf("unknown attempt state: %s", record.State)

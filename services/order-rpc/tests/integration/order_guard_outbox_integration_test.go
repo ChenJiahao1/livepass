@@ -11,10 +11,11 @@ import (
 	orderevent "damai-go/services/order-rpc/internal/event"
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/internal/model"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/pb"
 	"damai-go/services/order-rpc/sharding"
-
-	mysqlDriver "github.com/go-sql-driver/mysql"
+	programrpc "damai-go/services/program-rpc/programrpc"
+	userrpc "damai-go/services/user-rpc/userrpc"
 )
 
 func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {
@@ -99,8 +100,9 @@ func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
 }
 
 func TestCreateOrderGuardsRejectDuplicateSeatAcrossOrderSuffixes(t *testing.T) {
-	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	rebindOrderTestAttemptStore(t, svcCtx)
 
 	firstUserID := mustFindOrderTestUserIDByLogicSlot(t, 10)
 	secondUserID := mustFindOrderTestUserIDByLogicSlot(t, 11)
@@ -112,21 +114,74 @@ func TestCreateOrderGuardsRejectDuplicateSeatAcrossOrderSuffixes(t *testing.T) {
 
 	firstOrderNumber := sharding.BuildOrderNumber(firstUserID, time.Date(2026, time.April, 5, 12, 0, 0, 0, time.UTC), 1, 11)
 	secondOrderNumber := sharding.BuildOrderNumber(secondUserID, time.Date(2026, time.April, 5, 12, 0, 1, 0, time.UTC), 1, 12)
+	programID := int64(10001)
+	ticketCategoryID := int64(40001)
 
 	firstEvent := buildTestOrderCreateEvent(firstOrderNumber, firstUserID, []int64{701}, []int64{601})
-	secondEvent := buildTestOrderCreateEvent(secondOrderNumber, secondUserID, []int64{801}, []int64{601})
-
 	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(mustMarshalOrderCreateEvent(t, firstEvent)); err != nil {
 		t.Fatalf("first Consume returned error: %v", err)
 	}
 
-	err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(mustMarshalOrderCreateEvent(t, secondEvent))
-	var mysqlErr *mysqlDriver.MySQLError
-	if !errors.As(err, &mysqlErr) || mysqlErr.Number != 1062 {
-		t.Fatalf("expected duplicate key from global seat guard, got %v", err)
+	ctx := context.Background()
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
 	}
-	if _, findErr := svcCtx.OrderRepository.FindOrderByNumber(context.Background(), secondOrderNumber); !errors.Is(findErr, model.ErrNotFound) {
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, programID, ticketCategoryID, 1); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(programID, ticketCategoryID, 1, 4, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		secondUserID,
+		&userrpc.TicketUserInfo{Id: 801, UserId: secondUserID, RelName: "观演人-801", IdType: 1, IdNumber: "110101199001010801"},
+	)
+	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-guard-conflict-second-order",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 601, TicketCategoryId: ticketCategoryID, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}
+
+	claims := rush.PurchaseTokenClaims{
+		OrderNumber:      secondOrderNumber,
+		UserID:           secondUserID,
+		ProgramID:        programID,
+		ShowTimeID:       programID,
+		TicketCategoryID: ticketCategoryID,
+		TicketUserIDs:    []int64{801},
+		TicketCount:      1,
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+		ExpireAt:         time.Now().Add(2 * time.Minute).Unix(),
+	}
+	resp, err := logicpkg.NewCreateOrderLogic(ctx, svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:        secondUserID,
+		PurchaseToken: mustIssueRushPurchaseToken(t, svcCtx, claims),
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	waitOrderCreateSendCalls(t, producer, 1)
+	if err := logicpkg.NewCreateOrderConsumerLogic(ctx, svcCtx).Consume(producer.lastBody); err != nil {
+		t.Fatalf("second Consume should convert guard conflict to business failure, got error: %v", err)
+	}
+
+	if _, findErr := svcCtx.OrderRepository.FindOrderByNumber(ctx, secondOrderNumber); !errors.Is(findErr, model.ErrNotFound) {
 		t.Fatalf("expected second order insert rolled back, got err=%v", findErr)
+	}
+	record, err := svcCtx.AttemptStore.Get(ctx, resp.GetOrderNumber())
+	if err != nil {
+		t.Fatalf("AttemptStore.Get() error = %v", err)
+	}
+	if record.State != rush.AttemptStateFailed || record.ReasonCode != rush.AttemptReasonAlreadyHasActiveOrder {
+		t.Fatalf("expected failed attempt with ALREADY_HAS_ACTIVE_ORDER, got %+v", record)
+	}
+	if programRPC.releaseSeatFreezeCalls != 1 {
+		t.Fatalf("expected guard conflict release seat freeze once, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+	if programRPC.lastReleaseSeatFreezeReq == nil || programRPC.lastReleaseSeatFreezeReq.GetFreezeToken() != "freeze-guard-conflict-second-order" {
+		t.Fatalf("expected release freeze token freeze-guard-conflict-second-order, got %+v", programRPC.lastReleaseSeatFreezeReq)
 	}
 }
 

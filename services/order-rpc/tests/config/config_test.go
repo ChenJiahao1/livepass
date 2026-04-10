@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -65,12 +66,6 @@ func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T
 	}
 	if c.RushOrder.TokenTTL != 2*time.Minute {
 		t.Fatalf("expected rush order token ttl 2m, got %s", c.RushOrder.TokenTTL)
-	}
-	if c.RushOrder.CommitCutoff != 10*time.Second {
-		t.Fatalf("expected rush order commit cutoff 10s, got %s", c.RushOrder.CommitCutoff)
-	}
-	if c.RushOrder.UserDeadline != 15*time.Second {
-		t.Fatalf("expected rush order user deadline 15s, got %s", c.RushOrder.UserDeadline)
 	}
 	if c.RushOrder.InFlightTTL != 30*time.Second {
 		t.Fatalf("expected rush order inflight ttl 30s, got %s", c.RushOrder.InFlightTTL)
@@ -165,12 +160,6 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	if c.RushOrder.TokenTTL != 2*time.Minute {
 		t.Fatalf("expected rush order token ttl 2m, got %s", c.RushOrder.TokenTTL)
 	}
-	if c.RushOrder.CommitCutoff != 10*time.Second {
-		t.Fatalf("expected rush order commit cutoff 10s, got %s", c.RushOrder.CommitCutoff)
-	}
-	if c.RushOrder.UserDeadline != 15*time.Second {
-		t.Fatalf("expected rush order user deadline 15s, got %s", c.RushOrder.UserDeadline)
-	}
 	if c.RushOrder.InFlightTTL != 30*time.Second {
 		t.Fatalf("expected rush order inflight ttl 30s, got %s", c.RushOrder.InFlightTTL)
 	}
@@ -188,6 +177,23 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	}
 	if len(c.Sharding.RouteMap.Entries) != 1024 {
 		t.Fatalf("expected perf route map entries 1024, got %d", len(c.Sharding.RouteMap.Entries))
+	}
+}
+
+func TestOrderCreateAcceptAsyncConfigRemovesLegacyTimeDrivenFields(t *testing.T) {
+	t.Parallel()
+
+	rushType := reflect.TypeOf(config.RushOrderConfig{})
+	if _, ok := rushType.FieldByName("CommitCutoff"); ok {
+		t.Fatalf("RushOrderConfig should not keep CommitCutoff")
+	}
+	if _, ok := rushType.FieldByName("UserDeadline"); ok {
+		t.Fatalf("RushOrderConfig should not keep UserDeadline")
+	}
+
+	kafkaType := reflect.TypeOf(config.KafkaConfig{})
+	if _, ok := kafkaType.FieldByName("MaxMessageDelay"); ok {
+		t.Fatalf("KafkaConfig should not keep MaxMessageDelay")
 	}
 }
 

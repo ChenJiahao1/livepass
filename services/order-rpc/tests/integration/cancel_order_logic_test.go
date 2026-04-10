@@ -7,6 +7,7 @@ import (
 	"time"
 
 	logicpkg "damai-go/services/order-rpc/internal/logic"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/pb"
 	"damai-go/services/order-rpc/sharding"
 	programrpc "damai-go/services/program-rpc/programrpc"
@@ -184,6 +185,105 @@ func TestCancelOrderRetriesAfterFinalizeFailure(t *testing.T) {
 	}
 	if findOrderStatus(t, testOrderMySQLDataSource, 91010) != testOrderStatusCancelled {
 		t.Fatalf("expected order status cancelled after retry")
+	}
+}
+
+func TestCancelOrderDoesNotDoubleReleaseClosedAttempt(t *testing.T) {
+	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	store := rebindOrderTestAttemptStore(t, svcCtx)
+	if store == nil {
+		t.Fatalf("expected attempt store to be configured")
+	}
+
+	ctx := context.Background()
+	now := time.Now()
+	userID, programID, ticketCategoryID, viewerIDs, _ := nextRushTestIDs()
+	viewerIDs = viewerIDs[:1]
+	orderNumber := sharding.BuildOrderNumber(userID, now, 1, 7)
+
+	if err := store.SetQuotaAvailable(ctx, programID, ticketCategoryID, 4); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+	if _, err := store.Admit(ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      orderNumber,
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       programID,
+		TicketCategoryID: ticketCategoryID,
+		ViewerIDs:        viewerIDs,
+		TicketCount:      1,
+		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
+		Now:              now,
+	}); err != nil {
+		t.Fatalf("Admit() error = %v", err)
+	}
+
+	record, err := store.Get(ctx, orderNumber)
+	if err != nil {
+		t.Fatalf("AttemptStore.Get() error = %v", err)
+	}
+	claimed, epoch, err := store.ClaimProcessing(ctx, orderNumber, now.Add(time.Millisecond))
+	if err != nil {
+		t.Fatalf("ClaimProcessing() error = %v", err)
+	}
+	if !claimed || epoch <= 0 {
+		t.Fatalf("expected claim processing success, got claimed=%t epoch=%d", claimed, epoch)
+	}
+	if err := store.FinalizeSuccess(ctx, record, epoch, []int64{501}, now.Add(2*time.Millisecond)); err != nil {
+		t.Fatalf("FinalizeSuccess() error = %v", err)
+	}
+
+	seedOrderFixtures(t, svcCtx, orderFixture{
+		ID:          8111,
+		OrderNumber: orderNumber,
+		ProgramID:   programID,
+		UserID:      userID,
+		OrderStatus: testOrderStatusUnpaid,
+		FreezeToken: "freeze-cancel-rush-close-once",
+	})
+	seedOrderTicketUserFixtures(t, svcCtx, orderTicketUserFixture{
+		ID:           8811,
+		OrderNumber:  orderNumber,
+		UserID:       userID,
+		TicketUserID: viewerIDs[0],
+		SeatID:       501,
+		SeatRow:      1,
+		SeatCol:      1,
+	})
+
+	logic := logicpkg.NewCancelOrderLogic(ctx, svcCtx)
+	if _, err := logic.CancelOrder(&pb.CancelOrderReq{
+		UserId:      userID,
+		OrderNumber: orderNumber,
+	}); err != nil {
+		t.Fatalf("first CancelOrder() error = %v", err)
+	}
+	if _, err := logic.CancelOrder(&pb.CancelOrderReq{
+		UserId:      userID,
+		OrderNumber: orderNumber,
+	}); err != nil {
+		t.Fatalf("second CancelOrder() error = %v", err)
+	}
+
+	record, err = store.Get(ctx, orderNumber)
+	if err != nil {
+		t.Fatalf("AttemptStore.Get() after cancel error = %v", err)
+	}
+	if record.State != rush.AttemptStateFailed || record.ReasonCode != rush.AttemptReasonClosedOrderReleased {
+		t.Fatalf("expected closed rush attempt to be released once, got %+v", record)
+	}
+	if programRPC.releaseSeatFreezeCalls != 1 {
+		t.Fatalf("expected business seat release once, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+
+	available, ok, err := store.GetQuotaAvailable(ctx, programID, ticketCategoryID)
+	if err != nil {
+		t.Fatalf("GetQuotaAvailable() error = %v", err)
+	}
+	if !ok || available != 4 {
+		t.Fatalf("expected close path to release quota exactly once, got ok=%t available=%d", ok, available)
 	}
 }
 

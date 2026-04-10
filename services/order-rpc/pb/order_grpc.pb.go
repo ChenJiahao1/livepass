@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.19.4
-// source: order.proto
+// source: services/order-rpc/order.proto
 
 package pb
 
@@ -33,8 +33,6 @@ const (
 	OrderRpc_RefundOrder_FullMethodName                      = "/order.OrderRpc/RefundOrder"
 	OrderRpc_CloseExpiredOrder_FullMethodName                = "/order.OrderRpc/CloseExpiredOrder"
 	OrderRpc_CloseExpiredOrders_FullMethodName               = "/order.OrderRpc/CloseExpiredOrders"
-	OrderRpc_VerifyAttemptDue_FullMethodName                 = "/order.OrderRpc/VerifyAttemptDue"
-	OrderRpc_ReconcileRushAttempts_FullMethodName            = "/order.OrderRpc/ReconcileRushAttempts"
 	OrderRpc_CountActiveTicketsByUserShowTime_FullMethodName = "/order.OrderRpc/CountActiveTicketsByUserShowTime"
 )
 
@@ -56,8 +54,6 @@ type OrderRpcClient interface {
 	RefundOrder(ctx context.Context, in *RefundOrderReq, opts ...grpc.CallOption) (*RefundOrderResp, error)
 	CloseExpiredOrder(ctx context.Context, in *CloseExpiredOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 	CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
-	VerifyAttemptDue(ctx context.Context, in *VerifyAttemptDueReq, opts ...grpc.CallOption) (*BoolResp, error)
-	ReconcileRushAttempts(ctx context.Context, in *ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*ReconcileRushAttemptsResp, error)
 	CountActiveTicketsByUserShowTime(ctx context.Context, in *CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserShowTimeResp, error)
 }
 
@@ -209,26 +205,6 @@ func (c *orderRpcClient) CloseExpiredOrders(ctx context.Context, in *CloseExpire
 	return out, nil
 }
 
-func (c *orderRpcClient) VerifyAttemptDue(ctx context.Context, in *VerifyAttemptDueReq, opts ...grpc.CallOption) (*BoolResp, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BoolResp)
-	err := c.cc.Invoke(ctx, OrderRpc_VerifyAttemptDue_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *orderRpcClient) ReconcileRushAttempts(ctx context.Context, in *ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*ReconcileRushAttemptsResp, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReconcileRushAttemptsResp)
-	err := c.cc.Invoke(ctx, OrderRpc_ReconcileRushAttempts_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *orderRpcClient) CountActiveTicketsByUserShowTime(ctx context.Context, in *CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserShowTimeResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CountActiveTicketsByUserShowTimeResp)
@@ -257,8 +233,6 @@ type OrderRpcServer interface {
 	RefundOrder(context.Context, *RefundOrderReq) (*RefundOrderResp, error)
 	CloseExpiredOrder(context.Context, *CloseExpiredOrderReq) (*BoolResp, error)
 	CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error)
-	VerifyAttemptDue(context.Context, *VerifyAttemptDueReq) (*BoolResp, error)
-	ReconcileRushAttempts(context.Context, *ReconcileRushAttemptsReq) (*ReconcileRushAttemptsResp, error)
 	CountActiveTicketsByUserShowTime(context.Context, *CountActiveTicketsByUserShowTimeReq) (*CountActiveTicketsByUserShowTimeResp, error)
 	mustEmbedUnimplementedOrderRpcServer()
 }
@@ -311,12 +285,6 @@ func (UnimplementedOrderRpcServer) CloseExpiredOrder(context.Context, *CloseExpi
 }
 func (UnimplementedOrderRpcServer) CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CloseExpiredOrders not implemented")
-}
-func (UnimplementedOrderRpcServer) VerifyAttemptDue(context.Context, *VerifyAttemptDueReq) (*BoolResp, error) {
-	return nil, status.Error(codes.Unimplemented, "method VerifyAttemptDue not implemented")
-}
-func (UnimplementedOrderRpcServer) ReconcileRushAttempts(context.Context, *ReconcileRushAttemptsReq) (*ReconcileRushAttemptsResp, error) {
-	return nil, status.Error(codes.Unimplemented, "method ReconcileRushAttempts not implemented")
 }
 func (UnimplementedOrderRpcServer) CountActiveTicketsByUserShowTime(context.Context, *CountActiveTicketsByUserShowTimeReq) (*CountActiveTicketsByUserShowTimeResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CountActiveTicketsByUserShowTime not implemented")
@@ -594,42 +562,6 @@ func _OrderRpc_CloseExpiredOrders_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrderRpc_VerifyAttemptDue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VerifyAttemptDueReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OrderRpcServer).VerifyAttemptDue(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: OrderRpc_VerifyAttemptDue_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrderRpcServer).VerifyAttemptDue(ctx, req.(*VerifyAttemptDueReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _OrderRpc_ReconcileRushAttempts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReconcileRushAttemptsReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OrderRpcServer).ReconcileRushAttempts(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: OrderRpc_ReconcileRushAttempts_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrderRpcServer).ReconcileRushAttempts(ctx, req.(*ReconcileRushAttemptsReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _OrderRpc_CountActiveTicketsByUserShowTime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CountActiveTicketsByUserShowTimeReq)
 	if err := dec(in); err != nil {
@@ -712,18 +644,10 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrderRpc_CloseExpiredOrders_Handler,
 		},
 		{
-			MethodName: "VerifyAttemptDue",
-			Handler:    _OrderRpc_VerifyAttemptDue_Handler,
-		},
-		{
-			MethodName: "ReconcileRushAttempts",
-			Handler:    _OrderRpc_ReconcileRushAttempts_Handler,
-		},
-		{
 			MethodName: "CountActiveTicketsByUserShowTime",
 			Handler:    _OrderRpc_CountActiveTicketsByUserShowTime_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "order.proto",
+	Metadata: "services/order-rpc/order.proto",
 }

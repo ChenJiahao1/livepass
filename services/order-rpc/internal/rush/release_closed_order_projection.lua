@@ -25,13 +25,14 @@ if redis.call("EXISTS", KEYS[1]) == 0 then
 end
 
 local state = redis.call("HGET", KEYS[1], "state")
-if state == "RELEASED" then
+if state == "FAILED" then
     return 0
 end
 
 redis.call("HSET", KEYS[1],
-    "state", "RELEASED",
+    "state", "FAILED",
     "reason_code", "CLOSED_ORDER_RELEASED",
+    "finished_at", ARGV[1],
     "last_transition_at", ARGV[1]
 )
 

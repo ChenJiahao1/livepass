@@ -58,8 +58,6 @@ RushOrder:
   Enabled: true
   TokenSecret: rush-order-local-secret
   TokenTTL: 2m
-  CommitCutoff: 10s
-  UserDeadline: 15s
   InFlightTTL: 30s
   FinalStateTTL: 30m
 AsyncClose:
@@ -82,8 +80,5 @@ Kafka:
   ConsumerGroup: damai-go-ticketing-attempt
   TopicPartitions: 5
   ConsumerWorkers: 1
-  # 对齐 Java 开源版语义：超过该延迟的创建消息按废单处理，consumer 释放锁座且不补单。
-  # 这不是“消息绝不丢失”的配置项，而是“超时废单回滚”阈值。
-  MaxMessageDelay: 5s
   ProducerTimeout: 3s
   RetryBackoff: 1s

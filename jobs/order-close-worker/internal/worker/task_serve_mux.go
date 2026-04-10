@@ -11,6 +11,5 @@ import (
 func NewServeMux(svcCtx *svc.ServiceContext) *asynq.ServeMux {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(closequeue.TaskTypeCloseTimeout, logic.NewCloseTimeoutTaskLogic(svcCtx).Handle)
-	mux.HandleFunc(closequeue.TaskTypeVerifyAttemptDue, logic.NewVerifyAttemptDueTaskLogic(svcCtx).Handle)
 	return mux
 }

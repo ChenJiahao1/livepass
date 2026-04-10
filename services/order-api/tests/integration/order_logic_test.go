@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -110,6 +111,7 @@ func TestPollOrderProgressPassesThroughRpcResult(t *testing.T) {
 			OrderNumber: 91001,
 			OrderStatus: 2,
 			Done:        true,
+			ReasonCode:  "QUEUEING",
 		},
 	}
 	ctx := xmiddleware.WithUserID(context.Background(), 3001)
@@ -119,11 +121,22 @@ func TestPollOrderProgressPassesThroughRpcResult(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PollOrder returned error: %v", err)
 	}
-	if resp.OrderNumber != 91001 || resp.OrderStatus != 2 || !resp.Done {
+	if resp.OrderNumber != 91001 || resp.OrderStatus != 2 || !resp.Done || resp.ReasonCode != "QUEUEING" {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
 	if fakeRPC.lastPollOrderProgressReq == nil || fakeRPC.lastPollOrderProgressReq.UserId != 3001 || fakeRPC.lastPollOrderProgressReq.OrderNumber != 91001 {
 		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastPollOrderProgressReq)
+	}
+}
+
+func TestPollOrderRespContractContainsReasonCode(t *testing.T) {
+	respType := reflect.TypeOf(types.PollOrderResp{})
+	field, ok := respType.FieldByName("ReasonCode")
+	if !ok {
+		t.Fatalf("PollOrderResp 缺少 ReasonCode 字段")
+	}
+	if got := field.Tag.Get("json"); got != "reasonCode,optional" {
+		t.Fatalf("ReasonCode json tag 不正确: %s", got)
 	}
 }
 

@@ -39,6 +39,7 @@ message PollOrderProgressResp {
   int64 orderNumber = 1;
   int64 orderStatus = 2;
   bool done = 3;
+  string reasonCode = 4;
 }
 
 message ListOrdersReq {
@@ -214,19 +215,6 @@ message CloseExpiredOrdersResp {
   int64 closedCount = 1;
 }
 
-message VerifyAttemptDueReq {
-  int64 orderNumber = 1;
-  int64 dueAtUnix = 2;
-}
-
-message ReconcileRushAttemptsReq {
-  int64 limit = 1;
-}
-
-message ReconcileRushAttemptsResp {
-  int64 reconciledCount = 1;
-}
-
 message CountActiveTicketsByUserShowTimeReq {
   int64 userId = 1;
   int64 showTimeId = 2;
@@ -251,7 +239,5 @@ service OrderRpc {
   rpc RefundOrder(RefundOrderReq) returns (RefundOrderResp);
   rpc CloseExpiredOrder(CloseExpiredOrderReq) returns (BoolResp);
   rpc CloseExpiredOrders(CloseExpiredOrdersReq) returns (CloseExpiredOrdersResp);
-  rpc VerifyAttemptDue(VerifyAttemptDueReq) returns (BoolResp);
-  rpc ReconcileRushAttempts(ReconcileRushAttemptsReq) returns (ReconcileRushAttemptsResp);
   rpc CountActiveTicketsByUserShowTime(CountActiveTicketsByUserShowTimeReq) returns (CountActiveTicketsByUserShowTimeResp);
 }

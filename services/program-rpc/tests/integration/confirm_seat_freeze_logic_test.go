@@ -16,7 +16,7 @@ const (
 	testFreezeStatusConfirmed = 4
 )
 
-func TestAutoAssignAndFreezeSeatsDoesNotPersistFrozenSeatsBeforePaymentConfirm(t *testing.T) {
+func TestAutoAssignAndFreezeSeatsPersistsFrozenSeatsBeforePaymentConfirm(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
 
@@ -44,14 +44,14 @@ func TestAutoAssignAndFreezeSeatsDoesNotPersistFrozenSeatsBeforePaymentConfirm(t
 		t.Fatalf("expected 2 selected seats, got %d", len(resp.Seats))
 	}
 
-	if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 0 {
-		t.Fatalf("expected freeze stage not to write freeze token into db seats")
+	if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 2 {
+		t.Fatalf("expected freeze stage to write freeze token into 2 db seats")
 	}
-	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusFrozen) != 0 {
-		t.Fatalf("expected no frozen seats in db before payment confirm")
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusFrozen) != 2 {
+		t.Fatalf("expected 2 frozen seats in db before payment confirm")
 	}
-	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 3 {
-		t.Fatalf("expected all seats to remain available in db before payment confirm")
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 1 {
+		t.Fatalf("expected 1 available seat left in db before payment confirm")
 	}
 
 	snapshot := requireProgramSeatLedgerSnapshot(t, svcCtx, programID, ticketCategoryID)
@@ -86,6 +86,9 @@ func TestConfirmSeatFreezeMovesSeatsToSoldLedger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
 	}
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusFrozen) != 2 {
+		t.Fatalf("expected seats to enter frozen(2) before confirm")
+	}
 
 	resp, err := logicpkg.NewConfirmSeatFreezeLogic(context.Background(), svcCtx).ConfirmSeatFreeze(&pb.ConfirmSeatFreezeReq{
 		FreezeToken: freezeResp.FreezeToken,
@@ -95,6 +98,9 @@ func TestConfirmSeatFreezeMovesSeatsToSoldLedger(t *testing.T) {
 	}
 	if !resp.Success {
 		t.Fatalf("expected confirm success")
+	}
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusFrozen) != 0 {
+		t.Fatalf("expected frozen seats to be cleared after confirm")
 	}
 	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusSold) != 2 {
 		t.Fatalf("expected 2 sold seats in db")

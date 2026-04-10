@@ -14,6 +14,7 @@ import (
 	"damai-go/services/program-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -82,7 +83,7 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 		return nil, mapAutoAssignSeatError(err)
 	}
 	if existingFreeze != nil {
-		resp, err := buildExistingSeatFreezeResp(l.ctx, seatStore, existingFreeze, in, now)
+		resp, err := buildExistingSeatFreezeResp(l.ctx, seatStore, l.svcCtx.DSeatModel, existingFreeze, in, now)
 		if err != nil {
 			return nil, mapAutoAssignSeatError(err)
 		}
@@ -104,6 +105,11 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 
 	selectedSeats := toSeatCandidatesFromLedger(reservedSeats)
 	expireTime := calculateFreezeExpireTime(now, showTime, in.GetFreezeSeconds())
+	if err := l.persistFrozenSeatsToDB(in.GetShowTimeId(), seatCandidateIDs(selectedSeats), freezeToken, expireTime); err != nil {
+		_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetShowTimeId(), in.GetTicketCategoryId(), freezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch())
+		return nil, mapAutoAssignSeatError(err)
+	}
+
 	freeze := &seatcache.SeatFreezeMetadata{
 		FreezeToken:      freezeToken,
 		RequestNo:        in.GetRequestNo(),
@@ -118,6 +124,9 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 		UpdatedAt:        now.Unix(),
 	}
 	if err := seatStore.SaveFreezeMetadata(l.ctx, freeze); err != nil {
+		if rollbackErr := l.rollbackFrozenSeatsInDB(in.GetShowTimeId(), freezeToken); rollbackErr != nil {
+			l.Errorf("rollback frozen seats in db failed, showTimeId=%d freezeToken=%s err=%v", in.GetShowTimeId(), freezeToken, rollbackErr)
+		}
 		_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetShowTimeId(), in.GetTicketCategoryId(), freezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch())
 		return nil, mapAutoAssignSeatError(err)
 	}
@@ -141,7 +150,7 @@ func validateAutoAssignAndFreezeSeatsReq(in *pb.AutoAssignAndFreezeSeatsReq) err
 	return nil
 }
 
-func buildExistingSeatFreezeResp(ctx context.Context, seatStore *seatcache.SeatStockStore, existingFreeze *seatcache.SeatFreezeMetadata, in *pb.AutoAssignAndFreezeSeatsReq, now time.Time) (*pb.AutoAssignAndFreezeSeatsResp, error) {
+func buildExistingSeatFreezeResp(ctx context.Context, seatStore *seatcache.SeatStockStore, seatModel model.DSeatModel, existingFreeze *seatcache.SeatFreezeMetadata, in *pb.AutoAssignAndFreezeSeatsReq, now time.Time) (*pb.AutoAssignAndFreezeSeatsResp, error) {
 	if existingFreeze.ShowTimeID != in.GetShowTimeId() ||
 		existingFreeze.TicketCategoryID != in.GetTicketCategoryId() ||
 		existingFreeze.SeatCount != in.GetCount() ||
@@ -160,12 +169,50 @@ func buildExistingSeatFreezeResp(ctx context.Context, seatStore *seatcache.SeatS
 	if int64(len(seats)) != existingFreeze.SeatCount {
 		return nil, xerr.ErrSeatFreezeRequestConflict
 	}
+	if err := validateFrozenSeatsPersistedInDB(ctx, seatModel, existingFreeze, seats); err != nil {
+		return nil, err
+	}
 
 	return &pb.AutoAssignAndFreezeSeatsResp{
 		FreezeToken: existingFreeze.FreezeToken,
 		ExpireTime:  existingFreeze.ExpireTime().Format(programDateTimeLayout),
 		Seats:       toSeatInfoList(toSeatCandidatesFromLedger(seats)),
 	}, nil
+}
+
+func validateFrozenSeatsPersistedInDB(ctx context.Context, seatModel model.DSeatModel, existingFreeze *seatcache.SeatFreezeMetadata, seats []seatcache.Seat) error {
+	if seatModel == nil {
+		return xerr.ErrSeatFreezeStatusInvalid
+	}
+
+	dbSeats, err := seatModel.FindByFreezeToken(ctx, existingFreeze.FreezeToken)
+	if err != nil {
+		return err
+	}
+	if len(dbSeats) != len(seats) {
+		return xerr.ErrSeatFreezeRequestConflict
+	}
+
+	expectedSeatIDs := make(map[int64]struct{}, len(seats))
+	for _, seat := range seats {
+		expectedSeatIDs[seat.SeatID] = struct{}{}
+	}
+	for _, seat := range dbSeats {
+		if seat.ShowTimeId != existingFreeze.ShowTimeID ||
+			seat.TicketCategoryId != existingFreeze.TicketCategoryID ||
+			seat.SeatStatus != 2 {
+			return xerr.ErrSeatFreezeRequestConflict
+		}
+		if _, ok := expectedSeatIDs[seat.Id]; !ok {
+			return xerr.ErrSeatFreezeRequestConflict
+		}
+		delete(expectedSeatIDs, seat.Id)
+	}
+	if len(expectedSeatIDs) != 0 {
+		return xerr.ErrSeatFreezeRequestConflict
+	}
+
+	return nil
 }
 
 func recycleExpiredSeatFreezes(ctx context.Context, seatStore *seatcache.SeatStockStore, showTimeID, ticketCategoryId int64, now time.Time) error {
@@ -275,6 +322,41 @@ func toSeatInfoList(seats []seatCandidate) []*pb.SeatInfo {
 	return resp
 }
 
+func (l *AutoAssignAndFreezeSeatsLogic) persistFrozenSeatsToDB(showTimeID int64, seatIDs []int64, freezeToken string, expireTime time.Time) error {
+	if len(seatIDs) == 0 {
+		return xerr.ErrSeatInventoryInsufficient
+	}
+
+	return l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
+		seatModel := model.NewDSeatModel(sqlx.NewSqlConnFromSession(session))
+		seats, err := seatModel.FindByShowTimeAndIDsForUpdate(ctx, session, showTimeID, seatIDs)
+		if err != nil {
+			return err
+		}
+		if len(seats) != len(seatIDs) {
+			return xerr.ErrSeatFreezeStatusInvalid
+		}
+		for _, seat := range seats {
+			if seat.SeatStatus != 1 {
+				return xerr.ErrSeatFreezeStatusInvalid
+			}
+		}
+
+		return seatModel.BatchFreezeByShowTimeAndIDs(ctx, session, showTimeID, seatIDs, freezeToken, expireTime)
+	})
+}
+
+func (l *AutoAssignAndFreezeSeatsLogic) rollbackFrozenSeatsInDB(showTimeID int64, freezeToken string) error {
+	if freezeToken == "" {
+		return nil
+	}
+
+	return l.svcCtx.SqlConn.TransactCtx(context.Background(), func(ctx context.Context, session sqlx.Session) error {
+		seatModel := model.NewDSeatModel(sqlx.NewSqlConnFromSession(session))
+		return seatModel.ReleaseByFreezeToken(ctx, session, freezeToken)
+	})
+}
+
 func mapAutoAssignSeatError(err error) error {
 	switch {
 	case err == nil:
@@ -283,7 +365,7 @@ func mapAutoAssignSeatError(err error) error {
 		return err
 	case errors.Is(err, xerr.ErrProgramShowTimeNotFound), errors.Is(err, xerr.ErrProgramTicketCategoryNotFound):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, xerr.ErrSeatInventoryInsufficient), errors.Is(err, xerr.ErrSeatFreezeRequestConflict), errors.Is(err, xerr.ErrProgramSeatLedgerNotReady):
+	case errors.Is(err, xerr.ErrSeatInventoryInsufficient), errors.Is(err, xerr.ErrSeatFreezeRequestConflict), errors.Is(err, xerr.ErrProgramSeatLedgerNotReady), errors.Is(err, xerr.ErrSeatFreezeStatusInvalid):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return err

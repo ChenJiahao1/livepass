@@ -28,10 +28,11 @@ if redis.call("EXISTS", KEYS[1]) == 0 then
 end
 
 local state = redis.call("HGET", KEYS[1], "state")
-if state ~= "COMMITTED" then
+if state ~= "SUCCESS" then
     redis.call("HSET", KEYS[1],
-        "state", "COMMITTED",
+        "state", "SUCCESS",
         "reason_code", "ORDER_COMMITTED",
+        "finished_at", ARGV[1],
         "last_transition_at", ARGV[1]
     )
 end

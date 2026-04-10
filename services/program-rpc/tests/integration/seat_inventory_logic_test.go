@@ -63,11 +63,14 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			t.Fatalf("expected consecutive seats [71001 71002], got %+v", resp.Seats)
 		}
 
-		if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 0 {
-			t.Fatalf("expected freeze stage not to persist seat rows in db")
+		if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 2 {
+			t.Fatalf("expected freeze stage to persist 2 seat rows in db")
 		}
-		if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 3 {
-			t.Fatalf("expected all seats to remain available in db before payment confirm")
+		if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusFrozen) != 2 {
+			t.Fatalf("expected 2 frozen seats in db before payment confirm")
+		}
+		if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 1 {
+			t.Fatalf("expected 1 seat to remain available in db before payment confirm")
 		}
 
 		freeze := querySeatFreezeByRequestNo(t, svcCtx, "req-seat-success")
@@ -208,8 +211,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 		if countSeatRowsByFreezeToken(t, svcCtx, expiredToken) != 0 {
 			t.Fatalf("expected expired freeze token not to exist in db seats")
 		}
-		if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 0 {
-			t.Fatalf("expected new freeze token not to persist db seats before confirm")
+		if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 2 {
+			t.Fatalf("expected new freeze token to persist db frozen seats")
 		}
 	})
 

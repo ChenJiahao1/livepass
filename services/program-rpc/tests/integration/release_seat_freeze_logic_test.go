@@ -43,6 +43,12 @@ func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
 	if len(frozenSnapshot.FrozenSeats[autoResp.FreezeToken]) != 2 {
 		t.Fatalf("expected seat ledger to record 2 frozen seats, got %+v", frozenSnapshot.FrozenSeats)
 	}
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusFrozen) != 2 {
+		t.Fatalf("expected db frozen seats to be 2 before release")
+	}
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 1 {
+		t.Fatalf("expected db available seats to be 1 before release")
+	}
 
 	releaseResp, err := logicpkg.NewReleaseSeatFreezeLogic(context.Background(), svcCtx).ReleaseSeatFreeze(&pb.ReleaseSeatFreezeReq{
 		FreezeToken:   autoResp.FreezeToken,
@@ -56,7 +62,10 @@ func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
 	}
 
 	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 3 {
-		t.Fatalf("expected db seats to remain available after release")
+		t.Fatalf("expected db seats to be restored to available after release")
+	}
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusFrozen) != 0 {
+		t.Fatalf("expected db frozen seats to be cleared after release")
 	}
 	if countSeatRowsByFreezeToken(t, svcCtx, autoResp.FreezeToken) != 0 {
 		t.Fatalf("expected all seats released for freeze token %q", autoResp.FreezeToken)

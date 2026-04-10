@@ -54,6 +54,15 @@ func TestAutoAssignAndFreezeSeatsPrefersAdjacentSeats(t *testing.T) {
 	if frozenSeats[0].SeatID != 71101 || frozenSeats[1].SeatID != 71102 {
 		t.Fatalf("expected ledger frozen seats [71101 71102], got %+v", frozenSeats)
 	}
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusFrozen) != 2 {
+		t.Fatalf("expected db frozen seats to be 2 after auto freeze")
+	}
+	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 1 {
+		t.Fatalf("expected db available seats to be 1 after auto freeze")
+	}
+	if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 2 {
+		t.Fatalf("expected freeze token %q to be written into 2 db seats", resp.FreezeToken)
+	}
 }
 
 func TestAutoAssignAndFreezeSeatsFallsBackToSortedFirstN(t *testing.T) {
@@ -131,5 +140,56 @@ func TestAutoAssignAndFreezeSeatsRejectsWhenSeatLedgerMissing(t *testing.T) {
 	snapshot := waitProgramSeatLedgerReady(t, svcCtx, programID, ticketCategoryID, 3)
 	if len(snapshot.AvailableSeats) != 3 {
 		t.Fatalf("expected ledger to load 3 available seats, got %+v", snapshot.AvailableSeats)
+	}
+}
+
+func TestAutoAssignAndFreezeSeatsRejectsExistingRequestWhenDBFreezeStateMissing(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	const programID int64 = 51104
+	const ticketCategoryID int64 = 61104
+	seedSeatInventoryProgram(t, svcCtx, programID, ticketCategoryID)
+	seedSeatFixtures(t, svcCtx,
+		seatFixture{ID: 71401, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 71402, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusAvailable},
+		seatFixture{ID: 71403, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 2, ColCode: 1, SeatStatus: testSeatStatusAvailable},
+	)
+	primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
+
+	l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
+	firstResp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
+		ShowTimeId:       programID,
+		TicketCategoryId: ticketCategoryID,
+		Count:            2,
+		RequestNo:        "req-seat-db-freeze-missing",
+		FreezeSeconds:    900,
+	})
+	if err != nil {
+		t.Fatalf("first AutoAssignAndFreezeSeats returned error: %v", err)
+	}
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+	mustExecProgramSQL(
+		t,
+		db,
+		"UPDATE d_seat SET seat_status = 1, freeze_token = NULL, freeze_expire_time = NULL WHERE status = 1 AND freeze_token = ?",
+		firstResp.FreezeToken,
+	)
+
+	_, err = l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
+		ShowTimeId:       programID,
+		TicketCategoryId: ticketCategoryID,
+		Count:            2,
+		RequestNo:        "req-seat-db-freeze-missing",
+		FreezeSeconds:    900,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition when db freeze state missing, got %v", err)
+	}
+	msg := status.Convert(err).Message()
+	if msg != xerr.ErrSeatFreezeRequestConflict.Error() && msg != xerr.ErrSeatFreezeStatusInvalid.Error() {
+		t.Fatalf("expected freeze conflict/status invalid, got %q", msg)
 	}
 }

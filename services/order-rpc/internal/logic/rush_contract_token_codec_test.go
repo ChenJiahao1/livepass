@@ -102,20 +102,6 @@ func TestPollOrderProgressReturnsInternalWithoutAttemptStore(t *testing.T) {
 	}
 }
 
-func TestVerifyAttemptDueReturnsInternalWithoutDependencies(t *testing.T) {
-	_, err := NewVerifyAttemptDueLogic(context.Background(), nil).VerifyAttemptDue(&pb.VerifyAttemptDueReq{OrderNumber: 9001})
-	if status.Code(err) != codes.Internal {
-		t.Fatalf("expected internal, got %v", err)
-	}
-}
-
-func TestReconcileRushAttemptsReturnsInternalWithoutDependencies(t *testing.T) {
-	_, err := NewReconcileRushAttemptsLogic(context.Background(), nil).ReconcileRushAttempts(&pb.ReconcileRushAttemptsReq{Limit: 10})
-	if status.Code(err) != codes.Internal {
-		t.Fatalf("expected internal, got %v", err)
-	}
-}
-
 func TestRushContractOrderNumberDoesNotReuseAfterSequenceExhausted(t *testing.T) {
 	originalGenerator := defaultOrderNumberGenerator
 	originalNow := rushContractNow

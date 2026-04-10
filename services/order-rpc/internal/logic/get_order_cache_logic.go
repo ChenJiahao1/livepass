@@ -2,8 +2,11 @@ package logic
 
 import (
 	"context"
+	"strconv"
+	"time"
 
 	"damai-go/pkg/xerr"
+	"damai-go/services/order-rpc/internal/rush"
 	"damai-go/services/order-rpc/internal/svc"
 	"damai-go/services/order-rpc/pb"
 
@@ -31,14 +34,17 @@ func (l *GetOrderCacheLogic) GetOrderCache(in *pb.GetOrderCacheReq) (*pb.GetOrde
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
-	if l.svcCtx.Redis == nil {
+	if l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
 		return &pb.GetOrderCacheResp{}, nil
 	}
 
-	cache, err := GetOrderCreateMarker(l.ctx, l.svcCtx.Redis, in.GetOrderNumber())
+	projection, err := projectOrderProgress(l.ctx, l.svcCtx, in.GetOrderNumber(), time.Now())
 	if err != nil {
 		return &pb.GetOrderCacheResp{}, nil
 	}
+	if projection.OrderStatus != rush.PollOrderStatusProcessing || projection.Done {
+		return &pb.GetOrderCacheResp{}, nil
+	}
 
-	return &pb.GetOrderCacheResp{Cache: cache}, nil
+	return &pb.GetOrderCacheResp{Cache: strconv.FormatInt(in.GetOrderNumber(), 10)}, nil
 }

@@ -150,27 +150,26 @@ func buildOrderCreateEventFromSnapshots(
 	}, nil
 }
 
-func buildAttemptCreateEvent(attempt *rush.AttemptRecord, claims *rush.PurchaseTokenClaims) (*orderevent.OrderCreateEvent, error) {
-	if attempt == nil || claims == nil {
+func buildAttemptCreateEvent(orderNumber int64, claims *rush.PurchaseTokenClaims, occurredAt time.Time) (*orderevent.OrderCreateEvent, error) {
+	if claims == nil {
 		return nil, xerr.ErrInternal
 	}
-	if attempt.OrderNumber <= 0 || claims.OrderNumber <= 0 || attempt.OrderNumber != claims.OrderNumber {
+	if orderNumber <= 0 || claims.OrderNumber <= 0 || orderNumber != claims.OrderNumber {
 		return nil, xerr.ErrInvalidParam
 	}
-	if attempt.UserID != claims.UserID || attempt.ProgramID != claims.ProgramID || attempt.ShowTimeID != claims.ShowTimeID || attempt.TicketCategoryID != claims.TicketCategoryID {
+	if claims.UserID <= 0 || claims.ProgramID <= 0 || claims.ShowTimeID <= 0 || claims.TicketCategoryID <= 0 {
 		return nil, xerr.ErrInvalidParam
 	}
-	if attempt.Generation != claims.Generation {
+	if claims.TicketCount <= 0 {
+		claims.TicketCount = int64(len(claims.TicketUserIDs))
+	}
+	if claims.TicketCount <= 0 || int64(len(claims.TicketUserIDs)) != claims.TicketCount {
 		return nil, xerr.ErrInvalidParam
 	}
-	if attempt.TicketCount <= 0 || attempt.TicketCount != claims.TicketCount {
-		return nil, xerr.ErrInvalidParam
+	generation := claims.Generation
+	if generation == "" {
+		generation = rush.BuildRushGeneration(claims.ShowTimeID)
 	}
-	if len(claims.TicketUserIDs) == 0 || int64(len(claims.TicketUserIDs)) != claims.TicketCount {
-		return nil, xerr.ErrInvalidParam
-	}
-
-	occurredAt := attempt.CreatedAt
 	if occurredAt.IsZero() {
 		occurredAt = time.Now()
 	}
@@ -178,21 +177,19 @@ func buildAttemptCreateEvent(attempt *rush.AttemptRecord, claims *rush.PurchaseT
 	return &orderevent.OrderCreateEvent{
 		EventID:          fmt.Sprintf("%d", xid.New()),
 		Version:          orderevent.OrderCreateEventVersion,
-		OrderNumber:      attempt.OrderNumber,
-		RequestNo:        fmt.Sprintf("order-create-%d", attempt.OrderNumber),
+		OrderNumber:      orderNumber,
+		RequestNo:        fmt.Sprintf("order-create-%d", orderNumber),
 		OccurredAt:       formatOrderTime(occurredAt),
-		UserID:           attempt.UserID,
-		ProgramID:        attempt.ProgramID,
-		ShowTimeID:       attempt.ShowTimeID,
-		TicketCategoryID: attempt.TicketCategoryID,
+		UserID:           claims.UserID,
+		ProgramID:        claims.ProgramID,
+		ShowTimeID:       claims.ShowTimeID,
+		TicketCategoryID: claims.TicketCategoryID,
 		TicketUserIDs:    append([]int64(nil), claims.TicketUserIDs...),
-		TicketCount:      attempt.TicketCount,
-		Generation:       attempt.Generation,
+		TicketCount:      claims.TicketCount,
+		Generation:       generation,
 		DistributionMode: claims.DistributionMode,
 		TakeTicketMode:   claims.TakeTicketMode,
 		SaleWindowEndAt:  formatOrderTime(time.Unix(claims.SaleWindowEndAt, 0)),
 		ShowEndAt:        formatOrderTime(time.Unix(claims.ShowEndAt, 0)),
-		CommitCutoffAt:   formatOrderTime(attempt.CommitCutoffAt),
-		UserDeadlineAt:   formatOrderTime(attempt.UserDeadlineAt),
 	}, nil
 }

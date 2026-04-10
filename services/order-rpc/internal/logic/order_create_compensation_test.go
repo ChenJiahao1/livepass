@@ -22,21 +22,6 @@ func (f *noopOrderCreateProgramRPC) ReleaseSeatFreeze(ctx context.Context, in *p
 	return &programrpc.ReleaseSeatFreezeResp{Success: true}, nil
 }
 
-func TestCompensateOrderCreateSendFailureDoesNotReleaseSeatFreeze(t *testing.T) {
-	programRPC := &noopOrderCreateProgramRPC{}
-
-	compensateOrderCreateSendFailure(context.Background(), &svc.ServiceContext{
-		ProgramRpc: programRPC,
-	}, 3001, 10001, 9001, "freeze-send-failed")
-
-	if programRPC.releaseSeatFreezeCalls != 0 {
-		t.Fatalf("expected send failure compensation to keep seat freeze, got %d release calls", programRPC.releaseSeatFreezeCalls)
-	}
-	if programRPC.lastReleaseReq != nil {
-		t.Fatalf("expected no release request, got %+v", programRPC.lastReleaseReq)
-	}
-}
-
 func TestReleaseOrderCreateFreezeWithOwnerCarriesFencingFields(t *testing.T) {
 	programRPC := &noopOrderCreateProgramRPC{}
 

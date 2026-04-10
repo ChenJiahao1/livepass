@@ -17,14 +17,12 @@
 -- 7: generation
 -- 8: token_fingerprint
 -- 9: sale_window_end_at(unix ms)
--- 10: commit_cutoff_at(unix ms)
--- 11: user_deadline_at(unix ms)
--- 12: show_end_at(unix ms)
--- 13: now(unix ms)
--- 14: inflight ttl seconds
--- 15: attempt ttl seconds
--- 16: viewer ids csv
--- 17: viewer_count
+-- 10: show_end_at(unix ms)
+-- 11: now(unix ms)
+-- 12: inflight ttl seconds
+-- 13: accepted attempt ttl seconds
+-- 14: viewer ids csv
+-- 15: viewer_count
 
 local orderNo = ARGV[1]
 local userID = ARGV[2]
@@ -35,14 +33,12 @@ local ticketCount = tonumber(ARGV[6]) or 0
 local generation = ARGV[7]
 local tokenFingerprint = ARGV[8]
 local saleWindowEndAt = ARGV[9]
-local commitCutoffAt = ARGV[10]
-local userDeadlineAt = ARGV[11]
-local showEndAt = ARGV[12]
-local nowUnixMs = ARGV[13]
-local inFlightTTL = tonumber(ARGV[14]) or 0
-local attemptTTL = tonumber(ARGV[15]) or 0
-local viewerIDsCSV = ARGV[16] or ""
-local viewerCount = tonumber(ARGV[17]) or 0
+local showEndAt = ARGV[10]
+local nowUnixMs = ARGV[11]
+local inFlightTTL = tonumber(ARGV[12]) or 0
+local acceptedAttemptTTL = tonumber(ARGV[13]) or 0
+local viewerIDsCSV = ARGV[14] or ""
+local viewerCount = tonumber(ARGV[15]) or 0
 local viewerActiveStart = 6
 local viewerActiveEnd = viewerActiveStart + viewerCount - 1
 local viewerInflightStart = viewerActiveEnd + 1
@@ -96,17 +92,18 @@ redis.call("HSET", KEYS[1],
     "generation", generation,
     "sale_window_end_at", saleWindowEndAt,
     "token_fingerprint", tokenFingerprint,
-    "state", "PENDING_PUBLISH",
+    "state", "ACCEPTED",
     "reason_code", "",
-    "commit_cutoff_at", commitCutoffAt,
-    "user_deadline_at", userDeadlineAt,
+    "accepted_at", nowUnixMs,
+    "finished_at", 0,
+    "publish_attempts", 0,
     "show_end_at", showEndAt,
     "processing_epoch", 0,
     "created_at", nowUnixMs,
     "last_transition_at", nowUnixMs
 )
-if attemptTTL > 0 then
-    redis.call("EXPIRE", KEYS[1], attemptTTL)
+if acceptedAttemptTTL > 0 then
+    redis.call("EXPIRE", KEYS[1], acceptedAttemptTTL)
 end
 
 if inFlightTTL > 0 then
@@ -118,8 +115,8 @@ end
 
 if tokenFingerprint ~= "" then
     redis.call("HSET", KEYS[5], tokenFingerprint, orderNo)
-    if attemptTTL > 0 then
-        redis.call("EXPIRE", KEYS[5], attemptTTL)
+    if acceptedAttemptTTL > 0 then
+        redis.call("EXPIRE", KEYS[5], acceptedAttemptTTL)
     end
 end
 

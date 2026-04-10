@@ -117,14 +117,6 @@ func (f *fakeOrderRPC) RefundOrder(ctx context.Context, in *orderrpc.RefundOrder
 	return f.refundOrderResp, f.refundOrderErr
 }
 
-func (f *fakeOrderRPC) VerifyAttemptDue(ctx context.Context, in *orderrpc.VerifyAttemptDueReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
-	return nil, nil
-}
-
-func (f *fakeOrderRPC) ReconcileRushAttempts(ctx context.Context, in *orderrpc.ReconcileRushAttemptsReq, opts ...grpc.CallOption) (*orderrpc.ReconcileRushAttemptsResp, error) {
-	return nil, nil
-}
-
 func (f *fakeOrderRPC) CloseExpiredOrder(ctx context.Context, in *orderrpc.CloseExpiredOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
 	return nil, nil
 }

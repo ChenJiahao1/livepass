@@ -23,7 +23,7 @@
 docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
 ```
 
-当前仓库提供的基础设施 compose 已包含 MySQL、Redis、etcd、Kafka。`services/order-rpc/etc/order-rpc.yaml` 的本地 `Kafka.Brokers` 默认指向 `127.0.0.1:9094`，与 compose 暴露端口保持一致。当前下单异步链路语义对齐原 Java 开源版：Kafka 发送失败时立即释放锁座并返回错误；创建消息超过 `Kafka.MaxMessageDelay` 仍未消费时，consumer 会按废单处理并释放锁座，不再补写订单。这不是“消息绝不丢失”的方案。
+当前仓库提供的基础设施 compose 已包含 MySQL、Redis、etcd、Kafka。`services/order-rpc/etc/order-rpc.yaml` 的本地 `Kafka.Brokers` 默认指向 `127.0.0.1:9094`，与 compose 暴露端口保持一致。当前下单链路采用 `accept + async`：`/order/create` 在 Redis admission 成功后立即返回 `orderNumber`，随后由异步 consumer 完成锁座、写单和 guard 落库。
 
 如需模拟 `order-db-0 + order-db-1` 订单分片库，可使用专用 MySQL compose：
 
@@ -89,7 +89,6 @@ go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay-rpc.yaml
 go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml
 go run jobs/order-close-worker/order_close_worker.go -f jobs/order-close-worker/etc/order-close-worker.yaml
 go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
-go run jobs/order-rush-reconcile/order_rush_reconcile.go -f jobs/order-rush-reconcile/etc/order-rush-reconcile.yaml
 go run services/user-api/user.go -f services/user-api/etc/user-api.yaml
 go run services/program-api/program.go -f services/program-api/etc/program-api.yaml
 go run services/order-api/order.go -f services/order-api/etc/order-api.yaml
@@ -112,10 +111,9 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 3. `order-rpc`
 4. `jobs/order-close-worker`
 5. `jobs/order-close`
-6. `jobs/order-rush-reconcile`
-7. `user-api`、`program-api`、`order-api`、`pay-api`
-8. `agents`
-9. `gateway-api`
+6. `user-api`、`program-api`、`order-api`、`pay-api`
+7. `agents`
+8. `gateway-api`
 
 `agents` 运行配置可参考 [agents/README.md](agents/README.md) 和 [agents/.env.example](agents/.env.example)，其中至少需要确认：
 
@@ -124,13 +122,11 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 - `PROGRAM_RPC_TARGET=127.0.0.1:8083`
 - `ORDER_RPC_TARGET=127.0.0.1:8082`
 
-`/order/poll` 只读取 Redis 里的 rush attempt 最小投影，不查 MySQL，也不推进状态；超过 `RushOrder.UserDeadline` 后，对用户只会继续暴露 `VERIFYING`，真正的终裁由异步链路负责。
+`/order/poll` 优先读取 Redis 里的 rush attempt 投影，并在非终态时回查 MySQL 是否已经出现未支付订单；对外只暴露 `PROCESSING / SUCCESS / FAILED` 三类结果，不再依赖 `VERIFYING`、deadline 或定时核验任务驱动状态收口。
 
-`jobs/order-close-worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 与 `order-rpc.VerifyAttemptDue` 推进超时关单、rush attempt 到期核验。`verify_attempt_due` 是 `15s` 窗口后的唯一主库终裁入口。当前示例配置复用本地 `127.0.0.1:6379` Redis 便于联调；压测和生产环境应切换到独立 Redis，避免与座位账本、限购账本抢占热点资源。
+`jobs/order-close-worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单。当前示例配置复用本地 `127.0.0.1:6379` Redis 便于联调；压测和生产环境应切换到独立 Redis，避免与座位账本、限购账本抢占热点资源。
 
-`jobs/order-close` 仍保留在仓库中，但职责已调整为扫描补偿器：用于回补 Asynq 漏投、漏消费或 Redis 故障期间遗漏的超时订单，并兜底触发窗口后的 rush attempt 收口；它不再作为唯一主触发链路。
-
-`jobs/order-rush-reconcile` 提供周期性 `ReconcileRushAttempts` 入口，用于推进已进入 `VERIFYING` 状态但尚未最终收敛的 rush attempt，避免只依赖首次异步核验导致状态悬挂。
+`jobs/order-close` 仍保留在仓库中，但职责已调整为扫描补偿器：用于回补 Asynq 漏投、漏消费或 Redis 故障期间遗漏的超时订单；它不再承担 rush attempt 的 deadline/reconcile 收口职责。
 
 `user-rpc`、`program-rpc`、`pay-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-rpc` 默认监听 `8080`，`order-rpc` 默认监听 `8082`，`program-rpc` 默认监听 `8083`，`pay-rpc` 默认监听 `8084`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`，`agents` 默认监听 `8891`，`pay-api` 默认监听 `8892`，`gateway-api` 默认监听 `8081`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
 
@@ -376,8 +372,8 @@ curl -X POST http://127.0.0.1:8081/order/cancel \
 预期：
 
 - 所有 order 接口都要求 `Authorization: Bearer <jwt>` 和 `X-Channel-Code: 0001`。
-- 创建成功后会返回新的 `orderNumber`，但这只表示 Kafka 发送已成功，不表示订单已经同步落库；短时间内 `/order/get`、`/order/select/list`、`/order/pay`、`/order/cancel` 仍可能返回 `order not found`。
-- 当前创建链路对齐 Java 开源版：发送失败时立即回滚锁座；若创建消息延迟超过 `Kafka.MaxMessageDelay`，consumer 会按废单处理并释放锁座，不再补写订单。
+- 创建成功后会返回新的 `orderNumber`，但这只表示 Redis admission 已成功，不表示订单已经同步落库；短时间内 `/order/get`、`/order/select/list`、`/order/pay`、`/order/cancel` 仍可能返回 `order not found`。
+- 当前创建链路不会等待 Kafka ack；前端的 `15s` 只是一段轮询等待窗口，不是服务端失败线。
 - 列表和详情只能看到当前登录用户的订单；如需支付、取消或退款，先轮询到订单可见再继续。
 - `/order/pay` 会同步创建模拟支付单、确认冻结座位并把订单状态推进到 `3 paid`。
 - `/order/pay/check` 在已支付后会返回支付单号、支付状态和支付时间。
