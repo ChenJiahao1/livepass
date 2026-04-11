@@ -193,7 +193,7 @@ JWT=<user-jwt> bash scripts/acceptance/agent_chat.sh
 ```bash
 curl -X POST http://127.0.0.1:8081/user/register \
   -H 'Content-Type: application/json' \
-  -d '{"mobile":"13800000003","password":"123456","confirmPassword":"123456"}'
+  -d '{"mobile":"13800000003","password":"123456","confirmPassword":"123456","mail":"demo@example.com"}'
 ```
 
 预期响应：
@@ -227,7 +227,7 @@ curl -X POST http://127.0.0.1:8081/user/get/id \
 预期返回用户基础信息：
 
 ```json
-{"id":116260553874210817,"name":"","relName":"","gender":1,"mobile":"13800000003","emailStatus":0,"email":"","relAuthenticationStatus":0,"idNumber":"","address":""}
+{"id":116260553874210817,"name":"","relName":"","gender":1,"mobile":"13800000003","emailStatus":1,"email":"demo@example.com","relAuthenticationStatus":0,"idNumber":"","address":""}
 ```
 
 ## 手工验证 program Phase 1 链路

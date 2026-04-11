@@ -22,7 +22,6 @@ func TestRegisterInsertsUser(t *testing.T) {
 		Password:        "123456",
 		ConfirmPassword: "123456",
 		Mail:            "user@example.com",
-		MailStatus:      1,
 	})
 	if err != nil {
 		t.Fatalf("Register returned error: %v", err)
@@ -47,6 +46,9 @@ func TestRegisterInsertsUser(t *testing.T) {
 	if user.Id == 0 {
 		t.Fatalf("expected non-zero user id")
 	}
+	if user.EmailStatus != 1 {
+		t.Fatalf("expected inferred email status 1, got %d", user.EmailStatus)
+	}
 
 	mobileMapping, err := svcCtx.DUserMobileModel.FindOneByMobile(context.Background(), "13800000000")
 	if err != nil {
@@ -62,6 +64,9 @@ func TestRegisterInsertsUser(t *testing.T) {
 	}
 	if emailMapping.UserId != user.Id {
 		t.Fatalf("unexpected email mapping user id: %d", emailMapping.UserId)
+	}
+	if emailMapping.EmailStatus != 1 {
+		t.Fatalf("expected inferred email mapping status 1, got %d", emailMapping.EmailStatus)
 	}
 }
 
@@ -96,6 +101,25 @@ func TestRegisterRejectsConfirmPasswordMismatch(t *testing.T) {
 		Mobile:          "13800000002",
 		Password:        "123456",
 		ConfirmPassword: "654321",
+	})
+	if err == nil {
+		t.Fatalf("expected invalid argument error")
+	}
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument code, got %s", status.Code(err))
+	}
+}
+
+func TestRegisterRejectsInvalidEmail(t *testing.T) {
+	svcCtx := testkit.NewServiceContext(t)
+	testkit.ResetDomainState(t)
+
+	l := logic.NewRegisterLogic(context.Background(), svcCtx)
+	_, err := l.Register(&pb.RegisterReq{
+		Mobile:          "13800000003",
+		Password:        "123456",
+		ConfirmPassword: "123456",
+		Mail:            "invalid-email",
 	})
 	if err == nil {
 		t.Fatalf("expected invalid argument error")

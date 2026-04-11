@@ -62,9 +62,8 @@ func TestUpdateEmailCallsRpc(t *testing.T) {
 	logic := logicpkg.NewUpdateEmailLogic(context.Background(), &svc.ServiceContext{UserRpc: fake})
 
 	resp, err := logic.UpdateEmail(&types.UpdateEmailReq{
-		ID:          112,
-		Email:       "new@example.com",
-		EmailStatus: 1,
+		ID:    112,
+		Email: "new@example.com",
 	})
 	if err != nil {
 		t.Fatalf("UpdateEmail returned error: %v", err)

@@ -39,32 +39,40 @@ func (l *UpdateEmailLogic) UpdateEmail(in *pb.UpdateEmailReq) (*pb.BoolResp, err
 		}
 		return nil, err
 	}
-	if in.Email != "" && (!user.Email.Valid || user.Email.String != in.Email) {
-		if existing, err := l.svcCtx.DUserEmailModel.FindOneByEmail(l.ctx, in.Email); err == nil && existing.UserId != user.Id {
+	email, err := normalizeOptionalEmail(in.Email)
+	if err != nil {
+		return nil, err
+	}
+	if email != "" && (!user.Email.Valid || user.Email.String != email) {
+		if existing, err := l.svcCtx.DUserEmailModel.FindOneByEmail(l.ctx, email); err == nil && existing.UserId != user.Id {
 			return nil, status.Error(codes.AlreadyExists, xerr.ErrEmailAlreadyUsed.Error())
 		} else if err != nil && !errors.Is(err, model.ErrNotFound) {
 			return nil, err
 		}
-		if user.Email.Valid && user.Email.String != "" {
-			if oldMapping, err := l.svcCtx.DUserEmailModel.FindOneByEmail(l.ctx, user.Email.String); err == nil {
-				if err := l.svcCtx.DUserEmailModel.Delete(l.ctx, oldMapping.Id); err != nil {
-					return nil, err
-				}
+	}
+	if user.Email.Valid && user.Email.String != "" && user.Email.String != email {
+		if oldMapping, err := l.svcCtx.DUserEmailModel.FindOneByEmail(l.ctx, user.Email.String); err == nil {
+			if err := l.svcCtx.DUserEmailModel.Delete(l.ctx, oldMapping.Id); err != nil {
+				return nil, err
 			}
+		} else if err != nil && !errors.Is(err, model.ErrNotFound) {
+			return nil, err
 		}
+	}
+	if email != "" && (!user.Email.Valid || user.Email.String != email) {
 		if _, err := l.svcCtx.DUserEmailModel.Insert(l.ctx, &model.DUserEmail{
 			Id:          xid.New(),
 			UserId:      user.Id,
-			Email:       in.Email,
-			EmailStatus: in.EmailStatus,
+			Email:       email,
+			EmailStatus: emailStatusForAddress(email),
 			EditTime:    sql.NullTime{Time: time.Now(), Valid: true},
 			Status:      1,
 		}); err != nil {
 			return nil, err
 		}
 	}
-	user.Email = sql.NullString{String: in.Email, Valid: in.Email != ""}
-	user.EmailStatus = in.EmailStatus
+	user.Email = sql.NullString{String: email, Valid: email != ""}
+	user.EmailStatus = emailStatusForAddress(email)
 	user.EditTime = sql.NullTime{Time: time.Now(), Valid: true}
 	if err := l.svcCtx.DUserModel.Update(l.ctx, user); err != nil {
 		return nil, err

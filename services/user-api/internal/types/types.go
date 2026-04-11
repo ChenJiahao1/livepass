@@ -58,9 +58,8 @@ type TicketUserVo struct {
 }
 
 type UpdateEmailReq struct {
-	ID          int64  `json:"id"`
-	Email       string `json:"email"`
-	EmailStatus int64  `json:"emailStatus,optional"`
+	ID    int64  `json:"id"`
+	Email string `json:"email,optional"`
 }
 
 type UpdateMobileReq struct {
@@ -107,7 +106,6 @@ type UserRegisterReq struct {
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirmPassword"`
 	Mail            string `json:"mail,optional"`
-	MailStatus      int64  `json:"mailStatus,optional"`
 }
 
 type UserVo struct {

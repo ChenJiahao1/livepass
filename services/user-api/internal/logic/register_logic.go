@@ -33,7 +33,6 @@ func (l *RegisterLogic) Register(req *types.UserRegisterReq) (resp *types.BoolRe
 		Password:        req.Password,
 		ConfirmPassword: req.ConfirmPassword,
 		Mail:            req.Mail,
-		MailStatus:      req.MailStatus,
 	})
 	if err != nil {
 		return nil, err

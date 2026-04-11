@@ -38,8 +38,12 @@ func (l *RegisterLogic) Register(in *pb.RegisterReq) (*pb.BoolResp, error) {
 	if in.ConfirmPassword != "" && in.Password != in.ConfirmPassword {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
+	email, err := normalizeOptionalEmail(in.Mail)
+	if err != nil {
+		return nil, err
+	}
 
-	_, err := l.svcCtx.DUserMobileModel.FindOneByMobile(l.ctx, in.Mobile)
+	_, err = l.svcCtx.DUserMobileModel.FindOneByMobile(l.ctx, in.Mobile)
 	switch {
 	case err == nil:
 		return nil, status.Error(codes.AlreadyExists, xerr.ErrUserAlreadyExists.Error())
@@ -54,8 +58,8 @@ func (l *RegisterLogic) Register(in *pb.RegisterReq) (*pb.BoolResp, error) {
 		Mobile:      in.Mobile,
 		Gender:      1,
 		Password:    sql.NullString{String: md5Hex(in.Password), Valid: true},
-		Email:       sql.NullString{String: in.Mail, Valid: in.Mail != ""},
-		EmailStatus: in.MailStatus,
+		Email:       sql.NullString{String: email, Valid: email != ""},
+		EmailStatus: emailStatusForAddress(email),
 		EditTime:    sql.NullTime{Time: now, Valid: true},
 		Status:      1,
 	}
@@ -71,12 +75,12 @@ func (l *RegisterLogic) Register(in *pb.RegisterReq) (*pb.BoolResp, error) {
 	}); err != nil {
 		return nil, err
 	}
-	if in.Mail != "" {
+	if email != "" {
 		if _, err := l.svcCtx.DUserEmailModel.Insert(l.ctx, &model.DUserEmail{
 			Id:          xid.New(),
 			UserId:      userID,
-			Email:       in.Mail,
-			EmailStatus: in.MailStatus,
+			Email:       email,
+			EmailStatus: emailStatusForAddress(email),
 			EditTime:    sql.NullTime{Time: now, Valid: true},
 			Status:      1,
 		}); err != nil {

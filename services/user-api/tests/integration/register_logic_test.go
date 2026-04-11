@@ -23,7 +23,6 @@ func TestRegisterCallsRpc(t *testing.T) {
 		Password:        "123456",
 		ConfirmPassword: "123456",
 		Mail:            "api@example.com",
-		MailStatus:      1,
 	})
 	if err != nil {
 		t.Fatalf("Register returned error: %v", err)
@@ -43,7 +42,7 @@ func TestRegisterCallsRpc(t *testing.T) {
 	if fake.lastRegisterReq.ConfirmPassword != "123456" {
 		t.Fatalf("unexpected confirm password")
 	}
-	if fake.lastRegisterReq.Mail != "api@example.com" || fake.lastRegisterReq.MailStatus != 1 {
+	if fake.lastRegisterReq.Mail != "api@example.com" {
 		t.Fatalf("unexpected mail payload: %+v", fake.lastRegisterReq)
 	}
 }

@@ -36,7 +36,6 @@ message RegisterReq {
   string password = 2;
   string confirmPassword = 3;
   string mail = 4;
-  int64 mailStatus = 5;
 }
 
 message ExistReq {
@@ -84,7 +83,6 @@ message UpdatePasswordReq {
 message UpdateEmailReq {
   int64 id = 1;
   string email = 2;
-  int64 emailStatus = 3;
 }
 
 message UpdateMobileReq {

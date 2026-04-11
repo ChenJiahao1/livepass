@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"net/mail"
 	"strconv"
+	"strings"
 	"time"
 
 	"damai-go/pkg/xerr"
@@ -86,6 +88,27 @@ func parseFailCount(value string) int64 {
 func md5Hex(value string) string {
 	sum := md5.Sum([]byte(value))
 	return hex.EncodeToString(sum[:])
+}
+
+func normalizeOptionalEmail(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", nil
+	}
+
+	parsed, err := mail.ParseAddress(trimmed)
+	if err != nil || parsed.Address != trimmed {
+		return "", status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
+
+	return trimmed, nil
+}
+
+func emailStatusForAddress(email string) int64 {
+	if email == "" {
+		return 0
+	}
+	return 1
 }
 
 func nullStringValue(value sql.NullString) string {

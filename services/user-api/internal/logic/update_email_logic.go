@@ -29,9 +29,8 @@ func NewUpdateEmailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Updat
 
 func (l *UpdateEmailLogic) UpdateEmail(req *types.UpdateEmailReq) (resp *types.BoolResp, err error) {
 	rpcResp, err := l.svcCtx.UserRpc.UpdateEmail(l.ctx, &userrpc.UpdateEmailReq{
-		Id:          req.ID,
-		Email:       req.Email,
-		EmailStatus: req.EmailStatus,
+		Id:    req.ID,
+		Email: req.Email,
 	})
 	if err != nil {
 		return nil, err

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nuser.proto\x12\x04user\"\x07\n\x05\x45mpty\"\x1b\n\x08\x42oolResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\xbd\x01\n\x08UserInfo\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07relName\x18\x03 \x01(\t\x12\x0e\n\x06gender\x18\x04 \x01(\x03\x12\x0e\n\x06mobile\x18\x05 \x01(\t\x12\x13\n\x0b\x65mailStatus\x18\x06 \x01(\x03\x12\r\n\x05\x65mail\x18\x07 \x01(\t\x12\x1f\n\x17relAuthenticationStatus\x18\x08 \x01(\x03\x12\x10\n\x08idNumber\x18\t \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\n \x01(\t\"_\n\x0eTicketUserInfo\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06userId\x18\x02 \x01(\x03\x12\x0f\n\x07relName\x18\x03 \x01(\t\x12\x0e\n\x06idType\x18\x04 \x01(\x03\x12\x10\n\x08idNumber\x18\x05 \x01(\t\"j\n\x0bRegisterReq\x12\x0e\n\x06mobile\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x17\n\x0f\x63onfirmPassword\x18\x03 \x01(\t\x12\x0c\n\x04mail\x18\x04 \x01(\t\x12\x12\n\nmailStatus\x18\x05 \x01(\x03\"\x1a\n\x08\x45xistReq\x12\x0e\n\x06mobile\x18\x01 \x01(\t\"I\n\x08LoginReq\x12\x0c\n\x04\x63ode\x18\x01 \x01(\t\x12\x0e\n\x06mobile\x18\x02 \x01(\t\x12\r\n\x05\x65mail\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\"*\n\tLoginResp\x12\x0e\n\x06userId\x18\x01 \x01(\x03\x12\r\n\x05token\x18\x02 \x01(\t\"\x1c\n\x0eGetUserByIdReq\x12\n\n\x02id\x18\x01 \x01(\x03\"$\n\x12GetUserByMobileReq\x12\x0e\n\x06mobile\x18\x01 \x01(\t\"(\n\tLogoutReq\x12\x0c\n\x04\x63ode\x18\x01 \x01(\t\x12\r\n\x05token\x18\x02 \x01(\t\"Z\n\rUpdateUserReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06gender\x18\x03 \x01(\x03\x12\x0e\n\x06mobile\x18\x04 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x05 \x01(\t\"1\n\x11UpdatePasswordReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x10\n\x08password\x18\x02 \x01(\t\"@\n\x0eUpdateEmailReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x13\n\x0b\x65mailStatus\x18\x03 \x01(\x03\"-\n\x0fUpdateMobileReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06mobile\x18\x02 \x01(\t\"B\n\x11\x41uthenticationReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0f\n\x07relName\x18\x02 \x01(\t\x12\x10\n\x08idNumber\x18\x03 \x01(\t\"$\n\x12ListTicketUsersReq\x12\x0e\n\x06userId\x18\x01 \x01(\x03\"9\n\x13ListTicketUsersResp\x12\"\n\x04list\x18\x01 \x03(\x0b\x32\x14.user.TicketUserInfo\"U\n\x10\x41\x64\x64TicketUserReq\x12\x0e\n\x06userId\x18\x01 \x01(\x03\x12\x0f\n\x07relName\x18\x02 \x01(\t\x12\x0e\n\x06idType\x18\x03 \x01(\x03\x12\x10\n\x08idNumber\x18\x04 \x01(\t\"!\n\x13\x44\x65leteTicketUserReq\x12\n\n\x02id\x18\x01 \x01(\x03\"-\n\x1bGetUserAndTicketUserListReq\x12\x0e\n\x06userId\x18\x01 \x01(\x03\"n\n\x1cGetUserAndTicketUserListResp\x12\x1e\n\x06userVo\x18\x01 \x01(\x0b\x32\x0e.user.UserInfo\x12.\n\x10ticketUserVoList\x18\x02 \x03(\x0b\x32\x14.user.TicketUserInfo2\xe0\x06\n\x07UserRpc\x12-\n\x08Register\x12\x11.user.RegisterReq\x1a\x0e.user.BoolResp\x12\'\n\x05\x45xist\x12\x0e.user.ExistReq\x1a\x0e.user.BoolResp\x12(\n\x05Login\x12\x0e.user.LoginReq\x1a\x0f.user.LoginResp\x12\x33\n\x0bGetUserById\x12\x14.user.GetUserByIdReq\x1a\x0e.user.UserInfo\x12;\n\x0fGetUserByMobile\x12\x18.user.GetUserByMobileReq\x1a\x0e.user.UserInfo\x12)\n\x06Logout\x12\x0f.user.LogoutReq\x1a\x0e.user.BoolResp\x12\x31\n\nUpdateUser\x12\x13.user.UpdateUserReq\x1a\x0e.user.BoolResp\x12\x39\n\x0eUpdatePassword\x12\x17.user.UpdatePasswordReq\x1a\x0e.user.BoolResp\x12\x33\n\x0bUpdateEmail\x12\x14.user.UpdateEmailReq\x1a\x0e.user.BoolResp\x12\x35\n\x0cUpdateMobile\x12\x15.user.UpdateMobileReq\x1a\x0e.user.BoolResp\x12\x39\n\x0e\x41uthentication\x12\x17.user.AuthenticationReq\x1a\x0e.user.BoolResp\x12\x46\n\x0fListTicketUsers\x12\x18.user.ListTicketUsersReq\x1a\x19.user.ListTicketUsersResp\x12\x37\n\rAddTicketUser\x12\x16.user.AddTicketUserReq\x1a\x0e.user.BoolResp\x12=\n\x10\x44\x65leteTicketUser\x12\x19.user.DeleteTicketUserReq\x1a\x0e.user.BoolResp\x12\x61\n\x18GetUserAndTicketUserList\x12!.user.GetUserAndTicketUserListReq\x1a\".user.GetUserAndTicketUserListRespB\x06Z\x04./pbb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nuser.proto\x12\x04user\"\x07\n\x05\x45mpty\"\x1b\n\x08\x42oolResp\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\xbd\x01\n\x08UserInfo\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07relName\x18\x03 \x01(\t\x12\x0e\n\x06gender\x18\x04 \x01(\x03\x12\x0e\n\x06mobile\x18\x05 \x01(\t\x12\x13\n\x0b\x65mailStatus\x18\x06 \x01(\x03\x12\r\n\x05\x65mail\x18\x07 \x01(\t\x12\x1f\n\x17relAuthenticationStatus\x18\x08 \x01(\x03\x12\x10\n\x08idNumber\x18\t \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\n \x01(\t\"_\n\x0eTicketUserInfo\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06userId\x18\x02 \x01(\x03\x12\x0f\n\x07relName\x18\x03 \x01(\t\x12\x0e\n\x06idType\x18\x04 \x01(\x03\x12\x10\n\x08idNumber\x18\x05 \x01(\t\"V\n\x0bRegisterReq\x12\x0e\n\x06mobile\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x17\n\x0f\x63onfirmPassword\x18\x03 \x01(\t\x12\x0c\n\x04mail\x18\x04 \x01(\t\"\x1a\n\x08\x45xistReq\x12\x0e\n\x06mobile\x18\x01 \x01(\t\"I\n\x08LoginReq\x12\x0c\n\x04\x63ode\x18\x01 \x01(\t\x12\x0e\n\x06mobile\x18\x02 \x01(\t\x12\r\n\x05\x65mail\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\"*\n\tLoginResp\x12\x0e\n\x06userId\x18\x01 \x01(\x03\x12\r\n\x05token\x18\x02 \x01(\t\"\x1c\n\x0eGetUserByIdReq\x12\n\n\x02id\x18\x01 \x01(\x03\"$\n\x12GetUserByMobileReq\x12\x0e\n\x06mobile\x18\x01 \x01(\t\"(\n\tLogoutReq\x12\x0c\n\x04\x63ode\x18\x01 \x01(\t\x12\r\n\x05token\x18\x02 \x01(\t\"Z\n\rUpdateUserReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06gender\x18\x03 \x01(\x03\x12\x0e\n\x06mobile\x18\x04 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x05 \x01(\t\"1\n\x11UpdatePasswordReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x10\n\x08password\x18\x02 \x01(\t\"+\n\x0eUpdateEmailReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\r\n\x05\x65mail\x18\x02 \x01(\t\"-\n\x0fUpdateMobileReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06mobile\x18\x02 \x01(\t\"B\n\x11\x41uthenticationReq\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0f\n\x07relName\x18\x02 \x01(\t\x12\x10\n\x08idNumber\x18\x03 \x01(\t\"$\n\x12ListTicketUsersReq\x12\x0e\n\x06userId\x18\x01 \x01(\x03\"9\n\x13ListTicketUsersResp\x12\"\n\x04list\x18\x01 \x03(\x0b\x32\x14.user.TicketUserInfo\"U\n\x10\x41\x64\x64TicketUserReq\x12\x0e\n\x06userId\x18\x01 \x01(\x03\x12\x0f\n\x07relName\x18\x02 \x01(\t\x12\x0e\n\x06idType\x18\x03 \x01(\x03\x12\x10\n\x08idNumber\x18\x04 \x01(\t\"!\n\x13\x44\x65leteTicketUserReq\x12\n\n\x02id\x18\x01 \x01(\x03\"-\n\x1bGetUserAndTicketUserListReq\x12\x0e\n\x06userId\x18\x01 \x01(\x03\"n\n\x1cGetUserAndTicketUserListResp\x12\x1e\n\x06userVo\x18\x01 \x01(\x0b\x32\x0e.user.UserInfo\x12.\n\x10ticketUserVoList\x18\x02 \x03(\x0b\x32\x14.user.TicketUserInfo2\xe0\x06\n\x07UserRpc\x12-\n\x08Register\x12\x11.user.RegisterReq\x1a\x0e.user.BoolResp\x12\'\n\x05\x45xist\x12\x0e.user.ExistReq\x1a\x0e.user.BoolResp\x12(\n\x05Login\x12\x0e.user.LoginReq\x1a\x0f.user.LoginResp\x12\x33\n\x0bGetUserById\x12\x14.user.GetUserByIdReq\x1a\x0e.user.UserInfo\x12;\n\x0fGetUserByMobile\x12\x18.user.GetUserByMobileReq\x1a\x0e.user.UserInfo\x12)\n\x06Logout\x12\x0f.user.LogoutReq\x1a\x0e.user.BoolResp\x12\x31\n\nUpdateUser\x12\x13.user.UpdateUserReq\x1a\x0e.user.BoolResp\x12\x39\n\x0eUpdatePassword\x12\x17.user.UpdatePasswordReq\x1a\x0e.user.BoolResp\x12\x33\n\x0bUpdateEmail\x12\x14.user.UpdateEmailReq\x1a\x0e.user.BoolResp\x12\x35\n\x0cUpdateMobile\x12\x15.user.UpdateMobileReq\x1a\x0e.user.BoolResp\x12\x39\n\x0e\x41uthentication\x12\x17.user.AuthenticationReq\x1a\x0e.user.BoolResp\x12\x46\n\x0fListTicketUsers\x12\x18.user.ListTicketUsersReq\x1a\x19.user.ListTicketUsersResp\x12\x37\n\rAddTicketUser\x12\x16.user.AddTicketUserReq\x1a\x0e.user.BoolResp\x12=\n\x10\x44\x65leteTicketUser\x12\x19.user.DeleteTicketUserReq\x1a\x0e.user.BoolResp\x12\x61\n\x18GetUserAndTicketUserList\x12!.user.GetUserAndTicketUserListReq\x1a\".user.GetUserAndTicketUserListRespB\x06Z\x04./pbb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,41 +41,41 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_TICKETUSERINFO']._serialized_start=250
   _globals['_TICKETUSERINFO']._serialized_end=345
   _globals['_REGISTERREQ']._serialized_start=347
-  _globals['_REGISTERREQ']._serialized_end=453
-  _globals['_EXISTREQ']._serialized_start=455
-  _globals['_EXISTREQ']._serialized_end=481
-  _globals['_LOGINREQ']._serialized_start=483
-  _globals['_LOGINREQ']._serialized_end=556
-  _globals['_LOGINRESP']._serialized_start=558
-  _globals['_LOGINRESP']._serialized_end=600
-  _globals['_GETUSERBYIDREQ']._serialized_start=602
-  _globals['_GETUSERBYIDREQ']._serialized_end=630
-  _globals['_GETUSERBYMOBILEREQ']._serialized_start=632
-  _globals['_GETUSERBYMOBILEREQ']._serialized_end=668
-  _globals['_LOGOUTREQ']._serialized_start=670
-  _globals['_LOGOUTREQ']._serialized_end=710
-  _globals['_UPDATEUSERREQ']._serialized_start=712
-  _globals['_UPDATEUSERREQ']._serialized_end=802
-  _globals['_UPDATEPASSWORDREQ']._serialized_start=804
-  _globals['_UPDATEPASSWORDREQ']._serialized_end=853
-  _globals['_UPDATEEMAILREQ']._serialized_start=855
-  _globals['_UPDATEEMAILREQ']._serialized_end=919
-  _globals['_UPDATEMOBILEREQ']._serialized_start=921
-  _globals['_UPDATEMOBILEREQ']._serialized_end=966
-  _globals['_AUTHENTICATIONREQ']._serialized_start=968
-  _globals['_AUTHENTICATIONREQ']._serialized_end=1034
-  _globals['_LISTTICKETUSERSREQ']._serialized_start=1036
-  _globals['_LISTTICKETUSERSREQ']._serialized_end=1072
-  _globals['_LISTTICKETUSERSRESP']._serialized_start=1074
-  _globals['_LISTTICKETUSERSRESP']._serialized_end=1131
-  _globals['_ADDTICKETUSERREQ']._serialized_start=1133
-  _globals['_ADDTICKETUSERREQ']._serialized_end=1218
-  _globals['_DELETETICKETUSERREQ']._serialized_start=1220
-  _globals['_DELETETICKETUSERREQ']._serialized_end=1253
-  _globals['_GETUSERANDTICKETUSERLISTREQ']._serialized_start=1255
-  _globals['_GETUSERANDTICKETUSERLISTREQ']._serialized_end=1300
-  _globals['_GETUSERANDTICKETUSERLISTRESP']._serialized_start=1302
-  _globals['_GETUSERANDTICKETUSERLISTRESP']._serialized_end=1412
-  _globals['_USERRPC']._serialized_start=1415
-  _globals['_USERRPC']._serialized_end=2279
+  _globals['_REGISTERREQ']._serialized_end=433
+  _globals['_EXISTREQ']._serialized_start=435
+  _globals['_EXISTREQ']._serialized_end=461
+  _globals['_LOGINREQ']._serialized_start=463
+  _globals['_LOGINREQ']._serialized_end=536
+  _globals['_LOGINRESP']._serialized_start=538
+  _globals['_LOGINRESP']._serialized_end=580
+  _globals['_GETUSERBYIDREQ']._serialized_start=582
+  _globals['_GETUSERBYIDREQ']._serialized_end=610
+  _globals['_GETUSERBYMOBILEREQ']._serialized_start=612
+  _globals['_GETUSERBYMOBILEREQ']._serialized_end=648
+  _globals['_LOGOUTREQ']._serialized_start=650
+  _globals['_LOGOUTREQ']._serialized_end=690
+  _globals['_UPDATEUSERREQ']._serialized_start=692
+  _globals['_UPDATEUSERREQ']._serialized_end=782
+  _globals['_UPDATEPASSWORDREQ']._serialized_start=784
+  _globals['_UPDATEPASSWORDREQ']._serialized_end=833
+  _globals['_UPDATEEMAILREQ']._serialized_start=835
+  _globals['_UPDATEEMAILREQ']._serialized_end=878
+  _globals['_UPDATEMOBILEREQ']._serialized_start=880
+  _globals['_UPDATEMOBILEREQ']._serialized_end=925
+  _globals['_AUTHENTICATIONREQ']._serialized_start=927
+  _globals['_AUTHENTICATIONREQ']._serialized_end=993
+  _globals['_LISTTICKETUSERSREQ']._serialized_start=995
+  _globals['_LISTTICKETUSERSREQ']._serialized_end=1031
+  _globals['_LISTTICKETUSERSRESP']._serialized_start=1033
+  _globals['_LISTTICKETUSERSRESP']._serialized_end=1090
+  _globals['_ADDTICKETUSERREQ']._serialized_start=1092
+  _globals['_ADDTICKETUSERREQ']._serialized_end=1177
+  _globals['_DELETETICKETUSERREQ']._serialized_start=1179
+  _globals['_DELETETICKETUSERREQ']._serialized_end=1212
+  _globals['_GETUSERANDTICKETUSERLISTREQ']._serialized_start=1214
+  _globals['_GETUSERANDTICKETUSERLISTREQ']._serialized_end=1259
+  _globals['_GETUSERANDTICKETUSERLISTRESP']._serialized_start=1261
+  _globals['_GETUSERANDTICKETUSERLISTRESP']._serialized_end=1371
+  _globals['_USERRPC']._serialized_start=1374
+  _globals['_USERRPC']._serialized_end=2238
 # @@protoc_insertion_point(module_scope)
