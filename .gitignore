@@ -1,11 +1,9 @@
 .tools/
 .worktrees/
-worktrees/
 agents/.venv/
 agents/.pytest_cache/
 agents/uv.lock
 __pycache__/
 .env
 .tmp*
-/user-rpc
-/scripts/perf/order_create_gateway_multi_user_single_seat.user_pool.json
+/a-my-docs
