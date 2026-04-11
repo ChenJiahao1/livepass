@@ -11,6 +11,98 @@ import (
 	"damai-go/services/gateway-api/tests/testkit"
 )
 
+func TestGatewayHandlesCorsPreflightForUserRoute(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
+	defer server.Stop()
+
+	req, err := http.NewRequest(http.MethodOptions, baseURL+"/user/register", nil)
+	if err != nil {
+		t.Fatalf("create preflight request: %v", err)
+	}
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	req.Header.Set("Access-Control-Request-Headers", "content-type,x-channel-code")
+
+	resp, err := (&http.Client{Timeout: 2 * time.Second}).Do(req)
+	if err != nil {
+		t.Fatalf("do preflight request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", resp.StatusCode)
+	}
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("expected allow origin header, got %q", got)
+	}
+	if got := resp.Header.Get("Access-Control-Allow-Headers"); got == "" {
+		t.Fatal("expected allow headers to be present")
+	}
+}
+
+func TestGatewayHandlesCorsPreflightForAuthorizedRouteWithoutAuthHeader(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.NotFoundHandler())
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	var called bool
+	orderAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer orderAPI.Close()
+
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
+	defer server.Stop()
+
+	req, err := http.NewRequest(http.MethodOptions, baseURL+"/order/create", nil)
+	if err != nil {
+		t.Fatalf("create preflight request: %v", err)
+	}
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	req.Header.Set("Access-Control-Request-Headers", "content-type,authorization,x-channel-code")
+
+	resp, err := (&http.Client{Timeout: 2 * time.Second}).Do(req)
+	if err != nil {
+		t.Fatalf("do preflight request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if called {
+		t.Fatal("expected preflight request not to reach order upstream")
+	}
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", resp.StatusCode)
+	}
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("expected allow origin header, got %q", got)
+	}
+}
+
 func TestGatewayForwardsUserRequestToUserAPI(t *testing.T) {
 	t.Parallel()
 

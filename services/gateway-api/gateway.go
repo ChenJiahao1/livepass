@@ -18,12 +18,10 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
 
-	server := gateway.MustNewServer(
-		c.GatewayConf,
-		gateway.WithMiddleware(
-			middleware.NewAuthMiddleware(c.Auth.ChannelCodeHeader, c.Auth.ChannelMap).Handle,
-		),
-	)
+	server := gateway.MustNewServer(c.GatewayConf)
+	server.Use(middleware.NewCorsMiddleware(c.Cors).Handle)
+	server.Use(middleware.NewAuthMiddleware(c.Auth.ChannelCodeHeader, c.Auth.ChannelMap).Handle)
+	middleware.RegisterPreflightRoutes(server, c.Upstreams)
 	defer server.Stop()
 
 	server.Start()

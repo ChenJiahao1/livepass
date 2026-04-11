@@ -50,6 +50,7 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 				Timeout: timeout,
 			},
 			Mappings: []gateway.RouteMapping{
+				{Method: http.MethodPost, Path: "/user/register"},
 				{Method: http.MethodPost, Path: "/user/login"},
 			},
 		},
@@ -108,12 +109,10 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 func StartTestGateway(t *testing.T, c config.Config) (*gateway.Server, string) {
 	t.Helper()
 
-	server := gateway.MustNewServer(
-		c.GatewayConf,
-		gateway.WithMiddleware(
-			middleware.NewAuthMiddleware(c.Auth.ChannelCodeHeader, c.Auth.ChannelMap).Handle,
-		),
-	)
+	server := gateway.MustNewServer(c.GatewayConf)
+	server.Use(middleware.NewCorsMiddleware(c.Cors).Handle)
+	server.Use(middleware.NewAuthMiddleware(c.Auth.ChannelCodeHeader, c.Auth.ChannelMap).Handle)
+	middleware.RegisterPreflightRoutes(server, c.Upstreams)
 	go server.Start()
 
 	baseURL := fmt.Sprintf("http://%s:%d", c.Host, c.Port)

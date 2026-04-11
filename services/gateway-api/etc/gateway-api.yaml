@@ -14,6 +14,16 @@ Auth:
   ChannelCodeHeader: X-Channel-Code
   ChannelMap:
     "0001": local-user-secret-0001
+Cors:
+  AllowOrigins:
+    - http://localhost:5173
+    - http://127.0.0.1:5173
+  AllowHeaders:
+    - Content-Type
+    - Origin
+    - Authorization
+    - X-Channel-Code
+  AllowCredentials: true
 Upstreams:
   - Name: user-api
     Http:

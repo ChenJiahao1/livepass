@@ -21,6 +21,11 @@ func NewAuthMiddleware(channelHeader string, channelMap map[string]string) *Auth
 
 func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			next(w, r)
+			return
+		}
+
 		if !requiresAuth(r.URL.Path) {
 			next(w, r)
 			return
