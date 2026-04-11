@@ -76,7 +76,7 @@ func (m *customDProgramShowTimeModel) FindFirstByProgramId(ctx context.Context, 
 	var err error
 
 	if m.cached {
-		cacheKey := fmt.Sprintf("cache:dProgramShowTime:first:programId:%d", programId)
+		cacheKey := ProgramFirstShowTimeCacheKey(programId)
 		err = m.QueryRowCtx(ctx, &resp, cacheKey, func(ctx context.Context, conn sqlx.SqlConn, v any) error {
 			query := fmt.Sprintf(
 				"select %s from %s where `status` = 1 and `program_id` = ? order by `show_time` asc limit 1",

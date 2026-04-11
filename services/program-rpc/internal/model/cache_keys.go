@@ -11,5 +11,5 @@ func ProgramGroupCacheKey(programGroupID int64) string {
 }
 
 func ProgramFirstShowTimeCacheKey(programID int64) string {
-	return fmt.Sprintf("cache:dProgramShowTime:first:programId:%d", programID)
+	return fmt.Sprintf("%s%d", cacheDProgramShowTimeFirstProgramIDPrefix, programID)
 }

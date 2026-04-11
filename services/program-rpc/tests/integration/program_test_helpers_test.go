@@ -16,18 +16,21 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/config"
+	"damai-go/services/program-rpc/internal/model"
 	"damai-go/services/program-rpc/internal/programcache"
 	"damai-go/services/program-rpc/internal/seatcache"
 	"damai-go/services/program-rpc/internal/svc"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	gzredis "github.com/zeromicro/go-zero/core/stores/redis"
 )
 
-var testProgramMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true")
+var testProgramIsolationNamespace = newProgramTestIsolationNamespace()
+var testProgramMySQLDataSource = newProgramTestMySQLDataSource()
+var testProgramSeatLedgerPrefix = testProgramIsolationNamespace + ":seat-ledger"
 
-const testProgramSeatLedgerPrefix = "damai-go:test:program:seat-ledger"
 const testProgramDateTimeLayout = "2006-01-02 15:04:05"
 
 var (
@@ -35,6 +38,10 @@ var (
 	programDomainStateOwners  = make(map[string]struct{})
 	programDomainStateOwnersM sync.Mutex
 )
+
+func init() {
+	model.SetCacheKeyNamespace(testProgramIsolationNamespace)
+}
 
 type ticketCategoryFixture struct {
 	ID           int64
@@ -108,6 +115,7 @@ type programFixture struct {
 func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
 	acquireProgramDomainState(t)
+	ensureProgramTestDatabase(t, testProgramMySQLDataSource)
 
 	_ = xid.Close()
 	if err := xid.InitEtcd(context.Background(), xid.Config{
@@ -403,10 +411,10 @@ func clearProgramRedisState(t *testing.T) {
 	}
 
 	for _, pattern := range []string{
-		"cache:dProgram:id:*",
-		"cache:dProgramGroup:id:*",
-		"cache:dProgramShowTime:id:*",
-		"cache:dProgramShowTime:first:programId:*",
+		model.ProgramCacheKeyPrefix() + "*",
+		model.ProgramGroupCacheKeyPrefix() + "*",
+		model.ProgramShowTimeCacheKeyPrefix() + "*",
+		model.ProgramFirstShowTimeCacheKeyPrefix() + "*",
 		testProgramSeatLedgerPrefix + ":*",
 	} {
 		keys, err := redis.KeysCtx(context.Background(), pattern)
@@ -612,6 +620,8 @@ func findSeatFreezeMetadataByToken(t *testing.T, svcCtx *svc.ServiceContext, fre
 func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 
+	ensureProgramTestDatabase(t, dataSource)
+
 	db, err := sql.Open("mysql", xmysql.WithLocalTime(dataSource))
 	if err != nil {
 		t.Fatalf("sql.Open error: %v", err)
@@ -622,6 +632,55 @@ func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {
 	}
 
 	return db
+}
+
+func ensureProgramTestDatabase(t *testing.T, dataSource string) {
+	t.Helper()
+
+	cfg, err := mysqlDriver.ParseDSN(dataSource)
+	if err != nil {
+		t.Fatalf("mysql parse dsn error: %v", err)
+	}
+	if cfg.DBName == "" {
+		t.Fatalf("expected mysql dsn to include database name: %s", dataSource)
+	}
+
+	dbName := cfg.DBName
+	cfg.DBName = ""
+
+	adminDB, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		t.Fatalf("sql.Open admin db error: %v", err)
+	}
+	defer adminDB.Close()
+
+	if err := adminDB.Ping(); err != nil {
+		t.Fatalf("admin db ping error: %v", err)
+	}
+
+	stmt := fmt.Sprintf(
+		"CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+		strings.ReplaceAll(dbName, "`", "``"),
+	)
+	if _, err := adminDB.Exec(stmt); err != nil {
+		t.Fatalf("create test database error: %v", err)
+	}
+}
+
+func newProgramTestMySQLDataSource() string {
+	baseDataSource := xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true")
+	cfg, err := mysqlDriver.ParseDSN(baseDataSource)
+	if err != nil {
+		return baseDataSource
+	}
+
+	cfg.DBName = fmt.Sprintf("damai_program_test_%d_%d", os.Getpid(), time.Now().UnixNano())
+
+	return cfg.FormatDSN()
+}
+
+func newProgramTestIsolationNamespace() string {
+	return fmt.Sprintf("damai-go:test:program:%d:%d", os.Getpid(), time.Now().UnixNano())
 }
 
 func withProgramFixtureDefaults(fixture programFixture) programFixture {

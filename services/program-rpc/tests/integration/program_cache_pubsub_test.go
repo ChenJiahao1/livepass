@@ -188,5 +188,5 @@ func programCachePubSubChannel(t *testing.T, suffix string) string {
 		name = name[:idx]
 	}
 	name = strings.NewReplacer("/", ":", " ", ":", "\t", ":", "#", ":").Replace(name)
-	return fmt.Sprintf("damai-go:test:program:cache:invalidate:%s:%s", name, suffix)
+	return fmt.Sprintf("%s:cache:invalidate:%s:%s", testProgramIsolationNamespace, name, suffix)
 }
