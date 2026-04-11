@@ -33,6 +33,10 @@ func main() {
 		_ = xid.Close()
 	}()
 	ctx := svc.NewServiceContext(c)
+	if ctx.ProgramCacheSubscriber != nil {
+		go ctx.ProgramCacheSubscriber.Start(context.Background())
+		defer ctx.ProgramCacheSubscriber.Close()
+	}
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		pb.RegisterProgramRpcServer(grpcServer, server.NewProgramRpcServer(ctx))

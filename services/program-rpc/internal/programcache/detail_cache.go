@@ -24,6 +24,7 @@ type ProgramDetailCache struct {
 	detailTTL       time.Duration
 	notFoundTTL     time.Duration
 	notFoundPayload []byte
+	loadGroup       *loadGroup
 }
 
 func NewProgramDetailCache(loader ProgramDetailLoader, detailTTL, notFoundTTL time.Duration, limit int) (*ProgramDetailCache, error) {
@@ -45,6 +46,7 @@ func NewProgramDetailCache(loader ProgramDetailLoader, detailTTL, notFoundTTL ti
 		detailTTL:       detailTTL,
 		notFoundTTL:     notFoundTTL,
 		notFoundPayload: []byte{1},
+		loadGroup:       newLoadGroup(),
 	}, nil
 }
 
@@ -61,25 +63,48 @@ func (c *ProgramDetailCache) Get(ctx context.Context, programID int64) (*pb.Prog
 		c.cache.Del(detailCacheKey(programID))
 	}
 
-	resp, err := c.loader.Load(ctx, programID)
-	if err != nil {
-		if errors.Is(err, ErrProgramNotFound) {
-			c.cache.SetWithExpire(detailNotFoundCacheKey(programID), c.notFoundPayload, c.notFoundTTL)
+	loaded, err := c.loadGroup.DoWithContext(ctx, detailCacheKey(programID), func(sharedCtx context.Context) (any, error) {
+		if _, ok := c.cache.Get(detailNotFoundCacheKey(programID)); ok {
 			return nil, ErrProgramNotFound
 		}
-		return nil, err
-	}
-	if resp == nil {
-		return nil, errors.New("program detail loader returned nil detail")
-	}
 
-	payload, err := proto.Marshal(resp)
+		if payload, ok := c.cache.Get(detailCacheKey(programID)); ok {
+			resp, err := decodeProgramDetailPayload(payload)
+			if err == nil {
+				return resp, nil
+			}
+			c.cache.Del(detailCacheKey(programID))
+		}
+
+		resp, err := c.loader.Load(sharedCtx, programID)
+		if err != nil {
+			if errors.Is(err, ErrProgramNotFound) {
+				c.cache.SetWithExpire(detailNotFoundCacheKey(programID), c.notFoundPayload, c.notFoundTTL)
+				return nil, ErrProgramNotFound
+			}
+			return nil, err
+		}
+		if resp == nil {
+			return nil, errors.New("program detail loader returned nil detail")
+		}
+
+		payload, err := proto.Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		c.cache.SetWithExpire(detailCacheKey(programID), payload, c.detailTTL)
+
+		return decodeProgramDetailPayload(payload)
+	})
 	if err != nil {
 		return nil, err
 	}
-	c.cache.SetWithExpire(detailCacheKey(programID), payload, c.detailTTL)
 
-	return decodeProgramDetailPayload(payload)
+	resp, ok := loaded.(*pb.ProgramDetailInfo)
+	if !ok || resp == nil {
+		return nil, errors.New("program detail loader returned invalid payload")
+	}
+	return resp, nil
 }
 
 func (c *ProgramDetailCache) Invalidate(programID int64) {

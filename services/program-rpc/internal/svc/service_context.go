@@ -31,7 +31,9 @@ type ServiceContext struct {
 	DTicketCategoryModel    model.DTicketCategoryModel
 	CategorySnapshotCache   *programcache.CategorySnapshotCache
 	ProgramDetailCache      *programcache.ProgramDetailCache
+	ProgramCacheRegistry    *programcache.InvalidationRegistry
 	ProgramCacheInvalidator *programcache.ProgramCacheInvalidator
+	ProgramCacheSubscriber  *programcache.PubSubSubscriber
 	SeatFreezeLocker        SeatFreezeLocker
 }
 
@@ -70,6 +72,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	ticketCategoryModel := model.NewDTicketCategoryModel(conn)
 
 	localCacheConf := c.LocalCache.Normalize()
+	c.LocalCache = localCacheConf
 	categorySnapshotCache, err := programcache.NewCategorySnapshotCache(programCategoryModel, localCacheConf.CategorySnapshotTTL)
 	if err != nil {
 		panic(err)
@@ -90,7 +93,20 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		panic(err)
 	}
+	cacheInvalidationConf := c.CacheInvalidation.Normalize()
+	c.CacheInvalidation = cacheInvalidationConf
+	programCacheRegistry := programcache.NewInvalidationRegistry(programDetailCache, categorySnapshotCache)
 	programCacheInvalidator := programcache.NewProgramCacheInvalidator(rds, programDetailCache)
+	var programCacheSubscriber *programcache.PubSubSubscriber
+	if rds != nil && cacheInvalidationConf.Enabled {
+		programCacheSubscriber = programcache.NewPubSubSubscriber(
+			rds,
+			cacheInvalidationConf.Channel,
+			programCacheRegistry,
+			cacheInvalidationConf.PublishTimeout,
+			cacheInvalidationConf.ReconnectBackoff,
+		)
+	}
 
 	return &ServiceContext{
 		Config:                  c,
@@ -105,6 +121,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		DTicketCategoryModel:    ticketCategoryModel,
 		CategorySnapshotCache:   categorySnapshotCache,
 		ProgramDetailCache:      programDetailCache,
+		ProgramCacheRegistry:    programCacheRegistry,
 		ProgramCacheInvalidator: programCacheInvalidator,
+		ProgramCacheSubscriber:  programCacheSubscriber,
 	}
 }

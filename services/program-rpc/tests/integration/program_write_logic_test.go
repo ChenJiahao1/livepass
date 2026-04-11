@@ -3,8 +3,10 @@ package integration_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
+	"damai-go/pkg/xid"
 	logicpkg "damai-go/services/program-rpc/internal/logic"
 	"damai-go/services/program-rpc/internal/programcache"
 	"damai-go/services/program-rpc/internal/svc"
@@ -207,6 +209,65 @@ func TestBatchCreateProgramCategoriesRejectsDuplicateEntries(t *testing.T) {
 	}
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected invalid argument code, got %s", status.Code(err))
+	}
+}
+
+func TestBatchCreateProgramCategoriesReturnsSuccessWhenBroadcastFails(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	if svcCtx.ProgramCacheInvalidator == nil {
+		t.Fatalf("expected ProgramCacheInvalidator to be configured")
+	}
+	svcCtx.ProgramCacheInvalidator.SetPublisher(failingInvalidationPublisher{})
+
+	nameSuffix := xid.New()
+	l := logicpkg.NewBatchCreateProgramCategoriesLogic(context.Background(), svcCtx)
+	resp, err := l.BatchCreateProgramCategories(&pb.ProgramCategoryBatchSaveReq{
+		List: []*pb.ProgramCategoryBatchItem{
+			{ParentId: 0, Name: fmt.Sprintf("broadcast-fail-%d", nameSuffix), Type: 1},
+			{ParentId: 0, Name: fmt.Sprintf("broadcast-fail-child-%d", nameSuffix), Type: 2},
+		},
+	})
+	if err != nil {
+		t.Fatalf("BatchCreateProgramCategories returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success, got %+v", resp)
+	}
+}
+
+func TestBatchCreateProgramCategoriesReturnsSuccessWhenInvalidatorMissing(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	svcCtx.ProgramCacheInvalidator = nil
+
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			t.Fatalf("expected no panic, got %v", recovered)
+		}
+	}()
+
+	nameSuffix := xid.New()
+	l := logicpkg.NewBatchCreateProgramCategoriesLogic(context.Background(), svcCtx)
+	resp, err := l.BatchCreateProgramCategories(&pb.ProgramCategoryBatchSaveReq{
+		List: []*pb.ProgramCategoryBatchItem{
+			{ParentId: 0, Name: fmt.Sprintf("invalidator-missing-%d", nameSuffix), Type: 1},
+			{ParentId: 0, Name: fmt.Sprintf("invalidator-missing-child-%d", nameSuffix), Type: 2},
+		},
+	})
+	if err != nil {
+		t.Fatalf("BatchCreateProgramCategories returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success, got %+v", resp)
 	}
 }
 
@@ -566,6 +627,12 @@ func replaceProgramCacheInvalidatorWithFailingRedis(t *testing.T, svcCtx *svc.Se
 	redis.Type = "invalid"
 
 	svcCtx.ProgramCacheInvalidator = programcache.NewProgramCacheInvalidator(redis, svcCtx.ProgramDetailCache)
+}
+
+type failingInvalidationPublisher struct{}
+
+func (failingInvalidationPublisher) Publish(context.Context, programcache.InvalidationMessage) error {
+	return fmt.Errorf("publish failed")
 }
 
 func requireProgramTableColumn(t *testing.T, db *sql.DB, tableName, columnName string) {

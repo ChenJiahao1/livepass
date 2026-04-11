@@ -57,6 +57,28 @@ func TestLoadProgramRPCConfigUsesDedicatedListenPort(t *testing.T) {
 	assertDurationField(t, localCacheField, "CategorySnapshotTTL", 5*time.Minute)
 }
 
+func TestLoadProgramRPCConfigExposesCacheInvalidationDefaults(t *testing.T) {
+	t.Parallel()
+
+	var c config.Config
+	configFile := filepath.Join("..", "..", "etc", "program-rpc.yaml")
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	cacheInvalidationField := reflect.ValueOf(c).FieldByName("CacheInvalidation")
+	if !cacheInvalidationField.IsValid() {
+		t.Fatalf("expected config.Config to expose CacheInvalidation settings")
+	}
+
+	assertBoolField(t, cacheInvalidationField, "Enabled", true)
+	if channel := requireStringField(t, cacheInvalidationField, "Channel"); channel != "damai-go:program:cache:invalidate" {
+		t.Fatalf("expected cache invalidation channel damai-go:program:cache:invalidate, got %q", channel)
+	}
+	assertDurationField(t, cacheInvalidationField, "PublishTimeout", 200*time.Millisecond)
+	assertDurationField(t, cacheInvalidationField, "ReconnectBackoff", time.Second)
+}
+
 func assertDurationField(t *testing.T, value reflect.Value, name string, expected time.Duration) {
 	t.Helper()
 
@@ -67,6 +89,19 @@ func assertDurationField(t *testing.T, value reflect.Value, name string, expecte
 
 	if got := time.Duration(field.Int()); got != expected {
 		t.Fatalf("expected %s = %s, got %s", name, expected, got)
+	}
+}
+
+func assertBoolField(t *testing.T, value reflect.Value, name string, expected bool) {
+	t.Helper()
+
+	field, ok := findStructField(value, name)
+	if !ok {
+		t.Fatalf("expected field %s to exist", name)
+	}
+
+	if got := field.Bool(); got != expected {
+		t.Fatalf("expected %s = %v, got %v", name, expected, got)
 	}
 }
 

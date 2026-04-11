@@ -110,6 +110,28 @@ func TestProgramServiceContextWiresProgramLocalCaches(t *testing.T) {
 	requireServiceContextDependency(t, svcCtx, "ProgramDetailCache")
 }
 
+func TestProgramServiceContextWiresCacheInvalidationDependencies(t *testing.T) {
+	cfg := config.Config{
+		MySQL: xmysql.Config{
+			DataSource: testProgramMySQLDataSource,
+		},
+		StoreRedis: xredis.Config{
+			Host: "127.0.0.1:6379",
+			Type: "node",
+		},
+		CacheInvalidation: config.CacheInvalidationConfig{
+			Enabled: true,
+		},
+	}
+	configureProgramLayeredCache(t, &cfg)
+
+	svcCtx := svc.NewServiceContext(cfg)
+
+	requireServiceContextDependency(t, svcCtx, "ProgramCacheRegistry")
+	requireServiceContextDependency(t, svcCtx, "ProgramCacheInvalidator")
+	requireServiceContextDependency(t, svcCtx, "ProgramCacheSubscriber")
+}
+
 func configureProgramLayeredCache(t *testing.T, cfg *config.Config) {
 	t.Helper()
 

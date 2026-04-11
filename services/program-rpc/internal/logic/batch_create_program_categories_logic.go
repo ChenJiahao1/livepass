@@ -90,5 +90,11 @@ func (l *BatchCreateProgramCategoriesLogic) BatchCreateProgramCategories(in *pb.
 		return nil, err
 	}
 
+	if l.svcCtx.ProgramCacheInvalidator != nil {
+		if err := l.svcCtx.ProgramCacheInvalidator.InvalidateCategorySnapshot(l.ctx); err != nil {
+			l.Errorf("invalidate category snapshot after batch create failed, err=%v", err)
+		}
+	}
+
 	return &pb.BoolResp{Success: true}, nil
 }

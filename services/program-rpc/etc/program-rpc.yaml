@@ -23,3 +23,8 @@ LocalCache:
   DetailNotFoundTTL: 5s
   DetailCacheLimit: 5000
   CategorySnapshotTTL: 5m
+CacheInvalidation:
+  Enabled: true
+  Channel: damai-go:program:cache:invalidate
+  PublishTimeout: 200ms
+  ReconnectBackoff: 1s

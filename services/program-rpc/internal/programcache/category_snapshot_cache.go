@@ -13,9 +13,10 @@ import (
 const categorySnapshotCacheKey = "program:category:snapshot"
 
 type CategorySnapshotCache struct {
-	cache *collection.Cache
-	model model.DProgramCategoryModel
-	ttl   time.Duration
+	cache     *collection.Cache
+	model     model.DProgramCategoryModel
+	ttl       time.Duration
+	loadGroup *loadGroup
 }
 
 func NewCategorySnapshotCache(categoryModel model.DProgramCategoryModel, ttl time.Duration) (*CategorySnapshotCache, error) {
@@ -32,9 +33,10 @@ func NewCategorySnapshotCache(categoryModel model.DProgramCategoryModel, ttl tim
 	}
 
 	return &CategorySnapshotCache{
-		cache: localCache,
-		model: categoryModel,
-		ttl:   ttl,
+		cache:     localCache,
+		model:     categoryModel,
+		ttl:       ttl,
+		loadGroup: newLoadGroup(),
 	}, nil
 }
 
@@ -47,19 +49,38 @@ func (c *CategorySnapshotCache) GetAll(ctx context.Context) ([]*model.DProgramCa
 		c.cache.Del(categorySnapshotCacheKey)
 	}
 
-	categories, err := c.model.FindAll(ctx)
-	if err != nil {
-		if errors.Is(err, model.ErrNotFound) {
-			categories = []*model.DProgramCategory{}
-		} else {
-			return nil, err
+	loaded, err := c.loadGroup.DoWithContext(ctx, categorySnapshotCacheKey, func(sharedCtx context.Context) (any, error) {
+		if payload, ok := c.cache.Get(categorySnapshotCacheKey); ok {
+			categories, ok := payload.([]*model.DProgramCategory)
+			if ok {
+				return cloneProgramCategories(categories), nil
+			}
+			c.cache.Del(categorySnapshotCacheKey)
 		}
+
+		categories, err := c.model.FindAll(sharedCtx)
+		if err != nil {
+			if errors.Is(err, model.ErrNotFound) {
+				categories = []*model.DProgramCategory{}
+			} else {
+				return nil, err
+			}
+		}
+
+		cloned := cloneProgramCategories(categories)
+		c.cache.SetWithExpire(categorySnapshotCacheKey, cloned, c.ttl)
+
+		return cloneProgramCategories(cloned), nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	cloned := cloneProgramCategories(categories)
-	c.cache.SetWithExpire(categorySnapshotCacheKey, cloned, c.ttl)
-
-	return cloneProgramCategories(cloned), nil
+	categories, ok := loaded.([]*model.DProgramCategory)
+	if !ok {
+		return nil, errors.New("program category cache returned invalid payload")
+	}
+	return cloneProgramCategories(categories), nil
 }
 
 func (c *CategorySnapshotCache) Invalidate() {

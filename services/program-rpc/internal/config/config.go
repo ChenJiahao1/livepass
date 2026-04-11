@@ -34,10 +34,32 @@ func (c LocalCacheConfig) Normalize() LocalCacheConfig {
 	return c
 }
 
+type CacheInvalidationConfig struct {
+	Enabled          bool          `json:",default=true"`
+	Channel          string        `json:",default=damai-go:program:cache:invalidate"`
+	PublishTimeout   time.Duration `json:",default=200ms"`
+	ReconnectBackoff time.Duration `json:",default=1s"`
+}
+
+func (c CacheInvalidationConfig) Normalize() CacheInvalidationConfig {
+	if c.Channel == "" {
+		c.Channel = "damai-go:program:cache:invalidate"
+	}
+	if c.PublishTimeout <= 0 {
+		c.PublishTimeout = 200 * time.Millisecond
+	}
+	if c.ReconnectBackoff <= 0 {
+		c.ReconnectBackoff = time.Second
+	}
+
+	return c
+}
+
 type Config struct {
 	zrpc.RpcServerConf
-	MySQL      xmysql.Config
-	StoreRedis xredis.Config    `json:"StoreRedis,optional"`
-	Cache      cache.CacheConf  `json:",optional"`
-	LocalCache LocalCacheConfig `json:",optional"`
+	MySQL             xmysql.Config
+	StoreRedis        xredis.Config            `json:"StoreRedis,optional"`
+	Cache             cache.CacheConf          `json:",optional"`
+	LocalCache        LocalCacheConfig         `json:",optional"`
+	CacheInvalidation CacheInvalidationConfig  `json:",optional"`
 }

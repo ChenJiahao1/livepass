@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -161,10 +163,145 @@ func TestProgramDetailCacheDropsCorruptedPayloadAndReloads(t *testing.T) {
 	}
 }
 
+func TestProgramDetailCacheDeduplicatesConcurrentLoads(t *testing.T) {
+	loader := &blockingDetailLoader{
+		resp: &pb.ProgramDetailInfo{Id: 20001, Title: "concurrent load"},
+	}
+
+	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	if err != nil {
+		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+	}
+
+	start := make(chan struct{})
+	resultCh := make(chan error, 20)
+	var wg sync.WaitGroup
+
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			resp, err := cache.Get(context.Background(), 20001)
+			if err != nil {
+				resultCh <- err
+				return
+			}
+			if resp == nil || resp.Id != 20001 {
+				resultCh <- fmt.Errorf("unexpected response: %+v", resp)
+				return
+			}
+			resultCh <- nil
+		}()
+	}
+
+	close(start)
+	wg.Wait()
+	close(resultCh)
+
+	for err := range resultCh {
+		if err != nil {
+			t.Fatalf("concurrent Get returned error: %v", err)
+		}
+	}
+
+	if calls := atomic.LoadInt32(&loader.calls); calls != 1 {
+		t.Fatalf("expected loader to be called once, got %d", calls)
+	}
+}
+
+func TestProgramDetailCacheSharedLoadIgnoresCallerCancel(t *testing.T) {
+	loader := &cancelAwareDetailLoader{
+		resp:    &pb.ProgramDetailInfo{Id: 20002, Title: "shared load"},
+		started: make(chan struct{}),
+	}
+
+	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	if err != nil {
+		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+	}
+
+	cancelCtx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	errCh := make(chan error, 2)
+	respCh := make(chan *pb.ProgramDetailInfo, 1)
+
+	go func() {
+		_, err := cache.Get(cancelCtx, 20002)
+		errCh <- err
+	}()
+
+	<-loader.started
+
+	go func() {
+		resp, err := cache.Get(context.Background(), 20002)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		respCh <- resp
+		errCh <- nil
+	}()
+
+	var firstErr error
+	for i := 0; i < 2; i++ {
+		if err := <-errCh; err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+
+	if !errors.Is(firstErr, context.DeadlineExceeded) {
+		t.Fatalf("expected caller cancel to return context deadline exceeded, got %v", firstErr)
+	}
+
+	select {
+	case resp := <-respCh:
+		if resp.Id != 20002 {
+			t.Fatalf("unexpected response: %+v", resp)
+		}
+	default:
+		t.Fatalf("expected successful response for non-canceled caller")
+	}
+
+	if calls := atomic.LoadInt32(&loader.calls); calls != 1 {
+		t.Fatalf("expected loader to be called once, got %d", calls)
+	}
+}
+
 type stubDetailLoader struct {
 	responses map[int64]*pb.ProgramDetailInfo
 	errors    map[int64]error
 	calls     map[int64]int
+}
+
+type blockingDetailLoader struct {
+	resp  *pb.ProgramDetailInfo
+	calls int32
+}
+
+func (l *blockingDetailLoader) Load(_ context.Context, _ int64) (*pb.ProgramDetailInfo, error) {
+	atomic.AddInt32(&l.calls, 1)
+	time.Sleep(50 * time.Millisecond)
+	return &pb.ProgramDetailInfo{Id: l.resp.Id, Title: l.resp.Title}, nil
+}
+
+type cancelAwareDetailLoader struct {
+	resp    *pb.ProgramDetailInfo
+	calls   int32
+	started chan struct{}
+}
+
+func (l *cancelAwareDetailLoader) Load(ctx context.Context, _ int64) (*pb.ProgramDetailInfo, error) {
+	if atomic.AddInt32(&l.calls, 1) == 1 && l.started != nil {
+		close(l.started)
+	}
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-time.After(50 * time.Millisecond):
+		return &pb.ProgramDetailInfo{Id: l.resp.Id, Title: l.resp.Title}, nil
+	}
 }
 
 func (l *stubDetailLoader) Load(_ context.Context, programID int64) (*pb.ProgramDetailInfo, error) {

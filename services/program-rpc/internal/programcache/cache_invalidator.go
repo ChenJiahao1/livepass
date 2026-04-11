@@ -3,24 +3,50 @@ package programcache
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"time"
 
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/model"
 )
 
 type ProgramCacheInvalidator struct {
-	redis       *xredis.Client
-	detailCache *ProgramDetailCache
+	redis         *xredis.Client
+	detailCache   *ProgramDetailCache
+	categoryCache *CategorySnapshotCache
+	publisher     PubSubPublisher
+	clock         func() time.Time
+	instanceID    string
+	service       string
 }
 
 func NewProgramCacheInvalidator(redis *xredis.Client, detailCache *ProgramDetailCache) *ProgramCacheInvalidator {
-	return &ProgramCacheInvalidator{
+	invalidator := &ProgramCacheInvalidator{
 		redis:       redis,
 		detailCache: detailCache,
+		clock:       time.Now,
+		instanceID:  defaultInstanceID(),
+		service:     "program-rpc",
 	}
+	if detailCache != nil {
+		if loader, ok := detailCache.loader.(*DetailLoader); ok {
+			invalidator.categoryCache = loader.categorySnapshotCache
+		}
+	}
+	if redis != nil {
+		if publisher, err := NewRedisPubSubPublisher(redis, defaultInvalidationChannel, defaultPublishTimeout); err == nil {
+			invalidator.publisher = publisher
+		}
+	}
+
+	return invalidator
 }
 
 func (i *ProgramCacheInvalidator) InvalidateProgram(ctx context.Context, programID int64, programGroupIDs ...int64) error {
+	if i == nil {
+		return errors.New("program cache invalidator is nil")
+	}
 	if programID <= 0 {
 		return errors.New("program id must be greater than zero")
 	}
@@ -47,7 +73,30 @@ func (i *ProgramCacheInvalidator) InvalidateProgram(ctx context.Context, program
 		i.detailCache.Invalidate(programID)
 	}
 
-	return nil
+	return i.publish(ctx, []InvalidationEntry{
+		{Cache: cacheProgramDetail, ProgramID: programID},
+	})
+}
+
+func (i *ProgramCacheInvalidator) InvalidateCategorySnapshot(ctx context.Context) error {
+	if i == nil {
+		return errors.New("program cache invalidator is nil")
+	}
+
+	if i.categoryCache != nil {
+		i.categoryCache.Invalidate()
+	}
+
+	return i.publish(ctx, []InvalidationEntry{
+		{Cache: cacheCategorySnapshot},
+	})
+}
+
+func (i *ProgramCacheInvalidator) SetPublisher(publisher PubSubPublisher) {
+	if i == nil {
+		return
+	}
+	i.publisher = publisher
 }
 
 func uniqueKeys(keys []string) []string {
@@ -66,3 +115,32 @@ func uniqueKeys(keys []string) []string {
 
 	return result
 }
+
+func (i *ProgramCacheInvalidator) publish(ctx context.Context, entries []InvalidationEntry) error {
+	if i == nil || i.publisher == nil {
+		return nil
+	}
+
+	msg := InvalidationMessage{
+		Version:     "v1",
+		Service:     i.service,
+		InstanceID:  i.instanceID,
+		PublishedAt: i.clock(),
+		Entries:     entries,
+	}
+
+	return i.publisher.Publish(ctx, msg)
+}
+
+func defaultInstanceID() string {
+	host, err := os.Hostname()
+	if err == nil && host != "" {
+		return fmt.Sprintf("%s-%d", host, os.Getpid())
+	}
+	return fmt.Sprintf("pid-%d", os.Getpid())
+}
+
+const (
+	defaultInvalidationChannel = "damai-go:program:cache:invalidate"
+	defaultPublishTimeout      = 200 * time.Millisecond
+)

@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	logicpkg "damai-go/services/program-rpc/internal/logic"
 	"damai-go/services/program-rpc/internal/model"
@@ -222,6 +223,70 @@ func TestResetProgramDomainStateClearsRedisProgramCachesAcrossServiceContexts(t 
 	if freshResp.Title != baselineTitle {
 		t.Fatalf("expected reset to clear stale redis caches and restore baseline title %q, got %+v", baselineTitle, freshResp)
 	}
+}
+
+func TestProgramDetailCacheReloadAfterPeerBroadcastHitsFreshL2(t *testing.T) {
+	const (
+		programID      int64 = 160001
+		programGroupID int64 = 160101
+		oldTitle             = "广播刷新演出"
+		newTitle             = "广播刷新演出-更新"
+	)
+
+	svcCtxA := newProgramTestServiceContext(t)
+	svcCtxB := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	channel := programCachePubSubChannel(t, "detail-reload")
+	configureProgramCachePublisher(t, svcCtxA, channel)
+	configureProgramCachePublisher(t, svcCtxB, channel)
+	startProgramCacheSubscriber(t, svcCtxA, channel, 1)
+	startProgramCacheSubscriber(t, svcCtxB, channel, 2)
+
+	seedProgramFixtures(t, svcCtxA, programFixture{
+		ProgramID:               programID,
+		ProgramGroupID:          programGroupID,
+		ParentProgramCategoryID: 1,
+		ProgramCategoryID:       11,
+		AreaID:                  1,
+		Title:                   oldTitle,
+		ShowTime:                "2026-11-30 20:00:00",
+		ShowDayTime:             "2026-11-30 00:00:00",
+		ShowWeekTime:            "周六",
+		GroupAreaName:           "上海",
+		TicketCategories: []ticketCategoryFixture{
+			{ID: 160201, Introduce: "普通票", Price: 188, TotalNumber: 20, RemainNumber: 20},
+		},
+	})
+
+	lA := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtxA)
+	first, err := lA.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	if err != nil {
+		t.Fatalf("first GetProgramDetail returned error: %v", err)
+	}
+	if first.Title != oldTitle {
+		t.Fatalf("expected first title %q, got %+v", oldTitle, first)
+	}
+
+	db := openProgramTestDB(t, svcCtxA.Config.MySQL.DataSource)
+	mustExecProgramSQL(t, db, "UPDATE d_program SET title = ?, edit_time = ? WHERE id = ?", newTitle, time.Now().Format(testProgramDateTimeLayout), programID)
+	if err := db.Close(); err != nil {
+		t.Fatalf("close db error: %v", err)
+	}
+
+	stale, err := lA.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	if err != nil {
+		t.Fatalf("second GetProgramDetail returned error: %v", err)
+	}
+	if stale.Title != oldTitle {
+		t.Fatalf("expected local cache to keep old title before invalidation, got %+v", stale)
+	}
+
+	if err := svcCtxB.ProgramCacheInvalidator.InvalidateProgram(context.Background(), programID, programGroupID); err != nil {
+		t.Fatalf("invalidate program caches error: %v", err)
+	}
+
+	waitForProgramDetailTitle(t, lA, programID, newTitle)
 }
 
 func assertProgramRelatedCacheKeysMissing(t *testing.T, svcCtx *svc.ServiceContext, programID, programGroupID int64) {

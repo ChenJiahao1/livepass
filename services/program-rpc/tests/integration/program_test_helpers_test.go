@@ -16,9 +16,11 @@ import (
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/config"
+	"damai-go/services/program-rpc/internal/programcache"
 	"damai-go/services/program-rpc/internal/seatcache"
 	"damai-go/services/program-rpc/internal/svc"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	gzredis "github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -152,6 +154,118 @@ func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 	})
 
 	return svcCtx
+}
+
+func startProgramCacheSubscriber(t *testing.T, svcCtx *svc.ServiceContext, channel string, expectedSubs int64) func() {
+	t.Helper()
+
+	if svcCtx == nil || svcCtx.Redis == nil || svcCtx.ProgramCacheRegistry == nil {
+		t.Fatalf("service context cache invalidation dependencies not ready")
+	}
+
+	conf := svcCtx.Config.CacheInvalidation.Normalize()
+	if channel == "" {
+		channel = conf.Channel
+	}
+
+	subscriber := programcache.NewPubSubSubscriber(
+		svcCtx.Redis,
+		channel,
+		svcCtx.ProgramCacheRegistry,
+		conf.PublishTimeout,
+		conf.ReconnectBackoff,
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go subscriber.Start(ctx)
+	stop := func() {
+		cancel()
+		subscriber.Close()
+	}
+	t.Cleanup(stop)
+	waitForProgramCacheSubscribers(t, svcCtx, channel, expectedSubs)
+
+	return stop
+}
+
+func configureProgramCachePublisher(t *testing.T, svcCtx *svc.ServiceContext, channel string) {
+	t.Helper()
+
+	if svcCtx == nil || svcCtx.Redis == nil || svcCtx.ProgramCacheInvalidator == nil {
+		t.Fatalf("service context cache invalidation dependencies not ready")
+	}
+
+	conf := svcCtx.Config.CacheInvalidation.Normalize()
+	if channel == "" {
+		channel = conf.Channel
+	}
+
+	publisher, err := programcache.NewRedisPubSubPublisher(svcCtx.Redis, channel, conf.PublishTimeout)
+	if err != nil {
+		t.Fatalf("new redis pubsub publisher error: %v", err)
+	}
+
+	svcCtx.ProgramCacheInvalidator.SetPublisher(publisher)
+}
+
+func splitProgramRedisAddrs(t *testing.T, svcCtx *svc.ServiceContext) []string {
+	t.Helper()
+
+	if svcCtx == nil || svcCtx.Redis == nil {
+		t.Fatalf("service context redis not ready")
+	}
+	raw := strings.Split(svcCtx.Redis.Addr, ",")
+	addrs := make([]string, 0, len(raw))
+	for _, item := range raw {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		addrs = append(addrs, item)
+	}
+	if len(addrs) == 0 {
+		t.Fatalf("redis addr is empty")
+	}
+
+	return addrs
+}
+
+func waitForProgramCacheSubscribers(t *testing.T, svcCtx *svc.ServiceContext, channel string, expectedSubs int64) {
+	t.Helper()
+
+	if expectedSubs <= 0 {
+		expectedSubs = 1
+	}
+
+	addrs := splitProgramRedisAddrs(t, svcCtx)
+	opts := &redis.UniversalOptions{
+		Addrs:    addrs,
+		Username: svcCtx.Redis.User,
+		Password: svcCtx.Redis.Pass,
+	}
+	if strings.EqualFold(svcCtx.Redis.Type, "cluster") {
+		opts.IsClusterMode = true
+	}
+
+	client := redis.NewUniversalClient(opts)
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		counts, err := client.PubSubNumSub(context.Background(), channel).Result()
+		if err != nil {
+			time.Sleep(20 * time.Millisecond)
+			continue
+		}
+		if counts[channel] >= expectedSubs {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	t.Fatalf("expected pubsub subscribers >= %d on channel %q before deadline", expectedSubs, channel)
 }
 
 func clearProgramSeatLedger(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) {
@@ -532,6 +646,13 @@ func withProgramFixtureDefaults(fixture programFixture) programFixture {
 	if fixture.IssueTime == "" {
 		fixture.IssueTime = "2026-06-01 09:00:00"
 	}
+	if fixture.ShowDayTime == "" {
+		if fixture.ShowTime != "" {
+			fixture.ShowDayTime = toProgramShowDayTime(fixture.ShowTime)
+		} else {
+			fixture.ShowDayTime = "2026-06-01 00:00:00"
+		}
+	}
 	if fixture.ShowTimeID == 0 {
 		fixture.ShowTimeID = fixture.ProgramID
 	}
@@ -564,6 +685,14 @@ func withProgramFixtureDefaults(fixture programFixture) programFixture {
 	}
 
 	return fixture
+}
+
+func toProgramShowDayTime(showTime string) string {
+	parts := strings.SplitN(showTime, " ", 2)
+	if len(parts) == 0 || parts[0] == "" {
+		return "2026-06-01 00:00:00"
+	}
+	return fmt.Sprintf("%s 00:00:00", parts[0])
 }
 
 func withSeatFixtureDefaults(fixture seatFixture) seatFixture {
