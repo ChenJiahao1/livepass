@@ -1,29 +1,93 @@
 # damai-go
 
-基于 Go 与 go-zero 的大麦业务总线重建项目，洪峰吞吐优先。
+基于 Go 与 go-zero 的票务业务总线项目，当前采用 `Gateway -> API -> RPC` 分层，面向高并发下单、自动分座、模拟支付与智能客服联调场景。
 
-当前已落地能力：
+## 文档职责
+
+- `README.md` 面向项目开发者，说明项目定位、架构分层、目录结构、启动方式、测试方式与联调入口。
+- `AGENTS.md` 面向仓库内使用的 AI agent，约束代码生成、命名、目录组织与工作方式。
+
+## 当前架构
+
+当前项目采用三层职责划分：
+
+- `Gateway`：统一 HTTP 入口与路由汇聚点，负责统一鉴权接入、路由转发与观测接入。对应 `services/gateway-api/`。
+- `API`：HTTP 适配与协议层，负责 handler/middleware、参数解析、上下文提取、外部响应模型与轻量聚合；不承载核心业务规则。对应 `services/*-api/`。
+- `RPC`：服务契约与主要业务逻辑承载层，负责领域规则、状态流转、数据访问、缓存、消息队列与内部服务协作。对应 `services/*-rpc/`。
+
+主调用链路：
+
+```text
+client -> gateway-api -> xxx-api -> xxx-rpc
+```
+
+## 业务边界
+
+- `user`：注册、登录、资料维护、观演人管理
+- `program`：节目、场次、票档、座位、预下单信息、系统自动分座冻结
+- `order`：下单、查单、取消、支付检查、退款、超时关单
+- `pay`：模拟支付、支付单查询、模拟退款
+- `gateway`：统一外部 HTTP 入口
+- `agents`：根级 Python 组件，提供 `/agent/chat` 能力
+
+当前明确约束：
+
+- `program` 不支持用户手动选座，但保留系统分配座位能力
+- `pay` 不接真实支付通道，仅提供模拟支付与模拟退款
+
+## 仓库结构
+
+```text
+damai-go/
+├── README.md
+├── AGENTS.md
+├── docs/
+├── deploy/
+├── jobs/
+├── pkg/
+├── scripts/
+├── services/
+│   ├── gateway-api/
+│   ├── user-api/        user-rpc/
+│   ├── program-api/     program-rpc/
+│   ├── order-api/       order-rpc/
+│   └── pay-api/         pay-rpc/
+├── sql/
+├── tests/
+└── agents/
+```
+
+目录约定：
+
+- `services/*-api/`：HTTP 服务
+- `services/*-rpc/`：gRPC 服务
+- `jobs/*/`：后台任务与补偿任务
+- `pkg/`：通用基础能力，禁止承载具体业务规则
+- `agents/`：独立 Python 组件，不纳入 go-zero 服务目录规范
+
+## 已落地能力
 
 - `user`：注册、登录、用户资料与观演人链路
-- `program`：查询链路（category/home/page/detail/ticket-category）、预下单详情、系统自动分配座位冻结
+- `program`：分类、首页、分页、详情、票档、预下单详情、自动分座冻结
 - `order` / `pay`：下单、查单、取消、模拟支付、退款、超时关单
-- `gateway` / `agents`：统一 HTTP 入口与 `/agent/chat` 智能客服联调
+- `gateway` / `agents`：统一 HTTP 入口与 `/agent/chat` 联调
 
-## 测试目录约束
+## 本地依赖
 
-- 白盒单测可以保留在被测包旁边。
-- 服务级测试统一放在 `services/<service>/tests/`，任务级测试统一放在 `jobs/<job>/tests/`。
-- 跨服务验收和端到端测试统一放在根级 `tests/` 或 `scripts/acceptance/`。
-
-## 本地基础设施启动
+基础设施通过 Docker Compose 启动：
 
 ```bash
 docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
 ```
 
-当前仓库提供的基础设施 compose 已包含 MySQL、Redis、etcd、Kafka。`services/order-rpc/etc/order-rpc.yaml` 的本地 `Kafka.Brokers` 默认指向 `127.0.0.1:9094`，与 compose 暴露端口保持一致。当前下单链路采用 `accept + async`：`/order/create` 在 Redis admission 成功后立即返回 `orderNumber`，随后由异步 consumer 完成锁座、写单和 guard 落库。
+当前基础设施包含：
 
-如需模拟 `order-db-0 + order-db-1` 订单分片库，可使用专用 MySQL compose：
+- MySQL
+- Redis
+- etcd
+- Kafka
+
+如果需要模拟 `order-db-0 + order-db-1` 分片库：
 
 ```bash
 docker compose -f deploy/mysql/docker-compose.sharding.yml up -d
@@ -34,15 +98,13 @@ docker compose -f deploy/mysql/docker-compose.sharding.yml up -d
 - `order-db-0`: `127.0.0.1:3317`
 - `order-db-1`: `127.0.0.1:3318`
 
-## 初始化本地 SQL
+## 初始化数据
 
-MySQL 容器启动后，执行统一导入脚本初始化 user/program/order/pay 域表结构和种子数据：
+MySQL 容器启动后，执行统一导入脚本初始化 `user/program/order/pay` 域表结构与种子数据：
 
 ```bash
 bash scripts/import_sql.sh
 ```
-
-该脚本会显式使用 `mysql --default-character-set=utf8mb4` 读取 SQL 文件，避免 `sql/program/dev_seed.sql` 里的中文文案被错误字符集写坏。
 
 常用覆盖项：
 
@@ -60,8 +122,6 @@ MYSQL_DB_ORDER=damai_order \
 MYSQL_DB_PAY=damai_pay \
 bash scripts/import_sql.sh
 ```
-
-如果之前已经按旧命令导入过 `program` 域 SQL，直接重新执行一次该脚本即可重建表并修正中文乱码。
 
 ## 运行测试
 
@@ -94,7 +154,7 @@ go run services/pay-api/pay.go -f services/pay-api/etc/pay-api.yaml
 go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.yaml
 ```
 
-`agents` 组件独立于 go-zero 服务目录，使用 `uv` 启动：
+`agents` 组件独立启动：
 
 ```bash
 cd agents
@@ -102,9 +162,9 @@ bash scripts/generate_proto_stubs.sh
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 ```
 
-本地联调时建议启动顺序：
+建议启动顺序：
 
-1. 基础设施：MySQL、Redis、etcd、Kafka
+1. MySQL、Redis、etcd、Kafka
 2. `user-rpc`、`program-rpc`、`pay-rpc`
 3. `order-rpc`
 4. `jobs/order-close-worker`
@@ -113,267 +173,71 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 7. `agents`
 8. `gateway-api`
 
-`agents` 运行配置可参考 [agents/README.md](agents/README.md) 和 [agents/.env.example](agents/.env.example)，其中至少需要确认：
+## 默认端口
 
-- `REDIS_URL=redis://127.0.0.1:6379/0`
-- `USER_RPC_TARGET=127.0.0.1:8080`
-- `PROGRAM_RPC_TARGET=127.0.0.1:8083`
-- `ORDER_RPC_TARGET=127.0.0.1:8082`
+- `user-rpc`: `8080`
+- `gateway-api`: `8081`
+- `order-rpc`: `8082`
+- `program-rpc`: `8083`
+- `pay-rpc`: `8084`
+- `user-api`: `8888`
+- `program-api`: `8889`
+- `order-api`: `8890`
+- `agents`: `8891`
+- `pay-api`: `8892`
 
-`/order/poll` 优先读取 Redis 里的 rush attempt 投影，并在非终态时回查 MySQL 是否已经出现未支付订单；对外只暴露 `PROCESSING / SUCCESS / FAILED` 三类结果，不再依赖 `VERIFYING`、deadline 或定时核验任务驱动状态收口。
+## 关键运行语义
 
-`jobs/order-close-worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单。当前示例配置复用本地 `127.0.0.1:6379` Redis 便于联调；压测和生产环境应切换到独立 Redis，避免与座位账本、限购账本抢占热点资源。
+- `user-rpc`、`program-rpc`、`order-rpc`、`pay-rpc` 默认注册到本地 `etcd`
+- `gateway-api` 是统一外部入口，负责把 HTTP 请求转发到各域 API 或 `agents`
+- `/order/create` 采用 `accept + async` 模式：Redis admission 成功后立即返回 `orderNumber`，异步 consumer 再完成锁座、写单与 guard 落库
+- `/order/poll` 优先读取 Redis 中的 rush attempt 投影，并在非终态时回查 MySQL 是否已出现未支付订单
+- `jobs/order-close-worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单
+- `jobs/order-close` 负责扫描补偿，不再承担 rush attempt 的 deadline/reconcile 收口职责
+- `gateway-api` 已启用 `Telemetry`；若要得到完整链路，需要给下游 API/RPC 同步补齐 `Telemetry`
 
-`jobs/order-close` 仍保留在仓库中，但职责已调整为扫描补偿器：用于回补 Asynq 漏投、漏消费或 Redis 故障期间遗漏的超时订单；它不再承担 rush attempt 的 deadline/reconcile 收口职责。
+## 验收与联调
 
-`user-rpc`、`program-rpc`、`pay-rpc` 与 `order-rpc` 默认注册到本地 `etcd`。`user-rpc` 默认监听 `8080`，`order-rpc` 默认监听 `8082`，`program-rpc` 默认监听 `8083`，`pay-rpc` 默认监听 `8084`。`user-api` 默认监听 `8888`，`program-api` 默认监听 `8889`，`order-api` 默认监听 `8890`，`agents` 默认监听 `8891`，`pay-api` 默认监听 `8892`，`gateway-api` 默认监听 `8081`。`user-rpc` 登录态存储在 `StoreRedis` 指向的 Redis。
+推荐优先使用仓库内现成脚本与文档：
 
-`gateway-api` 已启用 `Telemetry` 配置；若要得到完整链路，还需给下游 API/RPC 服务同步补齐 `Telemetry`。
+- 下单主路径：`docs/api/order-checkout-acceptance.md`
+- 下单失败分支：`docs/api/order-checkout-failure-acceptance.md`
+- 退款主路径：`docs/api/order-refund-acceptance.md`
+- 智能客服联调：`scripts/acceptance/agent_chat.sh`
 
-`gateway-api` 当前已透传以下新增兼容接口：
+可执行脚本：
 
-- `POST /order/account/order/count`
-- `POST /order/get/cache`
-- `POST /pay/common/pay`
-- `POST /pay/detail`
-- `POST /pay/refund`
+```bash
+bash scripts/acceptance/order_checkout.sh
+bash scripts/acceptance/order_checkout_failures.sh
+bash scripts/acceptance/order_refund.sh
+JWT=<user-jwt> bash scripts/acceptance/agent_chat.sh
+```
 
-## 下单主路径验收
-
-完整步骤见 `docs/api/order-checkout-acceptance.md`。
-可执行脚本见 `scripts/acceptance/order_checkout.sh`。
-首次执行前，先按文档校验 `programId=10001` 的票档和 `d_seat` 座位种子已导入。
-创建成功后只代表 Kafka 发送已成功并进入异步落库阶段；`/order/get` 与 `/order/select/list` 允许短时间不可见。当前语义对齐 Java 开源版：发送失败回滚、超时废单回滚。验收脚本会在支付前自动轮询订单可见性。
-
-## 下单失败分支验收
-
-失败分支说明见 `docs/api/order-checkout-failure-acceptance.md`。
-可执行脚本见 `scripts/acceptance/order_checkout_failures.sh`。
-当前覆盖重复观演人、库存不足、取消后支付失败、超时关单 4 条路径。
-失败脚本同样会在需要操作订单前等待异步落库完成，避免把短暂的 `order not found` 误判成业务错误。
-
-## 订单退款主路径验收
-
-完整步骤见 `docs/api/order-refund-acceptance.md`。
-可执行脚本见 `scripts/acceptance/order_refund.sh`。
-首次执行前，除下单链路依赖外，还需确认 `sql/pay/d_refund_bill.sql` 已导入 `damai_pay`。
-默认执行主动退款路径：`REFUND_MODE=proactive bash scripts/acceptance/order_refund.sh`。
-补偿退款路径可执行：`REFUND_MODE=compensation bash scripts/acceptance/order_refund.sh`。
-
-当前退款验收覆盖两条链路：
-
-- 用户主动调用 `/order/refund`，订单、支付单和退款单统一收敛到退款终态。
-- 订单先取消，再模拟支付晚到，随后通过 `/order/pay/check` 触发补偿退款并收敛到相同终态。
-
-## Agents Chat 验收
-
-`gateway-api` 已透传 `/agent/chat` 到根级 `agents` 服务，并在鉴权成功后注入 `X-User-Id`。
-
-Python 侧 JSON 契约测试：
+`agents` 契约测试：
 
 ```bash
 cd agents
 uv run pytest tests/test_e2e_contract.py -v
 ```
 
-真实联调脚本：
+## 常用联调配置
 
-```bash
-JWT=<user-jwt> bash scripts/acceptance/agent_chat.sh
-```
+`agents` 至少需要确认以下配置：
 
-该脚本默认通过 `http://127.0.0.1:8081/agent/chat` 访问网关，并覆盖活动咨询、订单查询、退款预检、退款发起和人工转接；其中订单查询到退款预检会复用同一个 `conversationId`，用于验证多轮会话续接。
+- `REDIS_URL=redis://127.0.0.1:6379/0`
+- `USER_RPC_TARGET=127.0.0.1:8080`
+- `PROGRAM_RPC_TARGET=127.0.0.1:8083`
+- `ORDER_RPC_TARGET=127.0.0.1:8082`
 
-## 手工验证用户链路
+访问统一入口时，订单相关接口通常需要：
 
-注册：
+- `Authorization: Bearer <jwt>`
+- `X-Channel-Code: 0001`
 
-```bash
-curl -X POST http://127.0.0.1:8081/user/register \
-  -H 'Content-Type: application/json' \
-  -d '{"mobile":"13800000003","password":"123456","confirmPassword":"123456","mail":"demo@example.com"}'
-```
+## 开发原则
 
-预期响应：
-
-```json
-{"success":true}
-```
-
-登录：
-
-```bash
-curl -X POST http://127.0.0.1:8081/user/login \
-  -H 'Content-Type: application/json' \
-  -d '{"code":"0001","mobile":"13800000003","password":"123456"}'
-```
-
-预期响应包含 `userId` 与 `token`：
-
-```json
-{"userId":116260553874210817,"token":"<jwt>"}
-```
-
-按 ID 查询用户：
-
-```bash
-curl -X POST http://127.0.0.1:8081/user/get/id \
-  -H 'Content-Type: application/json' \
-  -d '{"id":116260553874210817}'
-```
-
-预期返回用户基础信息：
-
-```json
-{"id":116260553874210817,"name":"","relName":"","gender":1,"mobile":"13800000003","emailStatus":1,"email":"demo@example.com","relAuthenticationStatus":0,"idNumber":"","address":""}
-```
-
-## 手工验证 program Phase 1 链路
-
-查询演出分类：
-
-```bash
-curl -X POST http://127.0.0.1:8081/program/category/select/all \
-  -H 'Content-Type: application/json' \
-  -d '{}'
-```
-
-首页分类分组：
-
-```bash
-curl -X POST http://127.0.0.1:8081/program/home/list \
-  -H 'Content-Type: application/json' \
-  -d '{"parentProgramCategoryIds":[1,2]}'
-```
-
-分页查询：
-
-```bash
-curl -X POST http://127.0.0.1:8081/program/page \
-  -H 'Content-Type: application/json' \
-  -d '{"parentProgramCategoryId":1,"timeType":0,"pageNumber":1,"pageSize":10,"type":1}'
-```
-
-查询演出详情：
-
-```bash
-curl -X POST http://127.0.0.1:8081/program/detail \
-  -H 'Content-Type: application/json' \
-  -d '{"id":10001}'
-```
-
-查询演出下票档：
-
-```bash
-curl -X POST http://127.0.0.1:8081/ticket/category/select/list/by/program \
-  -H 'Content-Type: application/json' \
-  -d '{"programId":10001}'
-```
-
-预期：以上五个接口都返回 HTTP 200，且能看到 `dev_seed.sql` 中的分类、演出、场次和票档数据。
-
-## 手工验证 program Phase 2 预下单链路
-
-查询预下单详情：
-
-```bash
-curl -X POST http://127.0.0.1:8081/program/preorder/detail \
-  -H 'Content-Type: application/json' \
-  -d '{"id":10001}'
-```
-
-冻结预下单座位：
-
-```bash
-curl -X POST http://127.0.0.1:8081/program/seat/freeze \
-  -H 'Content-Type: application/json' \
-  -d '{"programId":10001,"ticketCategoryId":40001,"count":2,"requestNo":"preorder-demo-001","freezeSeconds":900}'
-```
-
-预期：
-
-- `/program/preorder/detail` 返回当前演出场次、限购字段、`permitChooseSeat=0`，以及按 `d_seat` 实时聚合的票档余量。
-- `/program/seat/freeze` 返回 `freezeToken`、`expireTime` 和系统自动分配的座位列表；当前阶段不支持用户手动选座，系统优先分配同排连坐，找不到连坐时拆座兜底。
-
-## 手工验证 order + pay Phase 1 链路
-
-先登录获取 JWT：
-
-```bash
-JWT=$(
-  curl -s -X POST http://127.0.0.1:8081/user/login \
-    -H 'Content-Type: application/json' \
-    -d '{"code":"0001","mobile":"13800000003","password":"123456"}' | jq -r '.token'
-)
-```
-
-创建订单：
-
-```bash
-curl -X POST http://127.0.0.1:8081/order/create \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer ${JWT}" \
-  -H 'X-Channel-Code: 0001' \
-  -d '{"programId":10001,"ticketCategoryId":40001,"ticketUserIds":[1001,1002],"distributionMode":"express","takeTicketMode":"paper"}'
-```
-
-查询订单列表：
-
-```bash
-curl -X POST http://127.0.0.1:8081/order/select/list \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer ${JWT}" \
-  -H 'X-Channel-Code: 0001' \
-  -d '{"pageNumber":1,"pageSize":10,"orderStatus":1}'
-```
-
-查询订单详情：
-
-```bash
-curl -X POST http://127.0.0.1:8081/order/get \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer ${JWT}" \
-  -H 'X-Channel-Code: 0001' \
-  -d '{"orderNumber":<orderNumber>}'
-```
-
-模拟支付订单：
-
-```bash
-curl -X POST http://127.0.0.1:8081/order/pay \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer ${JWT}" \
-  -H 'X-Channel-Code: 0001' \
-  -d '{"orderNumber":<orderNumber>,"subject":"大麦演出票","channel":"mock"}'
-```
-
-查询支付状态：
-
-```bash
-curl -X POST http://127.0.0.1:8081/order/pay/check \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer ${JWT}" \
-  -H 'X-Channel-Code: 0001' \
-  -d '{"orderNumber":<orderNumber>}'
-```
-
-取消订单：
-
-```bash
-curl -X POST http://127.0.0.1:8081/order/cancel \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer ${JWT}" \
-  -H 'X-Channel-Code: 0001' \
-  -d '{"orderNumber":<orderNumber>}'
-```
-
-预期：
-
-- 所有 order 接口都要求 `Authorization: Bearer <jwt>` 和 `X-Channel-Code: 0001`。
-- 创建成功后会返回新的 `orderNumber`，但这只表示 Redis admission 已成功，不表示订单已经同步落库；短时间内 `/order/get`、`/order/select/list`、`/order/pay`、`/order/cancel` 仍可能返回 `order not found`。
-- 当前创建链路不会等待 Kafka ack；前端的 `15s` 只是一段轮询等待窗口，不是服务端失败线。
-- 列表和详情只能看到当前登录用户的订单；如需支付、取消或退款，先轮询到订单可见再继续。
-- `/order/pay` 会同步创建模拟支付单、确认冻结座位并把订单状态推进到 `3 paid`。
-- `/order/pay/check` 在已支付后会返回支付单号、支付状态和支付时间。
-- `/order/refund` 会同步发起模拟退款、释放已售座位并把订单状态推进到 `4 refunded`。
-- 支付成功后，再调用 `/order/cancel` 应返回失败，因为已支付订单不能取消。
+- 核心业务规则进入 `RPC`
+- `API` 保持薄层，避免回流核心业务逻辑
+- `Gateway` 只做入口、路由与横切能力，不承载业务规则
+- 新增 go-zero 服务时，遵循 `services/*-api/` 与 `services/*-rpc/` 的目录规范
