@@ -29,11 +29,6 @@
 - 目录结构按 `go-zero` 生成结果扩展，不沿用 Java 的 `*-service` 目录形式
 - `gateway` 作为 HTTP 入口服务，归入 `services/gateway-api/`
 - `agents` 是预留的 Python 独立组件，不纳入 `go-zero` 服务目录规范，保留根级目录
-- 白盒单测可以保留在被测包旁边，但服务级集成测试必须放在 `services/<service>/tests/`
-- 禁止将服务级测试继续放在 `internal/logic/`、`internal/middleware/`、`internal/config/` 等业务实现目录
-- 跨服务验收测试放在根级 `tests/` 或 `scripts/acceptance/`
-- 测试辅助优先放在 `services/<service>/tests/testkit/`；仅服务内集成测试使用的私有 helper 可以放在 `services/<service>/tests/integration/*_helpers_test.go`
-- 设计或调整测试目录时，以 `docs/architecture/testing-layout.md` 为准
 
 ## Codex 本地上下文
 
@@ -52,6 +47,12 @@
 - 定制规则服务：`customize`
 - 网关服务：`gateway`
 - 智能客服服务：`agents`
+
+## 测试约定
+
+- 白盒单测可以保留在被测包旁边。
+- 服务级测试统一放在 `services/<service>/tests/`；任务级测试统一放在 `jobs/<job>/tests/`。
+- 跨服务验收和端到端测试统一放在根级 `tests/` 或 `scripts/acceptance/`。
 
 ## 推荐目录
 
@@ -118,10 +119,7 @@ damai-go/
 ## 目录约定
 
 - 当前仅 `agents/` 作为 Python 组件保留在根级目录
-- `services/<service>/tests/` 用于服务级集成测试、配置测试和测试辅助
-- `jobs/<job>/tests/` 用于任务级测试
 - `pkg/<pkg>/tests/` 用于公共包黑盒测试
-- 根级 `tests/` 仅用于跨服务验收、端到端和共享测试资产
 - 白盒单测与纯算法测试可以保留在业务包目录，例如 `internal/logic/*_test.go`
 
 ## 后续服务边界
