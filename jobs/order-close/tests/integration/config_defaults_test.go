@@ -15,14 +15,14 @@ func TestDefaultOrderCloseConfigCoversAllLogicSlots(t *testing.T) {
 	}
 	text := string(content)
 
-	if !strings.Contains(text, "ScanSlotStart: 0") {
-		t.Fatalf("expected ScanSlotStart: 0, content=%s", text)
+	if !strings.Contains(text, "Shards:") {
+		t.Fatalf("expected Shards config, content=%s", text)
 	}
-	if !strings.Contains(text, "ScanSlotEnd: 1023") {
-		t.Fatalf("expected ScanSlotEnd: 1023, content=%s", text)
+	if !strings.Contains(text, "order-db-0:") {
+		t.Fatalf("expected order-db-0 shard config, content=%s", text)
 	}
-	if !strings.Contains(text, "CheckpointSlot: 0") {
-		t.Fatalf("expected CheckpointSlot: 0, content=%s", text)
+	if !strings.Contains(text, "order-db-1:") {
+		t.Fatalf("expected order-db-1 shard config, content=%s", text)
 	}
 }
 
@@ -39,8 +39,8 @@ func TestDefaultOrderCloseConfigUsesCompensationCadence(t *testing.T) {
 	if !strings.Contains(text, "BatchSize: 200") {
 		t.Fatalf("expected BatchSize: 200, content=%s", text)
 	}
-	if !strings.Contains(text, "ScanSlotBatchSize: 64") {
-		t.Fatalf("expected ScanSlotBatchSize: 64, content=%s", text)
+	if !strings.Contains(text, "Queue: order_close") {
+		t.Fatalf("expected Queue: order_close, content=%s", text)
 	}
 }
 

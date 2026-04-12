@@ -34,6 +34,10 @@ PROGRAM_SQL_FILES=(
 ORDER_SQL_FILES=(
   "sql/order/sharding/d_order_shards.sql"
   "sql/order/sharding/d_order_ticket_user_shards.sql"
+  "sql/order/sharding/d_order_user_guard.sql"
+  "sql/order/sharding/d_order_viewer_guard.sql"
+  "sql/order/sharding/d_order_seat_guard.sql"
+  "sql/order/sharding/d_order_outbox.sql"
 )
 
 PAY_SQL_FILES=(

@@ -12,7 +12,5 @@ CREATE TABLE `d_order_outbox` (
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 active, 0 deleted',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_event_type` (`order_number`,`event_type`),
-  KEY `idx_show_time_published` (`show_time_id`,`published_status`,`status`,`id`),
-  KEY `idx_publish_scan` (`published_status`,`status`,`id`),
-  KEY `idx_order_number` (`order_number`)
+  KEY `idx_dispatch_scan` (`published_status`,`event_type`,`status`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单 outbox';

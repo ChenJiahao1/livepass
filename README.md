@@ -193,7 +193,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 - `/order/create` 采用 `accept + async` 模式：Redis admission 成功后立即返回 `orderNumber`，异步 consumer 再完成锁座、写单与 guard 落库
 - `/order/poll` 优先读取 Redis 中的 rush attempt 投影，并在非终态时回查 MySQL 是否已出现未支付订单
 - `jobs/order-close-worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单
-- `jobs/order-close` 负责扫描补偿，不再承担 rush attempt 的 deadline/reconcile 收口职责
+- `jobs/order-close` 负责扫描 `d_order_outbox(order.created)`，兜底补发 `close_timeout`；对已过期未支付订单直接调用 `order-rpc.CloseExpiredOrder` 收口
 - `gateway-api` 已启用 `Telemetry`；若要得到完整链路，需要给下游 API/RPC 同步补齐 `Telemetry`
 
 ## 验收与联调

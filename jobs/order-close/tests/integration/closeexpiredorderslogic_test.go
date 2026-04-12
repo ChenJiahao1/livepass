@@ -14,155 +14,257 @@ import (
 	"google.golang.org/grpc"
 )
 
-type fakeJobOrderRPC struct {
-	closeExpiredOrdersResp *orderrpc.CloseExpiredOrdersResp
-	closeExpiredOrdersErr  error
-	closeExpiredOrdersReqs []*orderrpc.CloseExpiredOrdersReq
+const (
+	testOrderStatusUnpaid    int64 = 1
+	testOrderStatusCancelled int64 = 2
+	testOrderStatusPaid      int64 = 3
+)
+
+type fakeOrderCloseStore struct {
+	listItems       []svc.PendingOrderCreatedOutbox
+	listErr         error
+	listCalls       int
+	markPublished   []svc.OutboxRef
+	markPublishedAt []time.Time
+	markErr         error
 }
 
-func (f *fakeJobOrderRPC) CreateOrder(ctx context.Context, in *orderrpc.CreateOrderReq, opts ...grpc.CallOption) (*orderrpc.CreateOrderResp, error) {
-	return nil, nil
+func (f *fakeOrderCloseStore) ListPendingOrderCreatedOutboxes(_ context.Context, limit int64) ([]svc.PendingOrderCreatedOutbox, error) {
+	f.listCalls++
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	if int64(len(f.listItems)) <= limit {
+		items := append([]svc.PendingOrderCreatedOutbox(nil), f.listItems...)
+		return items, nil
+	}
+	items := append([]svc.PendingOrderCreatedOutbox(nil), f.listItems[:limit]...)
+	return items, nil
 }
 
-func (f *fakeJobOrderRPC) CreatePurchaseToken(ctx context.Context, in *orderrpc.CreatePurchaseTokenReq, opts ...grpc.CallOption) (*orderrpc.CreatePurchaseTokenResp, error) {
-	return nil, nil
+func (f *fakeOrderCloseStore) MarkOutboxPublished(_ context.Context, ref svc.OutboxRef, publishedAt time.Time) error {
+	if f.markErr != nil {
+		return f.markErr
+	}
+	f.markPublished = append(f.markPublished, ref)
+	f.markPublishedAt = append(f.markPublishedAt, publishedAt)
+	return nil
 }
 
-func (f *fakeJobOrderRPC) PollOrderProgress(ctx context.Context, in *orderrpc.PollOrderProgressReq, opts ...grpc.CallOption) (*orderrpc.PollOrderProgressResp, error) {
-	return nil, nil
+type fakeOrderCloseAsyncClient struct {
+	enqueueCalls []enqueueCloseTimeoutCall
+	enqueueErr   error
 }
 
-func (f *fakeJobOrderRPC) ListOrders(ctx context.Context, in *orderrpc.ListOrdersReq, opts ...grpc.CallOption) (*orderrpc.ListOrdersResp, error) {
-	return nil, nil
+type enqueueCloseTimeoutCall struct {
+	orderNumber int64
+	expireAt    time.Time
 }
 
-func (f *fakeJobOrderRPC) GetOrder(ctx context.Context, in *orderrpc.GetOrderReq, opts ...grpc.CallOption) (*orderrpc.OrderDetailInfo, error) {
-	return nil, nil
+func (f *fakeOrderCloseAsyncClient) EnqueueCloseTimeout(_ context.Context, orderNumber int64, expireAt time.Time) error {
+	if f.enqueueErr != nil {
+		return f.enqueueErr
+	}
+	f.enqueueCalls = append(f.enqueueCalls, enqueueCloseTimeoutCall{
+		orderNumber: orderNumber,
+		expireAt:    expireAt,
+	})
+	return nil
 }
 
-func (f *fakeJobOrderRPC) GetOrderCache(ctx context.Context, in *orderrpc.GetOrderCacheReq, opts ...grpc.CallOption) (*orderrpc.GetOrderCacheResp, error) {
-	return nil, nil
+type fakeOrderCloseRPC struct {
+	getOrderResp          map[int64]*orderrpc.OrderDetailInfo
+	getOrderErr           error
+	getOrderReqs          []*orderrpc.GetOrderReq
+	closeExpiredOrderErr  error
+	closeExpiredOrderReqs []*orderrpc.CloseExpiredOrderReq
 }
 
-func (f *fakeJobOrderRPC) GetOrderServiceView(ctx context.Context, in *orderrpc.GetOrderServiceViewReq, opts ...grpc.CallOption) (*orderrpc.OrderServiceViewResp, error) {
-	return nil, nil
+func (f *fakeOrderCloseRPC) GetOrder(_ context.Context, in *orderrpc.GetOrderReq, _ ...grpc.CallOption) (*orderrpc.OrderDetailInfo, error) {
+	f.getOrderReqs = append(f.getOrderReqs, in)
+	if f.getOrderErr != nil {
+		return nil, f.getOrderErr
+	}
+	if resp, ok := f.getOrderResp[in.GetOrderNumber()]; ok {
+		return resp, nil
+	}
+	return nil, errors.New("order not found")
 }
 
-func (f *fakeJobOrderRPC) CancelOrder(ctx context.Context, in *orderrpc.CancelOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
-	return nil, nil
-}
-
-func (f *fakeJobOrderRPC) PayOrder(ctx context.Context, in *orderrpc.PayOrderReq, opts ...grpc.CallOption) (*orderrpc.PayOrderResp, error) {
-	return nil, nil
-}
-
-func (f *fakeJobOrderRPC) PayCheck(ctx context.Context, in *orderrpc.PayCheckReq, opts ...grpc.CallOption) (*orderrpc.PayCheckResp, error) {
-	return nil, nil
-}
-
-func (f *fakeJobOrderRPC) PreviewRefundOrder(ctx context.Context, in *orderrpc.PreviewRefundOrderReq, opts ...grpc.CallOption) (*orderrpc.PreviewRefundOrderResp, error) {
-	return nil, nil
-}
-
-func (f *fakeJobOrderRPC) RefundOrder(ctx context.Context, in *orderrpc.RefundOrderReq, opts ...grpc.CallOption) (*orderrpc.RefundOrderResp, error) {
-	return nil, nil
-}
-
-func (f *fakeJobOrderRPC) CloseExpiredOrder(ctx context.Context, in *orderrpc.CloseExpiredOrderReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+func (f *fakeOrderCloseRPC) CloseExpiredOrder(_ context.Context, in *orderrpc.CloseExpiredOrderReq, _ ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+	f.closeExpiredOrderReqs = append(f.closeExpiredOrderReqs, in)
+	if f.closeExpiredOrderErr != nil {
+		return nil, f.closeExpiredOrderErr
+	}
 	return &orderrpc.BoolResp{Success: true}, nil
 }
 
-func (f *fakeJobOrderRPC) CloseExpiredOrders(ctx context.Context, in *orderrpc.CloseExpiredOrdersReq, opts ...grpc.CallOption) (*orderrpc.CloseExpiredOrdersResp, error) {
-	f.closeExpiredOrdersReqs = append(f.closeExpiredOrdersReqs, in)
-	return f.closeExpiredOrdersResp, f.closeExpiredOrdersErr
-}
-
-func (f *fakeJobOrderRPC) CountActiveTicketsByUserShowTime(ctx context.Context, in *orderrpc.CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*orderrpc.CountActiveTicketsByUserShowTimeResp, error) {
-	return nil, nil
-}
-
-func TestRunOnceForwardsBatchLimit(t *testing.T) {
-	fakeRPC := &fakeJobOrderRPC{
-		closeExpiredOrdersResp: &orderrpc.CloseExpiredOrdersResp{ClosedCount: 3},
-	}
-	l := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
-		Config: config.Config{
-			Interval:  time.Minute,
-			BatchSize: 100,
+func TestRunOnceEnqueuesCloseTimeoutForPendingUnpaidOrder(t *testing.T) {
+	now := time.Now()
+	store := &fakeOrderCloseStore{
+		listItems: []svc.PendingOrderCreatedOutbox{
+			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 101}, OrderNumber: 91001, UserID: 3001},
 		},
-		OrderRpc: fakeRPC,
+	}
+	asyncClient := &fakeOrderCloseAsyncClient{}
+	orderRPC := &fakeOrderCloseRPC{
+		getOrderResp: map[int64]*orderrpc.OrderDetailInfo{
+			91001: {
+				OrderNumber:     91001,
+				UserId:          3001,
+				OrderStatus:     testOrderStatusUnpaid,
+				OrderExpireTime: now.Add(10 * time.Minute).Format("2006-01-02 15:04:05"),
+			},
+		},
+	}
+	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
+		Config:           config.Config{BatchSize: 10},
+		OutboxStore:      store,
+		AsyncCloseClient: asyncClient,
+		OrderRpc:         orderRPC,
 	})
 
-	if err := l.RunOnce(); err != nil {
+	if err := logic.RunOnce(); err != nil {
 		t.Fatalf("RunOnce returned error: %v", err)
 	}
-	if len(fakeRPC.closeExpiredOrdersReqs) != 1 {
-		t.Fatalf("close expired requests = %d, want 1", len(fakeRPC.closeExpiredOrdersReqs))
+	if len(asyncClient.enqueueCalls) != 1 {
+		t.Fatalf("enqueue calls = %d, want 1", len(asyncClient.enqueueCalls))
 	}
-	if fakeRPC.closeExpiredOrdersReqs[0] == nil || fakeRPC.closeExpiredOrdersReqs[0].Limit != 100 {
-		t.Fatalf("unexpected close expired request: %+v", fakeRPC.closeExpiredOrdersReqs[0])
+	if got := asyncClient.enqueueCalls[0]; got.orderNumber != 91001 {
+		t.Fatalf("unexpected enqueue call: %+v", got)
 	}
-}
-
-func TestRunOncePropagatesRPCFailure(t *testing.T) {
-	fakeRPC := &fakeJobOrderRPC{
-		closeExpiredOrdersErr: errors.New("rpc failed"),
+	if len(orderRPC.closeExpiredOrderReqs) != 0 {
+		t.Fatalf("close expired order calls = %d, want 0", len(orderRPC.closeExpiredOrderReqs))
 	}
-	l := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
-		Config: config.Config{
-			Interval:  time.Minute,
-			BatchSize: 100,
-		},
-		OrderRpc: fakeRPC,
-	})
-
-	if err := l.RunOnce(); err == nil {
-		t.Fatalf("expected rpc error")
+	if len(store.markPublished) != 1 || store.markPublished[0].ID != 101 {
+		t.Fatalf("unexpected mark published refs: %+v", store.markPublished)
 	}
 }
 
-func TestRunOnceForwardsSlotWindowAndAdvancesCheckpoint(t *testing.T) {
-	fakeRPC := &fakeJobOrderRPC{
-		closeExpiredOrdersResp: &orderrpc.CloseExpiredOrdersResp{ClosedCount: 2},
-	}
-	l := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
-		Config: config.Config{
-			Interval:          time.Minute,
-			BatchSize:         100,
-			ScanSlotStart:     10,
-			ScanSlotEnd:       13,
-			ScanSlotBatchSize: 2,
-			CheckpointSlot:    10,
+func TestRunOnceClosesExpiredUnpaidOrderImmediately(t *testing.T) {
+	now := time.Now()
+	store := &fakeOrderCloseStore{
+		listItems: []svc.PendingOrderCreatedOutbox{
+			{Ref: svc.OutboxRef{DBKey: "order-db-1", ID: 201}, OrderNumber: 92001, UserID: 3002},
 		},
-		OrderRpc: fakeRPC,
+	}
+	asyncClient := &fakeOrderCloseAsyncClient{}
+	orderRPC := &fakeOrderCloseRPC{
+		getOrderResp: map[int64]*orderrpc.OrderDetailInfo{
+			92001: {
+				OrderNumber:     92001,
+				UserId:          3002,
+				OrderStatus:     testOrderStatusUnpaid,
+				OrderExpireTime: now.Add(-2 * time.Minute).Format("2006-01-02 15:04:05"),
+			},
+		},
+	}
+	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
+		Config:           config.Config{BatchSize: 10},
+		OutboxStore:      store,
+		AsyncCloseClient: asyncClient,
+		OrderRpc:         orderRPC,
 	})
 
-	if err := l.RunOnce(); err != nil {
-		t.Fatalf("first RunOnce returned error: %v", err)
+	if err := logic.RunOnce(); err != nil {
+		t.Fatalf("RunOnce returned error: %v", err)
 	}
-	if err := l.RunOnce(); err != nil {
-		t.Fatalf("second RunOnce returned error: %v", err)
+	if len(orderRPC.closeExpiredOrderReqs) != 1 || orderRPC.closeExpiredOrderReqs[0].GetOrderNumber() != 92001 {
+		t.Fatalf("unexpected close expired order reqs: %+v", orderRPC.closeExpiredOrderReqs)
 	}
-	if err := l.RunOnce(); err != nil {
-		t.Fatalf("third RunOnce returned error: %v", err)
+	if len(asyncClient.enqueueCalls) != 0 {
+		t.Fatalf("enqueue calls = %d, want 0", len(asyncClient.enqueueCalls))
 	}
+	if len(store.markPublished) != 1 || store.markPublished[0].ID != 201 {
+		t.Fatalf("unexpected mark published refs: %+v", store.markPublished)
+	}
+}
 
-	if len(fakeRPC.closeExpiredOrdersReqs) != 3 {
-		t.Fatalf("close expired requests = %d, want 3", len(fakeRPC.closeExpiredOrdersReqs))
+func TestRunOnceMarksTerminalOrderOutboxWithoutDispatch(t *testing.T) {
+	store := &fakeOrderCloseStore{
+		listItems: []svc.PendingOrderCreatedOutbox{
+			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 301}, OrderNumber: 93001, UserID: 3003},
+			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 302}, OrderNumber: 93002, UserID: 3003},
+		},
 	}
-
-	req0 := fakeRPC.closeExpiredOrdersReqs[0]
-	if req0.GetLogicSlotStart() != 10 || req0.GetLogicSlotCount() != 2 {
-		t.Fatalf("first request = %+v, want start=10 count=2", req0)
+	asyncClient := &fakeOrderCloseAsyncClient{}
+	orderRPC := &fakeOrderCloseRPC{
+		getOrderResp: map[int64]*orderrpc.OrderDetailInfo{
+			93001: {
+				OrderNumber: 93001,
+				UserId:      3003,
+				OrderStatus: testOrderStatusPaid,
+			},
+			93002: {
+				OrderNumber: 93002,
+				UserId:      3003,
+				OrderStatus: testOrderStatusCancelled,
+			},
+		},
 	}
+	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
+		Config:           config.Config{BatchSize: 10},
+		OutboxStore:      store,
+		AsyncCloseClient: asyncClient,
+		OrderRpc:         orderRPC,
+	})
 
-	req1 := fakeRPC.closeExpiredOrdersReqs[1]
-	if req1.GetLogicSlotStart() != 12 || req1.GetLogicSlotCount() != 2 {
-		t.Fatalf("second request = %+v, want start=12 count=2", req1)
+	if err := logic.RunOnce(); err != nil {
+		t.Fatalf("RunOnce returned error: %v", err)
 	}
+	if len(asyncClient.enqueueCalls) != 0 {
+		t.Fatalf("enqueue calls = %d, want 0", len(asyncClient.enqueueCalls))
+	}
+	if len(orderRPC.closeExpiredOrderReqs) != 0 {
+		t.Fatalf("close expired order calls = %d, want 0", len(orderRPC.closeExpiredOrderReqs))
+	}
+	if len(store.markPublished) != 2 {
+		t.Fatalf("mark published calls = %d, want 2", len(store.markPublished))
+	}
+}
 
-	req2 := fakeRPC.closeExpiredOrdersReqs[2]
-	if req2.GetLogicSlotStart() != 10 || req2.GetLogicSlotCount() != 2 {
-		t.Fatalf("third request = %+v, want start=10 count=2", req2)
+func TestRunOncePropagatesOutboxLoadFailure(t *testing.T) {
+	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
+		Config:      config.Config{BatchSize: 10},
+		OutboxStore: &fakeOrderCloseStore{listErr: errors.New("load failed")},
+	})
+
+	if err := logic.RunOnce(); err == nil {
+		t.Fatalf("expected outbox load error")
+	}
+}
+
+func TestRunOnceUsesBatchSizeWhenLoadingOutbox(t *testing.T) {
+	store := &fakeOrderCloseStore{
+		listItems: []svc.PendingOrderCreatedOutbox{
+			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 401}, OrderNumber: 94001, UserID: 3004},
+			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 402}, OrderNumber: 94002, UserID: 3004},
+		},
+	}
+	orderRPC := &fakeOrderCloseRPC{
+		getOrderResp: map[int64]*orderrpc.OrderDetailInfo{
+			94001: {
+				OrderNumber:     94001,
+				UserId:          3004,
+				OrderStatus:     testOrderStatusUnpaid,
+				OrderExpireTime: time.Now().Add(time.Minute).Format("2006-01-02 15:04:05"),
+			},
+		},
+	}
+	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
+		Config:           config.Config{BatchSize: 1},
+		OutboxStore:      store,
+		AsyncCloseClient: &fakeOrderCloseAsyncClient{},
+		OrderRpc:         orderRPC,
+	})
+
+	if err := logic.RunOnce(); err != nil {
+		t.Fatalf("RunOnce returned error: %v", err)
+	}
+	if store.listCalls != 1 {
+		t.Fatalf("list calls = %d, want 1", store.listCalls)
+	}
+	if len(orderRPC.getOrderReqs) != 1 || orderRPC.getOrderReqs[0].GetOrderNumber() != 94001 {
+		t.Fatalf("unexpected get order reqs: %+v", orderRPC.getOrderReqs)
 	}
 }
