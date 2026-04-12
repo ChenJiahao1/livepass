@@ -399,10 +399,9 @@ func mustInitOrderTestXid(t *testing.T) {
 	t.Helper()
 
 	_ = xid.Close()
-	if err := xid.InitEtcd(context.Background(), xid.Config{
-		Hosts:   []string{"127.0.0.1:2379"},
-		Prefix:  "/damai-go/tests/snowflake/order-rpc/",
-		Service: "order-rpc-test",
+	if err := xid.Init(xid.Config{
+		Provider: xid.ProviderStatic,
+		NodeID:   902,
 	}); err != nil {
 		t.Fatalf("init xid error: %v", err)
 	}

@@ -30,13 +30,13 @@ type RepeatGuardConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers          []string `json:",optional"`
-	TopicOrderCreate string   `json:",default=ticketing.attempt.command.v1"`
-	ConsumerGroup    string   `json:",default=damai-go-ticketing-attempt"`
-	TopicPartitions  int      `json:",default=1"`
-	ConsumerWorkers  int      `json:",default=1"`
-	ProducerTimeout time.Duration `json:",default=3s"`
-	RetryBackoff    time.Duration `json:",default=1s"`
+	Brokers          []string      `json:",optional"`
+	TopicOrderCreate string        `json:",default=ticketing.attempt.command.v1"`
+	ConsumerGroup    string        `json:",default=damai-go-ticketing-attempt"`
+	TopicPartitions  int           `json:",default=1"`
+	ConsumerWorkers  int           `json:",default=1"`
+	ProducerTimeout  time.Duration `json:",default=3s"`
+	RetryBackoff     time.Duration `json:",default=1s"`
 }
 
 type AsyncCloseConfig struct {
@@ -83,6 +83,14 @@ func (c ShardingConfig) Normalize() ShardingConfig {
 	return c
 }
 
+type XidConf struct {
+	Provider          string `json:",default=static"`
+	NodeId            int64  `json:",optional"`
+	ServiceBaseNodeId int64  `json:",optional"`
+	MaxReplicas       int64  `json:",optional"`
+	PodName           string `json:",optional"`
+}
+
 type Config struct {
 	zrpc.RpcServerConf
 	MySQL       xmysql.Config
@@ -96,6 +104,7 @@ type Config struct {
 	Kafka       KafkaConfig
 	AsyncClose  AsyncCloseConfig `json:"AsyncClose,optional"`
 	Sharding    ShardingConfig   `json:"Sharding,optional"`
+	Xid         XidConf          `json:"Xid,optional"`
 }
 
 func Load(configFile string) (Config, error) {

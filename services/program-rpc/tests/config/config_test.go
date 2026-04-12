@@ -79,6 +79,26 @@ func TestLoadProgramRPCConfigExposesCacheInvalidationDefaults(t *testing.T) {
 	assertDurationField(t, cacheInvalidationField, "ReconnectBackoff", time.Second)
 }
 
+func TestLoadProgramRPCConfigIncludesStaticXid(t *testing.T) {
+	t.Parallel()
+
+	var c config.Config
+	configFile := filepath.Join("..", "..", "etc", "program-rpc.yaml")
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.Xid.Provider != "static" {
+		t.Fatalf("expected xid provider static, got %q", c.Xid.Provider)
+	}
+	if c.Xid.NodeId != 128 {
+		t.Fatalf("expected xid node id 128, got %d", c.Xid.NodeId)
+	}
+	if len(c.Etcd.Hosts) == 0 || c.Etcd.Key == "" {
+		t.Fatal("expected rpc etcd config to remain for service discovery")
+	}
+}
+
 func assertDurationField(t *testing.T, value reflect.Value, name string, expected time.Duration) {
 	t.Helper()
 

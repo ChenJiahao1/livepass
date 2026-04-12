@@ -25,9 +25,12 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
-	xid.MustInitEtcd(context.Background(), xid.Config{
-		Hosts:   c.Etcd.Hosts,
-		Service: "program-rpc",
+	xid.MustInit(xid.Config{
+		Provider:          xid.Provider(c.Xid.Provider),
+		NodeID:            c.Xid.NodeId,
+		ServiceBaseNodeID: c.Xid.ServiceBaseNodeId,
+		MaxReplicas:       c.Xid.MaxReplicas,
+		PodName:           c.Xid.PodName,
 	})
 	defer func() {
 		_ = xid.Close()

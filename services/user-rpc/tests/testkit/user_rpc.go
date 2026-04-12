@@ -46,10 +46,9 @@ func NewServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
 
 	_ = xid.Close()
-	if err := xid.InitEtcd(context.Background(), xid.Config{
-		Hosts:   []string{"127.0.0.1:2379"},
-		Prefix:  "/damai-go/tests/snowflake/user-rpc/",
-		Service: "user-rpc-test",
+	if err := xid.Init(xid.Config{
+		Provider: xid.ProviderStatic,
+		NodeID:   900,
 	}); err != nil {
 		t.Fatalf("init xid error: %v", err)
 	}

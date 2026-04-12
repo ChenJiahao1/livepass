@@ -11,3 +11,6 @@ MySQL:
   MaxIdleConns: 16
   ConnMaxLifetime: 3m
   ConnMaxIdleTime: 1m
+Xid:
+  Provider: static
+  NodeId: 512

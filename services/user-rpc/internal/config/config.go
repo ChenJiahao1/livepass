@@ -14,9 +14,18 @@ type UserAuthConfig struct {
 	ChannelMap     map[string]string `json:",optional"`
 }
 
+type XidConf struct {
+	Provider          string `json:",default=static"`
+	NodeId            int64  `json:",optional"`
+	ServiceBaseNodeId int64  `json:",optional"`
+	MaxReplicas       int64  `json:",optional"`
+	PodName           string `json:",optional"`
+}
+
 type Config struct {
 	zrpc.RpcServerConf
 	MySQL      xmysql.Config
 	StoreRedis xredis.Config `json:"StoreRedis,optional"`
 	UserAuth   UserAuthConfig
+	Xid        XidConf `json:"Xid,optional"`
 }

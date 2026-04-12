@@ -82,3 +82,6 @@ Kafka:
   ConsumerWorkers: 1
   ProducerTimeout: 3s
   RetryBackoff: 1s
+Xid:
+  Provider: static
+  NodeId: 256

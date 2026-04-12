@@ -55,11 +55,20 @@ func (c CacheInvalidationConfig) Normalize() CacheInvalidationConfig {
 	return c
 }
 
+type XidConf struct {
+	Provider          string `json:",default=static"`
+	NodeId            int64  `json:",optional"`
+	ServiceBaseNodeId int64  `json:",optional"`
+	MaxReplicas       int64  `json:",optional"`
+	PodName           string `json:",optional"`
+}
+
 type Config struct {
 	zrpc.RpcServerConf
 	MySQL             xmysql.Config
-	StoreRedis        xredis.Config            `json:"StoreRedis,optional"`
-	Cache             cache.CacheConf          `json:",optional"`
-	LocalCache        LocalCacheConfig         `json:",optional"`
-	CacheInvalidation CacheInvalidationConfig  `json:",optional"`
+	StoreRedis        xredis.Config           `json:"StoreRedis,optional"`
+	Cache             cache.CacheConf         `json:",optional"`
+	LocalCache        LocalCacheConfig        `json:",optional"`
+	CacheInvalidation CacheInvalidationConfig `json:",optional"`
+	Xid               XidConf                 `json:"Xid,optional"`
 }

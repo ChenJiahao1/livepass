@@ -197,6 +197,32 @@ func TestOrderCreateAcceptAsyncConfigRemovesLegacyTimeDrivenFields(t *testing.T)
 	}
 }
 
+func TestLoadOrderRPCConfigIncludesStaticXid(t *testing.T) {
+	t.Parallel()
+
+	configFile := filepath.Join("..", "..", "etc", "order-rpc.yaml")
+	c, err := config.Load(configFile)
+	if err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.Xid.Provider != "static" {
+		t.Fatalf("expected xid provider static, got %q", c.Xid.Provider)
+	}
+	if c.Xid.NodeId != 256 {
+		t.Fatalf("expected xid node id 256, got %d", c.Xid.NodeId)
+	}
+	if len(c.Etcd.Hosts) == 0 || c.Etcd.Key == "" {
+		t.Fatal("expected server etcd config to remain for service discovery")
+	}
+	if len(c.ProgramRpc.Etcd.Hosts) == 0 || c.ProgramRpc.Etcd.Key == "" {
+		t.Fatal("expected downstream rpc etcd config to remain")
+	}
+	if c.RepeatGuard.Prefix == "" {
+		t.Fatal("expected repeat guard config to remain")
+	}
+}
+
 func toRouteEntries(entries []config.RouteEntryConfig) []sharding.RouteEntry {
 	routeEntries := make([]sharding.RouteEntry, 0, len(entries))
 	for _, entry := range entries {

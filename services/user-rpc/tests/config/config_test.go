@@ -32,3 +32,23 @@ func TestLoadUserRPCConfig(t *testing.T) {
 		t.Fatal("expected user auth channel map to be loaded")
 	}
 }
+
+func TestLoadUserRPCConfigIncludesStaticXid(t *testing.T) {
+	t.Parallel()
+
+	var c config.Config
+	configFile := filepath.Join("..", "..", "etc", "user-rpc.yaml")
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.Xid.Provider != "static" {
+		t.Fatalf("expected xid provider static, got %q", c.Xid.Provider)
+	}
+	if c.Xid.NodeId != 0 {
+		t.Fatalf("expected xid node id 0, got %d", c.Xid.NodeId)
+	}
+	if len(c.Etcd.Hosts) == 0 || c.Etcd.Key == "" {
+		t.Fatal("expected rpc etcd config to remain for service discovery")
+	}
+}

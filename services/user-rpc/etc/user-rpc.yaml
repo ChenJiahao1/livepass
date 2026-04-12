@@ -19,3 +19,6 @@ UserAuth:
   LoginFailLimit: 5
   ChannelMap:
     "0001": local-user-secret-0001
+Xid:
+  Provider: static
+  NodeId: 0

@@ -28,3 +28,6 @@ CacheInvalidation:
   Channel: damai-go:program:cache:invalidate
   PublishTimeout: 200ms
   ReconnectBackoff: 1s
+Xid:
+  Provider: static
+  NodeId: 128

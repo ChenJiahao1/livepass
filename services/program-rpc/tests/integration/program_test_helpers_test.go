@@ -118,10 +118,9 @@ func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 	ensureProgramTestDatabase(t, testProgramMySQLDataSource)
 
 	_ = xid.Close()
-	if err := xid.InitEtcd(context.Background(), xid.Config{
-		Hosts:   []string{"127.0.0.1:2379"},
-		Prefix:  "/damai-go/tests/snowflake/program-rpc/",
-		Service: "program-rpc-test",
+	if err := xid.Init(xid.Config{
+		Provider: xid.ProviderStatic,
+		NodeID:   901,
 	}); err != nil {
 		t.Fatalf("init xid error: %v", err)
 	}
