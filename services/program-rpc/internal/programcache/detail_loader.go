@@ -21,25 +21,27 @@ type DetailLoader struct {
 	ticketCategoryModel   model.DTicketCategoryModel
 }
 
+type DetailLoaderDeps struct {
+	ProgramModel          model.DProgramModel
+	ProgramShowTimeModel  model.DProgramShowTimeModel
+	ProgramGroupModel     model.DProgramGroupModel
+	CategorySnapshotCache *CategorySnapshotCache
+	TicketCategoryModel   model.DTicketCategoryModel
+}
+
 type programGroupJSONItem struct {
 	ProgramID  int64  `json:"programId"`
 	AreaID     int64  `json:"areaId"`
 	AreaIDName string `json:"areaIdName"`
 }
 
-func NewDetailLoader(
-	programModel model.DProgramModel,
-	programShowTimeModel model.DProgramShowTimeModel,
-	programGroupModel model.DProgramGroupModel,
-	categorySnapshotCache *CategorySnapshotCache,
-	ticketCategoryModel model.DTicketCategoryModel,
-) *DetailLoader {
+func NewDetailLoader(deps DetailLoaderDeps) *DetailLoader {
 	return &DetailLoader{
-		programModel:          programModel,
-		programShowTimeModel:  programShowTimeModel,
-		programGroupModel:     programGroupModel,
-		categorySnapshotCache: categorySnapshotCache,
-		ticketCategoryModel:   ticketCategoryModel,
+		programModel:          deps.ProgramModel,
+		programShowTimeModel:  deps.ProgramShowTimeModel,
+		programGroupModel:     deps.ProgramGroupModel,
+		categorySnapshotCache: deps.CategorySnapshotCache,
+		ticketCategoryModel:   deps.TicketCategoryModel,
 	}
 }
 
