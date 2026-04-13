@@ -8,8 +8,6 @@ import (
 
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/model"
-
-	"github.com/alicebob/miniredis/v2"
 )
 
 type fakeSeatLedgerSource struct {
@@ -21,14 +19,8 @@ func (f *fakeSeatLedgerSource) FindByShowTimeAndTicketCategoryAndSeatStatus(_ co
 }
 
 func TestPrimeFromDBStoresStockAsString(t *testing.T) {
-	mr, err := miniredis.Run()
-	if err != nil {
-		t.Fatalf("start miniredis error: %v", err)
-	}
-	t.Cleanup(mr.Close)
-
 	redisClient, err := xredis.New(xredis.Config{
-		Host: mr.Addr(),
+		Host: "127.0.0.1:6379",
 		Type: "node",
 	})
 	if err != nil {
