@@ -20,12 +20,13 @@ type singleOrderTx struct {
 	viewerGuardModel model.DOrderViewerGuardModel
 	seatGuardModel   model.DOrderSeatGuardModel
 	outboxModel      model.DOrderOutboxModel
+	delayTaskModel   model.DDelayTaskOutboxModel
 }
 
 func newSingleOrderTx(route sharding.Route, session sqlx.Session, orderModel model.DOrderModel,
 	ticketModel model.DOrderTicketUserModel, userGuardModel model.DOrderUserGuardModel,
 	viewerGuardModel model.DOrderViewerGuardModel, seatGuardModel model.DOrderSeatGuardModel,
-	outboxModel model.DOrderOutboxModel) *singleOrderTx {
+	outboxModel model.DOrderOutboxModel, delayTaskModel model.DDelayTaskOutboxModel) *singleOrderTx {
 	return &singleOrderTx{
 		route:            route,
 		session:          session,
@@ -35,6 +36,7 @@ func newSingleOrderTx(route sharding.Route, session sqlx.Session, orderModel mod
 		viewerGuardModel: viewerGuardModel,
 		seatGuardModel:   seatGuardModel,
 		outboxModel:      outboxModel,
+		delayTaskModel:   delayTaskModel,
 	}
 }
 
@@ -69,6 +71,10 @@ func (t *singleOrderTx) InsertSeatGuards(ctx context.Context, guards []*model.DO
 
 func (t *singleOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrderOutbox) error {
 	return t.outboxModel.InsertBatch(ctx, t.session, rows)
+}
+
+func (t *singleOrderTx) InsertDelayTasks(ctx context.Context, rows []*model.DDelayTaskOutbox) error {
+	return t.delayTaskModel.InsertBatch(ctx, t.session, rows)
 }
 
 func (t *singleOrderTx) DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error {
@@ -209,6 +215,16 @@ func (t *dualWriteOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrde
 	}
 	t.captureShadowError(func() error {
 		return t.shadow.InsertOutbox(ctx, rows)
+	})
+	return nil
+}
+
+func (t *dualWriteOrderTx) InsertDelayTasks(ctx context.Context, rows []*model.DDelayTaskOutbox) error {
+	if err := t.primary.InsertDelayTasks(ctx, rows); err != nil {
+		return err
+	}
+	t.captureShadowError(func() error {
+		return t.shadow.InsertDelayTasks(ctx, rows)
 	})
 	return nil
 }

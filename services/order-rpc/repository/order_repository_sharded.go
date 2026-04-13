@@ -230,6 +230,7 @@ func (r *shardedOrderRepository) transactByRoute(ctx context.Context, route shar
 			target.viewerGuardModel,
 			target.seatGuardModel,
 			target.outboxModel,
+			target.delayTaskModel,
 		)
 		return fn(ctx, tx)
 	})
@@ -243,6 +244,7 @@ type routeStore struct {
 	viewerGuardModel model.DOrderViewerGuardModel
 	seatGuardModel   model.DOrderSeatGuardModel
 	outboxModel      model.DOrderOutboxModel
+	delayTaskModel   model.DDelayTaskOutboxModel
 }
 
 func (r *shardedOrderRepository) storeForRoute(route sharding.Route) (*routeStore, error) {
@@ -259,6 +261,7 @@ func (r *shardedOrderRepository) storeForRoute(route sharding.Route) (*routeStor
 		viewerGuardModel: model.NewDOrderViewerGuardModelWithTable(conn, shardOrderViewerGuardTable(route.TableSuffix)),
 		seatGuardModel:   model.NewDOrderSeatGuardModelWithTable(conn, shardOrderSeatGuardTable(route.TableSuffix)),
 		outboxModel:      model.NewDOrderOutboxModelWithTable(conn, shardOrderOutboxTable(route.TableSuffix)),
+		delayTaskModel:   model.NewDDelayTaskOutboxModelWithTable(conn, delayTaskOutboxTable()),
 	}, nil
 }
 
@@ -288,6 +291,10 @@ func shardOrderSeatGuardTable(suffix string) string {
 func shardOrderOutboxTable(suffix string) string {
 	_ = suffix
 	return "d_order_outbox"
+}
+
+func delayTaskOutboxTable() string {
+	return "d_delay_task_outbox"
 }
 
 func orderMatchesLogicSlot(order *model.DOrder, logicSlot int) bool {

@@ -24,10 +24,6 @@ func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInlin
 	if !ok {
 		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
 	}
-	asyncCloseClient, ok := svcCtx.AsyncCloseClient.(*fakeAsyncCloseClient)
-	if !ok {
-		t.Fatalf("expected fake async close client, got %T", svcCtx.AsyncCloseClient)
-	}
 
 	ctx := context.Background()
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
@@ -94,19 +90,11 @@ func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInlin
 	if record.State != rush.AttemptStateAccepted {
 		t.Fatalf("expected accepted attempt state, got %+v", record)
 	}
-	if asyncCloseClient.verifyEnqueueCalls != 0 {
-		t.Fatalf("expected verify task not enqueued, got %d", asyncCloseClient.verifyEnqueueCalls)
-	}
 }
 
 func TestCreateOrderRushDoesNotEnqueueVerifyTaskAfterAdmission(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
-
-	asyncCloseClient, ok := svcCtx.AsyncCloseClient.(*fakeAsyncCloseClient)
-	if !ok {
-		t.Fatalf("expected fake async close client, got %T", svcCtx.AsyncCloseClient)
-	}
 
 	ctx := context.Background()
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
@@ -140,9 +128,6 @@ func TestCreateOrderRushDoesNotEnqueueVerifyTaskAfterAdmission(t *testing.T) {
 	}
 	if resp.GetOrderNumber() != claims.OrderNumber {
 		t.Fatalf("expected order number %d, got %d", claims.OrderNumber, resp.GetOrderNumber())
-	}
-	if asyncCloseClient.verifyEnqueueCalls != 0 {
-		t.Fatalf("expected verify task not enqueued, got %d", asyncCloseClient.verifyEnqueueCalls)
 	}
 	record, err := svcCtx.AttemptStore.Get(ctx, claims.OrderNumber)
 	if err != nil {
@@ -313,10 +298,6 @@ func TestCreateOrderFailsWhenKafkaHandoffFailsAndProducerWins(t *testing.T) {
 		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
 	}
 	producer.sendErr = errors.New("publish handoff failed")
-	asyncCloseClient, ok := svcCtx.AsyncCloseClient.(*fakeAsyncCloseClient)
-	if !ok {
-		t.Fatalf("expected fake async close client, got %T", svcCtx.AsyncCloseClient)
-	}
 
 	ctx := context.Background()
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
@@ -375,9 +356,6 @@ func TestCreateOrderFailsWhenKafkaHandoffFailsAndProducerWins(t *testing.T) {
 	}
 	if quota != initialQuota {
 		t.Fatalf("expected quota restored to %d, got %d", initialQuota, quota)
-	}
-	if asyncCloseClient.verifyEnqueueCalls != 0 {
-		t.Fatalf("expected verify task not enqueued, got %d", asyncCloseClient.verifyEnqueueCalls)
 	}
 }
 

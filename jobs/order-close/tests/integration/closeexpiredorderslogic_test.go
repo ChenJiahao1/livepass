@@ -2,269 +2,243 @@ package integration_test
 
 import (
 	"context"
-	"errors"
+	"database/sql"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
-	"damai-go/jobs/order-close/internal/config"
-	logicpkg "damai-go/jobs/order-close/internal/logic"
-	"damai-go/jobs/order-close/internal/svc"
-	"damai-go/services/order-rpc/orderrpc"
+	"damai-go/jobs/order-close/internal/dispatch"
+	"damai-go/pkg/delaytask"
+	"damai-go/pkg/xmysql"
 
-	"google.golang.org/grpc"
+	mysqlDriver "github.com/go-sql-driver/mysql"
+	"github.com/hibiken/asynq"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const (
-	testOrderStatusUnpaid    int64 = 1
-	testOrderStatusCancelled int64 = 2
-	testOrderStatusPaid      int64 = 3
-)
+const testOrderCloseMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
 
-type fakeOrderCloseStore struct {
-	listItems       []svc.PendingOrderCreatedOutbox
-	listErr         error
-	listCalls       int
-	markPublished   []svc.OutboxRef
-	markPublishedAt []time.Time
-	markErr         error
+type fakeDelayTaskPublisher struct {
+	messages []delaytask.Message
+	err      error
 }
 
-func (f *fakeOrderCloseStore) ListPendingOrderCreatedOutboxes(_ context.Context, limit int64) ([]svc.PendingOrderCreatedOutbox, error) {
-	f.listCalls++
-	if f.listErr != nil {
-		return nil, f.listErr
-	}
-	if int64(len(f.listItems)) <= limit {
-		items := append([]svc.PendingOrderCreatedOutbox(nil), f.listItems...)
-		return items, nil
-	}
-	items := append([]svc.PendingOrderCreatedOutbox(nil), f.listItems[:limit]...)
-	return items, nil
+func (f *fakeDelayTaskPublisher) Publish(_ context.Context, message delaytask.Message) error {
+	f.messages = append(f.messages, message)
+	return f.err
 }
 
-func (f *fakeOrderCloseStore) MarkOutboxPublished(_ context.Context, ref svc.OutboxRef, publishedAt time.Time) error {
-	if f.markErr != nil {
-		return f.markErr
-	}
-	f.markPublished = append(f.markPublished, ref)
-	f.markPublishedAt = append(f.markPublishedAt, publishedAt)
-	return nil
-}
+func TestDispatcherMarksPublishedAfterPublish(t *testing.T) {
+	resetOrderCloseDelayTaskOutbox(t)
 
-type fakeOrderCloseAsyncClient struct {
-	enqueueCalls []enqueueCloseTimeoutCall
-	enqueueErr   error
-}
-
-type enqueueCloseTimeoutCall struct {
-	orderNumber int64
-	expireAt    time.Time
-}
-
-func (f *fakeOrderCloseAsyncClient) EnqueueCloseTimeout(_ context.Context, orderNumber int64, expireAt time.Time) error {
-	if f.enqueueErr != nil {
-		return f.enqueueErr
-	}
-	f.enqueueCalls = append(f.enqueueCalls, enqueueCloseTimeoutCall{
-		orderNumber: orderNumber,
-		expireAt:    expireAt,
-	})
-	return nil
-}
-
-type fakeOrderCloseRPC struct {
-	getOrderResp          map[int64]*orderrpc.OrderDetailInfo
-	getOrderErr           error
-	getOrderReqs          []*orderrpc.GetOrderReq
-	closeExpiredOrderErr  error
-	closeExpiredOrderReqs []*orderrpc.CloseExpiredOrderReq
-}
-
-func (f *fakeOrderCloseRPC) GetOrder(_ context.Context, in *orderrpc.GetOrderReq, _ ...grpc.CallOption) (*orderrpc.OrderDetailInfo, error) {
-	f.getOrderReqs = append(f.getOrderReqs, in)
-	if f.getOrderErr != nil {
-		return nil, f.getOrderErr
-	}
-	if resp, ok := f.getOrderResp[in.GetOrderNumber()]; ok {
-		return resp, nil
-	}
-	return nil, errors.New("order not found")
-}
-
-func (f *fakeOrderCloseRPC) CloseExpiredOrder(_ context.Context, in *orderrpc.CloseExpiredOrderReq, _ ...grpc.CallOption) (*orderrpc.BoolResp, error) {
-	f.closeExpiredOrderReqs = append(f.closeExpiredOrderReqs, in)
-	if f.closeExpiredOrderErr != nil {
-		return nil, f.closeExpiredOrderErr
-	}
-	return &orderrpc.BoolResp{Success: true}, nil
-}
-
-func TestRunOnceEnqueuesCloseTimeoutForPendingUnpaidOrder(t *testing.T) {
-	now := time.Now()
-	store := &fakeOrderCloseStore{
-		listItems: []svc.PendingOrderCreatedOutbox{
-			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 101}, OrderNumber: 91001, UserID: 3001},
-		},
-	}
-	asyncClient := &fakeOrderCloseAsyncClient{}
-	orderRPC := &fakeOrderCloseRPC{
-		getOrderResp: map[int64]*orderrpc.OrderDetailInfo{
-			91001: {
-				OrderNumber:     91001,
-				UserId:          3001,
-				OrderStatus:     testOrderStatusUnpaid,
-				OrderExpireTime: now.Add(10 * time.Minute).Format("2006-01-02 15:04:05"),
-			},
-		},
-	}
-	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
-		Config:           config.Config{BatchSize: 10},
-		OutboxStore:      store,
-		AsyncCloseClient: asyncClient,
-		OrderRpc:         orderRPC,
+	executeAt := time.Date(2026, time.April, 13, 16, 0, 0, 0, time.Local)
+	seedDelayTaskOutboxRow(t, delayTaskOutboxFixture{
+		ID:        101,
+		TaskType:  "order.close_timeout",
+		TaskKey:   "order.close_timeout:91001",
+		Payload:   `{"orderNumber":91001}`,
+		ExecuteAt: executeAt,
 	})
 
-	if err := logic.RunOnce(); err != nil {
-		t.Fatalf("RunOnce returned error: %v", err)
+	publisher := &fakeDelayTaskPublisher{}
+	logic := dispatch.NewRunOnceLogic(context.Background(), dispatch.NewMysqlStore(map[string]sqlx.SqlConn{
+		"order-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testOrderCloseMySQLDataSource)),
+	}), publisher, 10)
+
+	if err := logic.Run(taskTypeCloseTimeout); err != nil {
+		t.Fatalf("Run returned error: %v", err)
 	}
-	if len(asyncClient.enqueueCalls) != 1 {
-		t.Fatalf("enqueue calls = %d, want 1", len(asyncClient.enqueueCalls))
+	if len(publisher.messages) != 1 {
+		t.Fatalf("publisher messages = %d, want 1", len(publisher.messages))
 	}
-	if got := asyncClient.enqueueCalls[0]; got.orderNumber != 91001 {
-		t.Fatalf("unexpected enqueue call: %+v", got)
+
+	row := findDelayTaskOutboxRow(t, 101)
+	if row.PublishedStatus != 1 {
+		t.Fatalf("published_status = %d, want 1", row.PublishedStatus)
 	}
-	if len(orderRPC.closeExpiredOrderReqs) != 0 {
-		t.Fatalf("close expired order calls = %d, want 0", len(orderRPC.closeExpiredOrderReqs))
-	}
-	if len(store.markPublished) != 1 || store.markPublished[0].ID != 101 {
-		t.Fatalf("unexpected mark published refs: %+v", store.markPublished)
+	if !row.PublishedTime.Valid {
+		t.Fatalf("expected published_time to be set")
 	}
 }
 
-func TestRunOnceClosesExpiredUnpaidOrderImmediately(t *testing.T) {
-	now := time.Now()
-	store := &fakeOrderCloseStore{
-		listItems: []svc.PendingOrderCreatedOutbox{
-			{Ref: svc.OutboxRef{DBKey: "order-db-1", ID: 201}, OrderNumber: 92001, UserID: 3002},
-		},
-	}
-	asyncClient := &fakeOrderCloseAsyncClient{}
-	orderRPC := &fakeOrderCloseRPC{
-		getOrderResp: map[int64]*orderrpc.OrderDetailInfo{
-			92001: {
-				OrderNumber:     92001,
-				UserId:          3002,
-				OrderStatus:     testOrderStatusUnpaid,
-				OrderExpireTime: now.Add(-2 * time.Minute).Format("2006-01-02 15:04:05"),
-			},
-		},
-	}
-	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
-		Config:           config.Config{BatchSize: 10},
-		OutboxStore:      store,
-		AsyncCloseClient: asyncClient,
-		OrderRpc:         orderRPC,
+func TestDispatcherTreatsDuplicateTaskConflictAsSuccess(t *testing.T) {
+	resetOrderCloseDelayTaskOutbox(t)
+
+	seedDelayTaskOutboxRow(t, delayTaskOutboxFixture{
+		ID:        201,
+		TaskType:  "order.close_timeout",
+		TaskKey:   "order.close_timeout:92001",
+		Payload:   `{"orderNumber":92001}`,
+		ExecuteAt: time.Date(2026, time.April, 13, 16, 5, 0, 0, time.Local),
 	})
 
-	if err := logic.RunOnce(); err != nil {
-		t.Fatalf("RunOnce returned error: %v", err)
+	publisher := &fakeDelayTaskPublisher{err: asynq.ErrTaskIDConflict}
+	logic := dispatch.NewRunOnceLogic(context.Background(), dispatch.NewMysqlStore(map[string]sqlx.SqlConn{
+		"order-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testOrderCloseMySQLDataSource)),
+	}), publisher, 10)
+
+	if err := logic.Run(taskTypeCloseTimeout); err != nil {
+		t.Fatalf("Run returned error: %v", err)
 	}
-	if len(orderRPC.closeExpiredOrderReqs) != 1 || orderRPC.closeExpiredOrderReqs[0].GetOrderNumber() != 92001 {
-		t.Fatalf("unexpected close expired order reqs: %+v", orderRPC.closeExpiredOrderReqs)
-	}
-	if len(asyncClient.enqueueCalls) != 0 {
-		t.Fatalf("enqueue calls = %d, want 0", len(asyncClient.enqueueCalls))
-	}
-	if len(store.markPublished) != 1 || store.markPublished[0].ID != 201 {
-		t.Fatalf("unexpected mark published refs: %+v", store.markPublished)
+
+	row := findDelayTaskOutboxRow(t, 201)
+	if row.PublishedStatus != 1 {
+		t.Fatalf("published_status = %d, want 1", row.PublishedStatus)
 	}
 }
 
-func TestRunOnceMarksTerminalOrderOutboxWithoutDispatch(t *testing.T) {
-	store := &fakeOrderCloseStore{
-		listItems: []svc.PendingOrderCreatedOutbox{
-			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 301}, OrderNumber: 93001, UserID: 3003},
-			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 302}, OrderNumber: 93002, UserID: 3003},
-		},
-	}
-	asyncClient := &fakeOrderCloseAsyncClient{}
-	orderRPC := &fakeOrderCloseRPC{
-		getOrderResp: map[int64]*orderrpc.OrderDetailInfo{
-			93001: {
-				OrderNumber: 93001,
-				UserId:      3003,
-				OrderStatus: testOrderStatusPaid,
-			},
-			93002: {
-				OrderNumber: 93002,
-				UserId:      3003,
-				OrderStatus: testOrderStatusCancelled,
-			},
-		},
-	}
-	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
-		Config:           config.Config{BatchSize: 10},
-		OutboxStore:      store,
-		AsyncCloseClient: asyncClient,
-		OrderRpc:         orderRPC,
+func TestDispatcherMarksPublishFailed(t *testing.T) {
+	resetOrderCloseDelayTaskOutbox(t)
+
+	seedDelayTaskOutboxRow(t, delayTaskOutboxFixture{
+		ID:        301,
+		TaskType:  "order.close_timeout",
+		TaskKey:   "order.close_timeout:93001",
+		Payload:   `{"orderNumber":93001}`,
+		ExecuteAt: time.Date(2026, time.April, 13, 16, 10, 0, 0, time.Local),
 	})
 
-	if err := logic.RunOnce(); err != nil {
-		t.Fatalf("RunOnce returned error: %v", err)
+	publisher := &fakeDelayTaskPublisher{err: fmt.Errorf("redis unavailable")}
+	logic := dispatch.NewRunOnceLogic(context.Background(), dispatch.NewMysqlStore(map[string]sqlx.SqlConn{
+		"order-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testOrderCloseMySQLDataSource)),
+	}), publisher, 10)
+
+	if err := logic.Run(taskTypeCloseTimeout); err != nil {
+		t.Fatalf("Run returned error: %v", err)
 	}
-	if len(asyncClient.enqueueCalls) != 0 {
-		t.Fatalf("enqueue calls = %d, want 0", len(asyncClient.enqueueCalls))
+
+	row := findDelayTaskOutboxRow(t, 301)
+	if row.PublishedStatus != 0 {
+		t.Fatalf("published_status = %d, want 0", row.PublishedStatus)
 	}
-	if len(orderRPC.closeExpiredOrderReqs) != 0 {
-		t.Fatalf("close expired order calls = %d, want 0", len(orderRPC.closeExpiredOrderReqs))
+	if row.PublishAttempts != 1 {
+		t.Fatalf("publish_attempts = %d, want 1", row.PublishAttempts)
 	}
-	if len(store.markPublished) != 2 {
-		t.Fatalf("mark published calls = %d, want 2", len(store.markPublished))
+	if !strings.Contains(row.LastPublishError, "redis unavailable") {
+		t.Fatalf("last_publish_error = %s", row.LastPublishError)
 	}
 }
 
-func TestRunOncePropagatesOutboxLoadFailure(t *testing.T) {
-	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
-		Config:      config.Config{BatchSize: 10},
-		OutboxStore: &fakeOrderCloseStore{listErr: errors.New("load failed")},
-	})
+const taskTypeCloseTimeout = "order.close_timeout"
 
-	if err := logic.RunOnce(); err == nil {
-		t.Fatalf("expected outbox load error")
+type delayTaskOutboxFixture struct {
+	ID        int64
+	TaskType  string
+	TaskKey   string
+	Payload   string
+	ExecuteAt time.Time
+}
+
+type delayTaskOutboxRow struct {
+	ID               int64
+	PublishedStatus  int64
+	PublishAttempts  int64
+	LastPublishError string
+	PublishedTime    sql.NullTime
+}
+
+func resetOrderCloseDelayTaskOutbox(t *testing.T) {
+	t.Helper()
+
+	db := openOrderCloseTestDB(t)
+	defer db.Close()
+
+	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "sql/order/sharding/d_delay_task_outbox.sql"))
+	if err != nil {
+		t.Fatalf("ReadFile(d_delay_task_outbox.sql) error = %v", err)
+	}
+	for _, stmt := range strings.Split(string(content), ";") {
+		stmt = strings.TrimSpace(stmt)
+		if stmt == "" {
+			continue
+		}
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("exec delay task outbox schema error: %v\nstatement: %s", err, stmt)
+		}
 	}
 }
 
-func TestRunOnceUsesBatchSizeWhenLoadingOutbox(t *testing.T) {
-	store := &fakeOrderCloseStore{
-		listItems: []svc.PendingOrderCreatedOutbox{
-			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 401}, OrderNumber: 94001, UserID: 3004},
-			{Ref: svc.OutboxRef{DBKey: "order-db-0", ID: 402}, OrderNumber: 94002, UserID: 3004},
-		},
-	}
-	orderRPC := &fakeOrderCloseRPC{
-		getOrderResp: map[int64]*orderrpc.OrderDetailInfo{
-			94001: {
-				OrderNumber:     94001,
-				UserId:          3004,
-				OrderStatus:     testOrderStatusUnpaid,
-				OrderExpireTime: time.Now().Add(time.Minute).Format("2006-01-02 15:04:05"),
-			},
-		},
-	}
-	logic := logicpkg.NewCloseExpiredOrdersLogic(context.Background(), &svc.ServiceContext{
-		Config:           config.Config{BatchSize: 1},
-		OutboxStore:      store,
-		AsyncCloseClient: &fakeOrderCloseAsyncClient{},
-		OrderRpc:         orderRPC,
-	})
+func seedDelayTaskOutboxRow(t *testing.T, fixture delayTaskOutboxFixture) {
+	t.Helper()
 
-	if err := logic.RunOnce(); err != nil {
-		t.Fatalf("RunOnce returned error: %v", err)
+	db := openOrderCloseTestDB(t)
+	defer db.Close()
+
+	_, err := db.Exec(
+		`INSERT INTO d_delay_task_outbox (
+			id, task_type, task_key, payload, execute_at, published_status, publish_attempts,
+			last_publish_error, published_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, 0, 0, '', NULL, ?, ?, 1)`,
+		fixture.ID,
+		fixture.TaskType,
+		fixture.TaskKey,
+		fixture.Payload,
+		fixture.ExecuteAt,
+		fixture.ExecuteAt,
+		fixture.ExecuteAt,
+	)
+	if err != nil {
+		t.Fatalf("insert delay task outbox row error: %v", err)
 	}
-	if store.listCalls != 1 {
-		t.Fatalf("list calls = %d, want 1", store.listCalls)
+}
+
+func findDelayTaskOutboxRow(t *testing.T, id int64) delayTaskOutboxRow {
+	t.Helper()
+
+	db := openOrderCloseTestDB(t)
+	defer db.Close()
+
+	var row delayTaskOutboxRow
+	err := db.QueryRow(
+		`SELECT id, published_status, publish_attempts, last_publish_error, published_time
+		FROM d_delay_task_outbox WHERE id = ? LIMIT 1`,
+		id,
+	).Scan(&row.ID, &row.PublishedStatus, &row.PublishAttempts, &row.LastPublishError, &row.PublishedTime)
+	if err != nil {
+		t.Fatalf("query delay task outbox row error: %v", err)
 	}
-	if len(orderRPC.getOrderReqs) != 1 || orderRPC.getOrderReqs[0].GetOrderNumber() != 94001 {
-		t.Fatalf("unexpected get order reqs: %+v", orderRPC.getOrderReqs)
+	return row
+}
+
+func openOrderCloseTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+
+	ensureOrderCloseTestDatabase(t)
+
+	db, err := sql.Open("mysql", xmysql.WithLocalTime(testOrderCloseMySQLDataSource))
+	if err != nil {
+		t.Fatalf("sql.Open error: %v", err)
+	}
+	if err := db.Ping(); err != nil {
+		db.Close()
+		t.Fatalf("db.Ping error: %v", err)
+	}
+	return db
+}
+
+func ensureOrderCloseTestDatabase(t *testing.T) {
+	t.Helper()
+
+	cfg, err := mysqlDriver.ParseDSN(testOrderCloseMySQLDataSource)
+	if err != nil {
+		t.Fatalf("ParseDSN error: %v", err)
+	}
+
+	dbName := cfg.DBName
+	cfg.DBName = ""
+	adminDB, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		t.Fatalf("sql.Open admin db error: %v", err)
+	}
+	defer adminDB.Close()
+
+	stmt := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+		strings.ReplaceAll(dbName, "`", "``"),
+	)
+	if _, err := adminDB.Exec(stmt); err != nil {
+		t.Fatalf("create database error: %v", err)
 	}
 }

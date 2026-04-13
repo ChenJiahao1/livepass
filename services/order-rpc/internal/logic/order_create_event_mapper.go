@@ -11,12 +11,13 @@ import (
 )
 
 type orderWriteModels struct {
-	order        *model.DOrder
-	orderTickets []*model.DOrderTicketUser
-	userGuard    *model.DOrderUserGuard
-	viewerGuards []*model.DOrderViewerGuard
-	seatGuards   []*model.DOrderSeatGuard
-	outboxRows   []*model.DOrderOutbox
+	order         *model.DOrder
+	orderTickets  []*model.DOrderTicketUser
+	userGuard     *model.DOrderUserGuard
+	viewerGuards  []*model.DOrderViewerGuard
+	seatGuards    []*model.DOrderSeatGuard
+	outboxRows    []*model.DOrderOutbox
+	delayTaskRows []*model.DDelayTaskOutbox
 }
 
 func MapEventToOrderModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*model.DOrder, []*model.DOrderTicketUser, error) {
@@ -131,6 +132,10 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 	if err != nil {
 		return nil, err
 	}
+	closeTimeoutTask, err := newCloseTimeoutDelayTaskRow(now, orderEvent.OrderNumber, orderExpireTime)
+	if err != nil {
+		return nil, err
+	}
 
 	return &orderWriteModels{
 		order:        order,
@@ -145,8 +150,9 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 			EditTime:    now,
 			Status:      1,
 		},
-		viewerGuards: viewerGuards,
-		seatGuards:   seatGuards,
-		outboxRows:   []*model.DOrderOutbox{createdOutbox},
+		viewerGuards:  viewerGuards,
+		seatGuards:    seatGuards,
+		outboxRows:    []*model.DOrderOutbox{createdOutbox},
+		delayTaskRows: []*model.DDelayTaskOutbox{closeTimeoutTask},
 	}, nil
 }

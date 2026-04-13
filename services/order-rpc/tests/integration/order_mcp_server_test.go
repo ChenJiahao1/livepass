@@ -254,6 +254,10 @@ func (tx *fakeMCPOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrder
 	return nil
 }
 
+func (tx *fakeMCPOrderTx) InsertDelayTasks(ctx context.Context, rows []*model.DDelayTaskOutbox) error {
+	return nil
+}
+
 func (tx *fakeMCPOrderTx) DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error {
 	return nil
 }

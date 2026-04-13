@@ -186,18 +186,6 @@ type fakeOrderCreateConsumerFactory struct {
 	closeCalls    int
 }
 
-type fakeAsyncCloseClient struct {
-	enqueueErr      error
-	enqueueCalls    int
-	lastOrderNumber int64
-	lastExpireAt    time.Time
-
-	verifyEnqueueErr      error
-	verifyEnqueueCalls    int
-	verifyLastOrderNumber int64
-	verifyLastDueAt       time.Time
-}
-
 type tracingOrderRepository struct {
 	base                       repository.OrderRepository
 	transactByOrderNumberCalls int
@@ -265,7 +253,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 	payRPC := &fakeOrderPayRPC{}
 	orderCreateProducer := &fakeOrderCreateProducer{}
 	orderCreateConsumerFactory := &fakeOrderCreateConsumerFactory{}
-	asyncCloseClient := &fakeAsyncCloseClient{}
 	cfg.MySQL.DataSource = xmysql.WithLocalTime(cfg.MySQL.DataSource)
 	conn := sqlx.NewMysql(cfg.MySQL.DataSource)
 	shardConn0 := sqlx.NewMysql(xmysql.WithLocalTime(cfg.Sharding.Shards["order-db-0"].DataSource))
@@ -307,7 +294,6 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		PayRpc:                     payRPC,
 		OrderCreateProducer:        orderCreateProducer,
 		OrderCreateConsumerFactory: orderCreateConsumerFactory,
-		AsyncCloseClient:           asyncCloseClient,
 	}
 
 	return svcCtx, programRPC, userRPC, payRPC
@@ -334,13 +320,6 @@ func rebindOrderTestAttemptStore(t *testing.T, svcCtx *svc.ServiceContext) *rush
 	svcCtx.AttemptStore = store
 
 	return store
-}
-
-func (f *fakeAsyncCloseClient) EnqueueCloseTimeout(_ context.Context, orderNumber int64, expireAt time.Time) error {
-	f.enqueueCalls++
-	f.lastOrderNumber = orderNumber
-	f.lastExpireAt = expireAt
-	return f.enqueueErr
 }
 
 func buildOrderTestShardingConfig() config.ShardingConfig {
@@ -511,6 +490,7 @@ func resetOrderDomainState(t *testing.T) {
 		"sql/order/sharding/d_order_viewer_guard.sql",
 		"sql/order/sharding/d_order_seat_guard.sql",
 		"sql/order/sharding/d_order_outbox.sql",
+		"sql/order/sharding/d_delay_task_outbox.sql",
 	} {
 		execOrderSQLFile(t, db, relativePath)
 	}

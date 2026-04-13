@@ -1,0 +1,23 @@
+Interval: 5s
+BatchSize: 200
+Shards:
+  order-db-0:
+    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+    MaxOpenConns: 24
+    MaxIdleConns: 8
+    ConnMaxLifetime: 3m
+    ConnMaxIdleTime: 1m
+  order-db-1:
+    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+    MaxOpenConns: 24
+    MaxIdleConns: 8
+    ConnMaxLifetime: 3m
+    ConnMaxIdleTime: 1m
+Asynq:
+  Queue: order_close
+  EnqueueTimeout: 500ms
+  UniqueTTL: 30m
+  MaxRetry: 8
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node

@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"damai-go/jobs/order-close-worker/internal/config"
-	"damai-go/jobs/order-close-worker/internal/svc"
-	"damai-go/jobs/order-close-worker/internal/worker"
+	"damai-go/jobs/order-close/internal/config"
+	"damai-go/jobs/order-close/internal/svc"
+	"damai-go/jobs/order-close/internal/worker"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -25,11 +25,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	serviceContext := svc.NewServiceContext(c)
+	serviceContext := svc.NewWorkerServiceContext(c)
 	mux := worker.NewServeMux(serviceContext)
 
 	if err := serviceContext.Server.Start(mux); err != nil {
-		logx.WithContext(ctx).Errorf("start order-close-worker failed: %v", err)
+		logx.WithContext(ctx).Errorf("start order-close worker failed: %v", err)
 		return
 	}
 

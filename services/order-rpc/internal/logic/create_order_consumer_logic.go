@@ -119,6 +119,9 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		if err := tx.InsertOutbox(ctx, writeModels.outboxRows); err != nil {
 			return err
 		}
+		if err := tx.InsertDelayTasks(ctx, writeModels.delayTaskRows); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -129,12 +132,6 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	}
 
 	l.finalizeSuccess(attempt, processingEpoch, extractSeatIDs(enrichedEvent.SeatSnapshot), now, lease)
-	if l.svcCtx.AsyncCloseClient != nil {
-		if err := l.svcCtx.AsyncCloseClient.EnqueueCloseTimeout(l.ctx, orderEvent.OrderNumber, writeModels.order.OrderExpireTime); err != nil {
-			l.Errorf("enqueue order async close failed, orderNumber=%d err=%v", orderEvent.OrderNumber, err)
-		}
-	}
-
 	return nil
 }
 
