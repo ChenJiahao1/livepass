@@ -13,7 +13,7 @@ func TestLoadUserRPCConfig(t *testing.T) {
 	t.Parallel()
 
 	var c config.Config
-	configFile := filepath.Join("..", "..", "etc", "user-rpc.yaml")
+	configFile := filepath.Join("..", "..", "etc", "user.yaml")
 	if err := conf.Load(configFile, &c); err != nil {
 		t.Fatalf("load %s: %v", configFile, err)
 	}
@@ -37,7 +37,7 @@ func TestLoadUserRPCConfigIncludesStaticXid(t *testing.T) {
 	t.Parallel()
 
 	var c config.Config
-	configFile := filepath.Join("..", "..", "etc", "user-rpc.yaml")
+	configFile := filepath.Join("..", "..", "etc", "user.yaml")
 	if err := conf.Load(configFile, &c); err != nil {
 		t.Fatalf("load %s: %v", configFile, err)
 	}

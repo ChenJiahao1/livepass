@@ -14,7 +14,7 @@ import (
 
 func main() {
 	var (
-		configFile = flag.String("config", "services/program-rpc/etc/program-rpc.yaml", "program-rpc config file")
+		configFile = flag.String("config", "services/program-rpc/etc/program.yaml", "program-rpc config file")
 		showTimeID = flag.Int64("showTimeId", 0, "show time id")
 	)
 	flag.Parse()

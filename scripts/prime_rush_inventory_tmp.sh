@@ -9,8 +9,8 @@ if [[ $# -lt 1 ]]; then
 fi
 
 SHOW_TIME_ID="$1"
-ORDER_CONFIG="${2:-services/order-rpc/etc/order-rpc.yaml}"
-PROGRAM_CONFIG="${3:-services/program-rpc/etc/program-rpc.yaml}"
+ORDER_CONFIG="${2:-services/order-rpc/etc/order.yaml}"
+PROGRAM_CONFIG="${3:-services/program-rpc/etc/program.yaml}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 

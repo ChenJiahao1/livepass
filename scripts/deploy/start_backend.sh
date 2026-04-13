@@ -197,10 +197,10 @@ start_service() {
 }
 
 start_core_services() {
-  start_service "user-rpc" 8080 "services/user-rpc/user.go" "go run services/user-rpc/user.go -f services/user-rpc/etc/user-rpc.yaml"
-  start_service "program-rpc" 8083 "services/program-rpc/program.go" "go run services/program-rpc/program.go -f services/program-rpc/etc/program-rpc.yaml"
-  start_service "pay-rpc" 8084 "services/pay-rpc/pay.go" "go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay-rpc.yaml"
-  start_service "order-rpc" 8082 "services/order-rpc/order.go" "go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml"
+  start_service "user-rpc" 8080 "services/user-rpc/user.go" "go run services/user-rpc/user.go -f services/user-rpc/etc/user.yaml"
+  start_service "program-rpc" 8083 "services/program-rpc/program.go" "go run services/program-rpc/program.go -f services/program-rpc/etc/program.yaml"
+  start_service "pay-rpc" 8084 "services/pay-rpc/pay.go" "go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay.yaml"
+  start_service "order-rpc" 8082 "services/order-rpc/order.go" "go run services/order-rpc/order.go -f services/order-rpc/etc/order.yaml"
 
   start_service "order-close-worker" 0 "jobs/order-close/cmd/worker/main.go|order-close-worker.yaml" "go run jobs/order-close/cmd/worker/main.go -f jobs/order-close/etc/order-close-worker.yaml"
   start_service "order-close-dispatcher" 0 "jobs/order-close/cmd/dispatcher/main.go|order-close-dispatcher.yaml" "go run jobs/order-close/cmd/dispatcher/main.go -f jobs/order-close/etc/order-close-dispatcher.yaml"

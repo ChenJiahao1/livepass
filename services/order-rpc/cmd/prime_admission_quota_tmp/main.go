@@ -16,7 +16,7 @@ import (
 
 func main() {
 	var (
-		configFile = flag.String("config", "services/order-rpc/etc/order-rpc.yaml", "order-rpc config file")
+		configFile = flag.String("config", "services/order-rpc/etc/order.yaml", "order-rpc config file")
 		showTimeID = flag.Int64("showTimeId", 0, "show time id")
 	)
 	flag.Parse()

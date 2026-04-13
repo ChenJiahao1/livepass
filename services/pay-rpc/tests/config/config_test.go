@@ -13,7 +13,7 @@ func TestLoadPayRPCConfigIncludesStaticXid(t *testing.T) {
 	t.Parallel()
 
 	var c config.Config
-	configFile := filepath.Join("..", "..", "etc", "pay-rpc.yaml")
+	configFile := filepath.Join("..", "..", "etc", "pay.yaml")
 	if err := conf.Load(configFile, &c); err != nil {
 		t.Fatalf("load %s: %v", configFile, err)
 	}

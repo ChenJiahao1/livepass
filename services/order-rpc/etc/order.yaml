@@ -30,7 +30,7 @@ Sharding:
       ConnMaxLifetime: 3m
       ConnMaxIdleTime: 1m
   RouteMap:
-    File: order-rpc.route-map.yaml
+    File: order.route-map.yaml
 StoreRedis:
   Host: 127.0.0.1:6379
   Type: node

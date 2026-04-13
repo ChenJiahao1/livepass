@@ -97,7 +97,7 @@ func TestServiceContextKafkaLoadOrderKafkaConfig(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	configFile := filepath.Join(dir, "order-rpc.yaml")
+	configFile := filepath.Join(dir, "order.yaml")
 	content := []byte(`
 Name: order.rpc
 ListenOn: 0.0.0.0:8082

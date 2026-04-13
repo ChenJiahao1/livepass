@@ -141,10 +141,10 @@ uv run pytest -v
 ## 启动服务
 
 ```bash
-go run services/user-rpc/user.go -f services/user-rpc/etc/user-rpc.yaml
-go run services/program-rpc/program.go -f services/program-rpc/etc/program-rpc.yaml
-go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay-rpc.yaml
-go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml
+go run services/user-rpc/user.go -f services/user-rpc/etc/user.yaml
+go run services/program-rpc/program.go -f services/program-rpc/etc/program.yaml
+go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay.yaml
+go run services/order-rpc/order.go -f services/order-rpc/etc/order.yaml
 go run jobs/order-close/cmd/worker/main.go -f jobs/order-close/etc/order-close-worker.yaml
 go run jobs/order-close/cmd/dispatcher/main.go -f jobs/order-close/etc/order-close-dispatcher.yaml
 go run services/user-api/user.go -f services/user-api/etc/user-api.yaml

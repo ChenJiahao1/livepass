@@ -13,7 +13,7 @@ import (
 func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	t.Parallel()
 
-	configFile := filepath.Join("..", "..", "etc", "order-rpc.yaml")
+	configFile := filepath.Join("..", "..", "etc", "order.yaml")
 	c, err := config.Load(configFile)
 	if err != nil {
 		t.Fatalf("load %s: %v", configFile, err)
@@ -97,7 +97,7 @@ func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T
 func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	t.Parallel()
 
-	configFile := filepath.Join("..", "..", "etc", "order-rpc.perf.yaml")
+	configFile := filepath.Join("..", "..", "etc", "order.perf.yaml")
 	c, err := config.Load(configFile)
 	if err != nil {
 		t.Fatalf("load %s: %v", configFile, err)
@@ -182,7 +182,7 @@ func TestOrderCreateAcceptAsyncConfigRemovesLegacyTimeDrivenFields(t *testing.T)
 func TestLoadOrderRPCConfigIncludesStaticXid(t *testing.T) {
 	t.Parallel()
 
-	configFile := filepath.Join("..", "..", "etc", "order-rpc.yaml")
+	configFile := filepath.Join("..", "..", "etc", "order.yaml")
 	c, err := config.Load(configFile)
 	if err != nil {
 		t.Fatalf("load %s: %v", configFile, err)
