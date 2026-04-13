@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# debug-only helper for manual troubleshooting; production flow should use rush-inventory-preheat-worker
+# debug-only helper for manual troubleshooting; production flow should use jobs/rush-inventory-preheat
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then

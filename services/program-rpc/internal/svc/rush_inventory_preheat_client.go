@@ -2,73 +2,77 @@ package svc
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
+	"damai-go/jobs/rush-inventory-preheat/taskdef"
+	"damai-go/pkg/xid"
 	"damai-go/services/program-rpc/internal/config"
-	"damai-go/services/program-rpc/preheatqueue"
 
-	"github.com/hibiken/asynq"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
-
-type asynqEnqueuer interface {
-	EnqueueContext(ctx context.Context, task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error)
-}
 
 type RushInventoryPreheatClient interface {
 	Enqueue(ctx context.Context, showTimeID int64, expectedOpenTime time.Time) error
 }
 
-type asynqRushInventoryPreheatClient struct {
-	enqueuer  asynqEnqueuer
-	queue     string
-	leadTime  time.Duration
-	maxRetry  int
-	uniqueTTL time.Duration
+type outboxRushInventoryPreheatClient struct {
+	conn     sqlx.SqlConn
+	leadTime time.Duration
 }
 
-func newRushInventoryPreheatClient(cfg config.RushInventoryPreheatConfig) (RushInventoryPreheatClient, error) {
-	if !cfg.Enable || cfg.Redis.Host == "" {
+func newRushInventoryPreheatClient(conn sqlx.SqlConn, cfg config.RushInventoryPreheatConfig) (RushInventoryPreheatClient, error) {
+	if !cfg.Enable {
 		return nil, nil
 	}
-	if cfg.Redis.Type != "" && cfg.Redis.Type != "node" {
-		return nil, fmt.Errorf("unsupported rush inventory preheat redis type: %s", cfg.Redis.Type)
+	if conn == nil {
+		return nil, nil
 	}
 
-	client := asynq.NewClient(asynq.RedisClientOpt{
-		Addr:     cfg.Redis.Host,
-		Username: cfg.Redis.User,
-		Password: cfg.Redis.Pass,
-	})
-
-	return &asynqRushInventoryPreheatClient{
-		enqueuer:  client,
-		queue:     cfg.Queue,
-		leadTime:  cfg.LeadTime,
-		maxRetry:  cfg.MaxRetry,
-		uniqueTTL: cfg.UniqueTTL,
+	return &outboxRushInventoryPreheatClient{
+		conn:     conn,
+		leadTime: cfg.LeadTime,
 	}, nil
 }
 
-func (c *asynqRushInventoryPreheatClient) Enqueue(ctx context.Context, showTimeID int64, expectedOpenTime time.Time) error {
-	body, err := preheatqueue.MarshalRushInventoryPreheatPayload(showTimeID, expectedOpenTime, c.leadTime)
+func (c *outboxRushInventoryPreheatClient) Enqueue(ctx context.Context, showTimeID int64, expectedOpenTime time.Time) error {
+	return c.EnqueueWithConn(ctx, c.conn, showTimeID, expectedOpenTime)
+}
+
+func (c *outboxRushInventoryPreheatClient) EnqueueWithConn(ctx context.Context, conn sqlx.SqlConn, showTimeID int64, expectedOpenTime time.Time) error {
+	message, err := taskdef.NewMessage(showTimeID, expectedOpenTime, c.leadTime)
 	if err != nil {
 		return err
 	}
-
-	processAt := expectedOpenTime.Add(-c.leadTime)
-	opts := []asynq.Option{
-		asynq.Queue(c.queue),
-		asynq.ProcessAt(processAt),
-		asynq.TaskID(preheatqueue.RushInventoryPreheatTaskID(showTimeID, expectedOpenTime)),
-	}
-	if c.maxRetry > 0 {
-		opts = append(opts, asynq.MaxRetry(c.maxRetry))
-	}
-	if c.uniqueTTL > 0 {
-		opts = append(opts, asynq.Unique(c.uniqueTTL))
+	if conn == nil {
+		return fmt.Errorf("rush inventory preheat outbox conn is nil")
 	}
 
-	_, err = c.enqueuer.EnqueueContext(ctx, asynq.NewTask(preheatqueue.TaskTypeRushInventoryPreheat, body), opts...)
+	now := time.Now()
+	_, err = conn.ExecCtx(
+		ctx,
+		`INSERT INTO d_delay_task_outbox (
+			id, task_type, task_key, payload, execute_at, published_status, publish_attempts,
+			last_publish_error, published_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, 0, 0, '', ?, ?, ?, 1)
+		ON DUPLICATE KEY UPDATE
+			payload = VALUES(payload),
+			execute_at = VALUES(execute_at),
+			published_status = 0,
+			publish_attempts = 0,
+			last_publish_error = '',
+			published_time = NULL,
+			edit_time = VALUES(edit_time),
+			status = 1`,
+		xid.New(),
+		message.Type,
+		message.Key,
+		string(message.Payload),
+		message.ExecuteAt,
+		sql.NullTime{},
+		now,
+		now,
+	)
 	return err
 }

@@ -10,11 +10,13 @@ import (
 )
 
 type AsynqConfig struct {
-	Queue          string        `json:",default=order_close"`
-	EnqueueTimeout time.Duration `json:",default=500ms"`
-	UniqueTTL      time.Duration `json:",default=30m"`
-	MaxRetry       int           `json:",default=8"`
-	Redis          xredis.Config `json:"Redis,optional"`
+	Queue           string        `json:",default=order_close"`
+	EnqueueTimeout  time.Duration `json:",default=500ms"`
+	UniqueTTL       time.Duration `json:",default=30m"`
+	MaxRetry        int           `json:",default=8"`
+	Concurrency     int           `json:",default=16"`
+	ShutdownTimeout time.Duration `json:",default=10s"`
+	Redis           xredis.Config `json:"Redis,optional"`
 }
 
 type Config struct {

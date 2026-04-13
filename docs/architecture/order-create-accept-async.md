@@ -147,12 +147,13 @@ consumer 收到消息后：
   - `d_order_viewer_guard`
   - `d_order_seat_guard`
   - `d_order_outbox(order.created)`
+  - `d_delay_task_outbox(order.close_timeout)`
 
 事务成功后：
 
 - attempt 更新为 `SUCCESS`
 - 删除 inflight 占位
-- 登记 `close_timeout`
+- `order-close` dispatcher 会把 `d_delay_task_outbox` 中的 `order.close_timeout` 补发到 Asynq
 
 ### 5. `/order/poll`
 

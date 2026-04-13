@@ -56,7 +56,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	cacheInvalidationConf := c.CacheInvalidation.Normalize()
 	c.CacheInvalidation = cacheInvalidationConf
 	queryCaches := newProgramQueryCaches(models, rds, c)
-	rushInventoryPreheatClient, err := newRushInventoryPreheatClient(c.RushInventoryPreheat)
+	rushInventoryPreheatClient, err := newRushInventoryPreheatClient(conn, c.RushInventoryPreheat)
 	if err != nil {
 		panic(err)
 	}

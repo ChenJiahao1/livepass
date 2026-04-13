@@ -9,9 +9,9 @@ import (
 )
 
 func TestDefaultOrderCloseConfigCoversAllLogicSlots(t *testing.T) {
-	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "jobs/order-close/etc/order-close.yaml"))
+	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "jobs/order-close/etc/order-close-dispatcher.yaml"))
 	if err != nil {
-		t.Fatalf("ReadFile(order-close.yaml) error = %v", err)
+		t.Fatalf("ReadFile(order-close-dispatcher.yaml) error = %v", err)
 	}
 	text := string(content)
 
@@ -27,9 +27,9 @@ func TestDefaultOrderCloseConfigCoversAllLogicSlots(t *testing.T) {
 }
 
 func TestDefaultOrderCloseConfigUsesCompensationCadence(t *testing.T) {
-	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "jobs/order-close/etc/order-close.yaml"))
+	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "jobs/order-close/etc/order-close-dispatcher.yaml"))
 	if err != nil {
-		t.Fatalf("ReadFile(order-close.yaml) error = %v", err)
+		t.Fatalf("ReadFile(order-close-dispatcher.yaml) error = %v", err)
 	}
 	text := string(content)
 
@@ -41,6 +41,24 @@ func TestDefaultOrderCloseConfigUsesCompensationCadence(t *testing.T) {
 	}
 	if !strings.Contains(text, "Queue: order_close") {
 		t.Fatalf("expected Queue: order_close, content=%s", text)
+	}
+}
+
+func TestDefaultOrderCloseWorkerConfigUsesWorkerQueueSettings(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "jobs/order-close/etc/order-close-worker.yaml"))
+	if err != nil {
+		t.Fatalf("ReadFile(order-close-worker.yaml) error = %v", err)
+	}
+	text := string(content)
+
+	if !strings.Contains(text, "Queue: order_close") {
+		t.Fatalf("expected Queue: order_close, content=%s", text)
+	}
+	if !strings.Contains(text, "Concurrency: 16") {
+		t.Fatalf("expected Concurrency: 16, content=%s", text)
+	}
+	if !strings.Contains(text, "ShutdownTimeout: 10s") {
+		t.Fatalf("expected ShutdownTimeout: 10s, content=%s", text)
 	}
 }
 

@@ -165,6 +165,68 @@ func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 	return svcCtx
 }
 
+func newProgramTestServiceContextWithRushInventoryPreheat(t *testing.T) *svc.ServiceContext {
+	t.Helper()
+	acquireProgramDomainState(t)
+	ensureProgramTestDatabase(t, testProgramMySQLDataSource)
+
+	_ = xid.Close()
+	if err := xid.Init(xid.Config{
+		Provider: xid.ProviderStatic,
+		NodeID:   901,
+	}); err != nil {
+		t.Fatalf("init xid error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = xid.Close()
+	})
+
+	svcCtx := svc.NewServiceContext(config.Config{
+		MySQL: xmysql.Config{
+			DataSource: testProgramMySQLDataSource,
+		},
+		StoreRedis: xredis.Config{
+			Host: "127.0.0.1:6379",
+			Type: "node",
+		},
+		Cache: cache.CacheConf{
+			{
+				RedisConf: gzredis.RedisConf{
+					Host: "127.0.0.1:6379",
+					Type: "node",
+				},
+				Weight: 100,
+			},
+		},
+		LocalCache: config.LocalCacheConfig{
+			DetailTTL:           20 * time.Second,
+			DetailNotFoundTTL:   5 * time.Second,
+			DetailCacheLimit:    5000,
+			CategorySnapshotTTL: 5 * time.Minute,
+		},
+		RushInventoryPreheat: config.RushInventoryPreheatConfig{
+			Enable:    true,
+			LeadTime:  5 * time.Minute,
+			Queue:     "rush_inventory_preheat",
+			MaxRetry:  8,
+			UniqueTTL: 30 * time.Minute,
+			Redis: xredis.Config{
+				Host: "127.0.0.1:6379",
+				Type: "node",
+			},
+		},
+	})
+
+	svcCtx.SeatStockStore = seatcache.NewSeatStockStore(svcCtx.Redis, svcCtx.DSeatModel, seatcache.Config{
+		Prefix:          testProgramSeatLedgerPrefix,
+		StockTTL:        time.Hour,
+		SeatTTL:         time.Hour,
+		LoadingCooldown: 200 * time.Millisecond,
+	})
+
+	return svcCtx
+}
+
 func startProgramCacheSubscriber(t *testing.T, svcCtx *svc.ServiceContext, channel string, expectedSubs int64) func() {
 	t.Helper()
 
@@ -365,6 +427,7 @@ func resetProgramDomainState(t *testing.T) {
 		"sql/program/d_program_group.sql",
 		"sql/program/d_program.sql",
 		"sql/program/d_program_show_time.sql",
+		"sql/program/d_delay_task_outbox.sql",
 		"sql/program/d_seat.sql",
 		"sql/program/d_ticket_category.sql",
 		"sql/program/dev_seed.sql",
@@ -633,6 +696,40 @@ func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {
 	}
 
 	return db
+}
+
+func requireProgramDelayTaskOutbox(t *testing.T, dataSource, taskType, taskKey, executeAt string) {
+	t.Helper()
+
+	db := openProgramTestDB(t, dataSource)
+	defer db.Close()
+
+	var actualTaskType string
+	var actualTaskKey string
+	var actualExecuteAt string
+	err := db.QueryRow(
+		`SELECT task_type, task_key, DATE_FORMAT(execute_at, '%Y-%m-%d %H:%i:%s')
+		FROM d_delay_task_outbox
+		WHERE task_key = ?
+		LIMIT 1`,
+		taskKey,
+	).Scan(&actualTaskType, &actualTaskKey, &actualExecuteAt)
+	if err == sql.ErrNoRows {
+		t.Fatalf("delay task outbox row not found for task_key=%s", taskKey)
+	}
+	if err != nil {
+		t.Fatalf("query delay task outbox error: %v", err)
+	}
+
+	if actualTaskType != taskType {
+		t.Fatalf("expected task_type %s, got %s", taskType, actualTaskType)
+	}
+	if actualTaskKey != taskKey {
+		t.Fatalf("expected task_key %s, got %s", taskKey, actualTaskKey)
+	}
+	if actualExecuteAt != executeAt {
+		t.Fatalf("expected execute_at %s, got %s", executeAt, actualExecuteAt)
+	}
 }
 
 func ensureProgramTestDatabase(t *testing.T, dataSource string) {

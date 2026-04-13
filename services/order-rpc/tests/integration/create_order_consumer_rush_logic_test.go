@@ -25,10 +25,6 @@ func TestCreateOrderConsumerPersistsOrderFromRushEvent(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
 	}
-	asyncCloseClient, ok := svcCtx.AsyncCloseClient.(*fakeAsyncCloseClient)
-	if !ok {
-		t.Fatalf("expected fake async close client, got %T", svcCtx.AsyncCloseClient)
-	}
 
 	ctx := context.Background()
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
@@ -89,12 +85,7 @@ func TestCreateOrderConsumerPersistsOrderFromRushEvent(t *testing.T) {
 	if order.FreezeToken != "freeze-create-consumer-rush" {
 		t.Fatalf("expected freeze token freeze-create-consumer-rush, got %s", order.FreezeToken)
 	}
-	if asyncCloseClient.verifyEnqueueCalls != 0 {
-		t.Fatalf("expected no verify task enqueue from hot path, got %d", asyncCloseClient.verifyEnqueueCalls)
-	}
-	if asyncCloseClient.enqueueCalls != 1 {
-		t.Fatalf("expected close timeout enqueue once from consumer, got %d", asyncCloseClient.enqueueCalls)
-	}
+	requireDelayTaskOutbox(t, svcCtx.Config.MySQL.DataSource, "d_delay_task_outbox", resp.GetOrderNumber(), "2026-12-31 19:45:00")
 	if programRPC.lastGetProgramPreorderReq == nil {
 		t.Fatalf("expected consumer to load preorder snapshot")
 	}

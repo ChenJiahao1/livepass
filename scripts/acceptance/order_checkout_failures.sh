@@ -7,7 +7,7 @@ source "${SCRIPT_DIR}/order_checkout.sh"
 
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-docker-compose-mysql-1}"
 MYSQL_PASSWORD="${MYSQL_PASSWORD:-123456}"
-ORDER_CLOSE_CONFIG="${ORDER_CLOSE_CONFIG:-jobs/order-close/etc/order-close.yaml}"
+ORDER_CLOSE_CONFIG="${ORDER_CLOSE_CONFIG:-jobs/order-close/etc/order-close-dispatcher.yaml}"
 ORDER_CLOSE_WAIT_SECONDS="${ORDER_CLOSE_WAIT_SECONDS:-30}"
 INVENTORY_FAIL_TICKET_CATEGORY_ID="${INVENTORY_FAIL_TICKET_CATEGORY_ID:-}"
 
@@ -80,12 +80,12 @@ run_order_close_once() {
   log "触发一次 order-close 任务"
   config_file="$(mktemp /tmp/order-close-acceptance-XXXXXX.yaml)"
   log_file="$(mktemp)"
-  sed 's/^ScanSlotBatchSize:.*/ScanSlotBatchSize: 1024/' "${ORDER_CLOSE_CONFIG}" >"${config_file}"
-  go run jobs/order-close/order_close.go -f "${config_file}" >"${log_file}" 2>&1 &
+  sed 's/^BatchSize:.*/BatchSize: 1024/' "${ORDER_CLOSE_CONFIG}" >"${config_file}"
+  go run jobs/order-close/cmd/dispatcher/main.go -f "${config_file}" >"${log_file}" 2>&1 &
   pid=$!
 
   for ((i = 0; i < ORDER_CLOSE_WAIT_SECONDS; i++)); do
-    if grep -q "Starting order-close job" "${log_file}"; then
+    if grep -q "Starting order-close dispatcher" "${log_file}"; then
       started=1
       break
     fi

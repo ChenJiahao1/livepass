@@ -26,6 +26,7 @@ PROGRAM_SQL_FILES=(
   "sql/program/d_program_group.sql"
   "sql/program/d_program.sql"
   "sql/program/d_program_show_time.sql"
+  "sql/program/d_delay_task_outbox.sql"
   "sql/program/d_seat.sql"
   "sql/program/d_ticket_category.sql"
   "sql/program/dev_seed.sql"
@@ -38,6 +39,7 @@ ORDER_SQL_FILES=(
   "sql/order/sharding/d_order_viewer_guard.sql"
   "sql/order/sharding/d_order_seat_guard.sql"
   "sql/order/sharding/d_order_outbox.sql"
+  "sql/order/sharding/d_delay_task_outbox.sql"
 )
 
 PAY_SQL_FILES=(

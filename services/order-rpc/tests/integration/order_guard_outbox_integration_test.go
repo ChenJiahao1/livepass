@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -97,6 +98,24 @@ func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, viewerGuardTable, orderNumber)
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, seatGuardTable, orderNumber)
 	requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, outboxTable, orderNumber, 10001, 10001, 3001, "order.closed")
+}
+
+func TestCreateOrderWritesDelayTaskOutbox(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	orderNumber := sharding.BuildOrderNumber(3001, time.Date(2026, time.April, 5, 11, 10, 0, 0, time.UTC), 1, 3)
+	event := testOrderCreateEvent(orderNumber, "2026-04-05 11:10:00", "2026-04-05 11:25:00")
+	body, err := event.Marshal()
+	if err != nil {
+		t.Fatalf("event.Marshal returned error: %v", err)
+	}
+
+	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(body); err != nil {
+		t.Fatalf("Consume returned error: %v", err)
+	}
+
+	requireDelayTaskOutbox(t, svcCtx.Config.MySQL.DataSource, "d_delay_task_outbox", orderNumber, "2026-04-05 11:25:00")
 }
 
 func TestCreateOrderGuardsRejectDuplicateSeatAcrossOrderSuffixes(t *testing.T) {
@@ -488,6 +507,57 @@ func requireOutboxEvent(t *testing.T, dataSource, table string, orderNumber, pro
 			decoded["showTimeId"],
 			decoded["userId"],
 		)
+	}
+}
+
+func requireDelayTaskOutbox(t *testing.T, dataSource, table string, orderNumber int64, executeAt string) {
+	t.Helper()
+
+	db := openOrderTestDB(t, dataSource)
+	defer db.Close()
+
+	var (
+		taskType        string
+		taskKey         string
+		payload         string
+		gotExecuteAt    time.Time
+		publishedStatus int64
+	)
+	err := db.QueryRow(
+		"SELECT task_type, task_key, payload, execute_at, published_status FROM "+table+" WHERE task_key = ? LIMIT 1",
+		fmt.Sprintf("order.close_timeout:%d", orderNumber),
+	).Scan(&taskType, &taskKey, &payload, &gotExecuteAt, &publishedStatus)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			t.Fatalf("delay task outbox row not found for orderNumber=%d", orderNumber)
+		}
+		t.Fatalf("query delay task outbox error: %v", err)
+	}
+
+	if taskType != "order.close_timeout" {
+		t.Fatalf("task_type = %s, want order.close_timeout", taskType)
+	}
+	if taskKey != fmt.Sprintf("order.close_timeout:%d", orderNumber) {
+		t.Fatalf("task_key = %s, want order.close_timeout:%d", taskKey, orderNumber)
+	}
+	if publishedStatus != 0 {
+		t.Fatalf("published_status = %d, want 0", publishedStatus)
+	}
+
+	var decoded map[string]int64
+	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
+		t.Fatalf("decode delay task payload error: %v", err)
+	}
+	if decoded["orderNumber"] != orderNumber {
+		t.Fatalf("unexpected delay task payload orderNumber=%d", decoded["orderNumber"])
+	}
+
+	expectedExecuteAt, err := time.ParseInLocation("2006-01-02 15:04:05", executeAt, time.Local)
+	if err != nil {
+		t.Fatalf("parse executeAt error: %v", err)
+	}
+	if !gotExecuteAt.Equal(expectedExecuteAt) {
+		t.Fatalf("execute_at = %s, want %s", gotExecuteAt.Format("2006-01-02 15:04:05"), expectedExecuteAt.Format("2006-01-02 15:04:05"))
 	}
 }
 

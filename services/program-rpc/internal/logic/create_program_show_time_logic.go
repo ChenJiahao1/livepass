@@ -111,13 +111,9 @@ func (l *CreateProgramShowTimeLogic) CreateProgramShowTime(in *pb.ProgramShowTim
 			}
 		}
 
-		return nil
+		return scheduleRushInventoryPreheat(ctx, l.svcCtx, showTimeModel, conn, createdShowTime)
 	})
 	if err != nil {
-		return nil, err
-	}
-
-	if err := scheduleRushInventoryPreheat(l.ctx, l.svcCtx, createdShowTime); err != nil {
 		return nil, err
 	}
 

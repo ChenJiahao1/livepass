@@ -145,8 +145,8 @@ go run services/user-rpc/user.go -f services/user-rpc/etc/user-rpc.yaml
 go run services/program-rpc/program.go -f services/program-rpc/etc/program-rpc.yaml
 go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay-rpc.yaml
 go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml
-go run jobs/order-close-worker/order_close_worker.go -f jobs/order-close-worker/etc/order-close-worker.yaml
-go run jobs/order-close/order_close.go -f jobs/order-close/etc/order-close.yaml
+go run jobs/order-close/cmd/worker/main.go -f jobs/order-close/etc/order-close-worker.yaml
+go run jobs/order-close/cmd/dispatcher/main.go -f jobs/order-close/etc/order-close-dispatcher.yaml
 go run services/user-api/user.go -f services/user-api/etc/user-api.yaml
 go run services/program-api/program.go -f services/program-api/etc/program-api.yaml
 go run services/order-api/order.go -f services/order-api/etc/order-api.yaml
@@ -167,8 +167,8 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 1. MySQL、Redis、etcd、Kafka
 2. `user-rpc`、`program-rpc`、`pay-rpc`
 3. `order-rpc`
-4. `jobs/order-close-worker`
-5. `jobs/order-close`
+4. `jobs/order-close/cmd/worker`
+5. `jobs/order-close/cmd/dispatcher`
 6. `user-api`、`program-api`、`order-api`、`pay-api`
 7. `agents`
 8. `gateway-api`
@@ -192,8 +192,8 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 - `gateway-api` 是统一外部入口，负责把 HTTP 请求转发到各域 API 或 `agents`
 - `/order/create` 采用 `accept + async` 模式：Redis admission 成功后立即返回 `orderNumber`，异步 consumer 再完成锁座、写单与 guard 落库
 - `/order/poll` 优先读取 Redis 中的 rush attempt 投影，并在非终态时回查 MySQL 是否已出现未支付订单
-- `jobs/order-close-worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单
-- `jobs/order-close` 负责扫描 `d_order_outbox(order.created)`，兜底补发 `close_timeout`；对已过期未支付订单直接调用 `order-rpc.CloseExpiredOrder` 收口
+- `jobs/order-close/cmd/worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单
+- `jobs/order-close/cmd/dispatcher` 负责扫描 `d_delay_task_outbox(order.close_timeout)`，补发延迟任务到 Asynq；真正的业务关闭仍只走 `order-rpc.CloseExpiredOrder`
 - `gateway-api` 已启用 `Telemetry`；若要得到完整链路，需要给下游 API/RPC 同步补齐 `Telemetry`
 
 ## 验收与联调
