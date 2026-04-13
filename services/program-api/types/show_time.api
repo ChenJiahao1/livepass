@@ -1,0 +1,8 @@
+type (
+	ProgramShowTimeAddReq {
+		ProgramID int64 `json:"programId"`
+		ShowTime string `json:"showTime"`
+		ShowDayTime string `json:"showDayTime"`
+		ShowWeekTime string `json:"showWeekTime"`
+	}
+)

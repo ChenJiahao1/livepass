@@ -1,0 +1,5 @@
+type (
+	BoolResp {
+		Success bool `json:"success"`
+	}
+)

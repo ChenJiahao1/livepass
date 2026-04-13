@@ -1,8 +1,4 @@
 type (
-	BoolResp {
-		Success bool `json:"success"`
-	}
-
 	UserVo {
 		ID int64 `json:"id"`
 		Name string `json:"name,optional"`
@@ -14,29 +10,6 @@ type (
 		RelAuthenticationStatus int64 `json:"relAuthenticationStatus,optional"`
 		IdNumber string `json:"idNumber,optional"`
 		Address string `json:"address,optional"`
-	}
-
-	UserRegisterReq {
-		Mobile string `json:"mobile"`
-		Password string `json:"password"`
-		ConfirmPassword string `json:"confirmPassword"`
-		Mail string `json:"mail,optional"`
-	}
-
-	UserExistReq {
-		Mobile string `json:"mobile"`
-	}
-
-	UserLoginReq {
-		Code string `json:"code"`
-		Mobile string `json:"mobile,optional"`
-		Email string `json:"email,optional"`
-		Password string `json:"password"`
-	}
-
-	UserLoginResp {
-		UserID int64 `json:"userId"`
-		Token string `json:"token"`
 	}
 
 	GetUserByIDReq {
@@ -68,11 +41,6 @@ type (
 	UpdateMobileReq {
 		ID int64 `json:"id"`
 		Mobile string `json:"mobile"`
-	}
-
-	UserLogoutReq {
-		Code string `json:"code"`
-		Token string `json:"token"`
 	}
 
 	AuthenticationReq {

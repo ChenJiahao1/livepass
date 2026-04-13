@@ -1,0 +1,62 @@
+type (
+	FreezeSeatsReq {
+		ShowTimeID int64 `json:"showTimeId"`
+		TicketCategoryID int64 `json:"ticketCategoryId"`
+		Count int64 `json:"count"`
+		RequestNo string `json:"requestNo"`
+		FreezeSeconds int64 `json:"freezeSeconds,optional"`
+	}
+
+	SeatAddReq {
+		ProgramID int64 `json:"programId"`
+		TicketCategoryID int64 `json:"ticketCategoryId"`
+		RowCode int64 `json:"rowCode"`
+		ColCode int64 `json:"colCode"`
+		SeatType int64 `json:"seatType"`
+		Price int64 `json:"price"`
+		SeatStatus int64 `json:"seatStatus,optional"`
+	}
+
+	SeatBatchRelateInfoAddReq {
+		TicketCategoryID int64 `json:"ticketCategoryId"`
+		Price int64 `json:"price"`
+		Count int64 `json:"count"`
+	}
+
+	SeatBatchAddReq {
+		ProgramID int64 `json:"programId"`
+		SeatBatchRelateInfoAddDtoList []SeatBatchRelateInfoAddReq `json:"seatBatchRelateInfoAddDtoList"`
+	}
+
+	SeatListReq {
+		ProgramID int64 `json:"programId"`
+	}
+
+	SeatInfo {
+		SeatID int64 `json:"seatId"`
+		TicketCategoryID int64 `json:"ticketCategoryId"`
+		RowCode int64 `json:"rowCode"`
+		ColCode int64 `json:"colCode"`
+		Price int64 `json:"price"`
+	}
+
+	PriceSeatGroup {
+		Price string `json:"price"`
+		Seats []SeatInfo `json:"seats,optional"`
+	}
+
+	SeatRelateInfoResp {
+		ProgramID int64 `json:"programId"`
+		Place string `json:"place,optional"`
+		ShowTime string `json:"showTime,optional"`
+		ShowWeekTime string `json:"showWeekTime,optional"`
+		PriceList []string `json:"priceList,optional"`
+		PriceSeatGroupList []PriceSeatGroup `json:"priceSeatGroupList,optional"`
+	}
+
+	FreezeSeatsResp {
+		FreezeToken string `json:"freezeToken,optional"`
+		ExpireTime string `json:"expireTime,optional"`
+		Seats []SeatInfo `json:"seats,optional"`
+	}
+)

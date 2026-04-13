@@ -1,0 +1,30 @@
+type (
+	ProgramCategoryTypeReq {
+		Type int64 `json:"type"`
+	}
+
+	ParentProgramCategoryReq {
+		ParentProgramCategoryID int64 `json:"parentProgramCategoryId"`
+	}
+
+	ProgramCategoryBatchItem {
+		ParentID int64 `json:"parentId"`
+		Name string `json:"name"`
+		Type int64 `json:"type"`
+	}
+
+	ProgramCategoryBatchSaveReq {
+		List []ProgramCategoryBatchItem `json:"list"`
+	}
+
+	ProgramCategoryInfo {
+		ID int64 `json:"id"`
+		ParentID int64 `json:"parentId"`
+		Name string `json:"name"`
+		Type int64 `json:"type"`
+	}
+
+	ProgramCategoryListResp {
+		List []ProgramCategoryInfo `json:"list,optional"`
+	}
+)

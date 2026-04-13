@@ -1,0 +1,7 @@
+type (
+	EmptyReq {}
+
+	IdResp {
+		ID int64 `json:"id"`
+	}
+)

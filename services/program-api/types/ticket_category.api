@@ -1,0 +1,35 @@
+type (
+	ListTicketCategoriesByProgramReq {
+		ProgramID int64 `json:"programId"`
+	}
+
+	TicketCategoryAddReq {
+		ProgramID int64 `json:"programId"`
+		Introduce string `json:"introduce"`
+		Price int64 `json:"price"`
+		TotalNumber int64 `json:"totalNumber"`
+		RemainNumber int64 `json:"remainNumber"`
+	}
+
+	TicketCategoryReq {
+		ID int64 `json:"id"`
+	}
+
+	TicketCategoryInfo {
+		ID int64 `json:"id"`
+		Introduce string `json:"introduce,optional"`
+		Price int64 `json:"price"`
+	}
+
+	TicketCategoryDetailInfo {
+		ProgramID int64 `json:"programId"`
+		Introduce string `json:"introduce,optional"`
+		Price int64 `json:"price"`
+		TotalNumber int64 `json:"totalNumber"`
+		RemainNumber int64 `json:"remainNumber"`
+	}
+
+	TicketCategoryDetailListResp {
+		List []TicketCategoryDetailInfo `json:"list,optional"`
+	}
+)

@@ -1,7 +1,9 @@
 syntax = "v1"
 
-import "desc/user.api"
-import "desc/ticket_user.api"
+import "../../api/types/common.api"
+import "types/auth.api"
+import "types/profile.api"
+import "types/ticket_user.api"
 
 service user-api {
 	@handler Register
