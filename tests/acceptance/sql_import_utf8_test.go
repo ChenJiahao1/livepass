@@ -55,6 +55,14 @@ func TestImportSQLScriptPreservesUTF8ProgramSeed(t *testing.T) {
 		t.Fatalf("unexpected program place: %q", place)
 	}
 
+	var outboxTable string
+	if err := programDB.QueryRow("SHOW TABLES LIKE 'd_delay_task_outbox'").Scan(&outboxTable); err != nil {
+		t.Fatalf("query d_delay_task_outbox table error: %v", err)
+	}
+	if outboxTable != "d_delay_task_outbox" {
+		t.Fatalf("unexpected outbox table name: %q", outboxTable)
+	}
+
 	rows, err := programDB.Query("SELECT id, introduce FROM d_ticket_category ORDER BY id")
 	if err != nil {
 		t.Fatalf("query d_ticket_category error: %v", err)

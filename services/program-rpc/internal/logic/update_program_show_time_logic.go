@@ -51,9 +51,8 @@ func (l *UpdateProgramShowTimeLogic) UpdateProgramShowTime(in *pb.UpdateProgramS
 	}
 
 	var (
-		programID       int64
-		programGroupID  int64
-		updatedShowTime *model.DProgramShowTime
+		programID      int64
+		programGroupID int64
 	)
 	now := time.Now()
 
@@ -85,15 +84,14 @@ func (l *UpdateProgramShowTimeLogic) UpdateProgramShowTime(in *pb.UpdateProgramS
 		current.RushSaleEndTime = rushSaleEndTime
 		current.ShowEndTime = showEndTime
 		current.EditTime = sql.NullTime{Time: now, Valid: true}
-		updatedShowTime = current
 
-		return showTimeModel.Update(ctx, current)
+		if err := showTimeModel.Update(ctx, current); err != nil {
+			return err
+		}
+
+		return scheduleRushInventoryPreheat(ctx, l.svcCtx, showTimeModel, conn, current)
 	})
 	if err != nil {
-		return nil, err
-	}
-
-	if err := scheduleRushInventoryPreheat(l.ctx, l.svcCtx, updatedShowTime); err != nil {
 		return nil, err
 	}
 

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat-worker/internal/config"
+	"damai-go/jobs/rush-inventory-preheat/internal/config"
 	"damai-go/pkg/xerr"
 	"damai-go/pkg/xmysql"
 	orderrpc "damai-go/services/order-rpc/orderrpc"
@@ -36,7 +36,7 @@ type ProgramPreheatRPC interface {
 	PrimeSeatLedger(ctx context.Context, in *programrpc.PrimeSeatLedgerReq) (*programrpc.BoolResp, error)
 }
 
-type ServiceContext struct {
+type WorkerServiceContext struct {
 	Config        config.Config
 	Server        *asynq.Server
 	ShowTimeStore ShowTimeStore
@@ -56,7 +56,7 @@ type programRPCPrimeAdapter struct {
 	client programrpc.ProgramRpc
 }
 
-func NewServiceContext(c config.Config) *ServiceContext {
+func NewWorkerServiceContext(c config.Config) *WorkerServiceContext {
 	c.MySQL = c.MySQL.Normalize()
 	c.MySQL.DataSource = xmysql.WithLocalTime(c.MySQL.DataSource)
 
@@ -67,7 +67,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 	xmysql.ApplyPool(rawDB, c.MySQL)
 
-	return &ServiceContext{
+	return &WorkerServiceContext{
 		Config: c,
 		Server: asynq.NewServer(asynq.RedisClientOpt{
 			Addr:     c.Asynq.Redis.Host,
@@ -90,7 +90,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 func (s *mysqlShowTimeStore) FindOne(ctx context.Context, showTimeID int64) (*ShowTimeRecord, error) {
 	var record ShowTimeRecord
-	err := s.conn.QueryRowCtx(ctx, &record,
+	err := s.conn.QueryRowCtx(
+		ctx,
+		&record,
 		"select `id`, `rush_sale_open_time`, `inventory_preheat_status` from `d_program_show_time` where `id` = ? and `status` = 1 limit 1",
 		showTimeID,
 	)
@@ -105,7 +107,8 @@ func (s *mysqlShowTimeStore) FindOne(ctx context.Context, showTimeID int64) (*Sh
 }
 
 func (s *mysqlShowTimeStore) MarkInventoryPreheated(ctx context.Context, showTimeID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error) {
-	result, err := s.conn.ExecCtx(ctx,
+	result, err := s.conn.ExecCtx(
+		ctx,
 		"update `d_program_show_time` set `inventory_preheat_status` = 2, `edit_time` = ? where `id` = ? and `status` = 1 and `rush_sale_open_time` = ?",
 		updatedAt,
 		showTimeID,

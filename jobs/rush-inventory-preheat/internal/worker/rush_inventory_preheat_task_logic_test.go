@@ -1,4 +1,4 @@
-package logic
+package worker
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat-worker/internal/svc"
+	"damai-go/jobs/rush-inventory-preheat/internal/svc"
+	"damai-go/jobs/rush-inventory-preheat/taskdef"
 	orderrpc "damai-go/services/order-rpc/orderrpc"
-	"damai-go/services/program-rpc/preheatqueue"
 	programrpc "damai-go/services/program-rpc/programrpc"
 
 	"github.com/hibiken/asynq"
@@ -29,13 +29,13 @@ type fakeRushInventoryShowTimeStore struct {
 	lastMarkUpdatedAt        time.Time
 }
 
-func (f *fakeRushInventoryShowTimeStore) FindOne(ctx context.Context, showTimeID int64) (*svc.ShowTimeRecord, error) {
+func (f *fakeRushInventoryShowTimeStore) FindOne(_ context.Context, showTimeID int64) (*svc.ShowTimeRecord, error) {
 	f.findCalls++
 	f.lastFindShowTimeID = showTimeID
 	return f.findResp, f.findErr
 }
 
-func (f *fakeRushInventoryShowTimeStore) MarkInventoryPreheated(ctx context.Context, showTimeID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error) {
+func (f *fakeRushInventoryShowTimeStore) MarkInventoryPreheated(_ context.Context, showTimeID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error) {
 	f.markCalls++
 	f.lastMarkShowTimeID = showTimeID
 	f.lastMarkExpectedOpenTime = expectedOpenTime
@@ -49,7 +49,7 @@ type fakeRushInventoryOrderRPC struct {
 	err        error
 }
 
-func (f *fakeRushInventoryOrderRPC) PrimeAdmissionQuota(ctx context.Context, in *orderrpc.PrimeAdmissionQuotaReq) (*orderrpc.BoolResp, error) {
+func (f *fakeRushInventoryOrderRPC) PrimeAdmissionQuota(_ context.Context, in *orderrpc.PrimeAdmissionQuotaReq) (*orderrpc.BoolResp, error) {
 	f.primeCalls++
 	f.lastReq = in
 	return &orderrpc.BoolResp{Success: true}, f.err
@@ -61,7 +61,7 @@ type fakeRushInventoryProgramRPC struct {
 	err        error
 }
 
-func (f *fakeRushInventoryProgramRPC) PrimeSeatLedger(ctx context.Context, in *programrpc.PrimeSeatLedgerReq) (*programrpc.BoolResp, error) {
+func (f *fakeRushInventoryProgramRPC) PrimeSeatLedger(_ context.Context, in *programrpc.PrimeSeatLedgerReq) (*programrpc.BoolResp, error) {
 	f.primeCalls++
 	f.lastReq = in
 	return &programrpc.BoolResp{Success: true}, f.err
@@ -69,9 +69,9 @@ func (f *fakeRushInventoryProgramRPC) PrimeSeatLedger(ctx context.Context, in *p
 
 func TestRushInventoryPreheatTaskLogicHandleCallsBothRPCsAndMarksCompleted(t *testing.T) {
 	expectedOpenTime := time.Date(2026, time.April, 14, 19, 30, 0, 0, time.Local)
-	body, err := preheatqueue.MarshalRushInventoryPreheatPayload(93001, expectedOpenTime, 5*time.Minute)
+	body, err := taskdef.Marshal(93001, expectedOpenTime, 5*time.Minute)
 	if err != nil {
-		t.Fatalf("MarshalRushInventoryPreheatPayload returned error: %v", err)
+		t.Fatalf("Marshal returned error: %v", err)
 	}
 
 	showTimeStore := &fakeRushInventoryShowTimeStore{
@@ -84,13 +84,13 @@ func TestRushInventoryPreheatTaskLogicHandleCallsBothRPCsAndMarksCompleted(t *te
 	}
 	orderRPC := &fakeRushInventoryOrderRPC{}
 	programRPC := &fakeRushInventoryProgramRPC{}
-	logic := NewRushInventoryPreheatTaskLogic(&svc.ServiceContext{
+	logic := NewRushInventoryPreheatTaskLogic(&svc.WorkerServiceContext{
 		ShowTimeStore: showTimeStore,
 		OrderRpc:      orderRPC,
 		ProgramRpc:    programRPC,
 	})
 
-	err = logic.Handle(context.Background(), asynq.NewTask(preheatqueue.TaskTypeRushInventoryPreheat, body))
+	err = logic.Handle(context.Background(), asynq.NewTask(taskdef.TaskTypeRushInventoryPreheat, body))
 	if err != nil {
 		t.Fatalf("Handle returned error: %v", err)
 	}
@@ -110,12 +110,12 @@ func TestRushInventoryPreheatTaskLogicHandleCallsBothRPCsAndMarksCompleted(t *te
 
 func TestRushInventoryPreheatTaskLogicHandleSkipsOnOpenTimeMismatch(t *testing.T) {
 	expectedOpenTime := time.Date(2026, time.April, 14, 19, 30, 0, 0, time.Local)
-	body, err := preheatqueue.MarshalRushInventoryPreheatPayload(93002, expectedOpenTime, 5*time.Minute)
+	body, err := taskdef.Marshal(93002, expectedOpenTime, 5*time.Minute)
 	if err != nil {
-		t.Fatalf("MarshalRushInventoryPreheatPayload returned error: %v", err)
+		t.Fatalf("Marshal returned error: %v", err)
 	}
 
-	logic := NewRushInventoryPreheatTaskLogic(&svc.ServiceContext{
+	logic := NewRushInventoryPreheatTaskLogic(&svc.WorkerServiceContext{
 		ShowTimeStore: &fakeRushInventoryShowTimeStore{
 			findResp: &svc.ShowTimeRecord{
 				ID:               93002,
@@ -126,20 +126,20 @@ func TestRushInventoryPreheatTaskLogicHandleSkipsOnOpenTimeMismatch(t *testing.T
 		ProgramRpc: &fakeRushInventoryProgramRPC{},
 	})
 
-	err = logic.Handle(context.Background(), asynq.NewTask(preheatqueue.TaskTypeRushInventoryPreheat, body))
+	err = logic.Handle(context.Background(), asynq.NewTask(taskdef.TaskTypeRushInventoryPreheat, body))
 	if err != nil {
 		t.Fatalf("Handle returned error: %v", err)
 	}
 }
 
 func TestRushInventoryPreheatTaskLogicHandleSkipsRetryOnBadPayload(t *testing.T) {
-	logic := NewRushInventoryPreheatTaskLogic(&svc.ServiceContext{
+	logic := NewRushInventoryPreheatTaskLogic(&svc.WorkerServiceContext{
 		ShowTimeStore: &fakeRushInventoryShowTimeStore{},
 		OrderRpc:      &fakeRushInventoryOrderRPC{},
 		ProgramRpc:    &fakeRushInventoryProgramRPC{},
 	})
 
-	err := logic.Handle(context.Background(), asynq.NewTask(preheatqueue.TaskTypeRushInventoryPreheat, []byte("{bad json")))
+	err := logic.Handle(context.Background(), asynq.NewTask(taskdef.TaskTypeRushInventoryPreheat, []byte("{bad json")))
 	if !errors.Is(err, asynq.SkipRetry) {
 		t.Fatalf("expected SkipRetry, got %v", err)
 	}

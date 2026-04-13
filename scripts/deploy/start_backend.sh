@@ -203,8 +203,9 @@ start_core_services() {
   start_service "order-rpc" 8082 "services/order-rpc/order.go" "go run services/order-rpc/order.go -f services/order-rpc/etc/order-rpc.yaml"
 
   start_service "order-close-worker" 0 "jobs/order-close/cmd/worker/main.go|order-close-worker.yaml" "go run jobs/order-close/cmd/worker/main.go -f jobs/order-close/etc/order-close-worker.yaml"
-  start_service "rush-inventory-preheat-worker" 0 "rush_inventory_preheat_worker|jobs/rush-inventory-preheat-worker/rush_inventory_preheat_worker.go" "go run jobs/rush-inventory-preheat-worker/rush_inventory_preheat_worker.go -f jobs/rush-inventory-preheat-worker/etc/rush-inventory-preheat-worker.yaml"
   start_service "order-close-dispatcher" 0 "jobs/order-close/cmd/dispatcher/main.go|order-close-dispatcher.yaml" "go run jobs/order-close/cmd/dispatcher/main.go -f jobs/order-close/etc/order-close-dispatcher.yaml"
+  start_service "rush-inventory-preheat-worker" 0 "jobs/rush-inventory-preheat/cmd/worker/main.go|rush-inventory-preheat-worker.yaml" "go run jobs/rush-inventory-preheat/cmd/worker/main.go -f jobs/rush-inventory-preheat/etc/rush-inventory-preheat-worker.yaml"
+  start_service "rush-inventory-preheat-dispatcher" 0 "jobs/rush-inventory-preheat/cmd/dispatcher/main.go|rush-inventory-preheat-dispatcher.yaml" "go run jobs/rush-inventory-preheat/cmd/dispatcher/main.go -f jobs/rush-inventory-preheat/etc/rush-inventory-preheat-dispatcher.yaml"
 
   start_service "user-api" 8888 "services/user-api/user.go" "go run services/user-api/user.go -f services/user-api/etc/user-api.yaml"
   start_service "program-api" 8889 "services/program-api/program.go" "go run services/program-api/program.go -f services/program-api/etc/program-api.yaml"

@@ -1,0 +1,17 @@
+Interval: 5s
+BatchSize: 200
+Shards:
+  program-db-0:
+    DataSource: root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true
+    MaxOpenConns: 14
+    MaxIdleConns: 4
+    ConnMaxLifetime: 3m
+    ConnMaxIdleTime: 1m
+Asynq:
+  Queue: rush_inventory_preheat
+  EnqueueTimeout: 500ms
+  UniqueTTL: 30m
+  MaxRetry: 8
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node

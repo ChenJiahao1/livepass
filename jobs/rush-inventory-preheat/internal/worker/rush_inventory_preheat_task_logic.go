@@ -1,14 +1,14 @@
-package logic
+package worker
 
 import (
 	"context"
 	"errors"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat-worker/internal/svc"
+	"damai-go/jobs/rush-inventory-preheat/internal/svc"
+	"damai-go/jobs/rush-inventory-preheat/taskdef"
 	"damai-go/pkg/xerr"
 	orderrpc "damai-go/services/order-rpc/orderrpc"
-	"damai-go/services/program-rpc/preheatqueue"
 	programrpc "damai-go/services/program-rpc/programrpc"
 
 	"github.com/hibiken/asynq"
@@ -17,15 +17,15 @@ import (
 const rushInventoryPreheatTimeLayout = "2006-01-02 15:04:05"
 
 type RushInventoryPreheatTaskLogic struct {
-	svcCtx *svc.ServiceContext
+	svcCtx *svc.WorkerServiceContext
 }
 
-func NewRushInventoryPreheatTaskLogic(svcCtx *svc.ServiceContext) *RushInventoryPreheatTaskLogic {
+func NewRushInventoryPreheatTaskLogic(svcCtx *svc.WorkerServiceContext) *RushInventoryPreheatTaskLogic {
 	return &RushInventoryPreheatTaskLogic{svcCtx: svcCtx}
 }
 
 func (l *RushInventoryPreheatTaskLogic) Handle(ctx context.Context, task *asynq.Task) error {
-	payload, err := preheatqueue.ParseRushInventoryPreheatPayload(task.Payload())
+	payload, err := taskdef.Parse(task.Payload())
 	if err != nil {
 		return asynq.SkipRetry
 	}
