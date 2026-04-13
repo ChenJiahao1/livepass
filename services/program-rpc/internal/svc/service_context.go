@@ -1,8 +1,6 @@
 package svc
 
 import (
-	"time"
-
 	"damai-go/pkg/xmysql"
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/config"
@@ -10,7 +8,6 @@ import (
 	"damai-go/services/program-rpc/internal/programcache"
 	"damai-go/services/program-rpc/internal/seatcache"
 
-	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -37,11 +34,6 @@ type ServiceContext struct {
 	SeatFreezeLocker        SeatFreezeLocker
 }
 
-const (
-	programModelCacheTTL         = 5 * time.Minute
-	programModelCacheNotFoundTTL = 30 * time.Second
-)
-
 func NewServiceContext(c config.Config) *ServiceContext {
 	c.MySQL = c.MySQL.Normalize()
 	c.MySQL.DataSource = xmysql.WithLocalTime(c.MySQL.DataSource)
@@ -56,73 +48,29 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		rds = xredis.MustNew(c.StoreRedis)
 	}
 
-	dProgramModel := model.NewDProgramModel(conn)
-	dProgramGroupModel := model.NewDProgramGroupModel(conn)
-	dProgramShowTimeModel := model.NewDProgramShowTimeModel(conn)
-	if rds != nil && len(c.Cache) > 0 {
-		cacheOpts := []cache.Option{
-			cache.WithExpiry(programModelCacheTTL),
-			cache.WithNotFoundExpiry(programModelCacheNotFoundTTL),
-		}
-		dProgramModel = model.NewCachedDProgramModel(conn, c.Cache, cacheOpts...)
-		dProgramGroupModel = model.NewCachedDProgramGroupModel(conn, c.Cache, cacheOpts...)
-		dProgramShowTimeModel = model.NewCachedDProgramShowTimeModel(conn, c.Cache, cacheOpts...)
-	}
-	programCategoryModel := model.NewDProgramCategoryModel(conn)
-	ticketCategoryModel := model.NewDTicketCategoryModel(conn)
+	models := newProgramModels(conn, rds, c)
 
 	localCacheConf := c.LocalCache.Normalize()
 	c.LocalCache = localCacheConf
-	categorySnapshotCache, err := programcache.NewCategorySnapshotCache(programCategoryModel, localCacheConf.CategorySnapshotTTL)
-	if err != nil {
-		panic(err)
-	}
-	detailLoader := programcache.NewDetailLoader(
-		dProgramModel,
-		dProgramShowTimeModel,
-		dProgramGroupModel,
-		categorySnapshotCache,
-		ticketCategoryModel,
-	)
-	programDetailCache, err := programcache.NewProgramDetailCache(
-		detailLoader,
-		localCacheConf.DetailTTL,
-		localCacheConf.DetailNotFoundTTL,
-		localCacheConf.DetailCacheLimit,
-	)
-	if err != nil {
-		panic(err)
-	}
 	cacheInvalidationConf := c.CacheInvalidation.Normalize()
 	c.CacheInvalidation = cacheInvalidationConf
-	programCacheRegistry := programcache.NewInvalidationRegistry(programDetailCache, categorySnapshotCache)
-	programCacheInvalidator := programcache.NewProgramCacheInvalidator(rds, programDetailCache)
-	var programCacheSubscriber *programcache.PubSubSubscriber
-	if rds != nil && cacheInvalidationConf.Enabled {
-		programCacheSubscriber = programcache.NewPubSubSubscriber(
-			rds,
-			cacheInvalidationConf.Channel,
-			programCacheRegistry,
-			cacheInvalidationConf.PublishTimeout,
-			cacheInvalidationConf.ReconnectBackoff,
-		)
-	}
+	queryCaches := newProgramQueryCaches(models, rds, c)
 
 	return &ServiceContext{
 		Config:                  c,
 		SqlConn:                 conn,
 		Redis:                   rds,
-		SeatStockStore:          seatcache.NewSeatStockStore(rds, model.NewDSeatModel(conn), seatcache.Config{}),
-		DProgramModel:           dProgramModel,
-		DProgramCategoryModel:   programCategoryModel,
-		DProgramGroupModel:      dProgramGroupModel,
-		DProgramShowTimeModel:   dProgramShowTimeModel,
-		DSeatModel:              model.NewDSeatModel(conn),
-		DTicketCategoryModel:    ticketCategoryModel,
-		CategorySnapshotCache:   categorySnapshotCache,
-		ProgramDetailCache:      programDetailCache,
-		ProgramCacheRegistry:    programCacheRegistry,
-		ProgramCacheInvalidator: programCacheInvalidator,
-		ProgramCacheSubscriber:  programCacheSubscriber,
+		SeatStockStore:          seatcache.NewSeatStockStore(rds, models.DSeatModel, seatcache.Config{}),
+		DProgramModel:           models.DProgramModel,
+		DProgramCategoryModel:   models.DProgramCategoryModel,
+		DProgramGroupModel:      models.DProgramGroupModel,
+		DProgramShowTimeModel:   models.DProgramShowTimeModel,
+		DSeatModel:              models.DSeatModel,
+		DTicketCategoryModel:    models.DTicketCategoryModel,
+		CategorySnapshotCache:   queryCaches.CategorySnapshotCache,
+		ProgramDetailCache:      queryCaches.ProgramDetailCache,
+		ProgramCacheRegistry:    queryCaches.ProgramCacheRegistry,
+		ProgramCacheInvalidator: queryCaches.ProgramCacheInvalidator,
+		ProgramCacheSubscriber:  queryCaches.ProgramCacheSubscriber,
 	}
 }
