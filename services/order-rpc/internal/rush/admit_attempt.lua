@@ -14,15 +14,14 @@
 -- 4: show_time_id
 -- 5: ticket_category_id
 -- 6: ticket_count
--- 7: generation
--- 8: token_fingerprint
--- 9: sale_window_end_at(unix ms)
--- 10: show_end_at(unix ms)
--- 11: now(unix ms)
--- 12: inflight ttl seconds
--- 13: accepted attempt ttl seconds
--- 14: viewer ids csv
--- 15: viewer_count
+-- 7: token_fingerprint
+-- 8: sale_window_end_at(unix ms)
+-- 9: show_end_at(unix ms)
+-- 10: now(unix ms)
+-- 11: inflight ttl seconds
+-- 12: accepted attempt ttl seconds
+-- 13: viewer ids csv
+-- 14: viewer_count
 
 local orderNo = ARGV[1]
 local userID = ARGV[2]
@@ -30,15 +29,14 @@ local programID = ARGV[3]
 local showTimeID = ARGV[4]
 local ticketCategoryID = ARGV[5]
 local ticketCount = tonumber(ARGV[6]) or 0
-local generation = ARGV[7]
-local tokenFingerprint = ARGV[8]
-local saleWindowEndAt = ARGV[9]
-local showEndAt = ARGV[10]
-local nowUnixMs = ARGV[11]
-local inFlightTTL = tonumber(ARGV[12]) or 0
-local acceptedAttemptTTL = tonumber(ARGV[13]) or 0
-local viewerIDsCSV = ARGV[14] or ""
-local viewerCount = tonumber(ARGV[15]) or 0
+local tokenFingerprint = ARGV[7]
+local saleWindowEndAt = ARGV[8]
+local showEndAt = ARGV[9]
+local nowUnixMs = ARGV[10]
+local inFlightTTL = tonumber(ARGV[11]) or 0
+local acceptedAttemptTTL = tonumber(ARGV[12]) or 0
+local viewerIDsCSV = ARGV[13] or ""
+local viewerCount = tonumber(ARGV[14]) or 0
 local viewerActiveStart = 6
 local viewerActiveEnd = viewerActiveStart + viewerCount - 1
 local viewerInflightStart = viewerActiveEnd + 1
@@ -89,7 +87,6 @@ redis.call("HSET", KEYS[1],
     "ticket_category_id", ticketCategoryID,
     "viewer_ids", viewerIDsCSV,
     "ticket_count", ticketCount,
-    "generation", generation,
     "sale_window_end_at", saleWindowEndAt,
     "token_fingerprint", tokenFingerprint,
     "state", "ACCEPTED",

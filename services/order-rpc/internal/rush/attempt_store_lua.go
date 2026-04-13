@@ -12,6 +12,9 @@ var (
 	//go:embed claim_processing.lua
 	claimProcessingScript string
 
+	//go:embed prepare_attempt_for_consume.lua
+	prepareAttemptForConsumeScript string
+
 	//go:embed fail_before_processing.lua
 	failBeforeProcessingScript string
 

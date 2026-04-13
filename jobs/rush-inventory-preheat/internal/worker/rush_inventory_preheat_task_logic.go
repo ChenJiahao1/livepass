@@ -51,7 +51,7 @@ func (l *RushInventoryPreheatTaskLogic) Handle(ctx context.Context, task *asynq.
 		return nil
 	}
 
-	if _, err := l.svcCtx.OrderRpc.PrimeAdmissionQuota(ctx, &orderrpc.PrimeAdmissionQuotaReq{
+	if _, err := l.svcCtx.OrderRpc.PrimeRushRuntime(ctx, &orderrpc.PrimeRushRuntimeReq{
 		ShowTimeId: payload.ShowTimeId,
 	}); err != nil {
 		return err

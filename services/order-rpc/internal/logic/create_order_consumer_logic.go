@@ -53,7 +53,11 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	if err != nil {
 		return err
 	}
-	attempt, processingEpoch, shouldProcess, err := l.prepareAttemptForConsume(orderEvent.OrderNumber, now)
+	showTimeID := orderEvent.ShowTimeID
+	if showTimeID <= 0 {
+		showTimeID = orderEvent.ProgramID
+	}
+	attempt, processingEpoch, shouldProcess, err := l.prepareAttemptForConsume(showTimeID, orderEvent.OrderNumber, now)
 	if err != nil {
 		if errors.Is(err, xerr.ErrOrderNotFound) && hasEmbeddedOrderCreateSnapshots(orderEvent) {
 			shouldProcess = true
@@ -187,37 +191,12 @@ func isDuplicateOrderNumberErr(err error) bool {
 	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
 }
 
-func (l *CreateOrderConsumerLogic) prepareAttemptForConsume(orderNumber int64, now time.Time) (*rush.AttemptRecord, int64, bool, error) {
+func (l *CreateOrderConsumerLogic) prepareAttemptForConsume(showTimeID, orderNumber int64, now time.Time) (*rush.AttemptRecord, int64, bool, error) {
 	if l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
 		return nil, 0, false, xerr.ErrInternal
 	}
 
-	record, err := l.svcCtx.AttemptStore.Get(l.ctx, orderNumber)
-	if err != nil {
-		return nil, 0, false, err
-	}
-	switch record.State {
-	case rush.AttemptStateSuccess, rush.AttemptStateFailed:
-		return record, 0, false, nil
-	case rush.AttemptStateProcessing:
-		return record, 0, false, nil
-	case rush.AttemptStateAccepted:
-		claimed, epoch, err := l.svcCtx.AttemptStore.ClaimProcessing(l.ctx, orderNumber, now)
-		if err != nil {
-			return nil, 0, false, err
-		}
-		if !claimed {
-			return record, 0, false, nil
-		}
-		record, err = l.svcCtx.AttemptStore.Get(l.ctx, orderNumber)
-		if err != nil {
-			return nil, 0, false, err
-		}
-		record.ProcessingEpoch = epoch
-		return record, epoch, true, nil
-	default:
-		return record, 0, false, fmt.Errorf("unexpected attempt state %s", record.State)
-	}
+	return l.svcCtx.AttemptStore.PrepareAttemptForConsume(l.ctx, showTimeID, orderNumber, now)
 }
 
 func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *orderevent.OrderCreateEvent, attempt *rush.AttemptRecord, processingEpoch int64, occurredAt time.Time) (*orderevent.OrderCreateEvent, *programrpc.AutoAssignAndFreezeSeatsResp, error) {
@@ -288,7 +267,6 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		event.RequestNo = orderEvent.RequestNo
 	}
 	event.ShowTimeID = orderEvent.ShowTimeID
-	event.Generation = orderEvent.Generation
 	event.SaleWindowEndAt = orderEvent.SaleWindowEndAt
 	event.ShowEndAt = orderEvent.ShowEndAt
 

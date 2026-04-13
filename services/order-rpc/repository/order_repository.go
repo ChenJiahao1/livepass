@@ -35,6 +35,8 @@ type OrderRepository interface {
 	FindExpiredUnpaidBySlot(ctx context.Context, logicSlot int, before time.Time, limit int64) ([]*model.DOrder, error)
 	CountActiveTicketsByUserShowTime(ctx context.Context, userID, showTimeID int64) (int64, error)
 	ListUnpaidReservationsByUserShowTime(ctx context.Context, userID, showTimeID int64) (map[int64]int64, error)
+	WalkActiveUserGuardsByShowTime(ctx context.Context, showTimeID, batchSize int64, fn func([]*model.DOrderUserGuard) error) error
+	WalkActiveViewerGuardsByShowTime(ctx context.Context, showTimeID, batchSize int64, fn func([]*model.DOrderViewerGuard) error) error
 	RouteByUserID(ctx context.Context, userID int64) (sharding.Route, error)
 	RouteByOrderNumber(ctx context.Context, orderNumber int64) (sharding.Route, error)
 }

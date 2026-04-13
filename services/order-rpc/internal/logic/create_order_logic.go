@@ -63,7 +63,6 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		TicketCategoryID: claims.TicketCategoryID,
 		ViewerIDs:        append([]int64(nil), claims.TicketUserIDs...),
 		TicketCount:      claims.TicketCount,
-		Generation:       claims.Generation,
 		SaleWindowEndAt:  time.Unix(claims.SaleWindowEndAt, 0),
 		TokenFingerprint: claims.TokenFingerprint,
 		ShowEndAt:        time.Unix(claims.ShowEndAt, 0),

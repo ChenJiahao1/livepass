@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -23,7 +24,6 @@ func TestPurchaseTokenRoundTrip(t *testing.T) {
 		ShowTimeID:       20001,
 		TicketCategoryID: 40001,
 		TicketUserIDs:    []int64{701, 702},
-		Generation:       BuildRushGeneration(20001),
 		SaleWindowEndAt:  base.Add(30 * time.Minute).Unix(),
 		ShowEndAt:        base.Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
@@ -40,12 +40,13 @@ func TestPurchaseTokenRoundTrip(t *testing.T) {
 	if claims.OrderNumber != 91001 || claims.UserID != 3001 || claims.ProgramID != 10001 || claims.ShowTimeID != 20001 {
 		t.Fatalf("unexpected claims: %+v", claims)
 	}
-	if claims.TicketCount != 2 || claims.TokenFingerprint == "" || claims.Generation != BuildRushGeneration(20001) {
+	if claims.TicketCount != 2 || claims.TokenFingerprint == "" {
 		t.Fatalf("expected ticket count and fingerprint, got %+v", claims)
 	}
 	if claims.SaleWindowEndAt != base.Add(30*time.Minute).Unix() || claims.ShowEndAt != base.Add(2*time.Hour).Unix() {
 		t.Fatalf("unexpected window claims: %+v", claims)
 	}
+	assertTokenPayloadHasNoGeneration(t, token)
 }
 
 func TestPurchaseTokenRejectsTamperedPayload(t *testing.T) {
@@ -113,7 +114,6 @@ func TestPurchaseTokenVerifyReturnsNormalizedClaims(t *testing.T) {
 		ShowTimeID:       20001,
 		TicketCategoryID: 40001,
 		TicketUserIDs:    []int64{701, 702},
-		Generation:       BuildRushGeneration(20001),
 		ExpireAt:         base.Add(time.Minute).Unix(),
 	})
 	if err != nil {
@@ -137,8 +137,8 @@ func TestPurchaseTokenVerifyReturnsNormalizedClaims(t *testing.T) {
 	if claims.TokenFingerprint == "" {
 		t.Fatalf("expected normalized token fingerprint, got empty")
 	}
-	if claims.Generation != BuildRushGeneration(20001) || claims.ShowTimeID != 20001 {
-		t.Fatalf("expected normalized show time generation claims, got %+v", claims)
+	if claims.ShowTimeID != 20001 {
+		t.Fatalf("expected normalized show time claims without generation, got %+v", claims)
 	}
 }
 
@@ -155,7 +155,6 @@ func TestPurchaseTokenFingerprintDiffersAcrossOrderNumbers(t *testing.T) {
 		ShowTimeID:       20001,
 		TicketCategoryID: 40001,
 		TicketUserIDs:    []int64{701, 702},
-		Generation:       BuildRushGeneration(20001),
 		DistributionMode: "express",
 		TakeTicketMode:   "paper",
 	})
@@ -169,7 +168,6 @@ func TestPurchaseTokenFingerprintDiffersAcrossOrderNumbers(t *testing.T) {
 		ShowTimeID:       20001,
 		TicketCategoryID: 40001,
 		TicketUserIDs:    []int64{702, 701},
-		Generation:       BuildRushGeneration(20001),
 		DistributionMode: "express",
 		TakeTicketMode:   "paper",
 	})
@@ -188,5 +186,50 @@ func TestPurchaseTokenFingerprintDiffersAcrossOrderNumbers(t *testing.T) {
 
 	if firstClaims.TokenFingerprint == secondClaims.TokenFingerprint {
 		t.Fatalf("expected different fingerprints for different order numbers, got %q", firstClaims.TokenFingerprint)
+	}
+}
+
+func TestPurchaseTokenVerifyIgnoresLegacyGenerationPayload(t *testing.T) {
+	codec, err := NewPurchaseTokenCodec("test-secret", 2*time.Minute)
+	if err != nil {
+		t.Fatalf("NewPurchaseTokenCodec returned error: %v", err)
+	}
+	base := time.Date(2026, time.April, 5, 18, 0, 0, 0, time.UTC)
+	codec.now = func() time.Time { return base }
+
+	payload := []byte(`{"orderNumber":91001,"userId":3001,"programId":10001,"showTimeId":20001,"ticketCategoryId":40001,"ticketUserIds":[701,702],"ticketCount":2,"generation":"g-20001","expireAt":1775412060}`)
+	token := fmt.Sprintf(
+		"%s.%s.%s",
+		purchaseTokenVersion,
+		base64.RawURLEncoding.EncodeToString(payload),
+		base64.RawURLEncoding.EncodeToString(codec.sign(payload)),
+	)
+
+	claims, err := codec.Verify(token)
+	if err != nil {
+		t.Fatalf("Verify returned error: %v", err)
+	}
+	if claims.ShowTimeID != 20001 || claims.TicketCount != 2 {
+		t.Fatalf("expected legacy payload to remain decodable, got %+v", claims)
+	}
+}
+
+func assertTokenPayloadHasNoGeneration(t *testing.T, token string) {
+	t.Helper()
+
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		t.Fatalf("unexpected token format: %q", token)
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		t.Fatalf("DecodeString returned error: %v", err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		t.Fatalf("Unmarshal returned error: %v", err)
+	}
+	if _, ok := decoded["generation"]; ok {
+		t.Fatalf("expected token payload without generation, got %s", string(payload))
 	}
 }

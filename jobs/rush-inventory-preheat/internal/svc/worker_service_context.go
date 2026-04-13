@@ -29,7 +29,7 @@ type ShowTimeStore interface {
 }
 
 type OrderPreheatRPC interface {
-	PrimeAdmissionQuota(ctx context.Context, in *orderrpc.PrimeAdmissionQuotaReq) (*orderrpc.BoolResp, error)
+	PrimeRushRuntime(ctx context.Context, in *orderrpc.PrimeRushRuntimeReq) (*orderrpc.BoolResp, error)
 }
 
 type ProgramPreheatRPC interface {
@@ -125,8 +125,8 @@ func (s *mysqlShowTimeStore) MarkInventoryPreheated(ctx context.Context, showTim
 	return rowsAffected > 0, nil
 }
 
-func (a *orderRPCPrimeAdapter) PrimeAdmissionQuota(ctx context.Context, in *orderrpc.PrimeAdmissionQuotaReq) (*orderrpc.BoolResp, error) {
-	return a.client.PrimeAdmissionQuota(ctx, in)
+func (a *orderRPCPrimeAdapter) PrimeRushRuntime(ctx context.Context, in *orderrpc.PrimeRushRuntimeReq) (*orderrpc.BoolResp, error) {
+	return a.client.PrimeRushRuntime(ctx, in)
 }
 
 func (a *programRPCPrimeAdapter) PrimeSeatLedger(ctx context.Context, in *programrpc.PrimeSeatLedgerReq) (*programrpc.BoolResp, error) {

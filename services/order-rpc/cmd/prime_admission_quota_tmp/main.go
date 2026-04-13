@@ -21,7 +21,7 @@ func main() {
 	)
 	flag.Parse()
 
-	fmt.Fprintln(os.Stderr, "debug-only: prime_admission_quota_tmp is for manual troubleshooting, not production flow")
+	fmt.Fprintln(os.Stderr, "debug-only: prime_admission_quota_tmp triggers PrimeRushRuntime for manual troubleshooting, not production flow")
 
 	if *showTimeID <= 0 {
 		panic("showTimeId must be greater than 0")
@@ -31,7 +31,7 @@ func main() {
 	conf.MustLoad(*configFile, &c)
 
 	svcCtx := svc.NewServiceContext(c)
-	if err := logic.PrimeAdmissionQuota(context.Background(), svcCtx, *showTimeID); err != nil {
+	if err := logic.PrimeRushRuntime(context.Background(), svcCtx, *showTimeID); err != nil {
 		panic(err)
 	}
 
@@ -51,7 +51,7 @@ func main() {
 			continue
 		}
 		fmt.Printf(
-			"primed quota showTimeId=%d ticketCategoryId=%d quota=%d\n",
+			"primed rush runtime showTimeId=%d ticketCategoryId=%d quota=%d\n",
 			resolvedShowTimeID,
 			item.GetId(),
 			item.GetAdmissionQuota(),

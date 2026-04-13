@@ -1201,6 +1201,14 @@ func (r *tracingOrderRepository) ListUnpaidReservationsByUserShowTime(ctx contex
 	return r.base.ListUnpaidReservationsByUserShowTime(ctx, userID, showTimeID)
 }
 
+func (r *tracingOrderRepository) WalkActiveUserGuardsByShowTime(ctx context.Context, showTimeID, batchSize int64, fn func([]*model.DOrderUserGuard) error) error {
+	return r.base.WalkActiveUserGuardsByShowTime(ctx, showTimeID, batchSize, fn)
+}
+
+func (r *tracingOrderRepository) WalkActiveViewerGuardsByShowTime(ctx context.Context, showTimeID, batchSize int64, fn func([]*model.DOrderViewerGuard) error) error {
+	return r.base.WalkActiveViewerGuardsByShowTime(ctx, showTimeID, batchSize, fn)
+}
+
 func (r *tracingOrderRepository) RouteByUserID(ctx context.Context, userID int64) (sharding.Route, error) {
 	return r.base.RouteByUserID(ctx, userID)
 }

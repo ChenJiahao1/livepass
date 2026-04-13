@@ -31,7 +31,6 @@ type AdmitAttemptRequest struct {
 	TicketCategoryID int64
 	ViewerIDs        []int64
 	TicketCount      int64
-	Generation       string
 	SaleWindowEndAt  time.Time
 	TokenFingerprint string
 	ShowEndAt        time.Time
@@ -80,7 +79,7 @@ func (s *AttemptStore) SetQuotaAvailable(ctx context.Context, showTimeID, ticket
 		return xerr.ErrInvalidParam
 	}
 
-	return s.redis.SetCtx(ctx, quotaAvailableKey(s.prefix, showTimeID, BuildRushGeneration(showTimeID), ticketCategoryID), strconv.FormatInt(available, 10))
+	return s.redis.SetCtx(ctx, quotaAvailableKey(s.prefix, showTimeID, ticketCategoryID), strconv.FormatInt(available, 10))
 }
 
 func (s *AttemptStore) SetQuotaAvailableIfAbsent(ctx context.Context, showTimeID, ticketCategoryID, available int64) (bool, error) {
@@ -93,7 +92,7 @@ func (s *AttemptStore) SetQuotaAvailableIfAbsent(ctx context.Context, showTimeID
 
 	return s.redis.SetnxCtx(
 		ctx,
-		quotaAvailableKey(s.prefix, showTimeID, BuildRushGeneration(showTimeID), ticketCategoryID),
+		quotaAvailableKey(s.prefix, showTimeID, ticketCategoryID),
 		strconv.FormatInt(available, 10),
 	)
 }
@@ -106,7 +105,7 @@ func (s *AttemptStore) GetQuotaAvailable(ctx context.Context, showTimeID, ticket
 		return 0, false, xerr.ErrInvalidParam
 	}
 
-	raw, err := s.redis.GetCtx(ctx, quotaAvailableKey(s.prefix, showTimeID, BuildRushGeneration(showTimeID), ticketCategoryID))
+	raw, err := s.redis.GetCtx(ctx, quotaAvailableKey(s.prefix, showTimeID, ticketCategoryID))
 	if err != nil {
 		return 0, false, err
 	}
@@ -145,7 +144,6 @@ func (s *AttemptStore) Admit(ctx context.Context, req AdmitAttemptRequest) (*Adm
 	}
 
 	tokenFingerprint := req.TokenFingerprint
-	generation := normalizeRushGeneration(req.ShowTimeID, req.Generation)
 	if tokenFingerprint == "" {
 		tokenFingerprint = BuildTokenFingerprint(
 			req.OrderNumber,
@@ -155,7 +153,6 @@ func (s *AttemptStore) Admit(ctx context.Context, req AdmitAttemptRequest) (*Adm
 			viewerIDs,
 			"",
 			"",
-			generation,
 		)
 	}
 
@@ -174,17 +171,17 @@ func (s *AttemptStore) Admit(ctx context.Context, req AdmitAttemptRequest) (*Adm
 	attemptTTLSeconds := s.inFlightTTLSeconds
 
 	keys := []string{
-		attemptRecordKey(s.prefix, req.ShowTimeID, generation, req.OrderNumber),
-		userActiveKey(s.prefix, req.ShowTimeID, generation, req.UserID),
-		userInflightKey(s.prefix, req.ShowTimeID, generation, req.UserID),
-		quotaAvailableKey(s.prefix, req.ShowTimeID, generation, req.TicketCategoryID),
-		userFingerprintIndexKey(s.prefix, req.ShowTimeID, generation, req.UserID),
+		attemptRecordKey(s.prefix, req.ShowTimeID, req.OrderNumber),
+		userActiveKey(s.prefix, req.ShowTimeID, req.UserID),
+		userInflightKey(s.prefix, req.ShowTimeID, req.UserID),
+		quotaAvailableKey(s.prefix, req.ShowTimeID, req.TicketCategoryID),
+		userFingerprintIndexKey(s.prefix, req.ShowTimeID, req.UserID),
 	}
 	for _, viewerID := range viewerIDs {
-		keys = append(keys, viewerActiveKey(s.prefix, req.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerActiveKey(s.prefix, req.ShowTimeID, viewerID))
 	}
 	for _, viewerID := range viewerIDs {
-		keys = append(keys, viewerInflightKey(s.prefix, req.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerInflightKey(s.prefix, req.ShowTimeID, viewerID))
 	}
 
 	result, err := s.redis.EvalCtx(
@@ -197,7 +194,6 @@ func (s *AttemptStore) Admit(ctx context.Context, req AdmitAttemptRequest) (*Adm
 		req.ShowTimeID,
 		req.TicketCategoryID,
 		req.TicketCount,
-		generation,
 		tokenFingerprint,
 		saleWindowEndAt.UnixMilli(),
 		showEndAt.UnixMilli(),
@@ -269,6 +265,99 @@ func (s *AttemptStore) Get(ctx context.Context, orderNumber int64) (*AttemptReco
 	}
 
 	return record, nil
+}
+
+func (s *AttemptStore) ClearUserInflightByShowTime(ctx context.Context, showTimeID int64) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if showTimeID <= 0 {
+		return xerr.ErrInvalidParam
+	}
+
+	return s.deleteKeysByPattern(ctx, fmt.Sprintf("%s:%s:user_inflight:*", s.prefix, rushScopeTag(showTimeID)))
+}
+
+func (s *AttemptStore) ClearViewerInflightByShowTime(ctx context.Context, showTimeID int64) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if showTimeID <= 0 {
+		return xerr.ErrInvalidParam
+	}
+
+	return s.deleteKeysByPattern(ctx, fmt.Sprintf("%s:%s:viewer_inflight:*", s.prefix, rushScopeTag(showTimeID)))
+}
+
+func (s *AttemptStore) ClearFingerprintByShowTime(ctx context.Context, showTimeID int64) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if showTimeID <= 0 {
+		return xerr.ErrInvalidParam
+	}
+
+	return s.deleteKeysByPattern(ctx, fmt.Sprintf("%s:%s:fingerprint:*", s.prefix, rushScopeTag(showTimeID)))
+}
+
+func (s *AttemptStore) ReplaceUserActiveByShowTime(ctx context.Context, showTimeID int64, rows map[int64]int64, ttlSeconds int) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if showTimeID <= 0 || ttlSeconds < 0 {
+		return xerr.ErrInvalidParam
+	}
+
+	if err := s.deleteKeysByPattern(ctx, fmt.Sprintf("%s:%s:user_active:*", s.prefix, rushScopeTag(showTimeID))); err != nil {
+		return err
+	}
+	for userID, orderNumber := range rows {
+		if userID <= 0 || orderNumber <= 0 {
+			return xerr.ErrInvalidParam
+		}
+		key := userActiveKey(s.prefix, showTimeID, userID)
+		if ttlSeconds > 0 {
+			if err := s.redis.SetexCtx(ctx, key, strconv.FormatInt(orderNumber, 10), ttlSeconds); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := s.redis.SetCtx(ctx, key, strconv.FormatInt(orderNumber, 10)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *AttemptStore) ReplaceViewerActiveByShowTime(ctx context.Context, showTimeID int64, rows map[int64]int64, ttlSeconds int) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if showTimeID <= 0 || ttlSeconds < 0 {
+		return xerr.ErrInvalidParam
+	}
+
+	if err := s.deleteKeysByPattern(ctx, fmt.Sprintf("%s:%s:viewer_active:*", s.prefix, rushScopeTag(showTimeID))); err != nil {
+		return err
+	}
+	for viewerID, orderNumber := range rows {
+		if viewerID <= 0 || orderNumber <= 0 {
+			return xerr.ErrInvalidParam
+		}
+		key := viewerActiveKey(s.prefix, showTimeID, viewerID)
+		if ttlSeconds > 0 {
+			if err := s.redis.SetexCtx(ctx, key, strconv.FormatInt(orderNumber, 10), ttlSeconds); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := s.redis.SetCtx(ctx, key, strconv.FormatInt(orderNumber, 10)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *AttemptStore) MarkQueued(ctx context.Context, orderNumber int64, now time.Time) error {
@@ -358,6 +447,68 @@ func (s *AttemptStore) ClaimProcessing(ctx context.Context, orderNumber int64, n
 	return statusCode == 1, epoch, nil
 }
 
+func (s *AttemptStore) PrepareAttemptForConsume(ctx context.Context, showTimeID, orderNumber int64, now time.Time) (*AttemptRecord, int64, bool, error) {
+	if s == nil || s.redis == nil {
+		return nil, 0, false, xerr.ErrInternal
+	}
+	if showTimeID <= 0 || orderNumber <= 0 {
+		return nil, 0, false, xerr.ErrInvalidParam
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	result, err := s.redis.EvalCtx(
+		ctx,
+		prepareAttemptForConsumeScript,
+		[]string{attemptRecordKey(s.prefix, showTimeID, orderNumber)},
+		now.UnixMilli(),
+		s.inFlightTTLSeconds,
+	)
+	if err != nil {
+		return nil, 0, false, err
+	}
+
+	values, err := parseEvalArray(result)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if len(values) == 1 {
+		statusCode, parseErr := parseEvalInt64(values[0])
+		if parseErr != nil {
+			return nil, 0, false, parseErr
+		}
+		if statusCode < 0 {
+			return nil, 0, false, xerr.ErrOrderNotFound
+		}
+	}
+	if len(values) < 19 {
+		return nil, 0, false, fmt.Errorf("unexpected prepare attempt result length: %d", len(values))
+	}
+
+	shouldProcessCode, err := parseEvalInt64(values[0])
+	if err != nil {
+		return nil, 0, false, err
+	}
+	epoch, err := parseEvalInt64(values[1])
+	if err != nil {
+		return nil, 0, false, err
+	}
+	record, err := mapPreparedAttemptRecord(values)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if record.OrderNumber == 0 {
+		record.OrderNumber = orderNumber
+	}
+	if record.ShowTimeID == 0 {
+		record.ShowTimeID = showTimeID
+	}
+	record.ProcessingEpoch = epoch
+
+	return record, epoch, shouldProcessCode == 1, nil
+}
+
 func (s *AttemptStore) FailBeforeProcessing(ctx context.Context, record *AttemptRecord, reason string, now time.Time) (AttemptTransitionOutcome, error) {
 	if s == nil || s.redis == nil {
 		return AttemptStateMissing, xerr.ErrInternal
@@ -372,14 +523,13 @@ func (s *AttemptStore) FailBeforeProcessing(ctx context.Context, record *Attempt
 		now = time.Now()
 	}
 
-	generation := normalizeRushGeneration(record.ShowTimeID, record.Generation)
 	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		quotaAvailableKey(s.prefix, record.ShowTimeID, generation, record.TicketCategoryID),
+		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
+		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
 	}
 	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 
 	result, err := s.redis.EvalCtx(
@@ -481,20 +631,19 @@ func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecor
 		now = time.Now()
 	}
 
-	generation := normalizeRushGeneration(record.ShowTimeID, record.Generation)
 	activeTTLSeconds := computeActiveProjectionTTLSeconds(now, record.ShowEndAt)
 	viewerIDs := normalizedInt64s(record.ViewerIDs)
 	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
+		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
+		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
+		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
 	}
 	for _, viewerID := range viewerIDs {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 	for _, viewerID := range viewerIDs {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 
 	result, err := s.redis.EvalCtx(
@@ -538,21 +687,20 @@ func (s *AttemptStore) FinalizeFailure(ctx context.Context, record *AttemptRecor
 		now = time.Now()
 	}
 
-	generation := normalizeRushGeneration(record.ShowTimeID, record.Generation)
 	viewerIDs := normalizedInt64s(record.ViewerIDs)
 	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		quotaAvailableKey(s.prefix, record.ShowTimeID, generation, record.TicketCategoryID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userFingerprintIndexKey(s.prefix, record.ShowTimeID, generation, record.UserID),
+		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
+		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
+		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
+		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userFingerprintIndexKey(s.prefix, record.ShowTimeID, record.UserID),
 	}
 	for _, viewerID := range viewerIDs {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 	for _, viewerID := range viewerIDs {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 
 	result, err := s.redis.EvalCtx(
@@ -585,21 +733,20 @@ func (s *AttemptStore) FinalizeClosedOrder(ctx context.Context, record *AttemptR
 		now = time.Now()
 	}
 
-	generation := normalizeRushGeneration(record.ShowTimeID, record.Generation)
 	viewerIDs := normalizedInt64s(record.ViewerIDs)
 	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		quotaAvailableKey(s.prefix, record.ShowTimeID, generation, record.TicketCategoryID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userFingerprintIndexKey(s.prefix, record.ShowTimeID, generation, record.UserID),
+		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
+		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
+		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
+		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userFingerprintIndexKey(s.prefix, record.ShowTimeID, record.UserID),
 	}
 	for _, viewerID := range viewerIDs {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 	for _, viewerID := range viewerIDs {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 
 	result, err := s.redis.EvalCtx(
@@ -629,20 +776,19 @@ func (s *AttemptStore) CommitProjection(ctx context.Context, record *AttemptReco
 	if now.IsZero() {
 		now = time.Now()
 	}
-	generation := normalizeRushGeneration(record.ShowTimeID, record.Generation)
 	activeTTLSeconds := computeActiveProjectionTTLSeconds(now, record.ShowEndAt)
 
 	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
+		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
+		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
+		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
 	}
 	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 
 	result, err := s.redis.EvalCtx(
@@ -685,20 +831,19 @@ func (s *AttemptStore) Release(ctx context.Context, record *AttemptRecord, reaso
 		now = time.Now()
 	}
 
-	generation := normalizeRushGeneration(record.ShowTimeID, record.Generation)
 	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		quotaAvailableKey(s.prefix, record.ShowTimeID, generation, record.TicketCategoryID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userFingerprintIndexKey(s.prefix, record.ShowTimeID, generation, record.UserID),
+		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
+		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
+		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
+		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userFingerprintIndexKey(s.prefix, record.ShowTimeID, record.UserID),
 	}
 	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 
 	result, err := s.redis.EvalCtx(
@@ -738,20 +883,19 @@ func (s *AttemptStore) ReleaseClosedOrderProjection(ctx context.Context, record 
 		now = time.Now()
 	}
 
-	generation := normalizeRushGeneration(record.ShowTimeID, record.Generation)
 	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, generation, record.UserID),
-		quotaAvailableKey(s.prefix, record.ShowTimeID, generation, record.TicketCategoryID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, generation, record.OrderNumber),
-		userFingerprintIndexKey(s.prefix, record.ShowTimeID, generation, record.UserID),
+		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
+		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
+		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
+		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
+		userFingerprintIndexKey(s.prefix, record.ShowTimeID, record.UserID),
 	}
 	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, generation, viewerID))
+		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
 	}
 
 	result, err := s.redis.EvalCtx(
@@ -874,10 +1018,6 @@ func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	record.Generation = fields[attemptFieldGeneration]
-	if record.Generation == "" {
-		record.Generation = BuildRushGeneration(record.ShowTimeID)
-	}
 	record.TokenFingerprint = fields[attemptFieldTokenFingerprint]
 	record.ViewerIDs, err = parseInt64CSV(fields[attemptFieldViewerIDs])
 	if err != nil {
@@ -915,6 +1055,119 @@ func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 	return record, nil
 }
 
+func mapPreparedAttemptRecord(values []any) (*AttemptRecord, error) {
+	state, err := parseEvalString(values[2])
+	if err != nil {
+		return nil, err
+	}
+	orderNumber, err := parseEvalInt64AllowBlank(values[3])
+	if err != nil {
+		return nil, err
+	}
+	userID, err := parseEvalInt64AllowBlank(values[4])
+	if err != nil {
+		return nil, err
+	}
+	programID, err := parseEvalInt64AllowBlank(values[5])
+	if err != nil {
+		return nil, err
+	}
+	showTimeID, err := parseEvalInt64AllowBlank(values[6])
+	if err != nil {
+		return nil, err
+	}
+	ticketCategoryID, err := parseEvalInt64AllowBlank(values[7])
+	if err != nil {
+		return nil, err
+	}
+	viewerIDsRaw, err := parseEvalString(values[8])
+	if err != nil {
+		return nil, err
+	}
+	viewerIDs, err := parseInt64CSV(viewerIDsRaw)
+	if err != nil {
+		return nil, err
+	}
+	ticketCount, err := parseEvalInt64AllowBlank(values[9])
+	if err != nil {
+		return nil, err
+	}
+	tokenFingerprint, err := parseEvalString(values[10])
+	if err != nil {
+		return nil, err
+	}
+	saleWindowEndAt, err := parsePreparedTime(values[11])
+	if err != nil {
+		return nil, err
+	}
+	showEndAt, err := parsePreparedTime(values[12])
+	if err != nil {
+		return nil, err
+	}
+	reasonCode, err := parseEvalString(values[13])
+	if err != nil {
+		return nil, err
+	}
+	acceptedAt, err := parsePreparedTime(values[14])
+	if err != nil {
+		return nil, err
+	}
+	finishedAt, err := parsePreparedTime(values[15])
+	if err != nil {
+		return nil, err
+	}
+	processingStartedAt, err := parsePreparedTime(values[16])
+	if err != nil {
+		return nil, err
+	}
+	createdAt, err := parsePreparedTime(values[17])
+	if err != nil {
+		return nil, err
+	}
+	lastTransitionAt, err := parsePreparedTime(values[18])
+	if err != nil {
+		return nil, err
+	}
+
+	return &AttemptRecord{
+		OrderNumber:         orderNumber,
+		UserID:              userID,
+		ProgramID:           programID,
+		ShowTimeID:          showTimeID,
+		TicketCategoryID:    ticketCategoryID,
+		ViewerIDs:           viewerIDs,
+		TicketCount:         ticketCount,
+		TokenFingerprint:    tokenFingerprint,
+		SaleWindowEndAt:     saleWindowEndAt,
+		ShowEndAt:           showEndAt,
+		State:               state,
+		ReasonCode:          reasonCode,
+		AcceptedAt:          acceptedAt,
+		FinishedAt:          finishedAt,
+		ProcessingStartedAt: processingStartedAt,
+		CreatedAt:           createdAt,
+		LastTransitionAt:    lastTransitionAt,
+	}, nil
+}
+
+func parsePreparedTime(value any) (time.Time, error) {
+	raw, err := parseEvalString(value)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if raw == "" {
+		return time.Time{}, nil
+	}
+	ms, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if ms <= 0 {
+		return time.Time{}, nil
+	}
+	return time.UnixMilli(ms), nil
+}
+
 func (s *AttemptStore) resolveAttemptRecordKey(ctx context.Context, orderNumber int64) (string, error) {
 	pattern := fmt.Sprintf("%s:*:attempt:%d", s.prefix, orderNumber)
 	var cursor uint64
@@ -934,6 +1187,29 @@ func (s *AttemptStore) resolveAttemptRecordKey(ctx context.Context, orderNumber 
 	}
 
 	return "", xerr.ErrOrderNotFound
+}
+
+func (s *AttemptStore) deleteKeysByPattern(ctx context.Context, pattern string) error {
+	if pattern == "" {
+		return xerr.ErrInvalidParam
+	}
+
+	var cursor uint64
+	for {
+		keys, nextCursor, err := s.redis.ScanCtx(ctx, cursor, pattern, 128)
+		if err != nil {
+			return err
+		}
+		if len(keys) > 0 {
+			if _, err := s.redis.DelCtx(ctx, keys...); err != nil {
+				return err
+			}
+		}
+		if nextCursor == 0 {
+			return nil
+		}
+		cursor = nextCursor
+	}
 }
 
 func computeAttemptRecordTTLSeconds(now, saleWindowEndAt time.Time, fallback int) int {

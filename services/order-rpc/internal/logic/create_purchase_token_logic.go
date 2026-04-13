@@ -94,7 +94,6 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 		TicketCategoryID: in.GetTicketCategoryId(),
 		TicketUserIDs:    append([]int64(nil), in.GetTicketUserIds()...),
 		TicketCount:      ticketCount,
-		Generation:       rush.BuildRushGeneration(showTimeID),
 		SaleWindowEndAt:  saleWindowEndAt.Unix(),
 		ShowEndAt:        showEndAt.Unix(),
 		DistributionMode: in.GetDistributionMode(),

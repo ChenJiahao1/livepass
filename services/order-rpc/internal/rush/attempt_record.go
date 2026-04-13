@@ -17,7 +17,6 @@ type AttemptRecord struct {
 	TicketCategoryID int64
 	ViewerIDs        []int64
 	TicketCount      int64
-	Generation       string
 	SaleWindowEndAt  time.Time
 	ShowEndAt        time.Time
 	TokenFingerprint string

@@ -20,6 +20,7 @@ import (
 )
 
 var testRepositoryMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order_repository?parseTime=true"
+var testRepositoryMySQLShard1DataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order_repository_shard1?parseTime=true"
 
 func TestOrderRepositoryWritesAndQueriesShardTables(t *testing.T) {
 	deps := newTestOrderRepositoryDeps(t, buildFullRouteEntries("00", "01"))
@@ -171,20 +172,92 @@ func TestOrderRepositoryFindExpiredUnpaidBySlotReadsOnlyTargetShard(t *testing.T
 	}
 }
 
+func TestWalkActiveUserGuardsByShowTimeAcrossShards(t *testing.T) {
+	deps := newTestOrderRepositoryDepsWithDataSources(t, buildFullRouteEntries("00", "01"), map[string]string{
+		"order-db-0": testRepositoryMySQLDataSource,
+		"order-db-1": testRepositoryMySQLShard1DataSource,
+	})
+	resetOrderRepositoryStateForDataSources(t, testRepositoryMySQLDataSource, testRepositoryMySQLShard1DataSource)
+
+	repo := NewOrderRepository(deps)
+	showTimeID := int64(88001)
+	now := time.Date(2026, time.April, 13, 10, 0, 0, 0, time.UTC)
+	seedRepositoryUserGuardFixturesIntoDataSource(t, testRepositoryMySQLDataSource, buildRepositoryUserGuard(70001, 91001, showTimeID, 3001, now))
+	seedRepositoryUserGuardFixturesIntoDataSource(t, testRepositoryMySQLShard1DataSource, buildRepositoryUserGuard(70002, 91002, showTimeID, 3002, now.Add(time.Second)))
+
+	var got []int64
+	err := repo.WalkActiveUserGuardsByShowTime(context.Background(), showTimeID, 1, func(rows []*model.DOrderUserGuard) error {
+		for _, row := range rows {
+			if row == nil {
+				continue
+			}
+			got = append(got, row.UserId)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("WalkActiveUserGuardsByShowTime() error = %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 active user guards, got %v", got)
+	}
+}
+
+func TestWalkActiveViewerGuardsByShowTimeAcrossShards(t *testing.T) {
+	deps := newTestOrderRepositoryDepsWithDataSources(t, buildFullRouteEntries("00", "01"), map[string]string{
+		"order-db-0": testRepositoryMySQLDataSource,
+		"order-db-1": testRepositoryMySQLShard1DataSource,
+	})
+	resetOrderRepositoryStateForDataSources(t, testRepositoryMySQLDataSource, testRepositoryMySQLShard1DataSource)
+
+	repo := NewOrderRepository(deps)
+	showTimeID := int64(88002)
+	now := time.Date(2026, time.April, 13, 10, 5, 0, 0, time.UTC)
+	seedRepositoryViewerGuardFixturesIntoDataSource(t, testRepositoryMySQLDataSource, buildRepositoryViewerGuard(71001, 92001, showTimeID, 4001, now))
+	seedRepositoryViewerGuardFixturesIntoDataSource(t, testRepositoryMySQLShard1DataSource, buildRepositoryViewerGuard(71002, 92002, showTimeID, 4002, now.Add(time.Second)))
+
+	var got []int64
+	err := repo.WalkActiveViewerGuardsByShowTime(context.Background(), showTimeID, 1, func(rows []*model.DOrderViewerGuard) error {
+		for _, row := range rows {
+			if row == nil {
+				continue
+			}
+			got = append(got, row.ViewerId)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("WalkActiveViewerGuardsByShowTime() error = %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 active viewer guards, got %v", got)
+	}
+}
+
 func newTestOrderRepositoryDeps(t *testing.T, entries []sharding.RouteEntry) Dependencies {
 	t.Helper()
 
-	shardDataSource := xmysql.WithLocalTime(testRepositoryMySQLDataSource)
-	shardConn0 := sqlx.NewMysql(shardDataSource)
-	shardConn1 := sqlx.NewMysql(shardDataSource)
+	return newTestOrderRepositoryDepsWithDataSources(t, entries, map[string]string{
+		"order-db-0": testRepositoryMySQLDataSource,
+		"order-db-1": testRepositoryMySQLDataSource,
+	})
+}
+
+func newTestOrderRepositoryDepsWithDataSources(t *testing.T, entries []sharding.RouteEntry, dataSources map[string]string) Dependencies {
+	t.Helper()
 
 	routeMap, err := sharding.NewRouteMap("v1", entries)
 	if err != nil {
 		t.Fatalf("NewRouteMap() error = %v", err)
 	}
 
+	shardConns := make(map[string]sqlx.SqlConn, len(dataSources))
+	for dbKey, dataSource := range dataSources {
+		shardConns[dbKey] = sqlx.NewMysql(xmysql.WithLocalTime(dataSource))
+	}
+
 	return Dependencies{
-		ShardConns: map[string]sqlx.SqlConn{"order-db-0": shardConn0, "order-db-1": shardConn1},
+		ShardConns: shardConns,
 		RouteMap:   routeMap,
 		Router:     sharding.NewStaticRouter(routeMap),
 	}
@@ -292,21 +365,54 @@ func buildRepositoryTickets(orderNumber, userID int64) []*model.DOrderTicketUser
 	}
 }
 
+func buildRepositoryUserGuard(id, orderNumber, showTimeID, userID int64, now time.Time) *model.DOrderUserGuard {
+	return &model.DOrderUserGuard{
+		Id:          id,
+		OrderNumber: orderNumber,
+		ProgramId:   10001,
+		ShowTimeId:  showTimeID,
+		UserId:      userID,
+		CreateTime:  now,
+		EditTime:    now,
+		Status:      1,
+	}
+}
+
+func buildRepositoryViewerGuard(id, orderNumber, showTimeID, viewerID int64, now time.Time) *model.DOrderViewerGuard {
+	return &model.DOrderViewerGuard{
+		Id:          id,
+		OrderNumber: orderNumber,
+		ProgramId:   10001,
+		ShowTimeId:  showTimeID,
+		ViewerId:    viewerID,
+		CreateTime:  now,
+		EditTime:    now,
+		Status:      1,
+	}
+}
+
 func resetOrderRepositoryState(t *testing.T) {
 	t.Helper()
 
-	db := openRepositoryTestDB(t, testRepositoryMySQLDataSource)
-	defer db.Close()
+	resetOrderRepositoryStateForDataSources(t, testRepositoryMySQLDataSource)
+}
 
-	for _, relativePath := range []string{
-		"sql/order/sharding/d_order_shards.sql",
-		"sql/order/sharding/d_order_ticket_user_shards.sql",
-		"sql/order/sharding/d_order_user_guard.sql",
-		"sql/order/sharding/d_order_viewer_guard.sql",
-		"sql/order/sharding/d_order_seat_guard.sql",
-		"sql/order/sharding/d_order_outbox.sql",
-	} {
-		execRepositorySQLFile(t, db, relativePath)
+func resetOrderRepositoryStateForDataSources(t *testing.T, dataSources ...string) {
+	t.Helper()
+
+	for _, dataSource := range dataSources {
+		db := openRepositoryTestDB(t, dataSource)
+		for _, relativePath := range []string{
+			"sql/order/sharding/d_order_shards.sql",
+			"sql/order/sharding/d_order_ticket_user_shards.sql",
+			"sql/order/sharding/d_order_user_guard.sql",
+			"sql/order/sharding/d_order_viewer_guard.sql",
+			"sql/order/sharding/d_order_seat_guard.sql",
+			"sql/order/sharding/d_order_outbox.sql",
+		} {
+			execRepositorySQLFile(t, db, relativePath)
+		}
+		_ = db.Close()
 	}
 }
 
@@ -400,6 +506,58 @@ func seedRepositoryOrderFixturesIntoTable(t *testing.T, table string, fixtures .
 			fixture.Status,
 		); err != nil {
 			t.Fatalf("insert fixture into %s error: %v", table, err)
+		}
+	}
+}
+
+func seedRepositoryUserGuardFixturesIntoDataSource(t *testing.T, dataSource string, fixtures ...*model.DOrderUserGuard) {
+	t.Helper()
+
+	db := openRepositoryTestDB(t, dataSource)
+	defer db.Close()
+
+	for _, fixture := range fixtures {
+		if fixture == nil {
+			continue
+		}
+		if _, err := db.Exec(
+			`INSERT INTO d_order_user_guard (id, order_number, program_id, show_time_id, user_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			fixture.Id,
+			fixture.OrderNumber,
+			fixture.ProgramId,
+			fixture.ShowTimeId,
+			fixture.UserId,
+			fixture.CreateTime,
+			fixture.EditTime,
+			fixture.Status,
+		); err != nil {
+			t.Fatalf("insert user guard fixture error: %v", err)
+		}
+	}
+}
+
+func seedRepositoryViewerGuardFixturesIntoDataSource(t *testing.T, dataSource string, fixtures ...*model.DOrderViewerGuard) {
+	t.Helper()
+
+	db := openRepositoryTestDB(t, dataSource)
+	defer db.Close()
+
+	for _, fixture := range fixtures {
+		if fixture == nil {
+			continue
+		}
+		if _, err := db.Exec(
+			`INSERT INTO d_order_viewer_guard (id, order_number, program_id, show_time_id, viewer_id, create_time, edit_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			fixture.Id,
+			fixture.OrderNumber,
+			fixture.ProgramId,
+			fixture.ShowTimeId,
+			fixture.ViewerId,
+			fixture.CreateTime,
+			fixture.EditTime,
+			fixture.Status,
+		); err != nil {
+			t.Fatalf("insert viewer guard fixture error: %v", err)
 		}
 	}
 }

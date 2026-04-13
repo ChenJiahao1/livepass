@@ -19,7 +19,6 @@ type OrderCreateEvent struct {
 	TicketCategoryID       int64                  `json:"ticketCategoryId"`
 	TicketUserIDs          []int64                `json:"ticketUserIds"`
 	TicketCount            int64                  `json:"ticketCount"`
-	Generation             string                 `json:"generation"`
 	DistributionMode       string                 `json:"distributionMode"`
 	TakeTicketMode         string                 `json:"takeTicketMode"`
 	SaleWindowEndAt        string                 `json:"saleWindowEndAt"`

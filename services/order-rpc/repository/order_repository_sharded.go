@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"damai-go/services/order-rpc/internal/model"
@@ -207,12 +208,87 @@ func (r *shardedOrderRepository) ListUnpaidReservationsByUserShowTime(ctx contex
 	return target.orderModel.ListUnpaidReservationsByUserShowTime(ctx, userID, showTimeID)
 }
 
+func (r *shardedOrderRepository) WalkActiveUserGuardsByShowTime(ctx context.Context, showTimeID, batchSize int64, fn func([]*model.DOrderUserGuard) error) error {
+	if showTimeID <= 0 || fn == nil {
+		return sharding.ErrRouteNotFound
+	}
+	if batchSize <= 0 {
+		batchSize = 100
+	}
+
+	for _, dbKey := range r.sortedShardDBKeys() {
+		conn := r.deps.ShardConns[dbKey]
+		guardModel := model.NewDOrderUserGuardModelWithTable(conn, shardOrderUserGuardTable(""))
+		var afterID int64
+		for {
+			rows, err := guardModel.FindActiveByShowTimeAfterID(ctx, showTimeID, afterID, batchSize)
+			if err != nil {
+				return err
+			}
+			if len(rows) == 0 {
+				break
+			}
+			if err := fn(rows); err != nil {
+				return err
+			}
+			afterID = rows[len(rows)-1].Id
+			if int64(len(rows)) < batchSize {
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *shardedOrderRepository) WalkActiveViewerGuardsByShowTime(ctx context.Context, showTimeID, batchSize int64, fn func([]*model.DOrderViewerGuard) error) error {
+	if showTimeID <= 0 || fn == nil {
+		return sharding.ErrRouteNotFound
+	}
+	if batchSize <= 0 {
+		batchSize = 100
+	}
+
+	for _, dbKey := range r.sortedShardDBKeys() {
+		conn := r.deps.ShardConns[dbKey]
+		guardModel := model.NewDOrderViewerGuardModelWithTable(conn, shardOrderViewerGuardTable(""))
+		var afterID int64
+		for {
+			rows, err := guardModel.FindActiveByShowTimeAfterID(ctx, showTimeID, afterID, batchSize)
+			if err != nil {
+				return err
+			}
+			if len(rows) == 0 {
+				break
+			}
+			if err := fn(rows); err != nil {
+				return err
+			}
+			afterID = rows[len(rows)-1].Id
+			if int64(len(rows)) < batchSize {
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 func (r *shardedOrderRepository) RouteByUserID(_ context.Context, userID int64) (sharding.Route, error) {
 	return r.resolver.RouteByUserID(userID)
 }
 
 func (r *shardedOrderRepository) RouteByOrderNumber(ctx context.Context, orderNumber int64) (sharding.Route, error) {
 	return r.resolver.RouteByOrderNumber(ctx, orderNumber)
+}
+
+func (r *shardedOrderRepository) sortedShardDBKeys() []string {
+	keys := make([]string, 0, len(r.deps.ShardConns))
+	for dbKey := range r.deps.ShardConns {
+		keys = append(keys, dbKey)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func (r *shardedOrderRepository) transactByRoute(ctx context.Context, route sharding.Route, fn func(context.Context, OrderTx) error) error {

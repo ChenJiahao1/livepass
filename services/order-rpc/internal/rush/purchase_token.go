@@ -28,7 +28,6 @@ type PurchaseTokenClaims struct {
 	TicketCategoryID int64   `json:"ticketCategoryId"`
 	TicketUserIDs    []int64 `json:"ticketUserIds"`
 	TicketCount      int64   `json:"ticketCount"`
-	Generation       string  `json:"generation"`
 	SaleWindowEndAt  int64   `json:"saleWindowEndAt"`
 	ShowEndAt        int64   `json:"showEndAt"`
 	DistributionMode string  `json:"distributionMode,omitempty"`
@@ -132,9 +131,6 @@ func (c *PurchaseTokenCodec) normalizeClaims(claims PurchaseTokenClaims) (Purcha
 	if claims.ShowTimeID <= 0 {
 		claims.ShowTimeID = claims.ProgramID
 	}
-	if claims.Generation == "" {
-		claims.Generation = BuildRushGeneration(claims.ShowTimeID)
-	}
 	if len(claims.TicketUserIDs) == 0 {
 		return PurchaseTokenClaims{}, ErrInvalidPurchaseToken
 	}
@@ -163,7 +159,6 @@ func (c *PurchaseTokenCodec) normalizeClaims(claims PurchaseTokenClaims) (Purcha
 			claims.TicketUserIDs,
 			claims.DistributionMode,
 			claims.TakeTicketMode,
-			claims.Generation,
 		)
 	}
 
@@ -180,23 +175,17 @@ func BuildTokenFingerprint(
 	orderNumber, userID, showTimeID, ticketCategoryID int64,
 	ticketUserIDs []int64,
 	distributionMode, takeTicketMode string,
-	generation ...string,
 ) string {
 	sortedTicketUserIDs := append([]int64(nil), ticketUserIDs...)
 	sort.Slice(sortedTicketUserIDs, func(i, j int) bool {
 		return sortedTicketUserIDs[i] < sortedTicketUserIDs[j]
 	})
 
-	var generationValue string
-	if len(generation) > 0 {
-		generationValue = generation[0]
-	}
 	payload, _ := json.Marshal(struct {
 		OrderNumber      int64   `json:"orderNumber"`
 		UserID           int64   `json:"userId"`
 		ShowTimeID       int64   `json:"showTimeId"`
 		TicketCategoryID int64   `json:"ticketCategoryId"`
-		Generation       string  `json:"generation"`
 		TicketUserIDs    []int64 `json:"ticketUserIds"`
 		DistributionMode string  `json:"distributionMode,omitempty"`
 		TakeTicketMode   string  `json:"takeTicketMode,omitempty"`
@@ -205,7 +194,6 @@ func BuildTokenFingerprint(
 		UserID:           userID,
 		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,
-		Generation:       generationValue,
 		TicketUserIDs:    sortedTicketUserIDs,
 		DistributionMode: distributionMode,
 		TakeTicketMode:   takeTicketMode,

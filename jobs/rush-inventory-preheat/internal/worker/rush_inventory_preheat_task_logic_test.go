@@ -45,11 +45,11 @@ func (f *fakeRushInventoryShowTimeStore) MarkInventoryPreheated(_ context.Contex
 
 type fakeRushInventoryOrderRPC struct {
 	primeCalls int
-	lastReq    *orderrpc.PrimeAdmissionQuotaReq
+	lastReq    *orderrpc.PrimeRushRuntimeReq
 	err        error
 }
 
-func (f *fakeRushInventoryOrderRPC) PrimeAdmissionQuota(_ context.Context, in *orderrpc.PrimeAdmissionQuotaReq) (*orderrpc.BoolResp, error) {
+func (f *fakeRushInventoryOrderRPC) PrimeRushRuntime(_ context.Context, in *orderrpc.PrimeRushRuntimeReq) (*orderrpc.BoolResp, error) {
 	f.primeCalls++
 	f.lastReq = in
 	return &orderrpc.BoolResp{Success: true}, f.err
@@ -95,7 +95,7 @@ func TestRushInventoryPreheatTaskLogicHandleCallsBothRPCsAndMarksCompleted(t *te
 		t.Fatalf("Handle returned error: %v", err)
 	}
 	if orderRPC.primeCalls != 1 || orderRPC.lastReq == nil || orderRPC.lastReq.ShowTimeId != 93001 {
-		t.Fatalf("unexpected PrimeAdmissionQuota calls: calls=%d req=%+v", orderRPC.primeCalls, orderRPC.lastReq)
+		t.Fatalf("unexpected PrimeRushRuntime calls: calls=%d req=%+v", orderRPC.primeCalls, orderRPC.lastReq)
 	}
 	if programRPC.primeCalls != 1 || programRPC.lastReq == nil || programRPC.lastReq.ShowTimeId != 93001 {
 		t.Fatalf("unexpected PrimeSeatLedger calls: calls=%d req=%+v", programRPC.primeCalls, programRPC.lastReq)

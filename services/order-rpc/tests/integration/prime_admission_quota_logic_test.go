@@ -18,8 +18,8 @@ func TestPrimeAdmissionQuotaUsesInternalAdmissionQuota(t *testing.T) {
 	programRPC.getProgramPreorderResp.TicketCategoryVoList[0].RemainNumber = 1
 	programRPC.getProgramPreorderResp.TicketCategoryVoList[0].AdmissionQuota = 7
 
-	if err := logicpkg.PrimeAdmissionQuota(context.Background(), svcCtx, showTimeID); err != nil {
-		t.Fatalf("PrimeAdmissionQuota() error = %v", err)
+	if err := logicpkg.PrimeRushRuntime(context.Background(), svcCtx, showTimeID); err != nil {
+		t.Fatalf("PrimeRushRuntime() error = %v", err)
 	}
 	if programRPC.lastGetProgramPreorderReq == nil || programRPC.lastGetProgramPreorderReq.ShowTimeId != showTimeID {
 		t.Fatalf("expected GetProgramPreorder to load showTimeId=%d, got %+v", showTimeID, programRPC.lastGetProgramPreorderReq)
@@ -43,14 +43,14 @@ func TestPrimeAdmissionQuotaRPCUsesInternalAdmissionQuota(t *testing.T) {
 	programRPC.getProgramPreorderResp.TicketCategoryVoList[0].RemainNumber = 1
 	programRPC.getProgramPreorderResp.TicketCategoryVoList[0].AdmissionQuota = 9
 
-	resp, err := server.NewOrderRpcServer(svcCtx).PrimeAdmissionQuota(context.Background(), &pb.PrimeAdmissionQuotaReq{
+	resp, err := server.NewOrderRpcServer(svcCtx).PrimeRushRuntime(context.Background(), &pb.PrimeRushRuntimeReq{
 		ShowTimeId: showTimeID,
 	})
 	if err != nil {
-		t.Fatalf("PrimeAdmissionQuota RPC error = %v", err)
+		t.Fatalf("PrimeRushRuntime RPC error = %v", err)
 	}
 	if !resp.GetSuccess() {
-		t.Fatalf("expected PrimeAdmissionQuota RPC success, got %+v", resp)
+		t.Fatalf("expected PrimeRushRuntime RPC success, got %+v", resp)
 	}
 
 	available, ok, err := svcCtx.AttemptStore.GetQuotaAvailable(context.Background(), showTimeID, ticketCategoryID)

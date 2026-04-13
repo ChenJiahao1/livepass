@@ -166,10 +166,6 @@ func buildAttemptCreateEvent(orderNumber int64, claims *rush.PurchaseTokenClaims
 	if claims.TicketCount <= 0 || int64(len(claims.TicketUserIDs)) != claims.TicketCount {
 		return nil, xerr.ErrInvalidParam
 	}
-	generation := claims.Generation
-	if generation == "" {
-		generation = rush.BuildRushGeneration(claims.ShowTimeID)
-	}
 	if occurredAt.IsZero() {
 		occurredAt = time.Now()
 	}
@@ -186,7 +182,6 @@ func buildAttemptCreateEvent(orderNumber int64, claims *rush.PurchaseTokenClaims
 		TicketCategoryID: claims.TicketCategoryID,
 		TicketUserIDs:    append([]int64(nil), claims.TicketUserIDs...),
 		TicketCount:      claims.TicketCount,
-		Generation:       generation,
 		DistributionMode: claims.DistributionMode,
 		TakeTicketMode:   claims.TakeTicketMode,
 		SaleWindowEndAt:  formatOrderTime(time.Unix(claims.SaleWindowEndAt, 0)),

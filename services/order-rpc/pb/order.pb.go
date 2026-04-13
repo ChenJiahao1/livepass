@@ -2153,27 +2153,27 @@ func (x *CountActiveTicketsByUserShowTimeResp) GetActiveTicketCount() int64 {
 	return 0
 }
 
-type PrimeAdmissionQuotaReq struct {
+type PrimeRushRuntimeReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ShowTimeId    int64                  `protobuf:"varint,1,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PrimeAdmissionQuotaReq) Reset() {
-	*x = PrimeAdmissionQuotaReq{}
+func (x *PrimeRushRuntimeReq) Reset() {
+	*x = PrimeRushRuntimeReq{}
 	mi := &file_order_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PrimeAdmissionQuotaReq) String() string {
+func (x *PrimeRushRuntimeReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PrimeAdmissionQuotaReq) ProtoMessage() {}
+func (*PrimeRushRuntimeReq) ProtoMessage() {}
 
-func (x *PrimeAdmissionQuotaReq) ProtoReflect() protoreflect.Message {
+func (x *PrimeRushRuntimeReq) ProtoReflect() protoreflect.Message {
 	mi := &file_order_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2185,12 +2185,12 @@ func (x *PrimeAdmissionQuotaReq) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PrimeAdmissionQuotaReq.ProtoReflect.Descriptor instead.
-func (*PrimeAdmissionQuotaReq) Descriptor() ([]byte, []int) {
+// Deprecated: Use PrimeRushRuntimeReq.ProtoReflect.Descriptor instead.
+func (*PrimeRushRuntimeReq) Descriptor() ([]byte, []int) {
 	return file_order_proto_rawDescGZIP(), []int{31}
 }
 
-func (x *PrimeAdmissionQuotaReq) GetShowTimeId() int64 {
+func (x *PrimeRushRuntimeReq) GetShowTimeId() int64 {
 	if x != nil {
 		return x.ShowTimeId
 	}
@@ -2385,11 +2385,11 @@ const file_order_proto_rawDesc = "" +
 	"showTimeId\x18\x02 \x01(\x03R\n" +
 	"showTimeId\"T\n" +
 	"$CountActiveTicketsByUserShowTimeResp\x12,\n" +
-	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount\"8\n" +
-	"\x16PrimeAdmissionQuotaReq\x12\x1e\n" +
+	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount\"5\n" +
+	"\x13PrimeRushRuntimeReq\x12\x1e\n" +
 	"\n" +
 	"showTimeId\x18\x01 \x01(\x03R\n" +
-	"showTimeId2\x84\t\n" +
+	"showTimeId2\xfe\b\n" +
 	"\bOrderRpc\x12T\n" +
 	"\x13CreatePurchaseToken\x12\x1d.order.CreatePurchaseTokenReq\x1a\x1e.order.CreatePurchaseTokenResp\x12<\n" +
 	"\vCreateOrder\x12\x15.order.CreateOrderReq\x1a\x16.order.CreateOrderResp\x12N\n" +
@@ -2406,8 +2406,8 @@ const file_order_proto_rawDesc = "" +
 	"\vRefundOrder\x12\x15.order.RefundOrderReq\x1a\x16.order.RefundOrderResp\x12A\n" +
 	"\x11CloseExpiredOrder\x12\x1b.order.CloseExpiredOrderReq\x1a\x0f.order.BoolResp\x12Q\n" +
 	"\x12CloseExpiredOrders\x12\x1c.order.CloseExpiredOrdersReq\x1a\x1d.order.CloseExpiredOrdersResp\x12{\n" +
-	" CountActiveTicketsByUserShowTime\x12*.order.CountActiveTicketsByUserShowTimeReq\x1a+.order.CountActiveTicketsByUserShowTimeResp\x12E\n" +
-	"\x13PrimeAdmissionQuota\x12\x1d.order.PrimeAdmissionQuotaReq\x1a\x0f.order.BoolRespB\x06Z\x04./pbb\x06proto3"
+	" CountActiveTicketsByUserShowTime\x12*.order.CountActiveTicketsByUserShowTimeReq\x1a+.order.CountActiveTicketsByUserShowTimeResp\x12?\n" +
+	"\x10PrimeRushRuntime\x12\x1a.order.PrimeRushRuntimeReq\x1a\x0f.order.BoolRespB\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_order_proto_rawDescOnce sync.Once
@@ -2454,7 +2454,7 @@ var file_order_proto_goTypes = []any{
 	(*CloseExpiredOrdersResp)(nil),               // 28: order.CloseExpiredOrdersResp
 	(*CountActiveTicketsByUserShowTimeReq)(nil),  // 29: order.CountActiveTicketsByUserShowTimeReq
 	(*CountActiveTicketsByUserShowTimeResp)(nil), // 30: order.CountActiveTicketsByUserShowTimeResp
-	(*PrimeAdmissionQuotaReq)(nil),               // 31: order.PrimeAdmissionQuotaReq
+	(*PrimeRushRuntimeReq)(nil),                  // 31: order.PrimeRushRuntimeReq
 }
 var file_order_proto_depIdxs = []int32{
 	8,  // 0: order.ListOrdersResp.list:type_name -> order.OrderListInfo
@@ -2474,7 +2474,7 @@ var file_order_proto_depIdxs = []int32{
 	26, // 14: order.OrderRpc.CloseExpiredOrder:input_type -> order.CloseExpiredOrderReq
 	27, // 15: order.OrderRpc.CloseExpiredOrders:input_type -> order.CloseExpiredOrdersReq
 	29, // 16: order.OrderRpc.CountActiveTicketsByUserShowTime:input_type -> order.CountActiveTicketsByUserShowTimeReq
-	31, // 17: order.OrderRpc.PrimeAdmissionQuota:input_type -> order.PrimeAdmissionQuotaReq
+	31, // 17: order.OrderRpc.PrimeRushRuntime:input_type -> order.PrimeRushRuntimeReq
 	2,  // 18: order.OrderRpc.CreatePurchaseToken:output_type -> order.CreatePurchaseTokenResp
 	4,  // 19: order.OrderRpc.CreateOrder:output_type -> order.CreateOrderResp
 	6,  // 20: order.OrderRpc.PollOrderProgress:output_type -> order.PollOrderProgressResp
@@ -2490,7 +2490,7 @@ var file_order_proto_depIdxs = []int32{
 	0,  // 30: order.OrderRpc.CloseExpiredOrder:output_type -> order.BoolResp
 	28, // 31: order.OrderRpc.CloseExpiredOrders:output_type -> order.CloseExpiredOrdersResp
 	30, // 32: order.OrderRpc.CountActiveTicketsByUserShowTime:output_type -> order.CountActiveTicketsByUserShowTimeResp
-	0,  // 33: order.OrderRpc.PrimeAdmissionQuota:output_type -> order.BoolResp
+	0,  // 33: order.OrderRpc.PrimeRushRuntime:output_type -> order.BoolResp
 	18, // [18:34] is the sub-list for method output_type
 	2,  // [2:18] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name

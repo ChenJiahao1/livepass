@@ -43,7 +43,7 @@ type (
 	PollOrderProgressResp                = pb.PollOrderProgressResp
 	PreviewRefundOrderReq                = pb.PreviewRefundOrderReq
 	PreviewRefundOrderResp               = pb.PreviewRefundOrderResp
-	PrimeAdmissionQuotaReq               = pb.PrimeAdmissionQuotaReq
+	PrimeRushRuntimeReq                  = pb.PrimeRushRuntimeReq
 	RefundOrderReq                       = pb.RefundOrderReq
 	RefundOrderResp                      = pb.RefundOrderResp
 
@@ -63,7 +63,7 @@ type (
 		CloseExpiredOrder(ctx context.Context, in *CloseExpiredOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 		CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 		CountActiveTicketsByUserShowTime(ctx context.Context, in *CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserShowTimeResp, error)
-		PrimeAdmissionQuota(ctx context.Context, in *PrimeAdmissionQuotaReq, opts ...grpc.CallOption) (*BoolResp, error)
+		PrimeRushRuntime(ctx context.Context, in *PrimeRushRuntimeReq, opts ...grpc.CallOption) (*BoolResp, error)
 	}
 
 	defaultOrderRpc struct {
@@ -152,7 +152,7 @@ func (m *defaultOrderRpc) CountActiveTicketsByUserShowTime(ctx context.Context, 
 	return client.CountActiveTicketsByUserShowTime(ctx, in, opts...)
 }
 
-func (m *defaultOrderRpc) PrimeAdmissionQuota(ctx context.Context, in *PrimeAdmissionQuotaReq, opts ...grpc.CallOption) (*BoolResp, error) {
+func (m *defaultOrderRpc) PrimeRushRuntime(ctx context.Context, in *PrimeRushRuntimeReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
-	return client.PrimeAdmissionQuota(ctx, in, opts...)
+	return client.PrimeRushRuntime(ctx, in, opts...)
 }

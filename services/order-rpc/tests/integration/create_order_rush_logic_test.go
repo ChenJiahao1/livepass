@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,7 +37,6 @@ func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInlin
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:2],
 		TicketCount:      2,
-		Generation:       rush.BuildRushGeneration(showTimeID),
 		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
 		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
@@ -79,8 +79,11 @@ func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInlin
 	if event.OrderNumber != claims.OrderNumber || event.ProgramID != claims.ProgramID || event.ShowTimeID != claims.ShowTimeID || event.TicketCount != claims.TicketCount {
 		t.Fatalf("unexpected event body: %+v", event)
 	}
-	if event.Generation != claims.Generation || event.SaleWindowEndAt == "" || event.ShowEndAt == "" {
-		t.Fatalf("expected show time generation window fields, got %+v", event)
+	if event.SaleWindowEndAt == "" || event.ShowEndAt == "" {
+		t.Fatalf("expected show time window fields without generation, got %+v", event)
+	}
+	if strings.Contains(string(producer.lastBody), `"generation"`) {
+		t.Fatalf("expected new event payload without generation, got %s", string(producer.lastBody))
 	}
 
 	record, err := svcCtx.AttemptStore.Get(ctx, claims.OrderNumber)
@@ -107,7 +110,6 @@ func TestCreateOrderRushDoesNotEnqueueVerifyTaskAfterAdmission(t *testing.T) {
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:1],
 		TicketCount:      1,
-		Generation:       rush.BuildRushGeneration(showTimeID),
 		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
 		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
@@ -158,7 +160,6 @@ func TestCreateOrderRushReturnsExistingOrderNumberForSameTokenFingerprint(t *tes
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:2],
 		TicketCount:      2,
-		Generation:       rush.BuildRushGeneration(showTimeID),
 		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
 		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
@@ -223,7 +224,6 @@ func TestCreateOrderRushCreatesNewOrderNumberAfterClosedOrderReleaseWithNewToken
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:1],
 		TicketCount:      1,
-		Generation:       rush.BuildRushGeneration(showTimeID),
 		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
 		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
@@ -310,7 +310,6 @@ func TestCreateOrderFailsWhenKafkaHandoffFailsAndProducerWins(t *testing.T) {
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:1],
 		TicketCount:      1,
-		Generation:       rush.BuildRushGeneration(showTimeID),
 		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
 		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
@@ -379,7 +378,6 @@ func TestCreateOrderReturnsOrderNumberWhenKafkaHandoffFailsButConsumerAlreadyCla
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:1],
 		TicketCount:      1,
-		Generation:       rush.BuildRushGeneration(showTimeID),
 		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
 		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
@@ -456,7 +454,6 @@ func TestCreateOrderDoesNotDoubleCompensateWhenFailBeforeProcessingRepeats(t *te
 		TicketCategoryID: ticketCategoryID,
 		TicketUserIDs:    viewerIDs[:1],
 		TicketCount:      1,
-		Generation:       rush.BuildRushGeneration(showTimeID),
 		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
 		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
 		DistributionMode: "express",
@@ -565,4 +562,16 @@ func waitOrderCreateSendCalls(t *testing.T, producer *fakeOrderCreateProducer, e
 	}
 
 	t.Fatalf("expected producer send calls %d, got %d", expected, producer.SendCalls())
+}
+
+func TestUnmarshalOrderCreateEventIgnoresLegacyGenerationPayload(t *testing.T) {
+	body := []byte(`{"eventId":"evt-1","version":"v1","orderNumber":91001,"requestNo":"order-create-91001","occurredAt":"2026-04-05 18:00:00","userId":3001,"programId":10001,"showTimeId":20001,"ticketCategoryId":40001,"ticketUserIds":[701,702],"ticketCount":2,"generation":"g-20001","distributionMode":"express","takeTicketMode":"paper","saleWindowEndAt":"2026-04-05 18:30:00","showEndAt":"2026-04-05 20:00:00"}`)
+
+	event, err := orderevent.UnmarshalOrderCreateEvent(body)
+	if err != nil {
+		t.Fatalf("UnmarshalOrderCreateEvent() error = %v", err)
+	}
+	if event.OrderNumber != 91001 || event.ShowTimeID != 20001 || event.TicketCount != 2 {
+		t.Fatalf("expected legacy generation payload to remain decodable, got %+v", event)
+	}
 }

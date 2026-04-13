@@ -23,6 +23,7 @@ type DOrderUserGuard struct {
 type DOrderUserGuardModel interface {
 	InsertWithSession(ctx context.Context, session sqlx.Session, data *DOrderUserGuard) (sql.Result, error)
 	DeleteByOrderNumber(ctx context.Context, session sqlx.Session, orderNumber int64) error
+	FindActiveByShowTimeAfterID(ctx context.Context, showTimeID, afterID, limit int64) ([]*DOrderUserGuard, error)
 }
 
 type customDOrderUserGuardModel struct {
@@ -68,4 +69,24 @@ func (m *customDOrderUserGuardModel) DeleteByOrderNumber(ctx context.Context, se
 	query := fmt.Sprintf("delete from %s where `order_number` = ?", m.table)
 	_, err := m.withSession(session).conn.ExecCtx(ctx, query, orderNumber)
 	return err
+}
+
+func (m *customDOrderUserGuardModel) FindActiveByShowTimeAfterID(ctx context.Context, showTimeID, afterID, limit int64) ([]*DOrderUserGuard, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+
+	query := fmt.Sprintf(
+		"select `id`, `order_number`, `program_id`, `show_time_id`, `user_id`, `create_time`, `edit_time`, `status` from %s where `show_time_id` = ? and `status` = 1 and `id` > ? order by `id` asc limit ?",
+		m.table,
+	)
+	var rows []*DOrderUserGuard
+	if err := m.conn.QueryRowsCtx(ctx, &rows, query, showTimeID, afterID, limit); err != nil {
+		if err == sqlx.ErrNotFound {
+			return []*DOrderUserGuard{}, nil
+		}
+		return nil, err
+	}
+
+	return rows, nil
 }

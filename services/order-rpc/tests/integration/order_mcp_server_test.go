@@ -218,6 +218,14 @@ func (r *fakeMCPOrderRepository) ListUnpaidReservationsByUserShowTime(ctx contex
 	return map[int64]int64{}, nil
 }
 
+func (r *fakeMCPOrderRepository) WalkActiveUserGuardsByShowTime(ctx context.Context, showTimeID, batchSize int64, fn func([]*model.DOrderUserGuard) error) error {
+	return nil
+}
+
+func (r *fakeMCPOrderRepository) WalkActiveViewerGuardsByShowTime(ctx context.Context, showTimeID, batchSize int64, fn func([]*model.DOrderViewerGuard) error) error {
+	return nil
+}
+
 func (r *fakeMCPOrderRepository) RouteByUserID(ctx context.Context, userID int64) (sharding.Route, error) {
 	return sharding.Route{}, nil
 }

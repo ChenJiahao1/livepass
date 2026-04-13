@@ -34,10 +34,10 @@ func (f *fakeWorkerShowTimeStore) MarkInventoryPreheated(_ context.Context, show
 }
 
 type fakeWorkerOrderRPC struct {
-	reqs []*orderrpc.PrimeAdmissionQuotaReq
+	reqs []*orderrpc.PrimeRushRuntimeReq
 }
 
-func (f *fakeWorkerOrderRPC) PrimeAdmissionQuota(_ context.Context, in *orderrpc.PrimeAdmissionQuotaReq) (*orderrpc.BoolResp, error) {
+func (f *fakeWorkerOrderRPC) PrimeRushRuntime(_ context.Context, in *orderrpc.PrimeRushRuntimeReq) (*orderrpc.BoolResp, error) {
 	f.reqs = append(f.reqs, in)
 	return &orderrpc.BoolResp{Success: true}, nil
 }

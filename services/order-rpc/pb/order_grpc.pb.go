@@ -34,7 +34,7 @@ const (
 	OrderRpc_CloseExpiredOrder_FullMethodName                = "/order.OrderRpc/CloseExpiredOrder"
 	OrderRpc_CloseExpiredOrders_FullMethodName               = "/order.OrderRpc/CloseExpiredOrders"
 	OrderRpc_CountActiveTicketsByUserShowTime_FullMethodName = "/order.OrderRpc/CountActiveTicketsByUserShowTime"
-	OrderRpc_PrimeAdmissionQuota_FullMethodName              = "/order.OrderRpc/PrimeAdmissionQuota"
+	OrderRpc_PrimeRushRuntime_FullMethodName                 = "/order.OrderRpc/PrimeRushRuntime"
 )
 
 // OrderRpcClient is the client API for OrderRpc service.
@@ -56,7 +56,7 @@ type OrderRpcClient interface {
 	CloseExpiredOrder(ctx context.Context, in *CloseExpiredOrderReq, opts ...grpc.CallOption) (*BoolResp, error)
 	CloseExpiredOrders(ctx context.Context, in *CloseExpiredOrdersReq, opts ...grpc.CallOption) (*CloseExpiredOrdersResp, error)
 	CountActiveTicketsByUserShowTime(ctx context.Context, in *CountActiveTicketsByUserShowTimeReq, opts ...grpc.CallOption) (*CountActiveTicketsByUserShowTimeResp, error)
-	PrimeAdmissionQuota(ctx context.Context, in *PrimeAdmissionQuotaReq, opts ...grpc.CallOption) (*BoolResp, error)
+	PrimeRushRuntime(ctx context.Context, in *PrimeRushRuntimeReq, opts ...grpc.CallOption) (*BoolResp, error)
 }
 
 type orderRpcClient struct {
@@ -217,10 +217,10 @@ func (c *orderRpcClient) CountActiveTicketsByUserShowTime(ctx context.Context, i
 	return out, nil
 }
 
-func (c *orderRpcClient) PrimeAdmissionQuota(ctx context.Context, in *PrimeAdmissionQuotaReq, opts ...grpc.CallOption) (*BoolResp, error) {
+func (c *orderRpcClient) PrimeRushRuntime(ctx context.Context, in *PrimeRushRuntimeReq, opts ...grpc.CallOption) (*BoolResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BoolResp)
-	err := c.cc.Invoke(ctx, OrderRpc_PrimeAdmissionQuota_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, OrderRpc_PrimeRushRuntime_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ type OrderRpcServer interface {
 	CloseExpiredOrder(context.Context, *CloseExpiredOrderReq) (*BoolResp, error)
 	CloseExpiredOrders(context.Context, *CloseExpiredOrdersReq) (*CloseExpiredOrdersResp, error)
 	CountActiveTicketsByUserShowTime(context.Context, *CountActiveTicketsByUserShowTimeReq) (*CountActiveTicketsByUserShowTimeResp, error)
-	PrimeAdmissionQuota(context.Context, *PrimeAdmissionQuotaReq) (*BoolResp, error)
+	PrimeRushRuntime(context.Context, *PrimeRushRuntimeReq) (*BoolResp, error)
 	mustEmbedUnimplementedOrderRpcServer()
 }
 
@@ -302,8 +302,8 @@ func (UnimplementedOrderRpcServer) CloseExpiredOrders(context.Context, *CloseExp
 func (UnimplementedOrderRpcServer) CountActiveTicketsByUserShowTime(context.Context, *CountActiveTicketsByUserShowTimeReq) (*CountActiveTicketsByUserShowTimeResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CountActiveTicketsByUserShowTime not implemented")
 }
-func (UnimplementedOrderRpcServer) PrimeAdmissionQuota(context.Context, *PrimeAdmissionQuotaReq) (*BoolResp, error) {
-	return nil, status.Error(codes.Unimplemented, "method PrimeAdmissionQuota not implemented")
+func (UnimplementedOrderRpcServer) PrimeRushRuntime(context.Context, *PrimeRushRuntimeReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method PrimeRushRuntime not implemented")
 }
 func (UnimplementedOrderRpcServer) mustEmbedUnimplementedOrderRpcServer() {}
 func (UnimplementedOrderRpcServer) testEmbeddedByValue()                  {}
@@ -596,20 +596,20 @@ func _OrderRpc_CountActiveTicketsByUserShowTime_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrderRpc_PrimeAdmissionQuota_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PrimeAdmissionQuotaReq)
+func _OrderRpc_PrimeRushRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrimeRushRuntimeReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OrderRpcServer).PrimeAdmissionQuota(ctx, in)
+		return srv.(OrderRpcServer).PrimeRushRuntime(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: OrderRpc_PrimeAdmissionQuota_FullMethodName,
+		FullMethod: OrderRpc_PrimeRushRuntime_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrderRpcServer).PrimeAdmissionQuota(ctx, req.(*PrimeAdmissionQuotaReq))
+		return srv.(OrderRpcServer).PrimeRushRuntime(ctx, req.(*PrimeRushRuntimeReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -682,8 +682,8 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrderRpc_CountActiveTicketsByUserShowTime_Handler,
 		},
 		{
-			MethodName: "PrimeAdmissionQuota",
-			Handler:    _OrderRpc_PrimeAdmissionQuota_Handler,
+			MethodName: "PrimeRushRuntime",
+			Handler:    _OrderRpc_PrimeRushRuntime_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
