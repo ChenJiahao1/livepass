@@ -103,6 +103,7 @@ type programFixture struct {
 	RushSaleOpenTime          string
 	RushSaleEndTime           string
 	ShowEndTime               string
+	InventoryPreheatStatus    int64
 	PermitRefund              int64
 	RefundTicketRule          string
 	RefundExplain             string
@@ -152,6 +153,7 @@ func newProgramTestServiceContext(t *testing.T) *svc.ServiceContext {
 			CategorySnapshotTTL: 5 * time.Minute,
 		},
 	})
+	svcCtx.RushInventoryPreheatClient = nil
 
 	svcCtx.SeatStockStore = seatcache.NewSeatStockStore(svcCtx.Redis, svcCtx.DSeatModel, seatcache.Config{
 		Prefix:          testProgramSeatLedgerPrefix,
@@ -846,8 +848,8 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		db,
 		`INSERT INTO d_program_show_time (
 			id, program_id, show_time, show_day_time, show_week_time,
-			rush_sale_open_time, rush_sale_end_time, show_end_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			rush_sale_open_time, rush_sale_end_time, show_end_time, inventory_preheat_status, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		showTimeID,
 		fixture.ProgramID,
 		fixture.ShowTime,
@@ -856,6 +858,7 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		nullIfEmpty(fixture.RushSaleOpenTime),
 		nullIfEmpty(fixture.RushSaleEndTime),
 		nullIfEmpty(fixture.ShowEndTime),
+		fixture.InventoryPreheatStatus,
 		"2026-01-01 00:00:00",
 		"2026-01-01 00:00:00",
 		1,

@@ -33,9 +33,9 @@ INSERT INTO `d_program` (
 
 INSERT INTO `d_program_show_time` (
   `id`, `program_id`, `show_time`, `show_day_time`, `show_week_time`,
-  `rush_sale_open_time`, `rush_sale_end_time`, `show_end_time`, `create_time`, `edit_time`, `status`
+  `rush_sale_open_time`, `rush_sale_end_time`, `show_end_time`, `inventory_preheat_status`, `create_time`, `edit_time`, `status`
 ) VALUES
-  (30001, 10001, '2026-12-31 19:30:00', '2026-12-31 00:00:00', '周四', '2026-12-31 18:00:00', '2026-12-31 19:00:00', '2026-12-31 22:00:00', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
+  (30001, 10001, '2026-12-31 19:30:00', '2026-12-31 00:00:00', '周四', '2026-12-31 18:00:00', '2026-12-31 19:00:00', '2026-12-31 22:00:00', 0, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
 
 INSERT INTO `d_ticket_category` (`id`, `program_id`, `show_time_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) VALUES
   (40001, 10001, 30001, '普通票', 299, 100, 100, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),

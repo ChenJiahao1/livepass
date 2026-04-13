@@ -32,6 +32,7 @@ type (
 	PageProgramsReq                   = pb.PageProgramsReq
 	ParentProgramCategoryReq          = pb.ParentProgramCategoryReq
 	PriceSeatGroup                    = pb.PriceSeatGroup
+	PrimeSeatLedgerReq                = pb.PrimeSeatLedgerReq
 	ProgramCategoryBatchItem          = pb.ProgramCategoryBatchItem
 	ProgramCategoryBatchSaveReq       = pb.ProgramCategoryBatchSaveReq
 	ProgramCategoryInfo               = pb.ProgramCategoryInfo
@@ -65,6 +66,7 @@ type (
 	TicketCategoryInfo                = pb.TicketCategoryInfo
 	TicketCategoryReq                 = pb.TicketCategoryReq
 	UpdateProgramReq                  = pb.UpdateProgramReq
+	UpdateProgramShowTimeReq          = pb.UpdateProgramShowTimeReq
 
 	ProgramRpc interface {
 		CreateProgram(ctx context.Context, in *CreateProgramReq, opts ...grpc.CallOption) (*CreateProgramResp, error)
@@ -80,6 +82,7 @@ type (
 		GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
 		GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
 		CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
+		UpdateProgramShowTime(ctx context.Context, in *UpdateProgramShowTimeReq, opts ...grpc.CallOption) (*BoolResp, error)
 		CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error)
 		GetTicketCategoryDetail(ctx context.Context, in *TicketCategoryReq, opts ...grpc.CallOption) (*TicketCategoryDetailInfo, error)
 		ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
@@ -91,6 +94,7 @@ type (
 		ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error)
 		EvaluateRefundRule(ctx context.Context, in *EvaluateRefundRuleReq, opts ...grpc.CallOption) (*EvaluateRefundRuleResp, error)
 		ReleaseSoldSeats(ctx context.Context, in *ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*ReleaseSoldSeatsResp, error)
+		PrimeSeatLedger(ctx context.Context, in *PrimeSeatLedgerReq, opts ...grpc.CallOption) (*BoolResp, error)
 	}
 
 	defaultProgramRpc struct {
@@ -169,6 +173,11 @@ func (m *defaultProgramRpc) CreateProgramShowTime(ctx context.Context, in *Progr
 	return client.CreateProgramShowTime(ctx, in, opts...)
 }
 
+func (m *defaultProgramRpc) UpdateProgramShowTime(ctx context.Context, in *UpdateProgramShowTimeReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.UpdateProgramShowTime(ctx, in, opts...)
+}
+
 func (m *defaultProgramRpc) CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.CreateTicketCategory(ctx, in, opts...)
@@ -222,4 +231,9 @@ func (m *defaultProgramRpc) EvaluateRefundRule(ctx context.Context, in *Evaluate
 func (m *defaultProgramRpc) ReleaseSoldSeats(ctx context.Context, in *ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*ReleaseSoldSeatsResp, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.ReleaseSoldSeats(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) PrimeSeatLedger(ctx context.Context, in *PrimeSeatLedgerReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.PrimeSeatLedger(ctx, in, opts...)
 }

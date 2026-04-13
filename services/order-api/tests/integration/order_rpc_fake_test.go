@@ -130,6 +130,10 @@ func (f *fakeOrderRPC) CountActiveTicketsByUserShowTime(ctx context.Context, in 
 	return f.countActiveTicketsByUserShowTimeResp, f.countActiveTicketsByUserShowTimeErr
 }
 
+func (f *fakeOrderRPC) PrimeAdmissionQuota(ctx context.Context, in *orderrpc.PrimeAdmissionQuotaReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+	return nil, nil
+}
+
 func (f *fakeOrderRPC) GetOrderCache(ctx context.Context, in *orderrpc.GetOrderCacheReq, opts ...grpc.CallOption) (*orderrpc.GetOrderCacheResp, error) {
 	f.lastGetOrderCacheReq = in
 	return f.getOrderCacheResp, f.getOrderCacheErr

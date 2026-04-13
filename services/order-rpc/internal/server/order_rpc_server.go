@@ -97,3 +97,8 @@ func (s *OrderRpcServer) CountActiveTicketsByUserShowTime(ctx context.Context, i
 	l := logic.NewCountActiveTicketsByUserShowTimeLogic(ctx, s.svcCtx)
 	return l.CountActiveTicketsByUserShowTime(in)
 }
+
+func (s *OrderRpcServer) PrimeAdmissionQuota(ctx context.Context, in *pb.PrimeAdmissionQuotaReq) (*pb.BoolResp, error) {
+	l := logic.NewPrimeAdmissionQuotaLogic(ctx, s.svcCtx)
+	return l.PrimeAdmissionQuota(in)
+}

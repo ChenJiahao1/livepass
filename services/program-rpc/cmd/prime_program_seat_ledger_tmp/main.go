@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"os"
 
 	"damai-go/services/program-rpc/internal/config"
 	"damai-go/services/program-rpc/internal/svc"
@@ -11,11 +13,23 @@ import (
 )
 
 func main() {
+	var (
+		configFile = flag.String("config", "services/program-rpc/etc/program-rpc.yaml", "program-rpc config file")
+		showTimeID = flag.Int64("showTimeId", 0, "show time id")
+	)
+	flag.Parse()
+
+	fmt.Fprintln(os.Stderr, "debug-only: prime_program_seat_ledger_tmp is for manual troubleshooting, not production flow")
+
+	if *showTimeID <= 0 {
+		panic("showTimeId must be greater than 0")
+	}
+
 	var c config.Config
-	conf.MustLoad("services/program-rpc/etc/program-rpc.yaml", &c)
+	conf.MustLoad(*configFile, &c)
 
 	svcCtx := svc.NewServiceContext(c)
-	list, err := svcCtx.DTicketCategoryModel.FindByShowTimeId(context.Background(), 30001)
+	list, err := svcCtx.DTicketCategoryModel.FindByShowTimeId(context.Background(), *showTimeID)
 	if err != nil {
 		panic(err)
 	}
@@ -27,13 +41,19 @@ func main() {
 		if item == nil || item.Id <= 0 {
 			continue
 		}
-		if err := svcCtx.SeatStockStore.PrimeFromDB(context.Background(), 30001, item.Id); err != nil {
+		if err := svcCtx.SeatStockStore.PrimeFromDB(context.Background(), *showTimeID, item.Id); err != nil {
 			panic(err)
 		}
-		snapshot, err := svcCtx.SeatStockStore.Snapshot(context.Background(), 30001, item.Id)
+		snapshot, err := svcCtx.SeatStockStore.Snapshot(context.Background(), *showTimeID, item.Id)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("primed ticketCategoryId=%d ready=%v available=%d\n", item.Id, snapshot.Ready, snapshot.AvailableCount)
+		fmt.Printf(
+			"primed seat ledger showTimeId=%d ticketCategoryId=%d ready=%v available=%d\n",
+			*showTimeID,
+			item.Id,
+			snapshot.Ready,
+			snapshot.AvailableCount,
+		)
 	}
 }

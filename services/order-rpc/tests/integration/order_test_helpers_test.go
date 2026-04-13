@@ -1048,11 +1048,12 @@ func buildTestProgramPreorder(programID, ticketCategoryID, perOrderLimit, perAcc
 		PermitChooseSeat:             0,
 		TicketCategoryVoList: []*programrpc.ProgramPreorderTicketCategoryInfo{
 			{
-				Id:           ticketCategoryID,
-				Introduce:    "普通票",
-				Price:        ticketPrice,
-				TotalNumber:  100,
-				RemainNumber: 100,
+				Id:             ticketCategoryID,
+				Introduce:      "普通票",
+				Price:          ticketPrice,
+				TotalNumber:    100,
+				RemainNumber:   100,
+				AdmissionQuota: 100,
 			},
 		},
 	}
@@ -1118,6 +1119,14 @@ func (f *fakeOrderProgramRPC) GetProgramPreorder(ctx context.Context, in *progra
 }
 
 func (f *fakeOrderProgramRPC) CreateProgramShowTime(ctx context.Context, in *programrpc.ProgramShowTimeAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) UpdateProgramShowTime(ctx context.Context, in *programrpc.UpdateProgramShowTimeReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	return nil, nil
+}
+
+func (f *fakeOrderProgramRPC) PrimeSeatLedger(ctx context.Context, in *programrpc.PrimeSeatLedgerReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
 	return nil, nil
 }
 

@@ -224,6 +224,10 @@ message CountActiveTicketsByUserShowTimeResp {
   int64 activeTicketCount = 1;
 }
 
+message PrimeAdmissionQuotaReq {
+  int64 showTimeId = 1;
+}
+
 service OrderRpc {
   rpc CreatePurchaseToken(CreatePurchaseTokenReq) returns (CreatePurchaseTokenResp);
   rpc CreateOrder(CreateOrderReq) returns (CreateOrderResp);
@@ -240,4 +244,5 @@ service OrderRpc {
   rpc CloseExpiredOrder(CloseExpiredOrderReq) returns (BoolResp);
   rpc CloseExpiredOrders(CloseExpiredOrdersReq) returns (CloseExpiredOrdersResp);
   rpc CountActiveTicketsByUserShowTime(CountActiveTicketsByUserShowTimeReq) returns (CountActiveTicketsByUserShowTimeResp);
+  rpc PrimeAdmissionQuota(PrimeAdmissionQuotaReq) returns (BoolResp);
 }

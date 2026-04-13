@@ -73,8 +73,11 @@ func TestPurchaseTokenPrecheckAndCreateOrderTokenOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetQuotaAvailable() error = %v", err)
 	}
-	if !ok || available != 100 {
-		t.Fatalf("expected purchase token precheck to prime quota=100, got ok=%t available=%d", ok, available)
+	if ok || available != 0 {
+		t.Fatalf("expected purchase token stage not to prime quota, got ok=%t available=%d", ok, available)
+	}
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(context.Background(), programID, ticketCategoryID, 100); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
 	}
 
 	programRPC.getProgramPreorderErr = status.Error(codes.Unavailable, "program rpc unavailable")

@@ -173,6 +173,17 @@ message ProgramShowTimeAddReq {
   string showTime = 2;
   string showDayTime = 3;
   string showWeekTime = 4;
+  string rushSaleOpenTime = 5;
+  string rushSaleEndTime = 6;
+  string showEndTime = 7;
+}
+
+message UpdateProgramShowTimeReq {
+  int64 id = 1;
+  string showWeekTime = 2;
+  string rushSaleOpenTime = 3;
+  string rushSaleEndTime = 4;
+  string showEndTime = 5;
 }
 
 message ListTicketCategoriesByProgramReq {
@@ -283,6 +294,7 @@ message ProgramPreorderTicketCategoryInfo {
   int64 price = 3;
   int64 totalNumber = 4;
   int64 remainNumber = 5;
+  int64 admissionQuota = 6;
 }
 
 message ProgramCategoryListResp {
@@ -459,6 +471,10 @@ message ProgramDetailInfo {
   repeated TicketCategoryInfo ticketCategoryVoList = 53;
 }
 
+message PrimeSeatLedgerReq {
+  int64 showTimeId = 1;
+}
+
 service ProgramRpc {
   rpc CreateProgram(CreateProgramReq) returns (CreateProgramResp);
   rpc UpdateProgram(UpdateProgramReq) returns (BoolResp);
@@ -473,6 +489,7 @@ service ProgramRpc {
   rpc GetProgramDetail(GetProgramDetailReq) returns (ProgramDetailInfo);
   rpc GetProgramPreorder(GetProgramPreorderReq) returns (ProgramPreorderInfo);
   rpc CreateProgramShowTime(ProgramShowTimeAddReq) returns (IdResp);
+  rpc UpdateProgramShowTime(UpdateProgramShowTimeReq) returns (BoolResp);
   rpc CreateTicketCategory(TicketCategoryAddReq) returns (IdResp);
   rpc GetTicketCategoryDetail(TicketCategoryReq) returns (TicketCategoryDetailInfo);
   rpc ListTicketCategoriesByProgram(ListTicketCategoriesByProgramReq) returns (TicketCategoryDetailListResp);
@@ -484,4 +501,5 @@ service ProgramRpc {
   rpc ConfirmSeatFreeze(ConfirmSeatFreezeReq) returns (ConfirmSeatFreezeResp);
   rpc EvaluateRefundRule(EvaluateRefundRuleReq) returns (EvaluateRefundRuleResp);
   rpc ReleaseSoldSeats(ReleaseSoldSeatsReq) returns (ReleaseSoldSeatsResp);
+  rpc PrimeSeatLedger(PrimeSeatLedgerReq) returns (BoolResp);
 }

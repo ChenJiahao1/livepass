@@ -55,6 +55,15 @@ func (c CacheInvalidationConfig) Normalize() CacheInvalidationConfig {
 	return c
 }
 
+type RushInventoryPreheatConfig struct {
+	Enable    bool          `json:",default=true"`
+	LeadTime  time.Duration `json:",default=5m"`
+	Queue     string        `json:",default=rush_inventory_preheat"`
+	MaxRetry  int           `json:",default=8"`
+	UniqueTTL time.Duration `json:",default=30m"`
+	Redis     xredis.Config `json:"Redis,optional"`
+}
+
 type XidConf struct {
 	Provider          string `json:",default=static"`
 	NodeId            int64  `json:",optional"`
@@ -65,10 +74,11 @@ type XidConf struct {
 
 type Config struct {
 	zrpc.RpcServerConf
-	MySQL             xmysql.Config
-	StoreRedis        xredis.Config           `json:"StoreRedis,optional"`
-	Cache             cache.CacheConf         `json:",optional"`
-	LocalCache        LocalCacheConfig        `json:",optional"`
-	CacheInvalidation CacheInvalidationConfig `json:",optional"`
-	Xid               XidConf                 `json:"Xid,optional"`
+	MySQL                xmysql.Config
+	StoreRedis           xredis.Config              `json:"StoreRedis,optional"`
+	Cache                cache.CacheConf            `json:",optional"`
+	LocalCache           LocalCacheConfig           `json:",optional"`
+	CacheInvalidation    CacheInvalidationConfig    `json:",optional"`
+	RushInventoryPreheat RushInventoryPreheatConfig `json:"RushInventoryPreheat,optional"`
+	Xid                  XidConf                    `json:"Xid,optional"`
 }

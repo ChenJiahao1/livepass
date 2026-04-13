@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	"damai-go/pkg/xid"
 	logicpkg "damai-go/services/program-rpc/internal/logic"
@@ -15,6 +16,35 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+type fakeRushInventoryPreheatClient struct {
+	enqueueErr           error
+	enqueueCalls         int
+	lastShowTimeID       int64
+	lastExpectedOpenTime time.Time
+}
+
+func (f *fakeRushInventoryPreheatClient) Enqueue(_ context.Context, showTimeID int64, expectedOpenTime time.Time) error {
+	f.enqueueCalls++
+	f.lastShowTimeID = showTimeID
+	f.lastExpectedOpenTime = expectedOpenTime
+	return f.enqueueErr
+}
+
+func markProgramShowTimeInventoryPreheated(t *testing.T, svcCtx *svc.ServiceContext, showTimeID int64) {
+	t.Helper()
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	mustExecProgramSQL(
+		t,
+		db,
+		"UPDATE d_program_show_time SET inventory_preheat_status = 2, edit_time = ? WHERE id = ?",
+		time.Now().Format(testProgramDateTimeLayout),
+		showTimeID,
+	)
+}
 
 func TestCreateProgramPersistsProgramRecord(t *testing.T) {
 	const programGroupID int64 = 20001
@@ -278,18 +308,168 @@ func TestCreateProgramShowTimePersistsRecordAndRefreshesGroupRecentShowTime(t *t
 		resetProgramDomainState(t)
 	})
 
+	ctx := context.Background()
 	l := logicpkg.NewCreateProgramShowTimeLogic(context.Background(), svcCtx)
 	resp, err := l.CreateProgramShowTime(&pb.ProgramShowTimeAddReq{
-		ProgramId:    10001,
-		ShowTime:     "2026-10-01 19:30:00",
-		ShowDayTime:  "2026-10-01 00:00:00",
-		ShowWeekTime: "周四",
+		ProgramId:        10001,
+		ShowTime:         "2026-10-01 19:30:00",
+		ShowDayTime:      "2026-10-01 00:00:00",
+		ShowWeekTime:     "周四",
+		RushSaleOpenTime: "2026-10-01 18:00:00",
+		RushSaleEndTime:  "2026-10-01 19:00:00",
+		ShowEndTime:      "2026-10-01 22:30:00",
 	})
 	if err != nil {
 		t.Fatalf("CreateProgramShowTime returned error: %v", err)
 	}
 	if resp.GetId() <= 0 {
 		t.Fatalf("expected generated id, got %+v", resp)
+	}
+
+	showTime, err := svcCtx.DProgramShowTimeModel.FindOne(ctx, resp.GetId())
+	if err != nil {
+		t.Fatalf("DProgramShowTimeModel.FindOne returned error: %v", err)
+	}
+	if !showTime.RushSaleOpenTime.Valid || showTime.RushSaleOpenTime.Time.Format(testProgramDateTimeLayout) != "2026-10-01 18:00:00" {
+		t.Fatalf("expected rush_sale_open_time to be persisted, got %+v", showTime.RushSaleOpenTime)
+	}
+	if !showTime.RushSaleEndTime.Valid || showTime.RushSaleEndTime.Time.Format(testProgramDateTimeLayout) != "2026-10-01 19:00:00" {
+		t.Fatalf("expected rush_sale_end_time to be persisted, got %+v", showTime.RushSaleEndTime)
+	}
+	if !showTime.ShowEndTime.Valid || showTime.ShowEndTime.Time.Format(testProgramDateTimeLayout) != "2026-10-01 22:30:00" {
+		t.Fatalf("expected show_end_time to be persisted, got %+v", showTime.ShowEndTime)
+	}
+	if showTime.InventoryPreheatStatus != 0 {
+		t.Fatalf("expected inventory_preheat_status default 0, got %+v", showTime)
+	}
+}
+
+func TestUpdateProgramShowTimePersistsSaleConfigChanges(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	ctx := context.Background()
+	l := logicpkg.NewUpdateProgramShowTimeLogic(ctx, svcCtx)
+	resp, err := l.UpdateProgramShowTime(&pb.UpdateProgramShowTimeReq{
+		Id:               30001,
+		ShowWeekTime:     "周五",
+		RushSaleOpenTime: "2026-12-31 17:30:00",
+		RushSaleEndTime:  "2026-12-31 19:10:00",
+		ShowEndTime:      "2026-12-31 22:30:00",
+	})
+	if err != nil {
+		t.Fatalf("UpdateProgramShowTime returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success, got %+v", resp)
+	}
+
+	showTime, err := svcCtx.DProgramShowTimeModel.FindOne(ctx, 30001)
+	if err != nil {
+		t.Fatalf("DProgramShowTimeModel.FindOne returned error: %v", err)
+	}
+	if showTime.ShowWeekTime != "周五" {
+		t.Fatalf("expected show_week_time updated, got %+v", showTime)
+	}
+	if !showTime.RushSaleOpenTime.Valid || showTime.RushSaleOpenTime.Time.Format(testProgramDateTimeLayout) != "2026-12-31 17:30:00" {
+		t.Fatalf("expected rush_sale_open_time updated, got %+v", showTime.RushSaleOpenTime)
+	}
+	if !showTime.RushSaleEndTime.Valid || showTime.RushSaleEndTime.Time.Format(testProgramDateTimeLayout) != "2026-12-31 19:10:00" {
+		t.Fatalf("expected rush_sale_end_time updated, got %+v", showTime.RushSaleEndTime)
+	}
+	if !showTime.ShowEndTime.Valid || showTime.ShowEndTime.Time.Format(testProgramDateTimeLayout) != "2026-12-31 22:30:00" {
+		t.Fatalf("expected show_end_time updated, got %+v", showTime.ShowEndTime)
+	}
+}
+
+func TestCreateProgramShowTimeEnqueuesRushInventoryPreheatAndMarksStatusScheduled(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	fakeClient := &fakeRushInventoryPreheatClient{}
+	svcCtx.RushInventoryPreheatClient = fakeClient
+
+	ctx := context.Background()
+	l := logicpkg.NewCreateProgramShowTimeLogic(ctx, svcCtx)
+	resp, err := l.CreateProgramShowTime(&pb.ProgramShowTimeAddReq{
+		ProgramId:        10001,
+		ShowTime:         "2026-10-01 19:30:00",
+		ShowDayTime:      "2026-10-01 00:00:00",
+		ShowWeekTime:     "周四",
+		RushSaleOpenTime: "2026-10-01 18:00:00",
+		RushSaleEndTime:  "2026-10-01 19:00:00",
+		ShowEndTime:      "2026-10-01 22:30:00",
+	})
+	if err != nil {
+		t.Fatalf("CreateProgramShowTime returned error: %v", err)
+	}
+
+	if fakeClient.enqueueCalls != 1 {
+		t.Fatalf("expected enqueue once, got %d", fakeClient.enqueueCalls)
+	}
+	if fakeClient.lastShowTimeID != resp.GetId() {
+		t.Fatalf("expected enqueue showTimeId %d, got %d", resp.GetId(), fakeClient.lastShowTimeID)
+	}
+	if fakeClient.lastExpectedOpenTime.Format(testProgramDateTimeLayout) != "2026-10-01 18:00:00" {
+		t.Fatalf("expected expected open time 2026-10-01 18:00:00, got %s", fakeClient.lastExpectedOpenTime.Format(testProgramDateTimeLayout))
+	}
+
+	showTime, err := svcCtx.DProgramShowTimeModel.FindOne(ctx, resp.GetId())
+	if err != nil {
+		t.Fatalf("DProgramShowTimeModel.FindOne returned error: %v", err)
+	}
+	if showTime.InventoryPreheatStatus != 1 {
+		t.Fatalf("expected inventory_preheat_status 1 after enqueue, got %+v", showTime)
+	}
+}
+
+func TestUpdateProgramShowTimeEnqueuesRushInventoryPreheatAndMarksStatusScheduled(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+
+	fakeClient := &fakeRushInventoryPreheatClient{}
+	svcCtx.RushInventoryPreheatClient = fakeClient
+
+	ctx := context.Background()
+	l := logicpkg.NewUpdateProgramShowTimeLogic(ctx, svcCtx)
+	resp, err := l.UpdateProgramShowTime(&pb.UpdateProgramShowTimeReq{
+		Id:               30001,
+		ShowWeekTime:     "周五",
+		RushSaleOpenTime: "2026-12-31 17:30:00",
+		RushSaleEndTime:  "2026-12-31 19:10:00",
+		ShowEndTime:      "2026-12-31 22:30:00",
+	})
+	if err != nil {
+		t.Fatalf("UpdateProgramShowTime returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success, got %+v", resp)
+	}
+	if fakeClient.enqueueCalls != 1 {
+		t.Fatalf("expected enqueue once, got %d", fakeClient.enqueueCalls)
+	}
+	if fakeClient.lastShowTimeID != 30001 {
+		t.Fatalf("expected enqueue showTimeId 30001, got %d", fakeClient.lastShowTimeID)
+	}
+	if fakeClient.lastExpectedOpenTime.Format(testProgramDateTimeLayout) != "2026-12-31 17:30:00" {
+		t.Fatalf("expected expected open time 2026-12-31 17:30:00, got %s", fakeClient.lastExpectedOpenTime.Format(testProgramDateTimeLayout))
+	}
+
+	showTime, err := svcCtx.DProgramShowTimeModel.FindOne(ctx, 30001)
+	if err != nil {
+		t.Fatalf("DProgramShowTimeModel.FindOne returned error: %v", err)
+	}
+	if showTime.InventoryPreheatStatus != 1 {
+		t.Fatalf("expected inventory_preheat_status 1 after enqueue, got %+v", showTime)
 	}
 }
 
@@ -322,6 +502,27 @@ func TestCreateTicketCategoryPersistsRecordAndInvalidatesProgramDetailCache(t *t
 	}
 }
 
+func TestCreateTicketCategoryRejectsInventoryMutationAfterPreheat(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+	markProgramShowTimeInventoryPreheated(t, svcCtx, 30001)
+
+	l := logicpkg.NewCreateTicketCategoryLogic(context.Background(), svcCtx)
+	_, err := l.CreateTicketCategory(&pb.TicketCategoryAddReq{
+		ProgramId:    10001,
+		Introduce:    "预热后新增票档",
+		Price:        999,
+		TotalNumber:  20,
+		RemainNumber: 20,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition after inventory preheat, got err=%v", err)
+	}
+}
+
 func TestProgramSchemaUsesShowTimeDimensionForRushInventory(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
@@ -335,6 +536,7 @@ func TestProgramSchemaUsesShowTimeDimensionForRushInventory(t *testing.T) {
 	requireProgramTableColumn(t, db, "d_program_show_time", "rush_sale_open_time")
 	requireProgramTableColumn(t, db, "d_program_show_time", "rush_sale_end_time")
 	requireProgramTableColumn(t, db, "d_program_show_time", "show_end_time")
+	requireProgramTableColumn(t, db, "d_program_show_time", "inventory_preheat_status")
 	requireProgramTableColumn(t, db, "d_ticket_category", "show_time_id")
 	requireProgramTableColumn(t, db, "d_seat", "show_time_id")
 	requireProgramIndex(t, db, "d_seat", "uk_show_time_row_col")
@@ -375,6 +577,28 @@ func TestCreateSeatRejectsDuplicateSeatCoordinate(t *testing.T) {
 	}
 }
 
+func TestCreateSeatRejectsInventoryMutationAfterPreheat(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+	markProgramShowTimeInventoryPreheated(t, svcCtx, 30001)
+
+	l := logicpkg.NewCreateSeatLogic(context.Background(), svcCtx)
+	_, err := l.CreateSeat(&pb.SeatAddReq{
+		ProgramId:        10001,
+		TicketCategoryId: 40001,
+		RowCode:          20,
+		ColCode:          1,
+		SeatType:         1,
+		Price:            299,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition after inventory preheat, got err=%v", err)
+	}
+}
+
 func TestBatchCreateSeatsGeneratesExpectedSeatRows(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
@@ -395,6 +619,65 @@ func TestBatchCreateSeatsGeneratesExpectedSeatRows(t *testing.T) {
 	}
 	if !resp.GetSuccess() {
 		t.Fatalf("expected success, got %+v", resp)
+	}
+}
+
+func TestBatchCreateSeatsRejectsInventoryMutationAfterPreheat(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+	clearSeatInventoryByProgram(t, svcCtx, 10001)
+	markProgramShowTimeInventoryPreheated(t, svcCtx, 30001)
+
+	l := logicpkg.NewBatchCreateSeatsLogic(context.Background(), svcCtx)
+	_, err := l.BatchCreateSeats(&pb.SeatBatchAddReq{
+		ProgramId: 10001,
+		SeatBatchRelateInfoAddDtoList: []*pb.SeatBatchRelateInfoAddReq{
+			{TicketCategoryId: 40001, Price: 299, Count: 20},
+		},
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition after inventory preheat, got err=%v", err)
+	}
+}
+
+func TestUpdateProgramShowTimeAllowsRescheduleAfterPreheat(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+	t.Cleanup(func() {
+		resetProgramDomainState(t)
+	})
+	markProgramShowTimeInventoryPreheated(t, svcCtx, 30001)
+
+	fakeClient := &fakeRushInventoryPreheatClient{}
+	svcCtx.RushInventoryPreheatClient = fakeClient
+
+	l := logicpkg.NewUpdateProgramShowTimeLogic(context.Background(), svcCtx)
+	resp, err := l.UpdateProgramShowTime(&pb.UpdateProgramShowTimeReq{
+		Id:               30001,
+		ShowWeekTime:     "周五",
+		RushSaleOpenTime: "2026-12-31 17:15:00",
+		RushSaleEndTime:  "2026-12-31 19:05:00",
+		ShowEndTime:      "2026-12-31 22:15:00",
+	})
+	if err != nil {
+		t.Fatalf("UpdateProgramShowTime returned error: %v", err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success, got %+v", resp)
+	}
+	if fakeClient.enqueueCalls != 1 {
+		t.Fatalf("expected enqueue once after preheat reschedule, got %d", fakeClient.enqueueCalls)
+	}
+
+	showTime, err := svcCtx.DProgramShowTimeModel.FindOne(context.Background(), 30001)
+	if err != nil {
+		t.Fatalf("DProgramShowTimeModel.FindOne returned error: %v", err)
+	}
+	if showTime.InventoryPreheatStatus != 1 {
+		t.Fatalf("expected inventory_preheat_status reset to 1 after reschedule, got %+v", showTime)
 	}
 }
 

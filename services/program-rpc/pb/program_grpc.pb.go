@@ -32,6 +32,7 @@ const (
 	ProgramRpc_GetProgramDetail_FullMethodName              = "/program.ProgramRpc/GetProgramDetail"
 	ProgramRpc_GetProgramPreorder_FullMethodName            = "/program.ProgramRpc/GetProgramPreorder"
 	ProgramRpc_CreateProgramShowTime_FullMethodName         = "/program.ProgramRpc/CreateProgramShowTime"
+	ProgramRpc_UpdateProgramShowTime_FullMethodName         = "/program.ProgramRpc/UpdateProgramShowTime"
 	ProgramRpc_CreateTicketCategory_FullMethodName          = "/program.ProgramRpc/CreateTicketCategory"
 	ProgramRpc_GetTicketCategoryDetail_FullMethodName       = "/program.ProgramRpc/GetTicketCategoryDetail"
 	ProgramRpc_ListTicketCategoriesByProgram_FullMethodName = "/program.ProgramRpc/ListTicketCategoriesByProgram"
@@ -43,6 +44,7 @@ const (
 	ProgramRpc_ConfirmSeatFreeze_FullMethodName             = "/program.ProgramRpc/ConfirmSeatFreeze"
 	ProgramRpc_EvaluateRefundRule_FullMethodName            = "/program.ProgramRpc/EvaluateRefundRule"
 	ProgramRpc_ReleaseSoldSeats_FullMethodName              = "/program.ProgramRpc/ReleaseSoldSeats"
+	ProgramRpc_PrimeSeatLedger_FullMethodName               = "/program.ProgramRpc/PrimeSeatLedger"
 )
 
 // ProgramRpcClient is the client API for ProgramRpc service.
@@ -62,6 +64,7 @@ type ProgramRpcClient interface {
 	GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
 	GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
 	CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
+	UpdateProgramShowTime(ctx context.Context, in *UpdateProgramShowTimeReq, opts ...grpc.CallOption) (*BoolResp, error)
 	CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error)
 	GetTicketCategoryDetail(ctx context.Context, in *TicketCategoryReq, opts ...grpc.CallOption) (*TicketCategoryDetailInfo, error)
 	ListTicketCategoriesByProgram(ctx context.Context, in *ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*TicketCategoryDetailListResp, error)
@@ -73,6 +76,7 @@ type ProgramRpcClient interface {
 	ConfirmSeatFreeze(ctx context.Context, in *ConfirmSeatFreezeReq, opts ...grpc.CallOption) (*ConfirmSeatFreezeResp, error)
 	EvaluateRefundRule(ctx context.Context, in *EvaluateRefundRuleReq, opts ...grpc.CallOption) (*EvaluateRefundRuleResp, error)
 	ReleaseSoldSeats(ctx context.Context, in *ReleaseSoldSeatsReq, opts ...grpc.CallOption) (*ReleaseSoldSeatsResp, error)
+	PrimeSeatLedger(ctx context.Context, in *PrimeSeatLedgerReq, opts ...grpc.CallOption) (*BoolResp, error)
 }
 
 type programRpcClient struct {
@@ -213,6 +217,16 @@ func (c *programRpcClient) CreateProgramShowTime(ctx context.Context, in *Progra
 	return out, nil
 }
 
+func (c *programRpcClient) UpdateProgramShowTime(ctx context.Context, in *UpdateProgramShowTimeReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_UpdateProgramShowTime_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *programRpcClient) CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdResp)
@@ -323,6 +337,16 @@ func (c *programRpcClient) ReleaseSoldSeats(ctx context.Context, in *ReleaseSold
 	return out, nil
 }
 
+func (c *programRpcClient) PrimeSeatLedger(ctx context.Context, in *PrimeSeatLedgerReq, opts ...grpc.CallOption) (*BoolResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BoolResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_PrimeSeatLedger_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProgramRpcServer is the server API for ProgramRpc service.
 // All implementations must embed UnimplementedProgramRpcServer
 // for forward compatibility.
@@ -340,6 +364,7 @@ type ProgramRpcServer interface {
 	GetProgramDetail(context.Context, *GetProgramDetailReq) (*ProgramDetailInfo, error)
 	GetProgramPreorder(context.Context, *GetProgramPreorderReq) (*ProgramPreorderInfo, error)
 	CreateProgramShowTime(context.Context, *ProgramShowTimeAddReq) (*IdResp, error)
+	UpdateProgramShowTime(context.Context, *UpdateProgramShowTimeReq) (*BoolResp, error)
 	CreateTicketCategory(context.Context, *TicketCategoryAddReq) (*IdResp, error)
 	GetTicketCategoryDetail(context.Context, *TicketCategoryReq) (*TicketCategoryDetailInfo, error)
 	ListTicketCategoriesByProgram(context.Context, *ListTicketCategoriesByProgramReq) (*TicketCategoryDetailListResp, error)
@@ -351,6 +376,7 @@ type ProgramRpcServer interface {
 	ConfirmSeatFreeze(context.Context, *ConfirmSeatFreezeReq) (*ConfirmSeatFreezeResp, error)
 	EvaluateRefundRule(context.Context, *EvaluateRefundRuleReq) (*EvaluateRefundRuleResp, error)
 	ReleaseSoldSeats(context.Context, *ReleaseSoldSeatsReq) (*ReleaseSoldSeatsResp, error)
+	PrimeSeatLedger(context.Context, *PrimeSeatLedgerReq) (*BoolResp, error)
 	mustEmbedUnimplementedProgramRpcServer()
 }
 
@@ -400,6 +426,9 @@ func (UnimplementedProgramRpcServer) GetProgramPreorder(context.Context, *GetPro
 func (UnimplementedProgramRpcServer) CreateProgramShowTime(context.Context, *ProgramShowTimeAddReq) (*IdResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateProgramShowTime not implemented")
 }
+func (UnimplementedProgramRpcServer) UpdateProgramShowTime(context.Context, *UpdateProgramShowTimeReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateProgramShowTime not implemented")
+}
 func (UnimplementedProgramRpcServer) CreateTicketCategory(context.Context, *TicketCategoryAddReq) (*IdResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateTicketCategory not implemented")
 }
@@ -432,6 +461,9 @@ func (UnimplementedProgramRpcServer) EvaluateRefundRule(context.Context, *Evalua
 }
 func (UnimplementedProgramRpcServer) ReleaseSoldSeats(context.Context, *ReleaseSoldSeatsReq) (*ReleaseSoldSeatsResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReleaseSoldSeats not implemented")
+}
+func (UnimplementedProgramRpcServer) PrimeSeatLedger(context.Context, *PrimeSeatLedgerReq) (*BoolResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method PrimeSeatLedger not implemented")
 }
 func (UnimplementedProgramRpcServer) mustEmbedUnimplementedProgramRpcServer() {}
 func (UnimplementedProgramRpcServer) testEmbeddedByValue()                    {}
@@ -688,6 +720,24 @@ func _ProgramRpc_CreateProgramShowTime_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProgramRpc_UpdateProgramShowTime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProgramShowTimeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).UpdateProgramShowTime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_UpdateProgramShowTime_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).UpdateProgramShowTime(ctx, req.(*UpdateProgramShowTimeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ProgramRpc_CreateTicketCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TicketCategoryAddReq)
 	if err := dec(in); err != nil {
@@ -886,6 +936,24 @@ func _ProgramRpc_ReleaseSoldSeats_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProgramRpc_PrimeSeatLedger_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrimeSeatLedgerReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).PrimeSeatLedger(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_PrimeSeatLedger_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).PrimeSeatLedger(ctx, req.(*PrimeSeatLedgerReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProgramRpc_ServiceDesc is the grpc.ServiceDesc for ProgramRpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -946,6 +1014,10 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ProgramRpc_CreateProgramShowTime_Handler,
 		},
 		{
+			MethodName: "UpdateProgramShowTime",
+			Handler:    _ProgramRpc_UpdateProgramShowTime_Handler,
+		},
+		{
 			MethodName: "CreateTicketCategory",
 			Handler:    _ProgramRpc_CreateTicketCategory_Handler,
 		},
@@ -988,6 +1060,10 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReleaseSoldSeats",
 			Handler:    _ProgramRpc_ReleaseSoldSeats_Handler,
+		},
+		{
+			MethodName: "PrimeSeatLedger",
+			Handler:    _ProgramRpc_PrimeSeatLedger_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

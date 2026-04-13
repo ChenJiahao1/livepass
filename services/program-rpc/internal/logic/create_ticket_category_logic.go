@@ -43,6 +43,9 @@ func (l *CreateTicketCategoryLogic) CreateTicketCategory(in *pb.TicketCategoryAd
 		}
 		return nil, err
 	}
+	if err := ensureProgramInventoryMutable(l.ctx, l.svcCtx, in.GetProgramId()); err != nil {
+		return nil, mapInventoryMutationError(err)
+	}
 
 	remainNumber := in.GetRemainNumber()
 	if remainNumber <= 0 {

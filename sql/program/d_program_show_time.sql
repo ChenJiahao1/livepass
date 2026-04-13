@@ -8,6 +8,7 @@ CREATE TABLE `d_program_show_time` (
   `rush_sale_open_time` datetime DEFAULT NULL COMMENT 'rush sale open time',
   `rush_sale_end_time` datetime DEFAULT NULL COMMENT 'rush sale end time',
   `show_end_time` datetime DEFAULT NULL COMMENT 'show end time',
+  `inventory_preheat_status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 not preheated, 1 scheduled, 2 completed',
   `create_time` datetime DEFAULT NULL COMMENT 'created at',
   `edit_time` datetime DEFAULT NULL COMMENT 'updated at',
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 active, 0 deleted',

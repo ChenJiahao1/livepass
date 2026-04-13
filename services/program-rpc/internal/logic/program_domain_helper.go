@@ -221,12 +221,14 @@ func toTicketCategoryInfoList(ticketCategories []*model.DTicketCategory) []*pb.T
 func toProgramPreorderTicketCategoryInfoList(ticketCategories []*model.DTicketCategory, remainMap map[int64]int64) []*pb.ProgramPreorderTicketCategoryInfo {
 	list := make([]*pb.ProgramPreorderTicketCategoryInfo, 0, len(ticketCategories))
 	for _, ticketCategory := range ticketCategories {
+		admissionQuota := remainMap[ticketCategory.Id]
 		list = append(list, &pb.ProgramPreorderTicketCategoryInfo{
-			Id:           ticketCategory.Id,
-			Introduce:    ticketCategory.Introduce,
-			Price:        int64(ticketCategory.Price),
-			TotalNumber:  ticketCategory.TotalNumber,
-			RemainNumber: remainMap[ticketCategory.Id],
+			Id:             ticketCategory.Id,
+			Introduce:      ticketCategory.Introduce,
+			Price:          int64(ticketCategory.Price),
+			TotalNumber:    ticketCategory.TotalNumber,
+			RemainNumber:   admissionQuota,
+			AdmissionQuota: admissionQuota,
 		})
 	}
 

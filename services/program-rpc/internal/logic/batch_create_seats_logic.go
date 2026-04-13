@@ -80,6 +80,9 @@ func (l *BatchCreateSeatsLogic) BatchCreateSeats(in *pb.SeatBatchAddReq) (*pb.Bo
 			if ticketCategory.ProgramId != in.GetProgramId() {
 				return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 			}
+			if err := ensureShowTimeInventoryMutable(ctx, l.svcCtx, ticketCategory.ShowTimeId); err != nil {
+				return mapInventoryMutationError(err)
+			}
 
 			remaining := item.GetCount()
 			for remaining > 0 {

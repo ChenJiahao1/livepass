@@ -311,8 +311,8 @@ func TestSeatInventoryQueriesAreScopedByShowTime(t *testing.T) {
 		db,
 		`INSERT INTO d_program_show_time (
 			id, program_id, show_time, show_day_time, show_week_time,
-			rush_sale_open_time, rush_sale_end_time, show_end_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			rush_sale_open_time, rush_sale_end_time, show_end_time, inventory_preheat_status, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		showTimeTwoID,
 		programID,
 		"2027-01-01 19:30:00",
@@ -321,6 +321,7 @@ func TestSeatInventoryQueriesAreScopedByShowTime(t *testing.T) {
 		"2027-01-01 18:00:00",
 		"2027-01-01 19:00:00",
 		"2027-01-01 22:30:00",
+		0,
 		"2026-01-01 00:00:00",
 		"2026-01-01 00:00:00",
 		1,

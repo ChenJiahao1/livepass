@@ -79,6 +79,38 @@ func TestLoadProgramRPCConfigExposesCacheInvalidationDefaults(t *testing.T) {
 	assertDurationField(t, cacheInvalidationField, "ReconnectBackoff", time.Second)
 }
 
+func TestLoadProgramRPCConfigExposesRushInventoryPreheatDefaults(t *testing.T) {
+	t.Parallel()
+
+	var c config.Config
+	configFile := filepath.Join("..", "..", "etc", "program-rpc.yaml")
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if !c.RushInventoryPreheat.Enable {
+		t.Fatalf("expected rush inventory preheat enabled in runtime config")
+	}
+	if c.RushInventoryPreheat.LeadTime != 5*time.Minute {
+		t.Fatalf("expected rush inventory preheat lead time 5m, got %s", c.RushInventoryPreheat.LeadTime)
+	}
+	if c.RushInventoryPreheat.Queue != "rush_inventory_preheat" {
+		t.Fatalf("expected rush inventory preheat queue rush_inventory_preheat, got %s", c.RushInventoryPreheat.Queue)
+	}
+	if c.RushInventoryPreheat.MaxRetry != 8 {
+		t.Fatalf("expected rush inventory preheat max retry 8, got %d", c.RushInventoryPreheat.MaxRetry)
+	}
+	if c.RushInventoryPreheat.UniqueTTL != 30*time.Minute {
+		t.Fatalf("expected rush inventory preheat unique ttl 30m, got %s", c.RushInventoryPreheat.UniqueTTL)
+	}
+	if c.RushInventoryPreheat.Redis.Host != "127.0.0.1:6379" {
+		t.Fatalf("expected rush inventory preheat redis host 127.0.0.1:6379, got %q", c.RushInventoryPreheat.Redis.Host)
+	}
+	if c.RushInventoryPreheat.Redis.Type != "node" {
+		t.Fatalf("expected rush inventory preheat redis type node, got %q", c.RushInventoryPreheat.Redis.Type)
+	}
+}
+
 func TestLoadProgramRPCConfigIncludesStaticXid(t *testing.T) {
 	t.Parallel()
 

@@ -1,0 +1,23 @@
+Asynq:
+  Queue: rush_inventory_preheat
+  Concurrency: 16
+  ShutdownTimeout: 10s
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node
+MySQL:
+  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true
+  MaxOpenConns: 14
+  MaxIdleConns: 4
+  ConnMaxLifetime: 3m
+  ConnMaxIdleTime: 1m
+OrderRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: order.rpc
+ProgramRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: program.rpc

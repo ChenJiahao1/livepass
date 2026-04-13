@@ -57,9 +57,6 @@ func (l *CreatePurchaseTokenLogic) CreatePurchaseToken(in *pb.CreatePurchaseToke
 	if _, ok := findPreorderTicketCategory(preorder.GetTicketCategoryVoList(), in.GetTicketCategoryId()); !ok {
 		return nil, status.Error(codes.NotFound, xerr.ErrProgramTicketCategoryNotFound.Error())
 	}
-	if err := ensureAdmissionQuotaAvailable(l.ctx, l.svcCtx, preorder, in.GetTicketCategoryId()); err != nil {
-		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
-	}
 
 	ticketCount := int64(len(in.GetTicketUserIds()))
 	if preorder.GetPerOrderLimitPurchaseCount() > 0 && ticketCount > preorder.GetPerOrderLimitPurchaseCount() {
@@ -132,23 +129,4 @@ func parsePurchaseTokenTime(primary, fallback string) (time.Time, error) {
 		return parseOrderTime(fallback)
 	}
 	return time.Time{}, xerr.ErrInvalidParam
-}
-
-func ensureAdmissionQuotaAvailable(ctx context.Context, svcCtx *svc.ServiceContext, preorder *programrpc.ProgramPreorderInfo, ticketCategoryID int64) error {
-	if svcCtx == nil || svcCtx.AttemptStore == nil || preorder == nil || ticketCategoryID <= 0 {
-		return nil
-	}
-
-	showTimeID := preorder.GetShowTimeId()
-	if showTimeID <= 0 {
-		return xerr.ErrInvalidParam
-	}
-
-	ticketCategory, ok := findPreorderTicketCategory(preorder.GetTicketCategoryVoList(), ticketCategoryID)
-	if !ok || ticketCategory == nil {
-		return xerr.ErrProgramTicketCategoryNotFound
-	}
-
-	_, err := svcCtx.AttemptStore.SetQuotaAvailableIfAbsent(ctx, showTimeID, ticketCategoryID, ticketCategory.GetRemainNumber())
-	return err
 }

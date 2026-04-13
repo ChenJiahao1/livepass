@@ -16,22 +16,23 @@ type SeatFreezeLocker interface {
 }
 
 type ServiceContext struct {
-	Config                  config.Config
-	SqlConn                 sqlx.SqlConn
-	Redis                   *xredis.Client
-	SeatStockStore          *seatcache.SeatStockStore
-	DProgramModel           model.DProgramModel
-	DProgramCategoryModel   model.DProgramCategoryModel
-	DProgramGroupModel      model.DProgramGroupModel
-	DProgramShowTimeModel   model.DProgramShowTimeModel
-	DSeatModel              model.DSeatModel
-	DTicketCategoryModel    model.DTicketCategoryModel
-	CategorySnapshotCache   *programcache.CategorySnapshotCache
-	ProgramDetailCache      *programcache.ProgramDetailCache
-	ProgramCacheRegistry    *programcache.InvalidationRegistry
-	ProgramCacheInvalidator *programcache.ProgramCacheInvalidator
-	ProgramCacheSubscriber  *programcache.PubSubSubscriber
-	SeatFreezeLocker        SeatFreezeLocker
+	Config                     config.Config
+	SqlConn                    sqlx.SqlConn
+	Redis                      *xredis.Client
+	SeatStockStore             *seatcache.SeatStockStore
+	DProgramModel              model.DProgramModel
+	DProgramCategoryModel      model.DProgramCategoryModel
+	DProgramGroupModel         model.DProgramGroupModel
+	DProgramShowTimeModel      model.DProgramShowTimeModel
+	DSeatModel                 model.DSeatModel
+	DTicketCategoryModel       model.DTicketCategoryModel
+	CategorySnapshotCache      *programcache.CategorySnapshotCache
+	ProgramDetailCache         *programcache.ProgramDetailCache
+	ProgramCacheRegistry       *programcache.InvalidationRegistry
+	ProgramCacheInvalidator    *programcache.ProgramCacheInvalidator
+	ProgramCacheSubscriber     *programcache.PubSubSubscriber
+	RushInventoryPreheatClient RushInventoryPreheatClient
+	SeatFreezeLocker           SeatFreezeLocker
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -55,22 +56,27 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	cacheInvalidationConf := c.CacheInvalidation.Normalize()
 	c.CacheInvalidation = cacheInvalidationConf
 	queryCaches := newProgramQueryCaches(models, rds, c)
+	rushInventoryPreheatClient, err := newRushInventoryPreheatClient(c.RushInventoryPreheat)
+	if err != nil {
+		panic(err)
+	}
 
 	return &ServiceContext{
-		Config:                  c,
-		SqlConn:                 conn,
-		Redis:                   rds,
-		SeatStockStore:          seatcache.NewSeatStockStore(rds, models.DSeatModel, seatcache.Config{}),
-		DProgramModel:           models.DProgramModel,
-		DProgramCategoryModel:   models.DProgramCategoryModel,
-		DProgramGroupModel:      models.DProgramGroupModel,
-		DProgramShowTimeModel:   models.DProgramShowTimeModel,
-		DSeatModel:              models.DSeatModel,
-		DTicketCategoryModel:    models.DTicketCategoryModel,
-		CategorySnapshotCache:   queryCaches.CategorySnapshotCache,
-		ProgramDetailCache:      queryCaches.ProgramDetailCache,
-		ProgramCacheRegistry:    queryCaches.ProgramCacheRegistry,
-		ProgramCacheInvalidator: queryCaches.ProgramCacheInvalidator,
-		ProgramCacheSubscriber:  queryCaches.ProgramCacheSubscriber,
+		Config:                     c,
+		SqlConn:                    conn,
+		Redis:                      rds,
+		SeatStockStore:             seatcache.NewSeatStockStore(rds, models.DSeatModel, seatcache.Config{}),
+		DProgramModel:              models.DProgramModel,
+		DProgramCategoryModel:      models.DProgramCategoryModel,
+		DProgramGroupModel:         models.DProgramGroupModel,
+		DProgramShowTimeModel:      models.DProgramShowTimeModel,
+		DSeatModel:                 models.DSeatModel,
+		DTicketCategoryModel:       models.DTicketCategoryModel,
+		CategorySnapshotCache:      queryCaches.CategorySnapshotCache,
+		ProgramDetailCache:         queryCaches.ProgramDetailCache,
+		ProgramCacheRegistry:       queryCaches.ProgramCacheRegistry,
+		ProgramCacheInvalidator:    queryCaches.ProgramCacheInvalidator,
+		ProgramCacheSubscriber:     queryCaches.ProgramCacheSubscriber,
+		RushInventoryPreheatClient: rushInventoryPreheatClient,
 	}
 }

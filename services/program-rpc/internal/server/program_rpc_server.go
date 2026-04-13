@@ -88,6 +88,11 @@ func (s *ProgramRpcServer) CreateProgramShowTime(ctx context.Context, in *pb.Pro
 	return l.CreateProgramShowTime(in)
 }
 
+func (s *ProgramRpcServer) UpdateProgramShowTime(ctx context.Context, in *pb.UpdateProgramShowTimeReq) (*pb.BoolResp, error) {
+	l := logic.NewUpdateProgramShowTimeLogic(ctx, s.svcCtx)
+	return l.UpdateProgramShowTime(in)
+}
+
 func (s *ProgramRpcServer) CreateTicketCategory(ctx context.Context, in *pb.TicketCategoryAddReq) (*pb.IdResp, error) {
 	l := logic.NewCreateTicketCategoryLogic(ctx, s.svcCtx)
 	return l.CreateTicketCategory(in)
@@ -141,4 +146,9 @@ func (s *ProgramRpcServer) EvaluateRefundRule(ctx context.Context, in *pb.Evalua
 func (s *ProgramRpcServer) ReleaseSoldSeats(ctx context.Context, in *pb.ReleaseSoldSeatsReq) (*pb.ReleaseSoldSeatsResp, error) {
 	l := logic.NewReleaseSoldSeatsLogic(ctx, s.svcCtx)
 	return l.ReleaseSoldSeats(in)
+}
+
+func (s *ProgramRpcServer) PrimeSeatLedger(ctx context.Context, in *pb.PrimeSeatLedgerReq) (*pb.BoolResp, error) {
+	l := logic.NewPrimeSeatLedgerLogic(ctx, s.svcCtx)
+	return l.PrimeSeatLedger(in)
 }

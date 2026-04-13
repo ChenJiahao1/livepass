@@ -45,12 +45,37 @@ func (l *CreateProgramShowTimeLogic) CreateProgramShowTime(in *pb.ProgramShowTim
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
+	rushSaleOpenTime, err := parseNullTime(in.GetRushSaleOpenTime())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
+	rushSaleEndTime, err := parseNullTime(in.GetRushSaleEndTime())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
+	showEndTime, err := parseNullTime(in.GetShowEndTime())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
 
 	var (
 		id             = xid.New()
 		programGroupID int64
 	)
 	now := time.Now()
+	createdShowTime := &model.DProgramShowTime{
+		Id:                     id,
+		ProgramId:              in.GetProgramId(),
+		ShowTime:               showTime,
+		ShowDayTime:            showDayTime,
+		ShowWeekTime:           in.GetShowWeekTime(),
+		RushSaleOpenTime:       rushSaleOpenTime,
+		RushSaleEndTime:        rushSaleEndTime,
+		ShowEndTime:            showEndTime,
+		InventoryPreheatStatus: 0,
+		EditTime:               sql.NullTime{Time: now, Valid: true},
+		Status:                 1,
+	}
 
 	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
 		conn := sqlx.NewSqlConnFromSession(session)
@@ -67,15 +92,7 @@ func (l *CreateProgramShowTimeLogic) CreateProgramShowTime(in *pb.ProgramShowTim
 		}
 		programGroupID = program.ProgramGroupId
 
-		if _, err := showTimeModel.Insert(ctx, &model.DProgramShowTime{
-			Id:           id,
-			ProgramId:    in.GetProgramId(),
-			ShowTime:     showTime,
-			ShowDayTime:  showDayTime,
-			ShowWeekTime: in.GetShowWeekTime(),
-			EditTime:     sql.NullTime{Time: now, Valid: true},
-			Status:       1,
-		}); err != nil {
+		if _, err := showTimeModel.Insert(ctx, createdShowTime); err != nil {
 			return err
 		}
 
@@ -97,6 +114,10 @@ func (l *CreateProgramShowTimeLogic) CreateProgramShowTime(in *pb.ProgramShowTim
 		return nil
 	})
 	if err != nil {
+		return nil, err
+	}
+
+	if err := scheduleRushInventoryPreheat(l.ctx, l.svcCtx, createdShowTime); err != nil {
 		return nil, err
 	}
 

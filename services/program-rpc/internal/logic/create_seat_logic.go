@@ -52,6 +52,9 @@ func (l *CreateSeatLogic) CreateSeat(in *pb.SeatAddReq) (*pb.IdResp, error) {
 	if ticketCategory.ProgramId != in.GetProgramId() {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
+	if err := ensureShowTimeInventoryMutable(l.ctx, l.svcCtx, ticketCategory.ShowTimeId); err != nil {
+		return nil, mapInventoryMutationError(err)
+	}
 
 	_, err = l.svcCtx.DSeatModel.FindOneByProgramIdRowCodeColCode(l.ctx, in.GetProgramId(), in.GetRowCode(), in.GetColCode())
 	if err == nil {

@@ -160,6 +160,14 @@ func (f *fakeProgramRPC) CreateProgramShowTime(ctx context.Context, in *programr
 	return f.createProgramShowTimeResp, f.createProgramShowTimeErr
 }
 
+func (f *fakeProgramRPC) UpdateProgramShowTime(ctx context.Context, in *programrpc.UpdateProgramShowTimeReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	return f.boolResp, f.boolErr
+}
+
+func (f *fakeProgramRPC) PrimeSeatLedger(ctx context.Context, in *programrpc.PrimeSeatLedgerReq, opts ...grpc.CallOption) (*programrpc.BoolResp, error) {
+	return f.boolResp, f.boolErr
+}
+
 func (f *fakeProgramRPC) CreateTicketCategory(ctx context.Context, in *programrpc.TicketCategoryAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {
 	f.lastCreateTicketCategoryReq = in
 	return f.createTicketCategoryResp, f.createTicketCategoryErr
