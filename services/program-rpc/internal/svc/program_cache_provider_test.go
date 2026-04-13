@@ -1,12 +1,15 @@
 package svc
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
 
 	"damai-go/pkg/xredis"
 	"damai-go/services/program-rpc/internal/config"
+
+	"github.com/redis/go-redis/v9"
 )
 
 func TestNewProgramQueryCachesBuildsDetailCacheAndRegistry(t *testing.T) {
@@ -43,6 +46,39 @@ func TestNewProgramQueryCachesBuildsDetailCacheAndRegistry(t *testing.T) {
 		withoutRedis := newProgramQueryCachesForTest(t, false, true)
 		if withoutRedis.ProgramCacheSubscriber != nil {
 			t.Fatal("expected no subscriber when redis is nil")
+		}
+	})
+
+	t.Run("injects publisher with configured channel", func(t *testing.T) {
+		caches := newProgramQueryCachesForTest(t, true, true)
+		if caches.ProgramCacheInvalidator == nil {
+			t.Fatal("expected invalidator")
+		}
+
+		client := redis.NewClient(&redis.Options{Addr: "127.0.0.1:6379"})
+		defer func() {
+			_ = client.Close()
+		}()
+
+		ctx := context.Background()
+		pubsub := client.Subscribe(ctx, "test:program:invalidate")
+		defer func() {
+			_ = pubsub.Close()
+		}()
+		if _, err := pubsub.ReceiveTimeout(ctx, time.Second); err != nil {
+			t.Fatalf("subscribe custom invalidation channel error: %v", err)
+		}
+
+		if err := caches.ProgramCacheInvalidator.InvalidateCategorySnapshot(ctx); err != nil {
+			t.Fatalf("InvalidateCategorySnapshot returned error: %v", err)
+		}
+
+		msg, err := pubsub.ReceiveMessage(ctx)
+		if err != nil {
+			t.Fatalf("expected publish on configured channel, got %v", err)
+		}
+		if msg.Channel != "test:program:invalidate" {
+			t.Fatalf("expected publish on configured channel, got %q", msg.Channel)
 		}
 	})
 }

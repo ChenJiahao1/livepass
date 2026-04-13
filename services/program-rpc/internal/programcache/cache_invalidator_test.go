@@ -97,6 +97,18 @@ func TestProgramCacheInvalidatorInvalidatesCategorySnapshotLocally(t *testing.T)
 	}
 }
 
+func TestProgramCacheInvalidatorDoesNotCreatePublisherByDefault(t *testing.T) {
+	redis := xredis.MustNew(xredis.Config{
+		Host: "127.0.0.1:6379",
+		Type: "node",
+	})
+
+	invalidator := NewProgramCacheInvalidator(redis, nil)
+	if invalidator.publisher != nil {
+		t.Fatal("expected invalidator publisher to be nil until injected by provider")
+	}
+}
+
 type assertRedisClearedPublisher struct {
 	t         *testing.T
 	rds       *xredis.Client

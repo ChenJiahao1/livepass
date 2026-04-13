@@ -34,11 +34,6 @@ func NewProgramCacheInvalidator(redis *xredis.Client, detailCache *ProgramDetail
 			invalidator.categoryCache = loader.categorySnapshotCache
 		}
 	}
-	if redis != nil {
-		if publisher, err := NewRedisPubSubPublisher(redis, defaultInvalidationChannel, defaultPublishTimeout); err == nil {
-			invalidator.publisher = publisher
-		}
-	}
 
 	return invalidator
 }
@@ -139,8 +134,3 @@ func defaultInstanceID() string {
 	}
 	return fmt.Sprintf("pid-%d", os.Getpid())
 }
-
-const (
-	defaultInvalidationChannel = "damai-go:program:cache:invalidate"
-	defaultPublishTimeout      = 200 * time.Millisecond
-)

@@ -49,6 +49,16 @@ func newProgramQueryCaches(models ProgramModels, rds *xredis.Client, c config.Co
 	}
 
 	if rds != nil && c.CacheInvalidation.Enabled {
+		publisher, err := programcache.NewRedisPubSubPublisher(
+			rds,
+			c.CacheInvalidation.Channel,
+			c.CacheInvalidation.PublishTimeout,
+		)
+		if err != nil {
+			panic(err)
+		}
+		queryCaches.ProgramCacheInvalidator.SetPublisher(publisher)
+
 		queryCaches.ProgramCacheSubscriber = programcache.NewPubSubSubscriber(
 			rds,
 			c.CacheInvalidation.Channel,
