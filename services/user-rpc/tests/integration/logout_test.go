@@ -18,7 +18,7 @@ func TestLogoutDeletesLoginState(t *testing.T) {
 		Password: "123456",
 	})
 
-	token, err := xjwt.CreateToken(user.Id, testkit.TestChannelSecret, svcCtx.Config.UserAuth.TokenExpire)
+	token, err := xjwt.CreateToken(user.Id, testkit.TestAccessSecret, svcCtx.Config.UserAuth.TokenExpire)
 	if err != nil {
 		t.Fatalf("CreateToken returned error: %v", err)
 	}
@@ -31,7 +31,6 @@ func TestLogoutDeletesLoginState(t *testing.T) {
 
 	l := logic.NewLogoutLogic(context.Background(), svcCtx)
 	resp, err := l.Logout(&pb.LogoutReq{
-		Code:  testkit.TestChannelCode,
 		Token: token,
 	})
 	if err != nil {

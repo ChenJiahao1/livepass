@@ -20,7 +20,7 @@ func main() {
 
 	server := gateway.MustNewServer(c.GatewayConf)
 	server.Use(middleware.NewCorsMiddleware(c.Cors).Handle)
-	server.Use(middleware.NewAuthMiddleware(c.Auth.ChannelCodeHeader, c.Auth.ChannelMap).Handle)
+	server.Use(middleware.NewAuthMiddleware(c.Auth.AccessSecret, c.InternalAuth.Secret).Handle)
 	middleware.RegisterPreflightRoutes(server, c.Upstreams)
 	defer server.Stop()
 

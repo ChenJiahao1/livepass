@@ -12,11 +12,10 @@ import (
 type contextKey string
 
 const (
-	defaultChannelCodeHeader            = "X-Channel-Code"
-	userIDContextKey         contextKey = "userId"
+	userIDContextKey contextKey = "userId"
 )
 
-func Authenticate(r *http.Request, channelHeader string, channelMap map[string]string) (int64, error) {
+func Authenticate(r *http.Request, secret string) (int64, error) {
 	if r == nil {
 		return 0, xerr.ErrUnauthorized
 	}
@@ -31,19 +30,9 @@ func Authenticate(r *http.Request, channelHeader string, channelMap map[string]s
 		return 0, xerr.ErrUnauthorized
 	}
 
-	headerName := strings.TrimSpace(channelHeader)
-	if headerName == "" {
-		headerName = defaultChannelCodeHeader
-	}
-
-	channelCode := strings.TrimSpace(r.Header.Get(headerName))
-	if channelCode == "" {
-		return 0, xerr.ErrChannelNotFound
-	}
-
-	secret := channelMap[channelCode]
+	secret = strings.TrimSpace(secret)
 	if secret == "" {
-		return 0, xerr.ErrChannelNotFound
+		return 0, xerr.ErrUnauthorized
 	}
 
 	claims, err := xjwt.ParseToken(token, secret)

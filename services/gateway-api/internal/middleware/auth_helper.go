@@ -9,10 +9,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const userIDHeader = "X-User-Id"
+var publicUserPaths = map[string]struct{}{
+	"/user/register": {},
+	"/user/exist":    {},
+	"/user/login":    {},
+}
 
 func requiresAuth(path string) bool {
-	return strings.HasPrefix(path, "/order/") ||
+	if strings.HasPrefix(path, "/user/") {
+		_, ok := publicUserPaths[path]
+		return !ok
+	}
+
+	return strings.HasPrefix(path, "/ticket/user/") ||
+		strings.HasPrefix(path, "/order/") ||
 		strings.HasPrefix(path, "/pay/") ||
 		strings.HasPrefix(path, "/agent/")
 }

@@ -40,8 +40,8 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 	c.Name = "gateway-api-test"
 	c.Host = "127.0.0.1"
 	c.Port = freePort(t)
-	c.Auth.ChannelCodeHeader = "X-Channel-Code"
-	c.Auth.ChannelMap = map[string]string{"0001": "secret-0001"}
+	c.Auth.AccessSecret = "secret-0001"
+	c.InternalAuth.Secret = "gateway-internal-secret"
 	c.Upstreams = []gateway.Upstream{
 		{
 			Name: "user-api",
@@ -51,7 +51,20 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 			},
 			Mappings: []gateway.RouteMapping{
 				{Method: http.MethodPost, Path: "/user/register"},
+				{Method: http.MethodPost, Path: "/user/exist"},
+				{Method: http.MethodPost, Path: "/user/get/id"},
+				{Method: http.MethodPost, Path: "/user/get/mobile"},
+				{Method: http.MethodPost, Path: "/user/get/user/ticket/list"},
 				{Method: http.MethodPost, Path: "/user/login"},
+				{Method: http.MethodPost, Path: "/user/logout"},
+				{Method: http.MethodPost, Path: "/user/update"},
+				{Method: http.MethodPost, Path: "/user/update/email"},
+				{Method: http.MethodPost, Path: "/user/update/mobile"},
+				{Method: http.MethodPost, Path: "/user/update/password"},
+				{Method: http.MethodPost, Path: "/user/authentication"},
+				{Method: http.MethodPost, Path: "/ticket/user/list"},
+				{Method: http.MethodPost, Path: "/ticket/user/add"},
+				{Method: http.MethodPost, Path: "/ticket/user/delete"},
 			},
 		},
 		{
@@ -111,7 +124,7 @@ func StartTestGateway(t *testing.T, c config.Config) (*gateway.Server, string) {
 
 	server := gateway.MustNewServer(c.GatewayConf)
 	server.Use(middleware.NewCorsMiddleware(c.Cors).Handle)
-	server.Use(middleware.NewAuthMiddleware(c.Auth.ChannelCodeHeader, c.Auth.ChannelMap).Handle)
+	server.Use(middleware.NewAuthMiddleware(c.Auth.AccessSecret, c.InternalAuth.Secret).Handle)
 	middleware.RegisterPreflightRoutes(server, c.Upstreams)
 	go server.Start()
 

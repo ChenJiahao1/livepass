@@ -27,9 +27,14 @@ func NewGetUserByMobileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *G
 	}
 }
 
-func (l *GetUserByMobileLogic) GetUserByMobile(req *types.GetUserByMobileReq) (resp *types.UserVo, err error) {
-	rpcResp, err := l.svcCtx.UserRpc.GetUserByMobile(l.ctx, &userrpc.GetUserByMobileReq{
-		Mobile: req.Mobile,
+func (l *GetUserByMobileLogic) GetUserByMobile(_ *types.GetUserByMobileReq) (resp *types.UserVo, err error) {
+	userID, err := requireCurrentUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcResp, err := l.svcCtx.UserRpc.GetUserById(l.ctx, &userrpc.GetUserByIdReq{
+		Id: userID,
 	})
 	if err != nil {
 		return nil, err

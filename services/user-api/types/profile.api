@@ -13,15 +13,12 @@ type (
 	}
 
 	GetUserByIDReq {
-		ID int64 `json:"id"`
 	}
 
 	GetUserByMobileReq {
-		Mobile string `json:"mobile"`
 	}
 
 	UpdateUserReq {
-		ID int64 `json:"id"`
 		Name string `json:"name,optional"`
 		Gender int64 `json:"gender,optional"`
 		Mobile string `json:"mobile,optional"`
@@ -29,28 +26,23 @@ type (
 	}
 
 	UpdatePasswordReq {
-		ID int64 `json:"id"`
 		Password string `json:"password"`
 	}
 
 	UpdateEmailReq {
-		ID int64 `json:"id"`
 		Email string `json:"email,optional"`
 	}
 
 	UpdateMobileReq {
-		ID int64 `json:"id"`
 		Mobile string `json:"mobile"`
 	}
 
 	AuthenticationReq {
-		ID int64 `json:"id"`
 		RelName string `json:"relName"`
 		IdNumber string `json:"idNumber"`
 	}
 
 	GetUserAndTicketUserListReq {
-		UserID int64 `json:"userId"`
 	}
 
 	GetUserAndTicketUserListResp {

@@ -2,42 +2,49 @@ package middleware
 
 import (
 	"net/http"
-	"strconv"
 
 	"damai-go/pkg/xmiddleware"
 )
 
 type AuthMiddleware struct {
-	channelHeader string
-	channelMap    map[string]string
+	accessSecret   string
+	internalSecret string
 }
 
-func NewAuthMiddleware(channelHeader string, channelMap map[string]string) *AuthMiddleware {
+func NewAuthMiddleware(accessSecret string, internalSecret string) *AuthMiddleware {
 	return &AuthMiddleware{
-		channelHeader: channelHeader,
-		channelMap:    channelMap,
+		accessSecret:   accessSecret,
+		internalSecret: internalSecret,
 	}
 }
 
 func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		xmiddleware.ClearGatewayIdentityHeaders(r.Header)
+
 		if r.Method == http.MethodOptions {
 			next(w, r)
 			return
 		}
 
 		if !requiresAuth(r.URL.Path) {
+			xmiddleware.ClearExternalAuthHeaders(r.Header)
 			next(w, r)
 			return
 		}
 
-		userID, err := xmiddleware.Authenticate(r, m.channelHeader, m.channelMap)
+		userID, err := xmiddleware.Authenticate(r, m.accessSecret)
 		if err != nil {
 			writeUnauthorized(w, r, err)
 			return
 		}
 
-		r.Header.Set(userIDHeader, strconv.FormatInt(userID, 10))
+		xmiddleware.ClearExternalAuthHeaders(r.Header)
+		if err := xmiddleware.AttachGatewayIdentityHeaders(r.Header, userID, m.internalSecret); err != nil {
+			writeUnauthorized(w, r, err)
+			return
+		}
+
 		next(w, r.WithContext(xmiddleware.WithUserID(r.Context(), userID)))
 	}
 }

@@ -44,14 +44,10 @@ func buildTicketUserInfo(ticketUser *model.DTicketUser) *pb.TicketUserInfo {
 	}
 }
 
-func channelSecret(svcCtx *svc.ServiceContext, code string) (string, error) {
-	if code == "" {
+func accessSecret(svcCtx *svc.ServiceContext) (string, error) {
+	secret := strings.TrimSpace(svcCtx.Config.UserAuth.AccessSecret)
+	if secret == "" {
 		return "", status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
-	}
-
-	secret, ok := svcCtx.Config.UserAuth.ChannelMap[code]
-	if !ok || secret == "" {
-		return "", status.Error(codes.InvalidArgument, xerr.ErrChannelNotFound.Error())
 	}
 
 	return secret, nil

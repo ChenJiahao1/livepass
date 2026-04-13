@@ -6,3 +6,6 @@ UserRpc:
     Hosts:
       - 127.0.0.1:2379
     Key: user.rpc
+GatewayAuth:
+  Secret: local-gateway-internal-secret
+  MaxClockSkewSeconds: 300

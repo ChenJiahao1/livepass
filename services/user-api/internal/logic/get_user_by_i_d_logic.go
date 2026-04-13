@@ -27,9 +27,14 @@ func NewGetUserByIDLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 	}
 }
 
-func (l *GetUserByIDLogic) GetUserByID(req *types.GetUserByIDReq) (resp *types.UserVo, err error) {
+func (l *GetUserByIDLogic) GetUserByID(_ *types.GetUserByIDReq) (resp *types.UserVo, err error) {
+	userID, err := requireCurrentUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rpcResp, err := l.svcCtx.UserRpc.GetUserById(l.ctx, &userrpc.GetUserByIdReq{
-		Id: req.ID,
+		Id: userID,
 	})
 	if err != nil {
 		return nil, err

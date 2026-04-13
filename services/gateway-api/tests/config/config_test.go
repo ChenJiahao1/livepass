@@ -49,8 +49,9 @@ Upstreams:
       - Method: post
         Path: /pay/detail
 Auth:
-  ChannelMap:
-    "0001": secret-0001
+  AccessSecret: secret-0001
+InternalAuth:
+  Secret: gateway-internal-secret
 `)
 	if err := os.WriteFile(configFile, content, 0o644); err != nil {
 		t.Fatalf("write %s: %v", configFile, err)
@@ -61,8 +62,11 @@ Auth:
 		t.Fatalf("load %s: %v", configFile, err)
 	}
 
-	if c.Auth.ChannelCodeHeader != "X-Channel-Code" {
-		t.Fatalf("expected default channel header X-Channel-Code, got %q", c.Auth.ChannelCodeHeader)
+	if c.Auth.AccessSecret != "secret-0001" {
+		t.Fatalf("expected access secret to load, got %q", c.Auth.AccessSecret)
+	}
+	if c.InternalAuth.Secret != "gateway-internal-secret" {
+		t.Fatalf("expected internal auth secret to load, got %q", c.InternalAuth.Secret)
 	}
 
 	if len(c.Upstreams) != 4 {
@@ -106,6 +110,9 @@ func TestLoadGatewayRuntimeConfigIncludesPrometheus(t *testing.T) {
 	assertGatewayMappingExists(t, payAPIUpstream, "/pay/common/pay")
 	assertGatewayMappingExists(t, payAPIUpstream, "/pay/detail")
 	assertGatewayMappingExists(t, payAPIUpstream, "/pay/refund")
+
+	programAPIUpstream := findGatewayUpstream(t, c.Upstreams, "program-api")
+	assertGatewayMappingMissing(t, programAPIUpstream, "/program/seat/freeze")
 }
 
 func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
@@ -144,6 +151,9 @@ func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
 	assertGatewayMappingExists(t, payAPIUpstream, "/pay/common/pay")
 	assertGatewayMappingExists(t, payAPIUpstream, "/pay/detail")
 	assertGatewayMappingExists(t, payAPIUpstream, "/pay/refund")
+
+	programAPIUpstream := findGatewayUpstream(t, c.Upstreams, "program-api")
+	assertGatewayMappingMissing(t, programAPIUpstream, "/program/seat/freeze")
 }
 
 func findGatewayUpstream(t *testing.T, upstreams []gateway.Upstream, name string) gateway.Upstream {
@@ -169,4 +179,14 @@ func assertGatewayMappingExists(t *testing.T, upstream gateway.Upstream, path st
 	}
 
 	t.Fatalf("expected upstream %q to contain mapping %q", upstream.Name, path)
+}
+
+func assertGatewayMappingMissing(t *testing.T, upstream gateway.Upstream, path string) {
+	t.Helper()
+
+	for _, mapping := range upstream.Mappings {
+		if mapping.Path == path {
+			t.Fatalf("expected upstream %q not to contain mapping %q", upstream.Name, path)
+		}
+	}
 }

@@ -37,7 +37,7 @@ func TestGatewayHandlesCorsPreflightForUserRoute(t *testing.T) {
 	}
 	req.Header.Set("Origin", "http://localhost:5173")
 	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
-	req.Header.Set("Access-Control-Request-Headers", "content-type,x-channel-code")
+	req.Header.Set("Access-Control-Request-Headers", "content-type,authorization")
 
 	resp, err := (&http.Client{Timeout: 2 * time.Second}).Do(req)
 	if err != nil {
@@ -84,7 +84,7 @@ func TestGatewayHandlesCorsPreflightForAuthorizedRouteWithoutAuthHeader(t *testi
 	}
 	req.Header.Set("Origin", "http://localhost:5173")
 	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
-	req.Header.Set("Access-Control-Request-Headers", "content-type,authorization,x-channel-code")
+	req.Header.Set("Access-Control-Request-Headers", "content-type,authorization")
 
 	resp, err := (&http.Client{Timeout: 2 * time.Second}).Do(req)
 	if err != nil {
@@ -224,6 +224,110 @@ func TestGatewayBlocksUnauthorizedOrderRequest(t *testing.T) {
 	}
 }
 
+func TestGatewayBlocksUnauthorizedProtectedUserRequest(t *testing.T) {
+	t.Parallel()
+
+	var called bool
+	userAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
+	defer server.Stop()
+	called = false
+
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/ticket/user/add", nil, bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+
+	if called {
+		t.Fatal("expected unauthorized user request to be blocked before reaching user upstream")
+	}
+	if resp.StatusCode == http.StatusOK {
+		t.Fatalf("expected non-200 status for unauthorized user request, got %d", resp.StatusCode)
+	}
+}
+
+func TestGatewayForwardsAuthorizedProtectedUserRequestWithUserHeader(t *testing.T) {
+	t.Parallel()
+
+	var gotPath string
+	var gotAuthorization string
+	var gotUserHeader string
+	var gotTimestamp string
+	var gotSignature string
+	userAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuthorization = r.Header.Get("Authorization")
+		gotUserHeader = r.Header.Get("X-User-Id")
+		gotTimestamp = r.Header.Get("X-Gateway-Timestamp")
+		gotSignature = r.Header.Get("X-Gateway-Signature")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"service":"user-protected"}`))
+	}))
+	defer userAPI.Close()
+
+	programAPI := httptest.NewServer(http.NotFoundHandler())
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
+	defer server.Stop()
+	gotPath = ""
+	gotAuthorization = ""
+	gotUserHeader = ""
+	gotTimestamp = ""
+	gotSignature = ""
+
+	headers := map[string]string{
+		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
+	}
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/ticket/user/add", headers, bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	if gotPath != "/ticket/user/add" {
+		t.Fatalf("expected upstream path /ticket/user/add, got %q", gotPath)
+	}
+	if gotAuthorization != "" {
+		t.Fatalf("expected Authorization stripped before reaching user upstream, got %q", gotAuthorization)
+	}
+	if gotUserHeader != "3001" {
+		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
+	}
+	if gotTimestamp == "" {
+		t.Fatal("expected X-Gateway-Timestamp to reach user upstream")
+	}
+	if gotSignature == "" {
+		t.Fatal("expected X-Gateway-Signature to reach user upstream")
+	}
+	if string(body) != `{"service":"user-protected"}` {
+		t.Fatalf("expected user body, got %s", string(body))
+	}
+}
+
 func TestGatewayForwardsAuthorizedOrderRequest(t *testing.T) {
 	t.Parallel()
 
@@ -235,11 +339,15 @@ func TestGatewayForwardsAuthorizedOrderRequest(t *testing.T) {
 
 	var gotPath string
 	var gotAuthorization string
-	var gotChannelCode string
+	var gotUserHeader string
+	var gotTimestamp string
+	var gotSignature string
 	orderAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
 		gotAuthorization = r.Header.Get("Authorization")
-		gotChannelCode = r.Header.Get("X-Channel-Code")
+		gotUserHeader = r.Header.Get("X-User-Id")
+		gotTimestamp = r.Header.Get("X-Gateway-Timestamp")
+		gotSignature = r.Header.Get("X-Gateway-Signature")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = w.Write([]byte(`{"service":"order"}`))
 	}))
@@ -252,8 +360,7 @@ func TestGatewayForwardsAuthorizedOrderRequest(t *testing.T) {
 	defer server.Stop()
 
 	headers := map[string]string{
-		"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
-		"X-Channel-Code": "0001",
+		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 	}
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/order/create", headers, bytes.NewBufferString(`{}`))
 	defer resp.Body.Close()
@@ -269,14 +376,53 @@ func TestGatewayForwardsAuthorizedOrderRequest(t *testing.T) {
 	if gotPath != "/order/create" {
 		t.Fatalf("expected upstream path /order/create, got %q", gotPath)
 	}
-	if gotAuthorization == "" {
-		t.Fatal("expected Authorization header forwarded to order upstream")
+	if gotAuthorization != "" {
+		t.Fatalf("expected Authorization stripped before reaching order upstream, got %q", gotAuthorization)
 	}
-	if gotChannelCode != "0001" {
-		t.Fatalf("expected X-Channel-Code 0001, got %q", gotChannelCode)
+	if gotUserHeader != "3001" {
+		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
+	}
+	if gotTimestamp == "" {
+		t.Fatal("expected X-Gateway-Timestamp to reach order upstream")
+	}
+	if gotSignature == "" {
+		t.Fatal("expected X-Gateway-Signature to reach order upstream")
 	}
 	if string(body) != `{"service":"order"}` {
 		t.Fatalf("expected order body, got %s", string(body))
+	}
+}
+
+func TestGatewayDoesNotExposeProgramFreezeRoute(t *testing.T) {
+	t.Parallel()
+
+	userAPI := httptest.NewServer(http.NotFoundHandler())
+	defer userAPI.Close()
+
+	var called bool
+	programAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer programAPI.Close()
+
+	orderAPI := httptest.NewServer(http.NotFoundHandler())
+	defer orderAPI.Close()
+
+	payAPI := httptest.NewServer(http.NotFoundHandler())
+	defer payAPI.Close()
+
+	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000))
+	defer server.Stop()
+
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/program/seat/freeze", nil, bytes.NewBufferString(`{}`))
+	defer resp.Body.Close()
+
+	if called {
+		t.Fatal("expected program freeze route not to reach program upstream")
+	}
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", resp.StatusCode)
 	}
 }
 
@@ -304,8 +450,7 @@ func TestGatewayForwardsAuthorizedRefundOrderRequest(t *testing.T) {
 	defer server.Stop()
 
 	headers := map[string]string{
-		"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
-		"X-Channel-Code": "0001",
+		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 	}
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/order/refund", headers, bytes.NewBufferString(`{"orderNumber":91001}`))
 	defer resp.Body.Close()
@@ -371,8 +516,7 @@ func TestGatewayForwardsAuthorizedOrderManagementRoutes(t *testing.T) {
 			defer server.Stop()
 
 			headers := map[string]string{
-				"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
-				"X-Channel-Code": "0001",
+				"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 			}
 			resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, tc.path, headers, bytes.NewBufferString(`{}`))
 			defer resp.Body.Close()
@@ -445,8 +589,7 @@ func TestGatewayForwardsAuthorizedPayRequests(t *testing.T) {
 			defer server.Stop()
 
 			headers := map[string]string{
-				"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
-				"X-Channel-Code": "0001",
+				"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 			}
 			resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, tc.path, headers, bytes.NewBufferString(`{}`))
 			defer resp.Body.Close()
@@ -533,8 +676,7 @@ func TestGatewayForwardsAuthorizedAgentRequestWithUserHeader(t *testing.T) {
 	defer server.Stop()
 
 	headers := map[string]string{
-		"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
-		"X-Channel-Code": "0001",
+		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 	}
 	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/chat", headers, bytes.NewBufferString(`{"message":"hi"}`))
 	defer resp.Body.Close()
@@ -637,8 +779,7 @@ func TestGatewayPreservesOrderAPIStatusCodes(t *testing.T) {
 			defer server.Stop()
 
 			headers := map[string]string{
-				"Authorization":  "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
-				"X-Channel-Code": "0001",
+				"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 			}
 			resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/order/create", headers, bytes.NewBufferString(`{}`))
 			defer resp.Body.Close()

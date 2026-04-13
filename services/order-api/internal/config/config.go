@@ -9,12 +9,12 @@ import (
 )
 
 type AuthConfig struct {
-	ChannelCodeHeader string            `json:",default=X-Channel-Code"`
-	ChannelMap        map[string]string `json:",optional"`
+	Secret              string `json:",optional"`
+	MaxClockSkewSeconds int64  `json:",default=300"`
 }
 
 type Config struct {
 	rest.RestConf
-	OrderRpc zrpc.RpcClientConf
-	Auth     AuthConfig
+	OrderRpc    zrpc.RpcClientConf
+	GatewayAuth AuthConfig
 }

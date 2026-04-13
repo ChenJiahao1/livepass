@@ -28,8 +28,13 @@ func NewUpdatePasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Up
 }
 
 func (l *UpdatePasswordLogic) UpdatePassword(req *types.UpdatePasswordReq) (resp *types.BoolResp, err error) {
+	userID, err := requireCurrentUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rpcResp, err := l.svcCtx.UserRpc.UpdatePassword(l.ctx, &userrpc.UpdatePasswordReq{
-		Id:       req.ID,
+		Id:       userID,
 		Password: req.Password,
 	})
 	if err != nil {

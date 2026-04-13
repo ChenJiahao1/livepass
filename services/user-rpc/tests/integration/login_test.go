@@ -24,7 +24,6 @@ func TestLoginByMobileReturnsToken(t *testing.T) {
 
 	l := logic.NewLoginLogic(context.Background(), svcCtx)
 	resp, err := l.Login(&pb.LoginReq{
-		Code:     testkit.TestChannelCode,
 		Mobile:   "13800000010",
 		Password: "123456",
 	})
@@ -38,7 +37,7 @@ func TestLoginByMobileReturnsToken(t *testing.T) {
 		t.Fatalf("expected non-empty token")
 	}
 
-	claims, err := xjwt.ParseToken(resp.Token, testkit.TestChannelSecret)
+	claims, err := xjwt.ParseToken(resp.Token, testkit.TestAccessSecret)
 	if err != nil {
 		t.Fatalf("ParseToken returned error: %v", err)
 	}
@@ -68,7 +67,6 @@ func TestLoginByEmailReturnsToken(t *testing.T) {
 
 	l := logic.NewLoginLogic(context.Background(), svcCtx)
 	resp, err := l.Login(&pb.LoginReq{
-		Code:     testkit.TestChannelCode,
 		Email:    "user11@example.com",
 		Password: "123456",
 	})
@@ -93,7 +91,6 @@ func TestLoginRejectsWrongPassword(t *testing.T) {
 
 	l := logic.NewLoginLogic(context.Background(), svcCtx)
 	_, err := l.Login(&pb.LoginReq{
-		Code:     testkit.TestChannelCode,
 		Mobile:   "13800000012",
 		Password: "654321",
 	})

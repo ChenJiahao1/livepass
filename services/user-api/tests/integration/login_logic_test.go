@@ -20,7 +20,6 @@ func TestLoginCallsRpcAndMapsResponse(t *testing.T) {
 	logic := logicpkg.NewLoginLogic(context.Background(), &svc.ServiceContext{UserRpc: fake})
 
 	resp, err := logic.Login(&types.UserLoginReq{
-		Code:     "0001",
 		Mobile:   "13800000002",
 		Email:    "login@example.com",
 		Password: "123456",
@@ -34,7 +33,7 @@ func TestLoginCallsRpcAndMapsResponse(t *testing.T) {
 	if fake.lastLoginReq == nil {
 		t.Fatalf("expected rpc request")
 	}
-	if fake.lastLoginReq.Code != "0001" || fake.lastLoginReq.Mobile != "13800000002" || fake.lastLoginReq.Email != "login@example.com" {
+	if fake.lastLoginReq.Mobile != "13800000002" || fake.lastLoginReq.Email != "login@example.com" {
 		t.Fatalf("unexpected login request: %+v", fake.lastLoginReq)
 	}
 }

@@ -28,8 +28,13 @@ func NewUpdateUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Update
 }
 
 func (l *UpdateUserLogic) UpdateUser(req *types.UpdateUserReq) (resp *types.BoolResp, err error) {
+	userID, err := requireCurrentUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rpcResp, err := l.svcCtx.UserRpc.UpdateUser(l.ctx, &userrpc.UpdateUserReq{
-		Id:      req.ID,
+		Id:      userID,
 		Name:    req.Name,
 		Gender:  req.Gender,
 		Mobile:  req.Mobile,

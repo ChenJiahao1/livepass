@@ -14,7 +14,12 @@ service user-api {
 
 	@handler Login
 	post /user/login (UserLoginReq) returns (UserLoginResp)
+}
 
+@server (
+	middleware: Auth
+)
+service user-api {
 	@handler GetUserByID
 	post /user/get/id (GetUserByIDReq) returns (UserVo)
 

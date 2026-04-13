@@ -25,7 +25,7 @@ func NewLogoutLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogoutLogi
 }
 
 func (l *LogoutLogic) Logout(in *pb.LogoutReq) (*pb.BoolResp, error) {
-	secret, err := channelSecret(l.svcCtx, in.Code)
+	secret, err := accessSecret(l.svcCtx)
 	if err != nil {
 		return nil, err
 	}

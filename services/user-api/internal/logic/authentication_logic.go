@@ -28,8 +28,13 @@ func NewAuthenticationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Au
 }
 
 func (l *AuthenticationLogic) Authentication(req *types.AuthenticationReq) (resp *types.BoolResp, err error) {
+	userID, err := requireCurrentUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rpcResp, err := l.svcCtx.UserRpc.Authentication(l.ctx, &userrpc.AuthenticationReq{
-		Id:       req.ID,
+		Id:       userID,
 		RelName:  req.RelName,
 		IdNumber: req.IdNumber,
 	})

@@ -8,7 +8,13 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
+type AuthConfig struct {
+	Secret              string `json:",optional"`
+	MaxClockSkewSeconds int64  `json:",default=300"`
+}
+
 type Config struct {
 	rest.RestConf
-	UserRpc zrpc.RpcClientConf
+	UserRpc     zrpc.RpcClientConf
+	GatewayAuth AuthConfig
 }

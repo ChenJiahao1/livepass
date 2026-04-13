@@ -9,9 +9,9 @@ import (
 )
 
 type UserAuthConfig struct {
-	TokenExpire    time.Duration     `json:",default=2h"`
-	LoginFailLimit int64             `json:",default=5"`
-	ChannelMap     map[string]string `json:",optional"`
+	TokenExpire    time.Duration `json:",default=2h"`
+	LoginFailLimit int64         `json:",default=5"`
+	AccessSecret   string        `json:",optional"`
 }
 
 type XidConf struct {

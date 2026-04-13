@@ -43,7 +43,7 @@ message ExistReq {
 }
 
 message LoginReq {
-  string code = 1;
+  reserved 1;
   string mobile = 2;
   string email = 3;
   string password = 4;
@@ -63,7 +63,7 @@ message GetUserByMobileReq {
 }
 
 message LogoutReq {
-  string code = 1;
+  reserved 1;
   string token = 2;
 }
 

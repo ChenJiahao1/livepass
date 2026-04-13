@@ -28,8 +28,13 @@ func NewUpdateMobileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upda
 }
 
 func (l *UpdateMobileLogic) UpdateMobile(req *types.UpdateMobileReq) (resp *types.BoolResp, err error) {
+	userID, err := requireCurrentUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rpcResp, err := l.svcCtx.UserRpc.UpdateMobile(l.ctx, &userrpc.UpdateMobileReq{
-		Id:     req.ID,
+		Id:     userID,
 		Mobile: req.Mobile,
 	})
 	if err != nil {

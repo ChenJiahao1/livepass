@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"damai-go/pkg/xmiddleware"
-	middlewarepkg "damai-go/services/order-api/internal/middleware"
+	middlewarepkg "damai-go/services/user-api/internal/middleware"
 )
 
 func TestAuthMiddlewareInjectsUserIDIntoContext(t *testing.T) {
 	m := middlewarepkg.NewAuthMiddleware("gateway-internal-secret", time.Minute)
-	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
+	req := httptest.NewRequest(http.MethodPost, "/user/update", nil)
 	attachInternalIdentity(req, 3001, "gateway-internal-secret", time.Now())
 
 	recorder := httptest.NewRecorder()
@@ -43,7 +43,7 @@ func TestAuthMiddlewareInjectsUserIDIntoContext(t *testing.T) {
 
 func TestAuthMiddlewareRejectsInvalidGatewaySignature(t *testing.T) {
 	m := middlewarepkg.NewAuthMiddleware("gateway-internal-secret", time.Minute)
-	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
+	req := httptest.NewRequest(http.MethodPost, "/user/update", nil)
 	req.Header.Set("X-User-Id", "3001")
 	req.Header.Set("X-Gateway-Timestamp", strconv.FormatInt(time.Now().Unix(), 10))
 	req.Header.Set("X-Gateway-Signature", "invalid-signature")

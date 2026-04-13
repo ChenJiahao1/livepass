@@ -24,9 +24,8 @@ import (
 )
 
 const (
-	TestRedisAddr     = "127.0.0.1:6379"
-	TestChannelCode   = "0001"
-	TestChannelSecret = "local-user-secret-0001"
+	TestRedisAddr    = "127.0.0.1:6379"
+	TestAccessSecret = "local-user-secret-0001"
 )
 
 var TestMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_user?parseTime=true")
@@ -67,9 +66,7 @@ func NewServiceContext(t *testing.T) *svc.ServiceContext {
 		UserAuth: config.UserAuthConfig{
 			TokenExpire:    time.Hour,
 			LoginFailLimit: 2,
-			ChannelMap: map[string]string{
-				TestChannelCode: TestChannelSecret,
-			},
+			AccessSecret:   TestAccessSecret,
 		},
 	})
 }

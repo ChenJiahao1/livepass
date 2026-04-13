@@ -28,8 +28,8 @@ func TestLoadUserRPCConfig(t *testing.T) {
 		t.Fatalf("expected mysql max idle conns 4, got %d", c.MySQL.MaxIdleConns)
 	}
 
-	if c.UserAuth.ChannelMap["0001"] == "" {
-		t.Fatal("expected user auth channel map to be loaded")
+	if c.UserAuth.AccessSecret == "" {
+		t.Fatal("expected user auth access secret to be loaded")
 	}
 }
 

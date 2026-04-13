@@ -1,6 +1,5 @@
 type (
 	ListTicketUsersReq {
-		UserID int64 `json:"userId"`
 	}
 
 	TicketUserVo {
@@ -16,7 +15,6 @@ type (
 	}
 
 	AddTicketUserReq {
-		UserID int64 `json:"userId"`
 		RelName string `json:"relName"`
 		IdType int64 `json:"idType"`
 		IdNumber string `json:"idNumber"`

@@ -17,7 +17,6 @@ var (
 		"AccessToken",
 		"Token",
 		"Range",
-		"X-Channel-Code",
 	}
 	defaultCorsExposeHeaders = []string{
 		"Content-Length",

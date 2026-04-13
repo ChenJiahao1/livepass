@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/agent_chat_cases.sh"
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8081}"
-CHANNEL_CODE="${CHANNEL_CODE:-0001}"
 JWT="${JWT:-}"
 
 log() {
@@ -42,7 +41,6 @@ chat_once() {
   curl -fsS "${BASE_URL}/agent/chat" \
     -H 'Content-Type: application/json' \
     -H "Authorization: Bearer ${JWT}" \
-    -H "X-Channel-Code: ${CHANNEL_CODE}" \
     -d "${payload}"
 }
 
@@ -53,7 +51,6 @@ main() {
   [[ -n "${JWT}" ]] || fail "JWT is required"
 
   log "BASE_URL=${BASE_URL}"
-  log "CHANNEL_CODE=${CHANNEL_CODE}"
 
   local activity_body
   local order_body

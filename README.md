@@ -233,7 +233,6 @@ uv run pytest tests/test_e2e_contract.py -v
 访问统一入口时，订单相关接口通常需要：
 
 - `Authorization: Bearer <jwt>`
-- `X-Channel-Code: 0001`
 
 ## 开发原则
 

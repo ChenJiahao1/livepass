@@ -17,8 +17,7 @@ StoreRedis:
 UserAuth:
   TokenExpire: 2h
   LoginFailLimit: 5
-  ChannelMap:
-    "0001": local-user-secret-0001
+  AccessSecret: local-user-secret-0001
 Xid:
   Provider: static
   NodeId: 0

@@ -4,14 +4,12 @@
 package types
 
 type AddTicketUserReq struct {
-	UserID   int64  `json:"userId"`
 	RelName  string `json:"relName"`
 	IdType   int64  `json:"idType"`
 	IdNumber string `json:"idNumber"`
 }
 
 type AuthenticationReq struct {
-	ID       int64  `json:"id"`
 	RelName  string `json:"relName"`
 	IdNumber string `json:"idNumber"`
 }
@@ -25,7 +23,6 @@ type DeleteTicketUserReq struct {
 }
 
 type GetUserAndTicketUserListReq struct {
-	UserID int64 `json:"userId"`
 }
 
 type GetUserAndTicketUserListResp struct {
@@ -34,15 +31,12 @@ type GetUserAndTicketUserListResp struct {
 }
 
 type GetUserByIDReq struct {
-	ID int64 `json:"id"`
 }
 
 type GetUserByMobileReq struct {
-	Mobile string `json:"mobile"`
 }
 
 type ListTicketUsersReq struct {
-	UserID int64 `json:"userId"`
 }
 
 type TicketUserListResp struct {
@@ -58,22 +52,18 @@ type TicketUserVo struct {
 }
 
 type UpdateEmailReq struct {
-	ID    int64  `json:"id"`
 	Email string `json:"email,optional"`
 }
 
 type UpdateMobileReq struct {
-	ID     int64  `json:"id"`
 	Mobile string `json:"mobile"`
 }
 
 type UpdatePasswordReq struct {
-	ID       int64  `json:"id"`
 	Password string `json:"password"`
 }
 
 type UpdateUserReq struct {
-	ID      int64  `json:"id"`
 	Name    string `json:"name,optional"`
 	Gender  int64  `json:"gender,optional"`
 	Mobile  string `json:"mobile,optional"`
@@ -85,7 +75,6 @@ type UserExistReq struct {
 }
 
 type UserLoginReq struct {
-	Code     string `json:"code"`
 	Mobile   string `json:"mobile,optional"`
 	Email    string `json:"email,optional"`
 	Password string `json:"password"`
@@ -97,7 +86,6 @@ type UserLoginResp struct {
 }
 
 type UserLogoutReq struct {
-	Code  string `json:"code"`
 	Token string `json:"token"`
 }
 

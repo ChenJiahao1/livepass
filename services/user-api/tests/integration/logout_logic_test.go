@@ -17,7 +17,6 @@ func TestLogoutCallsRpc(t *testing.T) {
 	logic := logicpkg.NewLogoutLogic(context.Background(), &svc.ServiceContext{UserRpc: fake})
 
 	resp, err := logic.Logout(&types.UserLogoutReq{
-		Code:  "0001",
 		Token: "jwt-token",
 	})
 	if err != nil {
@@ -26,7 +25,7 @@ func TestLogoutCallsRpc(t *testing.T) {
 	if resp == nil || !resp.Success {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
-	if fake.lastLogoutReq == nil || fake.lastLogoutReq.Code != "0001" || fake.lastLogoutReq.Token != "jwt-token" {
+	if fake.lastLogoutReq == nil || fake.lastLogoutReq.Token != "jwt-token" {
 		t.Fatalf("unexpected logout request: %+v", fake.lastLogoutReq)
 	}
 }

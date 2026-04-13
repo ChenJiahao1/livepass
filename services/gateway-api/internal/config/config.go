@@ -3,8 +3,11 @@ package config
 import "github.com/zeromicro/go-zero/gateway"
 
 type AuthConfig struct {
-	ChannelCodeHeader string            `json:",default=X-Channel-Code"`
-	ChannelMap        map[string]string `json:",optional"`
+	AccessSecret string `json:",optional"`
+}
+
+type InternalAuthConfig struct {
+	Secret string `json:",optional"`
 }
 
 type CorsConfig struct {
@@ -18,6 +21,7 @@ type CorsConfig struct {
 
 type Config struct {
 	gateway.GatewayConf
-	Auth AuthConfig
-	Cors CorsConfig `json:",optional"`
+	Auth         AuthConfig
+	InternalAuth InternalAuthConfig
+	Cors         CorsConfig `json:",optional"`
 }

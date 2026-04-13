@@ -7,6 +7,7 @@ import (
 	"damai-go/services/order-api/internal/config"
 	"damai-go/services/order-api/internal/middleware"
 	"damai-go/services/order-rpc/orderrpc"
+	"time"
 
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -21,7 +22,7 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config:   c,
-		Auth:     middleware.NewAuthMiddleware(c.Auth.ChannelCodeHeader, c.Auth.ChannelMap).Handle,
+		Auth:     middleware.NewAuthMiddleware(c.GatewayAuth.Secret, time.Duration(c.GatewayAuth.MaxClockSkewSeconds)*time.Second).Handle,
 		OrderRpc: orderrpc.NewOrderRpc(zrpc.MustNewClient(c.OrderRpc)),
 	}
 }

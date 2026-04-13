@@ -30,7 +30,7 @@ func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic 
 }
 
 func (l *LoginLogic) Login(in *pb.LoginReq) (*pb.LoginResp, error) {
-	secret, err := channelSecret(l.svcCtx, in.Code)
+	secret, err := accessSecret(l.svcCtx)
 	if err != nil {
 		return nil, err
 	}

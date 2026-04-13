@@ -2,7 +2,6 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8081}"
-CHANNEL_CODE="${CHANNEL_CODE:-0001}"
 SHOW_TIME_ID="${SHOW_TIME_ID:-30001}"
 PROGRAM_ID="${PROGRAM_ID:-}"
 PASSWORD="${PASSWORD:-123456}"
@@ -103,8 +102,6 @@ curl_request() {
     curl_args+=(
       -H
       "Authorization: Bearer ${TOKEN}"
-      -H
-      "X-Channel-Code: ${CHANNEL_CODE}"
     )
   fi
 
@@ -200,7 +197,7 @@ login_user() {
   local body
 
   log "2/11 登录用户"
-  body="$(curl_json "/user/login" "{\"code\":\"${CHANNEL_CODE}\",\"mobile\":\"${MOBILE}\",\"password\":\"${PASSWORD}\"}")"
+  body="$(curl_json "/user/login" "{\"mobile\":\"${MOBILE}\",\"password\":\"${PASSWORD}\"}")"
   USER_ID="$(extract_required "${body}" '.userId' 'userId')"
   TOKEN="$(extract_required "${body}" '.token' 'token')"
   print_json "${body}"
@@ -369,7 +366,6 @@ main() {
   preflight
 
   log "BASE_URL=${BASE_URL}"
-  log "CHANNEL_CODE=${CHANNEL_CODE}"
   log "SHOW_TIME_ID=${SHOW_TIME_ID}"
   log "MOBILE=${MOBILE}"
 

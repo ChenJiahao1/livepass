@@ -16,43 +16,8 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodPost,
-				Path:    "/ticket/user/add",
-				Handler: AddTicketUserHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/ticket/user/delete",
-				Handler: DeleteTicketUserHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/ticket/user/list",
-				Handler: ListTicketUsersHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/user/authentication",
-				Handler: AuthenticationHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
 				Path:    "/user/exist",
 				Handler: ExistHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/user/get/id",
-				Handler: GetUserByIDHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/user/get/mobile",
-				Handler: GetUserByMobileHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/user/get/user/ticket/list",
-				Handler: GetUserAndTicketUserListHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -61,34 +26,77 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/user/logout",
-				Handler: LogoutHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
 				Path:    "/user/register",
 				Handler: RegisterHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/user/update",
-				Handler: UpdateUserHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/user/update/email",
-				Handler: UpdateEmailHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/user/update/mobile",
-				Handler: UpdateMobileHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/user/update/password",
-				Handler: UpdatePasswordHandler(serverCtx),
-			},
 		},
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/ticket/user/add",
+					Handler: AddTicketUserHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/ticket/user/delete",
+					Handler: DeleteTicketUserHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/ticket/user/list",
+					Handler: ListTicketUsersHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/authentication",
+					Handler: AuthenticationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/get/id",
+					Handler: GetUserByIDHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/get/mobile",
+					Handler: GetUserByMobileHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/get/user/ticket/list",
+					Handler: GetUserAndTicketUserListHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/logout",
+					Handler: LogoutHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/update",
+					Handler: UpdateUserHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/update/email",
+					Handler: UpdateEmailHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/update/mobile",
+					Handler: UpdateMobileHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/user/update/password",
+					Handler: UpdatePasswordHandler(serverCtx),
+				},
+			}...,
+		),
 	)
 }

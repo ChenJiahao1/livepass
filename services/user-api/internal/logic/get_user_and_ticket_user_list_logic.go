@@ -28,8 +28,13 @@ func NewGetUserAndTicketUserListLogic(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func (l *GetUserAndTicketUserListLogic) GetUserAndTicketUserList(req *types.GetUserAndTicketUserListReq) (resp *types.GetUserAndTicketUserListResp, err error) {
+	userID, err := requireCurrentUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rpcResp, err := l.svcCtx.UserRpc.GetUserAndTicketUserList(l.ctx, &userrpc.GetUserAndTicketUserListReq{
-		UserId: req.UserID,
+		UserId: userID,
 	})
 	if err != nil {
 		return nil, err

@@ -13,9 +13,8 @@ import (
 func TestAuthMiddlewareRejectsOrderRequestWithoutAuthorization(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
 	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
-	req.Header.Set("X-Channel-Code", "0001")
 
 	recorder := httptest.NewRecorder()
 	var called bool
@@ -33,40 +32,23 @@ func TestAuthMiddlewareRejectsOrderRequestWithoutAuthorization(t *testing.T) {
 	}
 }
 
-func TestAuthMiddlewareRejectsOrderRequestWithoutChannelCode(t *testing.T) {
-	t.Parallel()
-
-	m := middleware.NewAuthMiddleware("X-Channel-Code", map[string]string{"0001": "secret-0001"})
-	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
-	req.Header.Set("Authorization", "Bearer "+testkit.MustCreateToken(t, 3001, "secret-0001"))
-
-	recorder := httptest.NewRecorder()
-	var called bool
-
-	m.Handle(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	})(recorder, req)
-
-	if called {
-		t.Fatal("expected downstream handler not called")
-	}
-	if recorder.Code == http.StatusOK {
-		t.Fatalf("expected non-200 status for missing channel code, got %d", recorder.Code)
-	}
-}
-
 func TestAuthMiddlewarePassesOrderRequestWithValidToken(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
 	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
 	req.Header.Set("Authorization", "Bearer "+testkit.MustCreateToken(t, 3001, "secret-0001"))
-	req.Header.Set("X-Channel-Code", "0001")
+	req.Header.Set("X-User-Id", "9999")
+	req.Header.Set("X-Gateway-Timestamp", "1")
+	req.Header.Set("X-Gateway-Signature", "spoofed")
 
 	recorder := httptest.NewRecorder()
 	var called bool
 	var gotUserID int64
+	var gotAuthorization string
+	var gotUserHeader string
+	var gotTimestamp string
+	var gotSignature string
 
 	m.Handle(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -75,6 +57,10 @@ func TestAuthMiddlewarePassesOrderRequestWithValidToken(t *testing.T) {
 			t.Fatal("expected user id in request context")
 		}
 		gotUserID = userID
+		gotAuthorization = r.Header.Get("Authorization")
+		gotUserHeader = r.Header.Get("X-User-Id")
+		gotTimestamp = r.Header.Get("X-Gateway-Timestamp")
+		gotSignature = r.Header.Get("X-Gateway-Signature")
 		w.WriteHeader(http.StatusNoContent)
 	})(recorder, req)
 
@@ -84,6 +70,18 @@ func TestAuthMiddlewarePassesOrderRequestWithValidToken(t *testing.T) {
 	if gotUserID != 3001 {
 		t.Fatalf("expected user id 3001, got %d", gotUserID)
 	}
+	if gotAuthorization != "" {
+		t.Fatalf("expected Authorization stripped before forwarding, got %q", gotAuthorization)
+	}
+	if gotUserHeader != "3001" {
+		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
+	}
+	if gotTimestamp == "" {
+		t.Fatal("expected X-Gateway-Timestamp to be injected")
+	}
+	if gotSignature == "" || gotSignature == "spoofed" {
+		t.Fatalf("expected X-Gateway-Signature to be injected, got %q", gotSignature)
+	}
 	if recorder.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d", recorder.Code)
 	}
@@ -92,9 +90,8 @@ func TestAuthMiddlewarePassesOrderRequestWithValidToken(t *testing.T) {
 func TestAuthMiddlewareRejectsAgentRequestWithoutAuthorization(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
 	req := httptest.NewRequest(http.MethodPost, "/agent/chat", nil)
-	req.Header.Set("X-Channel-Code", "0001")
 
 	recorder := httptest.NewRecorder()
 	var called bool
@@ -115,9 +112,8 @@ func TestAuthMiddlewareRejectsAgentRequestWithoutAuthorization(t *testing.T) {
 func TestAuthMiddlewareRejectsPayRequestWithoutAuthorization(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
 	req := httptest.NewRequest(http.MethodPost, "/pay/detail", nil)
-	req.Header.Set("X-Channel-Code", "0001")
 
 	recorder := httptest.NewRecorder()
 	var called bool
@@ -135,18 +131,41 @@ func TestAuthMiddlewareRejectsPayRequestWithoutAuthorization(t *testing.T) {
 	}
 }
 
+func TestAuthMiddlewareRejectsProtectedUserRequestWithoutAuthorization(t *testing.T) {
+	t.Parallel()
+
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	req := httptest.NewRequest(http.MethodPost, "/user/update", nil)
+
+	recorder := httptest.NewRecorder()
+	var called bool
+
+	m.Handle(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})(recorder, req)
+
+	if called {
+		t.Fatal("expected downstream handler not called")
+	}
+	if recorder.Code == http.StatusOK {
+		t.Fatalf("expected non-200 status for unauthorized user request, got %d", recorder.Code)
+	}
+}
+
 func TestAuthMiddlewarePassesPayRequestWithValidToken(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
 	req := httptest.NewRequest(http.MethodPost, "/pay/detail", nil)
 	req.Header.Set("Authorization", "Bearer "+testkit.MustCreateToken(t, 3001, "secret-0001"))
-	req.Header.Set("X-Channel-Code", "0001")
 
 	recorder := httptest.NewRecorder()
 	var called bool
 	var gotUserID int64
 	var gotUserHeader string
+	var gotTimestamp string
+	var gotSignature string
 
 	m.Handle(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -156,6 +175,8 @@ func TestAuthMiddlewarePassesPayRequestWithValidToken(t *testing.T) {
 		}
 		gotUserID = userID
 		gotUserHeader = r.Header.Get("X-User-Id")
+		gotTimestamp = r.Header.Get("X-Gateway-Timestamp")
+		gotSignature = r.Header.Get("X-Gateway-Signature")
 		w.WriteHeader(http.StatusNoContent)
 	})(recorder, req)
 
@@ -167,6 +188,12 @@ func TestAuthMiddlewarePassesPayRequestWithValidToken(t *testing.T) {
 	}
 	if gotUserHeader != "3001" {
 		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
+	}
+	if gotTimestamp == "" {
+		t.Fatal("expected X-Gateway-Timestamp to be injected")
+	}
+	if gotSignature == "" {
+		t.Fatal("expected X-Gateway-Signature to be injected")
 	}
 	if recorder.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d", recorder.Code)
@@ -176,15 +203,16 @@ func TestAuthMiddlewarePassesPayRequestWithValidToken(t *testing.T) {
 func TestAuthMiddlewarePassesAgentRequestWithValidTokenAndInjectsUserHeader(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
 	req := httptest.NewRequest(http.MethodPost, "/agent/chat", nil)
 	req.Header.Set("Authorization", "Bearer "+testkit.MustCreateToken(t, 3001, "secret-0001"))
-	req.Header.Set("X-Channel-Code", "0001")
 
 	recorder := httptest.NewRecorder()
 	var called bool
 	var gotUserID int64
 	var gotUserHeader string
+	var gotTimestamp string
+	var gotSignature string
 
 	m.Handle(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -194,6 +222,8 @@ func TestAuthMiddlewarePassesAgentRequestWithValidTokenAndInjectsUserHeader(t *t
 		}
 		gotUserID = userID
 		gotUserHeader = r.Header.Get("X-User-Id")
+		gotTimestamp = r.Header.Get("X-Gateway-Timestamp")
+		gotSignature = r.Header.Get("X-Gateway-Signature")
 		w.WriteHeader(http.StatusNoContent)
 	})(recorder, req)
 
@@ -205,6 +235,12 @@ func TestAuthMiddlewarePassesAgentRequestWithValidTokenAndInjectsUserHeader(t *t
 	}
 	if gotUserHeader != "3001" {
 		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
+	}
+	if gotTimestamp == "" {
+		t.Fatal("expected X-Gateway-Timestamp to be injected")
+	}
+	if gotSignature == "" {
+		t.Fatal("expected X-Gateway-Signature to be injected")
 	}
 	if recorder.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d", recorder.Code)
@@ -216,6 +252,28 @@ func TestAuthMiddlewareSkipsUserRoute(t *testing.T) {
 	assertRouteBypassesAuth(t, "/user/login")
 }
 
+func TestAuthMiddlewareProtectsUserProfileQueryRoute(t *testing.T) {
+	t.Parallel()
+
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	req := httptest.NewRequest(http.MethodPost, "/user/get/id", nil)
+
+	recorder := httptest.NewRecorder()
+	var called bool
+
+	m.Handle(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})(recorder, req)
+
+	if called {
+		t.Fatal("expected downstream handler not called")
+	}
+	if recorder.Code == http.StatusOK {
+		t.Fatalf("expected non-200 status for unauthorized user profile query, got %d", recorder.Code)
+	}
+}
+
 func TestAuthMiddlewareSkipsProgramRoute(t *testing.T) {
 	t.Parallel()
 	assertRouteBypassesAuth(t, "/program/page")
@@ -224,18 +282,34 @@ func TestAuthMiddlewareSkipsProgramRoute(t *testing.T) {
 func assertRouteBypassesAuth(t *testing.T, path string) {
 	t.Helper()
 
-	m := middleware.NewAuthMiddleware("X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
 	req := httptest.NewRequest(http.MethodPost, path, nil)
+	req.Header.Set("Authorization", "Bearer should-be-stripped")
+	req.Header.Set("X-User-Id", "should-be-stripped")
 	recorder := httptest.NewRecorder()
 	var called bool
+	var gotAuthorization string
+	var gotUserHeader string
+	var gotTimestamp string
+	var gotSignature string
 
 	m.Handle(func(w http.ResponseWriter, r *http.Request) {
 		called = true
+		gotAuthorization = r.Header.Get("Authorization")
+		gotUserHeader = r.Header.Get("X-User-Id")
+		gotTimestamp = r.Header.Get("X-Gateway-Timestamp")
+		gotSignature = r.Header.Get("X-Gateway-Signature")
 		w.WriteHeader(http.StatusAccepted)
 	})(recorder, req)
 
 	if !called {
 		t.Fatalf("expected downstream handler called for %s", path)
+	}
+	if gotAuthorization != "" {
+		t.Fatalf("expected Authorization stripped for %s, got %q", path, gotAuthorization)
+	}
+	if gotUserHeader != "" || gotTimestamp != "" || gotSignature != "" {
+		t.Fatalf("expected no internal identity headers for %s, got user=%q timestamp=%q signature=%q", path, gotUserHeader, gotTimestamp, gotSignature)
 	}
 	if recorder.Code != http.StatusAccepted {
 		t.Fatalf("expected status 202 for %s, got %d", path, recorder.Code)

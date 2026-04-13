@@ -28,8 +28,13 @@ func NewAddTicketUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Add
 }
 
 func (l *AddTicketUserLogic) AddTicketUser(req *types.AddTicketUserReq) (resp *types.BoolResp, err error) {
+	userID, err := requireCurrentUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rpcResp, err := l.svcCtx.UserRpc.AddTicketUser(l.ctx, &userrpc.AddTicketUserReq{
-		UserId:   req.UserID,
+		UserId:   userID,
 		RelName:  req.RelName,
 		IdType:   req.IdType,
 		IdNumber: req.IdNumber,

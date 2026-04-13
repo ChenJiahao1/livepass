@@ -215,7 +215,6 @@ main() {
   failure_preflight
 
   log "BASE_URL=${BASE_URL}"
-  log "CHANNEL_CODE=${CHANNEL_CODE}"
   log "SHOW_TIME_ID=${SHOW_TIME_ID}"
   log "MOBILE=${MOBILE}"
   log "MYSQL_CONTAINER=${MYSQL_CONTAINER}"

@@ -29,7 +29,6 @@ func NewLogoutLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogoutLogi
 
 func (l *LogoutLogic) Logout(req *types.UserLogoutReq) (resp *types.BoolResp, err error) {
 	rpcResp, err := l.svcCtx.UserRpc.Logout(l.ctx, &userrpc.LogoutReq{
-		Code:  req.Code,
 		Token: req.Token,
 	})
 	if err != nil {

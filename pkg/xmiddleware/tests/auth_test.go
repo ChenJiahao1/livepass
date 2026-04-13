@@ -21,9 +21,8 @@ func TestAuthenticateReturnsUserIDFromBearerToken(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("X-Channel-Code", "0001")
 
-	userID, err := xmiddleware.Authenticate(req, "X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	userID, err := xmiddleware.Authenticate(req, "secret-0001")
 	if err != nil {
 		t.Fatalf("Authenticate returned error: %v", err)
 	}
@@ -35,15 +34,14 @@ func TestAuthenticateReturnsUserIDFromBearerToken(t *testing.T) {
 func TestAuthenticateRejectsMissingBearerToken(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
 	req.Header.Set("Authorization", "invalid-token")
-	req.Header.Set("X-Channel-Code", "0001")
 
-	_, err := xmiddleware.Authenticate(req, "X-Channel-Code", map[string]string{"0001": "secret-0001"})
+	_, err := xmiddleware.Authenticate(req, "secret-0001")
 	if !errors.Is(err, xerr.ErrUnauthorized) {
 		t.Fatalf("expected unauthorized error, got %v", err)
 	}
 }
 
-func TestAuthenticateRejectsMissingChannelCode(t *testing.T) {
+func TestAuthenticateRejectsInvalidSignature(t *testing.T) {
 	token, err := xjwt.CreateToken(3001, "secret-0001", time.Hour)
 	if err != nil {
 		t.Fatalf("CreateToken returned error: %v", err)
@@ -52,9 +50,9 @@ func TestAuthenticateRejectsMissingChannelCode(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	_, err = xmiddleware.Authenticate(req, "X-Channel-Code", map[string]string{"0001": "secret-0001"})
-	if !errors.Is(err, xerr.ErrChannelNotFound) {
-		t.Fatalf("expected channel not found error, got %v", err)
+	_, err = xmiddleware.Authenticate(req, "secret-0002")
+	if !errors.Is(err, xerr.ErrUnauthorized) {
+		t.Fatalf("expected unauthorized error, got %v", err)
 	}
 }
 

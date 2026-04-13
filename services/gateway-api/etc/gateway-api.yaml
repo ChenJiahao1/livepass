@@ -11,9 +11,9 @@ Prometheus:
   Host: 0.0.0.0
   Port: 9101
 Auth:
-  ChannelCodeHeader: X-Channel-Code
-  ChannelMap:
-    "0001": local-user-secret-0001
+  AccessSecret: local-user-secret-0001
+InternalAuth:
+  Secret: local-gateway-internal-secret
 Cors:
   AllowOrigins:
     - http://localhost:5173
@@ -22,7 +22,6 @@ Cors:
     - Content-Type
     - Origin
     - Authorization
-    - X-Channel-Code
   AllowCredentials: true
 Upstreams:
   - Name: user-api
@@ -75,8 +74,6 @@ Upstreams:
         Path: /program/page
       - Method: post
         Path: /program/preorder/detail
-      - Method: post
-        Path: /program/seat/freeze
       - Method: post
         Path: /ticket/category/select/list/by/program
   - Name: order-api
