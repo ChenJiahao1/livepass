@@ -130,7 +130,7 @@ func (f *fakeOrderRPC) CountActiveTicketsByUserShowTime(ctx context.Context, in 
 	return f.countActiveTicketsByUserShowTimeResp, f.countActiveTicketsByUserShowTimeErr
 }
 
-func (f *fakeOrderRPC) PrimeAdmissionQuota(ctx context.Context, in *orderrpc.PrimeAdmissionQuotaReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
+func (f *fakeOrderRPC) PrimeRushRuntime(ctx context.Context, in *orderrpc.PrimeRushRuntimeReq, opts ...grpc.CallOption) (*orderrpc.BoolResp, error) {
 	return nil, nil
 }
 

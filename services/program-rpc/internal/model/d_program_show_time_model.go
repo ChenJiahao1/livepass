@@ -124,8 +124,8 @@ func (m *customDProgramShowTimeModel) Insert(ctx context.Context, data *DProgram
 
 	dProgramShowTimeIdKey := fmt.Sprintf("%s%v", cacheDProgramShowTimeIdPrefix, data.Id)
 	return m.cachedConn.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
-		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.RushSaleOpenTime, data.RushSaleEndTime, data.ShowEndTime, data.InventoryPreheatStatus, data.EditTime, data.Status)
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
+		return conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.ShowEndTime, data.EditTime, data.Status)
 	}, dProgramShowTimeIdKey)
 }
 
@@ -137,7 +137,7 @@ func (m *customDProgramShowTimeModel) Update(ctx context.Context, data *DProgram
 	dProgramShowTimeIdKey := fmt.Sprintf("%s%v", cacheDProgramShowTimeIdPrefix, data.Id)
 	_, err := m.cachedConn.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramShowTimeRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.RushSaleOpenTime, data.RushSaleEndTime, data.ShowEndTime, data.InventoryPreheatStatus, data.EditTime, data.Status, data.Id)
+		return conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.ShowEndTime, data.EditTime, data.Status, data.Id)
 	}, dProgramShowTimeIdKey)
 	return err
 }

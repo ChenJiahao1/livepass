@@ -14,7 +14,7 @@ import (
 )
 
 type RushInventoryPreheatClient interface {
-	Enqueue(ctx context.Context, showTimeID int64, expectedOpenTime time.Time) error
+	Enqueue(ctx context.Context, programID int64, expectedOpenTime time.Time) error
 }
 
 type outboxRushInventoryPreheatClient struct {
@@ -36,12 +36,12 @@ func newRushInventoryPreheatClient(conn sqlx.SqlConn, cfg config.RushInventoryPr
 	}, nil
 }
 
-func (c *outboxRushInventoryPreheatClient) Enqueue(ctx context.Context, showTimeID int64, expectedOpenTime time.Time) error {
-	return c.EnqueueWithConn(ctx, c.conn, showTimeID, expectedOpenTime)
+func (c *outboxRushInventoryPreheatClient) Enqueue(ctx context.Context, programID int64, expectedOpenTime time.Time) error {
+	return c.EnqueueWithConn(ctx, c.conn, programID, expectedOpenTime)
 }
 
-func (c *outboxRushInventoryPreheatClient) EnqueueWithConn(ctx context.Context, conn sqlx.SqlConn, showTimeID int64, expectedOpenTime time.Time) error {
-	message, err := taskdef.NewMessage(showTimeID, expectedOpenTime, c.leadTime)
+func (c *outboxRushInventoryPreheatClient) EnqueueWithConn(ctx context.Context, conn sqlx.SqlConn, programID int64, expectedOpenTime time.Time) error {
+	message, err := taskdef.NewMessage(programID, expectedOpenTime, c.leadTime)
 	if err != nil {
 		return err
 	}

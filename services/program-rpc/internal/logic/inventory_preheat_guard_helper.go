@@ -16,19 +16,19 @@ func ensureProgramInventoryMutable(ctx context.Context, svcCtx *svc.ServiceConte
 	if programID <= 0 {
 		return xerr.ErrInvalidParam
 	}
-	if svcCtx == nil || svcCtx.DProgramShowTimeModel == nil {
+	if svcCtx == nil || svcCtx.DProgramModel == nil {
 		return xerr.ErrInternal
 	}
 
-	showTime, err := svcCtx.DProgramShowTimeModel.FindFirstByProgramId(ctx, programID)
+	program, err := svcCtx.DProgramModel.FindOne(ctx, programID)
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
-			return nil
+			return xerr.ErrProgramShowTimeNotFound
 		}
 		return err
 	}
 
-	return ensureShowTimeInventoryMutableRecord(showTime)
+	return ensureProgramInventoryMutableRecord(program)
 }
 
 func ensureShowTimeInventoryMutable(ctx context.Context, svcCtx *svc.ServiceContext, showTimeID int64) error {
@@ -47,14 +47,14 @@ func ensureShowTimeInventoryMutable(ctx context.Context, svcCtx *svc.ServiceCont
 		return err
 	}
 
-	return ensureShowTimeInventoryMutableRecord(showTime)
+	return ensureProgramInventoryMutable(ctx, svcCtx, showTime.ProgramId)
 }
 
-func ensureShowTimeInventoryMutableRecord(showTime *model.DProgramShowTime) error {
-	if showTime == nil {
+func ensureProgramInventoryMutableRecord(program *model.DProgram) error {
+	if program == nil {
 		return nil
 	}
-	if showTime.InventoryPreheatStatus == 2 {
+	if program.InventoryPreheatStatus == 2 {
 		return xerr.ErrProgramInventoryPreheated
 	}
 

@@ -16,20 +16,20 @@ import (
 )
 
 type fakeWorkerShowTimeStore struct {
-	findResp   *workersvc.ShowTimeRecord
-	findErr    error
-	markCalls  int
-	lastShowID int64
+	listResp      []*workersvc.ShowTimeRecord
+	listErr       error
+	markCalls     int
+	lastProgramID int64
 }
 
-func (f *fakeWorkerShowTimeStore) FindOne(_ context.Context, showTimeID int64) (*workersvc.ShowTimeRecord, error) {
-	f.lastShowID = showTimeID
-	return f.findResp, f.findErr
+func (f *fakeWorkerShowTimeStore) ListByProgramID(_ context.Context, programID int64) ([]*workersvc.ShowTimeRecord, error) {
+	f.lastProgramID = programID
+	return f.listResp, f.listErr
 }
 
-func (f *fakeWorkerShowTimeStore) MarkInventoryPreheated(_ context.Context, showTimeID int64, _ time.Time, _ time.Time) (bool, error) {
+func (f *fakeWorkerShowTimeStore) MarkInventoryPreheatedByProgram(_ context.Context, programID int64, _ time.Time, _ time.Time) (bool, error) {
 	f.markCalls++
-	f.lastShowID = showTimeID
+	f.lastProgramID = programID
 	return true, nil
 }
 
@@ -53,7 +53,7 @@ func (f *fakeWorkerProgramRPC) PrimeSeatLedger(_ context.Context, in *programrpc
 
 func TestWorkerServeMuxRoutesRushInventoryPreheatTask(t *testing.T) {
 	expectedOpenTime := time.Date(2026, time.April, 14, 19, 30, 0, 0, time.Local)
-	body, err := taskdef.Marshal(94001, expectedOpenTime, 5*time.Minute)
+	body, err := taskdef.Marshal(84001, expectedOpenTime, 5*time.Minute)
 	if err != nil {
 		t.Fatalf("Marshal returned error: %v", err)
 	}
@@ -62,9 +62,17 @@ func TestWorkerServeMuxRoutesRushInventoryPreheatTask(t *testing.T) {
 	programRPC := &fakeWorkerProgramRPC{}
 	mux := worker.NewServeMux(&workersvc.WorkerServiceContext{
 		ShowTimeStore: &fakeWorkerShowTimeStore{
-			findResp: &workersvc.ShowTimeRecord{
-				ID:               94001,
-				RushSaleOpenTime: sql.NullTime{Time: expectedOpenTime, Valid: true},
+			listResp: []*workersvc.ShowTimeRecord{
+				{
+					ID:               94001,
+					ProgramID:        84001,
+					RushSaleOpenTime: sql.NullTime{Time: expectedOpenTime, Valid: true},
+				},
+				{
+					ID:               94002,
+					ProgramID:        84001,
+					RushSaleOpenTime: sql.NullTime{Time: expectedOpenTime, Valid: true},
+				},
 			},
 		},
 		OrderRpc:   orderRPC,
@@ -74,10 +82,10 @@ func TestWorkerServeMuxRoutesRushInventoryPreheatTask(t *testing.T) {
 	if err := mux.ProcessTask(context.Background(), asynq.NewTask(taskdef.TaskTypeRushInventoryPreheat, body)); err != nil {
 		t.Fatalf("ProcessTask returned error: %v", err)
 	}
-	if len(orderRPC.reqs) != 1 || orderRPC.reqs[0].GetShowTimeId() != 94001 {
+	if len(orderRPC.reqs) != 1 || orderRPC.reqs[0].GetProgramId() != 84001 {
 		t.Fatalf("unexpected order rpc requests: %+v", orderRPC.reqs)
 	}
-	if len(programRPC.reqs) != 1 || programRPC.reqs[0].GetShowTimeId() != 94001 {
+	if len(programRPC.reqs) != 2 {
 		t.Fatalf("unexpected program rpc requests: %+v", programRPC.reqs)
 	}
 }

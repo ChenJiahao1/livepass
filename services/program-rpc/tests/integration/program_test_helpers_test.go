@@ -915,8 +915,9 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		`INSERT INTO d_program (
 			id, program_group_id, prime, area_id, program_category_id, parent_program_category_id,
 			title, actor, place, item_picture, detail, permit_refund, refund_ticket_rule, refund_explain, refund_rule_json,
-			high_heat, program_status, issue_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			high_heat, program_status, issue_time, rush_sale_open_time, rush_sale_end_time, inventory_preheat_status,
+			create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		fixture.ProgramID,
 		fixture.ProgramGroupID,
 		fixture.Prime,
@@ -935,6 +936,9 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		fixture.HighHeat,
 		1,
 		fixture.IssueTime,
+		nullIfEmpty(fixture.RushSaleOpenTime),
+		nullIfEmpty(fixture.RushSaleEndTime),
+		fixture.InventoryPreheatStatus,
 		"2026-01-01 00:00:00",
 		"2026-01-01 00:00:00",
 		1,
@@ -944,18 +948,14 @@ func insertProgramFixture(t *testing.T, db *sql.DB, fixture programFixture) {
 		t,
 		db,
 		`INSERT INTO d_program_show_time (
-			id, program_id, show_time, show_day_time, show_week_time,
-			rush_sale_open_time, rush_sale_end_time, show_end_time, inventory_preheat_status, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			id, program_id, show_time, show_day_time, show_week_time, show_end_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		showTimeID,
 		fixture.ProgramID,
 		fixture.ShowTime,
 		fixture.ShowDayTime,
 		fixture.ShowWeekTime,
-		nullIfEmpty(fixture.RushSaleOpenTime),
-		nullIfEmpty(fixture.RushSaleEndTime),
 		nullIfEmpty(fixture.ShowEndTime),
-		fixture.InventoryPreheatStatus,
 		"2026-01-01 00:00:00",
 		"2026-01-01 00:00:00",
 		1,

@@ -17,7 +17,8 @@ INSERT INTO `d_program` (
   `refund_explain`, `refund_rule_json`, `rel_name_ticket_entrance`, `rel_name_ticket_entrance_explain`,
   `permit_choose_seat`, `choose_seat_explain`, `electronic_delivery_ticket`,
   `electronic_delivery_ticket_explain`, `electronic_invoice`, `electronic_invoice_explain`, `high_heat`,
-  `program_status`, `issue_time`, `create_time`, `edit_time`, `status`
+  `program_status`, `issue_time`, `rush_sale_open_time`, `rush_sale_end_time`, `inventory_preheat_status`,
+  `create_time`, `edit_time`, `status`
 ) VALUES (
   10001, 20001, 1, 2, 11, 1,
   'Phase1 示例演出', '示例艺人', '北京示例剧场', 'https://example.com/program-10001.jpg', 1,
@@ -28,14 +29,15 @@ INSERT INTO `d_program` (
   '约120分钟', '请勿携带违禁品。', '以现场为准', 1000, 1,
   '请按退票规则办理。', '{"version":1,"stages":[{"beforeMinutes":10080,"refundPercent":100},{"beforeMinutes":1440,"refundPercent":80},{"beforeMinutes":120,"refundPercent":50}]}', 0, '本场次无需实名入场。', 0,
   '本项目不支持自主选座，同一个订单优先连座。', 1, '电子票扫码入场', 1,
-  '电子发票将发送至邮箱。', 1, 1, '2026-06-01 09:00:00', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1
+  '电子发票将发送至邮箱。', 1, 1, '2026-06-01 09:00:00', '2026-12-31 18:00:00', '2026-12-31 19:00:00', 0,
+  '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1
 );
 
 INSERT INTO `d_program_show_time` (
   `id`, `program_id`, `show_time`, `show_day_time`, `show_week_time`,
-  `rush_sale_open_time`, `rush_sale_end_time`, `show_end_time`, `inventory_preheat_status`, `create_time`, `edit_time`, `status`
+  `show_end_time`, `create_time`, `edit_time`, `status`
 ) VALUES
-  (30001, 10001, '2026-12-31 19:30:00', '2026-12-31 00:00:00', '周四', '2026-12-31 18:00:00', '2026-12-31 19:00:00', '2026-12-31 22:00:00', 0, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
+  (30001, 10001, '2026-12-31 19:30:00', '2026-12-31 00:00:00', '周四', '2026-12-31 22:00:00', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
 
 INSERT INTO `d_ticket_category` (`id`, `program_id`, `show_time_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) VALUES
   (40001, 10001, 30001, '普通票', 299, 100, 100, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),

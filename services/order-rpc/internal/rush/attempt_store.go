@@ -300,6 +300,17 @@ func (s *AttemptStore) ClearFingerprintByShowTime(ctx context.Context, showTimeI
 	return s.deleteKeysByPattern(ctx, fmt.Sprintf("%s:%s:fingerprint:*", s.prefix, rushScopeTag(showTimeID)))
 }
 
+func (s *AttemptStore) ClearQuotaByShowTime(ctx context.Context, showTimeID int64) error {
+	if s == nil || s.redis == nil {
+		return xerr.ErrInternal
+	}
+	if showTimeID <= 0 {
+		return xerr.ErrInvalidParam
+	}
+
+	return s.deleteKeysByPattern(ctx, fmt.Sprintf("%s:%s:quota:*", s.prefix, rushScopeTag(showTimeID)))
+}
+
 func (s *AttemptStore) ReplaceUserActiveByShowTime(ctx context.Context, showTimeID int64, rows map[int64]int64, ttlSeconds int) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrInternal

@@ -37,31 +37,41 @@ func (l *RushInventoryPreheatTaskLogic) Handle(ctx context.Context, task *asynq.
 		return asynq.SkipRetry
 	}
 
-	showTime, err := l.svcCtx.ShowTimeStore.FindOne(ctx, payload.ShowTimeId)
+	showTimes, err := l.svcCtx.ShowTimeStore.ListByProgramID(ctx, payload.ProgramId)
 	if err != nil {
 		if errors.Is(err, xerr.ErrProgramShowTimeNotFound) {
 			return nil
 		}
 		return err
 	}
-	if showTime == nil || !showTime.RushSaleOpenTime.Valid {
-		return nil
+
+	matchedShowTimeIDs := make([]int64, 0, len(showTimes))
+	for _, showTime := range showTimes {
+		if showTime == nil || !showTime.RushSaleOpenTime.Valid {
+			continue
+		}
+		if showTime.RushSaleOpenTime.Time.Format(rushInventoryPreheatTimeLayout) != expectedOpenTime.Format(rushInventoryPreheatTimeLayout) {
+			return nil
+		}
+		matchedShowTimeIDs = append(matchedShowTimeIDs, showTime.ID)
 	}
-	if showTime.RushSaleOpenTime.Time.Format(rushInventoryPreheatTimeLayout) != expectedOpenTime.Format(rushInventoryPreheatTimeLayout) {
+	if len(matchedShowTimeIDs) == 0 {
 		return nil
 	}
 
 	if _, err := l.svcCtx.OrderRpc.PrimeRushRuntime(ctx, &orderrpc.PrimeRushRuntimeReq{
-		ShowTimeId: payload.ShowTimeId,
+		ProgramId: payload.ProgramId,
 	}); err != nil {
 		return err
 	}
-	if _, err := l.svcCtx.ProgramRpc.PrimeSeatLedger(ctx, &programrpc.PrimeSeatLedgerReq{
-		ShowTimeId: payload.ShowTimeId,
-	}); err != nil {
-		return err
+	for _, showTimeID := range matchedShowTimeIDs {
+		if _, err := l.svcCtx.ProgramRpc.PrimeSeatLedger(ctx, &programrpc.PrimeSeatLedgerReq{
+			ShowTimeId: showTimeID,
+		}); err != nil {
+			return err
+		}
 	}
 
-	_, err = l.svcCtx.ShowTimeStore.MarkInventoryPreheated(ctx, payload.ShowTimeId, expectedOpenTime, time.Now())
+	_, err = l.svcCtx.ShowTimeStore.MarkInventoryPreheatedByProgram(ctx, payload.ProgramId, expectedOpenTime, time.Now())
 	return err
 }

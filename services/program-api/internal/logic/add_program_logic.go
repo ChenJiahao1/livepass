@@ -74,6 +74,8 @@ func (l *AddProgramLogic) AddProgram(req *types.ProgramAddReq) (resp *types.IdRe
 		HighHeat:                        req.HighHeat,
 		ProgramStatus:                   req.ProgramStatus,
 		IssueTime:                       req.IssueTime,
+		RushSaleOpenTime:                req.RushSaleOpenTime,
+		RushSaleEndTime:                 req.RushSaleEndTime,
 		Status:                          req.Status,
 	})
 	if err != nil {

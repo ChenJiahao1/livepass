@@ -68,7 +68,7 @@ func (m *customDProgramModel) withSession(session sqlx.Session) DProgramModel {
 
 func (m *customDProgramModel) InsertWithSession(ctx context.Context, session sqlx.Session, data *DProgram) (sql.Result, error) {
 	query := fmt.Sprintf(
-		"insert into %s (`id`, `program_group_id`, `prime`, `area_id`, `program_category_id`, `parent_program_category_id`, `title`, `actor`, `place`, `item_picture`, `pre_sell`, `pre_sell_instruction`, `important_notice`, `detail`, `per_order_limit_purchase_count`, `per_account_limit_purchase_count`, `refund_ticket_rule`, `delivery_instruction`, `entry_rule`, `child_purchase`, `invoice_specification`, `real_ticket_purchase_rule`, `abnormal_order_description`, `kind_reminder`, `performance_duration`, `entry_time`, `min_performance_count`, `main_actor`, `min_performance_duration`, `prohibited_item`, `deposit_specification`, `total_count`, `permit_refund`, `refund_explain`, `refund_rule_json`, `rel_name_ticket_entrance`, `rel_name_ticket_entrance_explain`, `permit_choose_seat`, `choose_seat_explain`, `electronic_delivery_ticket`, `electronic_delivery_ticket_explain`, `electronic_invoice`, `electronic_invoice_explain`, `high_heat`, `program_status`, `issue_time`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"insert into %s (`id`, `program_group_id`, `prime`, `area_id`, `program_category_id`, `parent_program_category_id`, `title`, `actor`, `place`, `item_picture`, `pre_sell`, `pre_sell_instruction`, `important_notice`, `detail`, `per_order_limit_purchase_count`, `per_account_limit_purchase_count`, `refund_ticket_rule`, `delivery_instruction`, `entry_rule`, `child_purchase`, `invoice_specification`, `real_ticket_purchase_rule`, `abnormal_order_description`, `kind_reminder`, `performance_duration`, `entry_time`, `min_performance_count`, `main_actor`, `min_performance_duration`, `prohibited_item`, `deposit_specification`, `total_count`, `permit_refund`, `refund_explain`, `refund_rule_json`, `rel_name_ticket_entrance`, `rel_name_ticket_entrance_explain`, `permit_choose_seat`, `choose_seat_explain`, `electronic_delivery_ticket`, `electronic_delivery_ticket_explain`, `electronic_invoice`, `electronic_invoice_explain`, `high_heat`, `program_status`, `issue_time`, `rush_sale_open_time`, `rush_sale_end_time`, `inventory_preheat_status`, `create_time`, `edit_time`, `status`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		m.table,
 	)
 
@@ -121,6 +121,9 @@ func (m *customDProgramModel) InsertWithSession(ctx context.Context, session sql
 		data.HighHeat,
 		data.ProgramStatus,
 		data.IssueTime,
+		data.RushSaleOpenTime,
+		data.RushSaleEndTime,
+		data.InventoryPreheatStatus,
 		data.CreateTime,
 		data.EditTime,
 		data.Status,

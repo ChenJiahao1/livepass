@@ -15,18 +15,18 @@ const (
 )
 
 type RushInventoryPreheatPayload struct {
-	ShowTimeId               int64  `json:"showTimeId"`
+	ProgramId                int64  `json:"programId"`
 	ExpectedRushSaleOpenTime string `json:"expectedRushSaleOpenTime"`
 	LeadTime                 string `json:"leadTime"`
 }
 
-func TaskKey(showTimeID int64, expectedOpenTime time.Time) string {
-	return fmt.Sprintf("%s:%d:%s", TaskTypeRushInventoryPreheat, showTimeID, expectedOpenTime.Format(taskKeyTimeLayout))
+func TaskKey(programID int64, expectedOpenTime time.Time) string {
+	return fmt.Sprintf("%s:%d:%s", TaskTypeRushInventoryPreheat, programID, expectedOpenTime.Format(taskKeyTimeLayout))
 }
 
-func Marshal(showTimeID int64, expectedOpenTime time.Time, leadTime time.Duration) ([]byte, error) {
+func Marshal(programID int64, expectedOpenTime time.Time, leadTime time.Duration) ([]byte, error) {
 	return json.Marshal(RushInventoryPreheatPayload{
-		ShowTimeId:               showTimeID,
+		ProgramId:                programID,
 		ExpectedRushSaleOpenTime: expectedOpenTime.Format(taskTimeLayout),
 		LeadTime:                 leadTime.String(),
 	})
@@ -40,15 +40,15 @@ func Parse(body []byte) (RushInventoryPreheatPayload, error) {
 	return payload, nil
 }
 
-func NewMessage(showTimeID int64, expectedOpenTime time.Time, leadTime time.Duration) (delaytask.Message, error) {
-	payload, err := Marshal(showTimeID, expectedOpenTime, leadTime)
+func NewMessage(programID int64, expectedOpenTime time.Time, leadTime time.Duration) (delaytask.Message, error) {
+	payload, err := Marshal(programID, expectedOpenTime, leadTime)
 	if err != nil {
 		return delaytask.Message{}, err
 	}
 
 	return delaytask.Message{
 		Type:      TaskTypeRushInventoryPreheat,
-		Key:       TaskKey(showTimeID, expectedOpenTime),
+		Key:       TaskKey(programID, expectedOpenTime),
 		Payload:   payload,
 		ExecuteAt: expectedOpenTime.Add(-leadTime),
 	}, nil

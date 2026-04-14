@@ -125,6 +125,9 @@ func TestGetProgramDetailMapsNestedResponse(t *testing.T) {
 			Id:                        10001,
 			ProgramGroupId:            20001,
 			Title:                     "Phase1 示例演出",
+			RushSaleOpenTime:          "2026-12-31 18:00:00",
+			RushSaleEndTime:           "2026-12-31 19:00:00",
+			InventoryPreheatStatus:    1,
 			ProgramCategoryName:       "livehouse",
 			ParentProgramCategoryName: "演唱会",
 			ProgramGroupVo: &programrpc.ProgramGroupInfo{
@@ -150,6 +153,9 @@ func TestGetProgramDetailMapsNestedResponse(t *testing.T) {
 	}
 	if len(resp.ProgramGroupVo.ProgramSimpleInfoVoList) != 1 || resp.ProgramGroupVo.ProgramSimpleInfoVoList[0].AreaIDName != "北京" {
 		t.Fatalf("unexpected program group response: %+v", resp.ProgramGroupVo)
+	}
+	if resp.RushSaleOpenTime != "2026-12-31 18:00:00" || resp.RushSaleEndTime != "2026-12-31 19:00:00" || resp.InventoryPreheatStatus != 1 {
+		t.Fatalf("unexpected rush sale fields: %+v", resp)
 	}
 	if len(resp.TicketCategoryVoList) != 1 || resp.TicketCategoryVoList[0].ID != 40001 {
 		t.Fatalf("unexpected ticket category response: %+v", resp.TicketCategoryVoList)
@@ -258,6 +264,8 @@ func TestAddProgramMapsRequestAndResponse(t *testing.T) {
 		ElectronicInvoice:            1,
 		ProgramStatus:                1,
 		IssueTime:                    "2026-12-31 19:30:00",
+		RushSaleOpenTime:             "2026-12-31 18:00:00",
+		RushSaleEndTime:              "2026-12-31 19:00:00",
 	})
 	if err != nil {
 		t.Fatalf("AddProgram returned error: %v", err)
@@ -266,6 +274,9 @@ func TestAddProgramMapsRequestAndResponse(t *testing.T) {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
 	if fake.lastCreateProgramReq == nil || fake.lastCreateProgramReq.ProgramGroupId != 20001 || fake.lastCreateProgramReq.Title != "新增节目" {
+		t.Fatalf("unexpected request: %+v", fake.lastCreateProgramReq)
+	}
+	if fake.lastCreateProgramReq.RushSaleOpenTime != "2026-12-31 18:00:00" || fake.lastCreateProgramReq.RushSaleEndTime != "2026-12-31 19:00:00" {
 		t.Fatalf("unexpected request: %+v", fake.lastCreateProgramReq)
 	}
 }
@@ -291,6 +302,8 @@ func TestUpdateProgramMapsRequestAndResponse(t *testing.T) {
 		ElectronicDeliveryTicket:     1,
 		ElectronicInvoice:            1,
 		ProgramStatus:                1,
+		RushSaleOpenTime:             "2026-12-31 18:00:00",
+		RushSaleEndTime:              "2026-12-31 19:00:00",
 		Status:                       1,
 	})
 	if err != nil {
@@ -300,6 +313,9 @@ func TestUpdateProgramMapsRequestAndResponse(t *testing.T) {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
 	if fake.lastUpdateProgramReq == nil || fake.lastUpdateProgramReq.Id != 10001 || fake.lastUpdateProgramReq.ProgramGroupId != 20002 {
+		t.Fatalf("unexpected request: %+v", fake.lastUpdateProgramReq)
+	}
+	if fake.lastUpdateProgramReq.RushSaleOpenTime != "2026-12-31 18:00:00" || fake.lastUpdateProgramReq.RushSaleEndTime != "2026-12-31 19:00:00" {
 		t.Fatalf("unexpected request: %+v", fake.lastUpdateProgramReq)
 	}
 }

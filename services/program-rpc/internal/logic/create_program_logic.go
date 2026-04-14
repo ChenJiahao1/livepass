@@ -54,8 +54,11 @@ func (l *CreateProgramLogic) CreateProgram(in *pb.CreateProgramReq) (*pb.CreateP
 		}
 
 		programModel := model.NewDProgramModel(sqlx.NewSqlConnFromSession(session))
-		_, err := programModel.InsertWithSession(ctx, session, data)
-		return err
+		if _, err := programModel.InsertWithSession(ctx, session, data); err != nil {
+			return err
+		}
+
+		return scheduleRushInventoryPreheat(ctx, l.svcCtx, programModel, nil, sqlx.NewSqlConnFromSession(session), data)
 	})
 	if err != nil {
 		return nil, err

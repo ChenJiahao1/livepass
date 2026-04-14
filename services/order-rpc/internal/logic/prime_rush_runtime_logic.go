@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"damai-go/pkg/xerr"
@@ -30,24 +31,58 @@ func NewPrimeRushRuntimeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *PrimeRushRuntimeLogic) PrimeRushRuntime(in *pb.PrimeRushRuntimeReq) (*pb.BoolResp, error) {
-	if in == nil || in.GetShowTimeId() <= 0 {
+	if in == nil || in.GetProgramId() <= 0 {
 		return nil, mapOrderError(xerr.ErrInvalidParam)
 	}
-	if err := PrimeRushRuntime(l.ctx, l.svcCtx, in.GetShowTimeId()); err != nil {
+	if err := PrimeRushRuntime(l.ctx, l.svcCtx, in.GetProgramId()); err != nil {
 		return nil, mapOrderError(err)
 	}
 
 	return &pb.BoolResp{Success: true}, nil
 }
 
-func PrimeRushRuntime(ctx context.Context, svcCtx *svc.ServiceContext, showTimeID int64) error {
+func PrimeRushRuntime(ctx context.Context, svcCtx *svc.ServiceContext, programID int64) error {
 	if svcCtx == nil || svcCtx.AttemptStore == nil || svcCtx.ProgramRpc == nil || svcCtx.OrderRepository == nil {
 		return xerr.ErrInternal
 	}
-	if showTimeID <= 0 {
+	if programID <= 0 {
 		return xerr.ErrInvalidParam
 	}
 
+	showTimesResp, err := svcCtx.ProgramRpc.ListProgramShowTimesForRush(ctx, &programrpc.ListProgramShowTimesForRushReq{
+		ProgramId: programID,
+	})
+	if err != nil {
+		return err
+	}
+
+	showTimeIDs := make([]int64, 0, len(showTimesResp.GetList()))
+	seen := make(map[int64]struct{}, len(showTimesResp.GetList()))
+	for _, item := range showTimesResp.GetList() {
+		if item == nil || item.GetShowTimeId() <= 0 {
+			continue
+		}
+		if _, ok := seen[item.GetShowTimeId()]; ok {
+			continue
+		}
+		seen[item.GetShowTimeId()] = struct{}{}
+		showTimeIDs = append(showTimeIDs, item.GetShowTimeId())
+	}
+	if len(showTimeIDs) == 0 {
+		return xerr.ErrProgramShowTimeNotFound
+	}
+	sort.Slice(showTimeIDs, func(i, j int) bool { return showTimeIDs[i] < showTimeIDs[j] })
+
+	for _, showTimeID := range showTimeIDs {
+		if err := primeRushRuntimeByShowTime(ctx, svcCtx, showTimeID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func primeRushRuntimeByShowTime(ctx context.Context, svcCtx *svc.ServiceContext, showTimeID int64) error {
 	preorder, err := svcCtx.ProgramRpc.GetProgramPreorder(ctx, &programrpc.GetProgramPreorderReq{
 		ShowTimeId: showTimeID,
 	})
@@ -67,6 +102,9 @@ func PrimeRushRuntime(ctx context.Context, svcCtx *svc.ServiceContext, showTimeI
 		return err
 	}
 	if err := svcCtx.AttemptStore.ClearFingerprintByShowTime(ctx, resolvedShowTimeID); err != nil {
+		return err
+	}
+	if err := svcCtx.AttemptStore.ClearQuotaByShowTime(ctx, resolvedShowTimeID); err != nil {
 		return err
 	}
 

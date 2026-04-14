@@ -2,7 +2,7 @@ package logic
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,41 +13,57 @@ import (
 )
 
 type rushInventoryPreheatTxClient interface {
-	EnqueueWithConn(ctx context.Context, conn sqlx.SqlConn, showTimeID int64, expectedOpenTime time.Time) error
+	EnqueueWithConn(ctx context.Context, conn sqlx.SqlConn, programID int64, expectedOpenTime time.Time) error
 }
 
-func scheduleRushInventoryPreheat(ctx context.Context, svcCtx *svc.ServiceContext, showTimeModel model.DProgramShowTimeModel, conn sqlx.SqlConn, showTime *model.DProgramShowTime) error {
-	if showTime == nil || !showTime.RushSaleOpenTime.Valid || svcCtx.RushInventoryPreheatClient == nil {
+func scheduleRushInventoryPreheat(ctx context.Context, svcCtx *svc.ServiceContext, programModel model.DProgramModel, showTimeModel model.DProgramShowTimeModel, conn sqlx.SqlConn, program *model.DProgram) error {
+	if program == nil || !program.RushSaleOpenTime.Valid || svcCtx.RushInventoryPreheatClient == nil {
 		return nil
+	}
+	if programModel == nil {
+		programModel = svcCtx.DProgramModel
 	}
 	if showTimeModel == nil {
 		showTimeModel = svcCtx.DProgramShowTimeModel
 	}
+	if programModel == nil || showTimeModel == nil {
+		return nil
+	}
 
-	previousStatus := showTime.InventoryPreheatStatus
+	showTimes, err := showTimeModel.FindByProgramIds(ctx, []int64{program.Id})
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return nil
+		}
+		return err
+	}
+	if len(showTimes) == 0 {
+		return nil
+	}
+
+	previousStatus := program.InventoryPreheatStatus
 	now := time.Now()
 	if previousStatus != 1 {
-		showTime.InventoryPreheatStatus = 1
-		showTime.EditTime = sql.NullTime{Time: now, Valid: true}
-		if err := showTimeModel.Update(ctx, showTime); err != nil {
+		program.InventoryPreheatStatus = 1
+		program.EditTime = now
+		if err := programModel.Update(ctx, program); err != nil {
 			return err
 		}
 	}
 
-	var err error
 	if txClient, ok := svcCtx.RushInventoryPreheatClient.(rushInventoryPreheatTxClient); ok && conn != nil {
-		err = txClient.EnqueueWithConn(ctx, conn, showTime.Id, showTime.RushSaleOpenTime.Time)
+		err = txClient.EnqueueWithConn(ctx, conn, program.Id, program.RushSaleOpenTime.Time)
 	} else {
-		err = svcCtx.RushInventoryPreheatClient.Enqueue(ctx, showTime.Id, showTime.RushSaleOpenTime.Time)
+		err = svcCtx.RushInventoryPreheatClient.Enqueue(ctx, program.Id, program.RushSaleOpenTime.Time)
 	}
 	if err != nil {
 		if conn != nil || previousStatus == 1 {
 			return err
 		}
 
-		showTime.InventoryPreheatStatus = previousStatus
-		showTime.EditTime = sql.NullTime{Time: time.Now(), Valid: true}
-		if rollbackErr := showTimeModel.Update(ctx, showTime); rollbackErr != nil {
+		program.InventoryPreheatStatus = previousStatus
+		program.EditTime = time.Now()
+		if rollbackErr := programModel.Update(ctx, program); rollbackErr != nil {
 			return fmt.Errorf("enqueue rush inventory preheat: %w; rollback inventory_preheat_status: %v", err, rollbackErr)
 		}
 		return err

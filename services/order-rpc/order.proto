@@ -225,7 +225,7 @@ message CountActiveTicketsByUserShowTimeResp {
 }
 
 message PrimeRushRuntimeReq {
-  int64 showTimeId = 1;
+  int64 programId = 1;
 }
 
 service OrderRpc {

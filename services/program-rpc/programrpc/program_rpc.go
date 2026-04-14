@@ -28,6 +28,8 @@ type (
 	GetProgramPreorderReq             = pb.GetProgramPreorderReq
 	IdResp                            = pb.IdResp
 	ListHomeProgramsReq               = pb.ListHomeProgramsReq
+	ListProgramShowTimesForRushReq    = pb.ListProgramShowTimesForRushReq
+	ListProgramShowTimesForRushResp   = pb.ListProgramShowTimesForRushResp
 	ListTicketCategoriesByProgramReq  = pb.ListTicketCategoriesByProgramReq
 	PageProgramsReq                   = pb.PageProgramsReq
 	ParentProgramCategoryReq          = pb.ParentProgramCategoryReq
@@ -49,6 +51,7 @@ type (
 	ProgramPreorderTicketCategoryInfo = pb.ProgramPreorderTicketCategoryInfo
 	ProgramResetReq                   = pb.ProgramResetReq
 	ProgramShowTimeAddReq             = pb.ProgramShowTimeAddReq
+	ProgramShowTimeForRushInfo        = pb.ProgramShowTimeForRushInfo
 	ProgramSimpleInfo                 = pb.ProgramSimpleInfo
 	ReleaseSeatFreezeReq              = pb.ReleaseSeatFreezeReq
 	ReleaseSeatFreezeResp             = pb.ReleaseSeatFreezeResp
@@ -81,6 +84,7 @@ type (
 		PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 		GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
 		GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
+		ListProgramShowTimesForRush(ctx context.Context, in *ListProgramShowTimesForRushReq, opts ...grpc.CallOption) (*ListProgramShowTimesForRushResp, error)
 		CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
 		UpdateProgramShowTime(ctx context.Context, in *UpdateProgramShowTimeReq, opts ...grpc.CallOption) (*BoolResp, error)
 		CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error)
@@ -166,6 +170,11 @@ func (m *defaultProgramRpc) GetProgramDetail(ctx context.Context, in *GetProgram
 func (m *defaultProgramRpc) GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
 	return client.GetProgramPreorder(ctx, in, opts...)
+}
+
+func (m *defaultProgramRpc) ListProgramShowTimesForRush(ctx context.Context, in *ListProgramShowTimesForRushReq, opts ...grpc.CallOption) (*ListProgramShowTimesForRushResp, error) {
+	client := pb.NewProgramRpcClient(m.cli.Conn())
+	return client.ListProgramShowTimesForRush(ctx, in, opts...)
 }
 
 func (m *defaultProgramRpc) CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error) {

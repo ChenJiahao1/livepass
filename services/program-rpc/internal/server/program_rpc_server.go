@@ -83,6 +83,11 @@ func (s *ProgramRpcServer) GetProgramPreorder(ctx context.Context, in *pb.GetPro
 	return l.GetProgramPreorder(in)
 }
 
+func (s *ProgramRpcServer) ListProgramShowTimesForRush(ctx context.Context, in *pb.ListProgramShowTimesForRushReq) (*pb.ListProgramShowTimesForRushResp, error) {
+	l := logic.NewListProgramShowTimesForRushLogic(ctx, s.svcCtx)
+	return l.ListProgramShowTimesForRush(in)
+}
+
 func (s *ProgramRpcServer) CreateProgramShowTime(ctx context.Context, in *pb.ProgramShowTimeAddReq) (*pb.IdResp, error) {
 	l := logic.NewCreateProgramShowTimeLogic(ctx, s.svcCtx)
 	return l.CreateProgramShowTime(in)

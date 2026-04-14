@@ -41,7 +41,14 @@ func (l *ReleaseSoldSeatsLogic) ReleaseSoldSeats(in *pb.ReleaseSoldSeatsReq) (*p
 		}
 		return nil, err
 	}
-	if isRefundBlockedDuringRushSale(showTime, time.Time{}) {
+	program, err := l.svcCtx.DProgramModel.FindOne(l.ctx, showTime.ProgramId)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return nil, programNotFoundError()
+		}
+		return nil, err
+	}
+	if isRefundBlockedDuringRushSale(program, time.Time{}) {
 		return nil, status.Error(codes.FailedPrecondition, rushSaleRefundBlockedReason)
 	}
 

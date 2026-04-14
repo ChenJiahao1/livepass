@@ -2155,7 +2155,7 @@ func (x *CountActiveTicketsByUserShowTimeResp) GetActiveTicketCount() int64 {
 
 type PrimeRushRuntimeReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ShowTimeId    int64                  `protobuf:"varint,1,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
+	ProgramId     int64                  `protobuf:"varint,1,opt,name=programId,proto3" json:"programId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2190,9 +2190,9 @@ func (*PrimeRushRuntimeReq) Descriptor() ([]byte, []int) {
 	return file_order_proto_rawDescGZIP(), []int{31}
 }
 
-func (x *PrimeRushRuntimeReq) GetShowTimeId() int64 {
+func (x *PrimeRushRuntimeReq) GetProgramId() int64 {
 	if x != nil {
-		return x.ShowTimeId
+		return x.ProgramId
 	}
 	return 0
 }
@@ -2385,11 +2385,9 @@ const file_order_proto_rawDesc = "" +
 	"showTimeId\x18\x02 \x01(\x03R\n" +
 	"showTimeId\"T\n" +
 	"$CountActiveTicketsByUserShowTimeResp\x12,\n" +
-	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount\"5\n" +
-	"\x13PrimeRushRuntimeReq\x12\x1e\n" +
-	"\n" +
-	"showTimeId\x18\x01 \x01(\x03R\n" +
-	"showTimeId2\xfe\b\n" +
+	"\x11activeTicketCount\x18\x01 \x01(\x03R\x11activeTicketCount\"3\n" +
+	"\x13PrimeRushRuntimeReq\x12\x1c\n" +
+	"\tprogramId\x18\x01 \x01(\x03R\tprogramId2\xfe\b\n" +
 	"\bOrderRpc\x12T\n" +
 	"\x13CreatePurchaseToken\x12\x1d.order.CreatePurchaseTokenReq\x1a\x1e.order.CreatePurchaseTokenResp\x12<\n" +
 	"\vCreateOrder\x12\x15.order.CreateOrderReq\x1a\x16.order.CreateOrderResp\x12N\n" +

@@ -49,7 +49,7 @@ func (l *EvaluateRefundRuleLogic) EvaluateRefundRule(in *pb.EvaluateRefundRuleRe
 		}
 		return nil, err
 	}
-	if isRefundBlockedDuringRushSale(showTime, time.Time{}) {
+	if isRefundBlockedDuringRushSale(program, time.Time{}) {
 		return &pb.EvaluateRefundRuleResp{
 			AllowRefund:  false,
 			RejectReason: rushSaleRefundBlockedReason,

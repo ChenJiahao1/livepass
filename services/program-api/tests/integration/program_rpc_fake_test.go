@@ -54,6 +54,10 @@ type fakeProgramRPC struct {
 	getProgramPreorderErr     error
 	lastGetProgramPreorderReq *programrpc.GetProgramPreorderReq
 
+	listProgramShowTimesForRushResp    *programrpc.ListProgramShowTimesForRushResp
+	listProgramShowTimesForRushErr     error
+	lastListProgramShowTimesForRushReq *programrpc.ListProgramShowTimesForRushReq
+
 	listTicketCategoriesByProgramResp    *programrpc.TicketCategoryDetailListResp
 	listTicketCategoriesByProgramErr     error
 	lastListTicketCategoriesByProgramReq *programrpc.ListTicketCategoriesByProgramReq
@@ -148,6 +152,11 @@ func (f *fakeProgramRPC) GetProgramDetail(ctx context.Context, in *programrpc.Ge
 func (f *fakeProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramPreorderReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
 	f.lastGetProgramPreorderReq = in
 	return f.getProgramPreorderResp, f.getProgramPreorderErr
+}
+
+func (f *fakeProgramRPC) ListProgramShowTimesForRush(ctx context.Context, in *programrpc.ListProgramShowTimesForRushReq, opts ...grpc.CallOption) (*programrpc.ListProgramShowTimesForRushResp, error) {
+	f.lastListProgramShowTimesForRushReq = in
+	return f.listProgramShowTimesForRushResp, f.listProgramShowTimesForRushErr
 }
 
 func (f *fakeProgramRPC) ListTicketCategoriesByProgram(ctx context.Context, in *programrpc.ListTicketCategoriesByProgramReq, opts ...grpc.CallOption) (*programrpc.TicketCategoryDetailListResp, error) {

@@ -244,6 +244,9 @@ func TestGetProgramDetailReturnsComposedProgramInfo(t *testing.T) {
 	if resp.ShowTime != "2026-12-31 19:30:00" || resp.ShowDayTime != "2026-12-31 00:00:00" || resp.ShowWeekTime != "周四" {
 		t.Fatalf("unexpected show time fields: %+v", resp)
 	}
+	if resp.RushSaleOpenTime != "2026-12-31 18:00:00" || resp.RushSaleEndTime != "2026-12-31 19:00:00" || resp.InventoryPreheatStatus != 0 {
+		t.Fatalf("unexpected rush sale fields: %+v", resp)
+	}
 	if resp.PermitRefund != 1 || resp.RefundTicketRule != "演出开始前 120 分钟外可退，开演前 24 小时外退 80%，开演前 7 天外退 100%。" || resp.RefundExplain != "请按退票规则办理。" {
 		t.Fatalf("unexpected refund fields: %+v", resp)
 	}
@@ -284,6 +287,23 @@ func TestListTicketCategoriesByProgramReturnsRemainNumbers(t *testing.T) {
 	}
 	if resp.List[1].Introduce != "VIP票" || resp.List[1].Price != 599 || resp.List[1].RemainNumber != 80 {
 		t.Fatalf("unexpected second ticket category detail: %+v", resp.List[1])
+	}
+}
+
+func TestListProgramShowTimesForRushReturnsActiveShowTimes(t *testing.T) {
+	svcCtx := newProgramTestServiceContext(t)
+	resetProgramDomainState(t)
+
+	l := logicpkg.NewListProgramShowTimesForRushLogic(context.Background(), svcCtx)
+	resp, err := l.ListProgramShowTimesForRush(&pb.ListProgramShowTimesForRushReq{ProgramId: 10001})
+	if err != nil {
+		t.Fatalf("ListProgramShowTimesForRush returned error: %v", err)
+	}
+	if len(resp.List) != 1 {
+		t.Fatalf("expected 1 show time, got %d", len(resp.List))
+	}
+	if resp.List[0].ShowTimeId != 30001 || resp.List[0].RushSaleOpenTime != "2026-12-31 18:00:00" {
+		t.Fatalf("unexpected first rush show time: %+v", resp.List[0])
 	}
 }
 

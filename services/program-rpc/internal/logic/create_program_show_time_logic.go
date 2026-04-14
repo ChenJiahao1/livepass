@@ -45,14 +45,6 @@ func (l *CreateProgramShowTimeLogic) CreateProgramShowTime(in *pb.ProgramShowTim
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
-	rushSaleOpenTime, err := parseNullTime(in.GetRushSaleOpenTime())
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
-	}
-	rushSaleEndTime, err := parseNullTime(in.GetRushSaleEndTime())
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
-	}
 	showEndTime, err := parseNullTime(in.GetShowEndTime())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
@@ -64,17 +56,14 @@ func (l *CreateProgramShowTimeLogic) CreateProgramShowTime(in *pb.ProgramShowTim
 	)
 	now := time.Now()
 	createdShowTime := &model.DProgramShowTime{
-		Id:                     id,
-		ProgramId:              in.GetProgramId(),
-		ShowTime:               showTime,
-		ShowDayTime:            showDayTime,
-		ShowWeekTime:           in.GetShowWeekTime(),
-		RushSaleOpenTime:       rushSaleOpenTime,
-		RushSaleEndTime:        rushSaleEndTime,
-		ShowEndTime:            showEndTime,
-		InventoryPreheatStatus: 0,
-		EditTime:               sql.NullTime{Time: now, Valid: true},
-		Status:                 1,
+		Id:           id,
+		ProgramId:    in.GetProgramId(),
+		ShowTime:     showTime,
+		ShowDayTime:  showDayTime,
+		ShowWeekTime: in.GetShowWeekTime(),
+		ShowEndTime:  showEndTime,
+		EditTime:     sql.NullTime{Time: now, Valid: true},
+		Status:       1,
 	}
 
 	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
@@ -91,6 +80,9 @@ func (l *CreateProgramShowTimeLogic) CreateProgramShowTime(in *pb.ProgramShowTim
 			return err
 		}
 		programGroupID = program.ProgramGroupId
+		if err := validateShowTimeAgainstProgramRushSaleOpenTime(program, showTime); err != nil {
+			return err
+		}
 
 		if _, err := showTimeModel.Insert(ctx, createdShowTime); err != nil {
 			return err
@@ -111,7 +103,7 @@ func (l *CreateProgramShowTimeLogic) CreateProgramShowTime(in *pb.ProgramShowTim
 			}
 		}
 
-		return scheduleRushInventoryPreheat(ctx, l.svcCtx, showTimeModel, conn, createdShowTime)
+		return scheduleRushInventoryPreheat(ctx, l.svcCtx, programModel, showTimeModel, conn, program)
 	})
 	if err != nil {
 		return nil, err

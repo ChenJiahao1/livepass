@@ -176,6 +176,9 @@ func toProgramDetailInfo(program *model.DProgram, firstShowTime *model.DProgramS
 		HighHeat:                        program.HighHeat,
 		ProgramStatus:                   program.ProgramStatus,
 		IssueTime:                       formatNullTime(program.IssueTime),
+		RushSaleOpenTime:                formatNullTime(program.RushSaleOpenTime),
+		RushSaleEndTime:                 formatNullTime(program.RushSaleEndTime),
+		InventoryPreheatStatus:          program.InventoryPreheatStatus,
 		ShowTime:                        formatProgramShowTime(firstShowTime),
 		ShowDayTime:                     formatProgramShowDayTime(firstShowTime),
 		ShowWeekTime:                    programShowWeekTime(firstShowTime),
@@ -195,8 +198,8 @@ func toProgramPreorderInfo(program *model.DProgram, firstShowTime *model.DProgra
 		ShowTime:                     formatProgramShowTime(firstShowTime),
 		ShowDayTime:                  formatProgramShowDayTime(firstShowTime),
 		ShowWeekTime:                 programShowWeekTime(firstShowTime),
-		RushSaleOpenTime:             formatNullTime(firstShowTime.RushSaleOpenTime),
-		RushSaleEndTime:              formatNullTime(firstShowTime.RushSaleEndTime),
+		RushSaleOpenTime:             formatNullTime(program.RushSaleOpenTime),
+		RushSaleEndTime:              formatNullTime(program.RushSaleEndTime),
 		PerOrderLimitPurchaseCount:   program.PerOrderLimitPurchaseCount,
 		PerAccountLimitPurchaseCount: program.PerAccountLimitPurchaseCount,
 		PermitChooseSeat:             program.PermitChooseSeat,
@@ -313,16 +316,16 @@ func programRefundNoMatchReason(program *model.DProgram, fallback string) string
 	return fallback
 }
 
-func isRefundBlockedDuringRushSale(showTime *model.DProgramShowTime, now time.Time) bool {
-	if showTime == nil || !showTime.RushSaleOpenTime.Valid || !showTime.RushSaleEndTime.Valid {
+func isRefundBlockedDuringRushSale(program *model.DProgram, now time.Time) bool {
+	if program == nil || !program.RushSaleOpenTime.Valid || !program.RushSaleEndTime.Valid {
 		return false
 	}
 	if now.IsZero() {
 		now = time.Now()
 	}
 
-	openAt := showTime.RushSaleOpenTime.Time
-	endAt := showTime.RushSaleEndTime.Time
+	openAt := program.RushSaleOpenTime.Time
+	endAt := program.RushSaleEndTime.Time
 	if endAt.Before(openAt) {
 		return false
 	}

@@ -112,6 +112,8 @@ type ProgramAddReq struct {
 	HighHeat                        int64  `json:"highHeat,optional"`
 	ProgramStatus                   int64  `json:"programStatus,optional"`
 	IssueTime                       string `json:"issueTime,optional"`
+	RushSaleOpenTime                string `json:"rushSaleOpenTime"`
+	RushSaleEndTime                 string `json:"rushSaleEndTime"`
 	Status                          int64  `json:"status,optional"`
 }
 
@@ -190,6 +192,9 @@ type ProgramDetailInfo struct {
 	HighHeat                        int64                `json:"highHeat"`
 	ProgramStatus                   int64                `json:"programStatus"`
 	IssueTime                       string               `json:"issueTime,optional"`
+	RushSaleOpenTime                string               `json:"rushSaleOpenTime,optional"`
+	RushSaleEndTime                 string               `json:"rushSaleEndTime,optional"`
+	InventoryPreheatStatus          int64                `json:"inventoryPreheatStatus"`
 	ShowTime                        string               `json:"showTime,optional"`
 	ShowDayTime                     string               `json:"showDayTime,optional"`
 	ShowWeekTime                    string               `json:"showWeekTime,optional"`
@@ -335,6 +340,8 @@ type ProgramUpdateReq struct {
 	HighHeat                        int64  `json:"highHeat,optional"`
 	ProgramStatus                   int64  `json:"programStatus,optional"`
 	IssueTime                       string `json:"issueTime,optional"`
+	RushSaleOpenTime                string `json:"rushSaleOpenTime"`
+	RushSaleEndTime                 string `json:"rushSaleEndTime"`
 	Status                          int64  `json:"status,optional"`
 }
 

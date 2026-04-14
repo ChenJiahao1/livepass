@@ -60,6 +60,9 @@ type programWriteValues struct {
 	highHeat                        int64
 	programStatus                   int64
 	issueTime                       string
+	rushSaleOpenTime                string
+	rushSaleEndTime                 string
+	inventoryPreheatStatus          int64
 	status                          int64
 }
 
@@ -110,6 +113,8 @@ func newCreateProgramValues(in *pb.CreateProgramReq) programWriteValues {
 		highHeat:                        in.GetHighHeat(),
 		programStatus:                   in.GetProgramStatus(),
 		issueTime:                       in.GetIssueTime(),
+		rushSaleOpenTime:                in.GetRushSaleOpenTime(),
+		rushSaleEndTime:                 in.GetRushSaleEndTime(),
 		status:                          in.GetStatus(),
 	}
 }
@@ -161,6 +166,8 @@ func newUpdateProgramValues(in *pb.UpdateProgramReq) programWriteValues {
 		HighHeat:                        in.GetHighHeat(),
 		ProgramStatus:                   in.GetProgramStatus(),
 		IssueTime:                       in.GetIssueTime(),
+		RushSaleOpenTime:                in.GetRushSaleOpenTime(),
+		RushSaleEndTime:                 in.GetRushSaleEndTime(),
 		Status:                          in.GetStatus(),
 	})
 	values.id = in.GetId()
@@ -185,12 +192,40 @@ func validateProgramWriteValues(values programWriteValues, requireID bool) error
 			return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 		}
 	}
+	if values.rushSaleOpenTime != "" {
+		if _, err := time.ParseInLocation(programDateTimeLayout, values.rushSaleOpenTime, time.Local); err != nil {
+			return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+		}
+	}
+	if values.rushSaleEndTime != "" {
+		if _, err := time.ParseInLocation(programDateTimeLayout, values.rushSaleEndTime, time.Local); err != nil {
+			return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+		}
+	}
+	if requireID && (strings.TrimSpace(values.rushSaleOpenTime) == "" || strings.TrimSpace(values.rushSaleEndTime) == "") {
+		return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
+	if values.rushSaleOpenTime != "" && values.rushSaleEndTime != "" {
+		openAt, _ := time.ParseInLocation(programDateTimeLayout, values.rushSaleOpenTime, time.Local)
+		endAt, _ := time.ParseInLocation(programDateTimeLayout, values.rushSaleEndTime, time.Local)
+		if endAt.Before(openAt) {
+			return status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+		}
+	}
 
 	return nil
 }
 
 func buildProgramModel(values programWriteValues, now time.Time) (*model.DProgram, error) {
 	issueTime, err := parseNullTime(values.issueTime)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
+	rushSaleOpenTime, err := parseNullTime(values.rushSaleOpenTime)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
+	}
+	rushSaleEndTime, err := parseNullTime(values.rushSaleEndTime)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
@@ -242,6 +277,9 @@ func buildProgramModel(values programWriteValues, now time.Time) (*model.DProgra
 		HighHeat:                        values.highHeat,
 		ProgramStatus:                   values.programStatus,
 		IssueTime:                       issueTime,
+		RushSaleOpenTime:                rushSaleOpenTime,
+		RushSaleEndTime:                 rushSaleEndTime,
+		InventoryPreheatStatus:          values.inventoryPreheatStatus,
 		CreateTime:                      now,
 		EditTime:                        now,
 		Status:                          values.status,

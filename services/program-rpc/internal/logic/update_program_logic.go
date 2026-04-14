@@ -50,6 +50,7 @@ func (l *UpdateProgramLogic) UpdateProgram(in *pb.UpdateProgramReq) (*pb.BoolRes
 		}
 
 		programModel := model.NewDProgramModel(sqlx.NewSqlConnFromSession(session))
+		showTimeModel := model.NewDProgramShowTimeModel(sqlx.NewSqlConnFromSession(session))
 		current, err := programModel.FindOneForUpdate(ctx, session, values.id)
 		if err != nil {
 			if errors.Is(err, model.ErrNotFound) {
@@ -58,11 +59,23 @@ func (l *UpdateProgramLogic) UpdateProgram(in *pb.UpdateProgramReq) (*pb.BoolRes
 			return err
 		}
 		data.CreateTime = current.CreateTime
+		data.InventoryPreheatStatus = current.InventoryPreheatStatus
 		if current.ProgramGroupId != values.programGroupId {
 			groupIDs = append(groupIDs, current.ProgramGroupId)
 		}
+		if err := validateProgramRushSaleWindowAgainstExistingShowTimes(ctx, showTimeModel, values.id, values.rushSaleOpenTime); err != nil {
+			return err
+		}
+		shouldReschedule := current.RushSaleOpenTime != data.RushSaleOpenTime || current.RushSaleEndTime != data.RushSaleEndTime
 
-		return programModel.Update(ctx, data)
+		if err := programModel.Update(ctx, data); err != nil {
+			return err
+		}
+		if !shouldReschedule {
+			return nil
+		}
+
+		return scheduleRushInventoryPreheat(ctx, l.svcCtx, programModel, nil, sqlx.NewSqlConnFromSession(session), data)
 	})
 	if err != nil {
 		return nil, err

@@ -37,14 +37,6 @@ func (l *UpdateProgramShowTimeLogic) UpdateProgramShowTime(in *pb.UpdateProgramS
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
-	rushSaleOpenTime, err := parseNullTime(in.GetRushSaleOpenTime())
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
-	}
-	rushSaleEndTime, err := parseNullTime(in.GetRushSaleEndTime())
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
-	}
 	showEndTime, err := parseNullTime(in.GetShowEndTime())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
@@ -57,9 +49,9 @@ func (l *UpdateProgramShowTimeLogic) UpdateProgramShowTime(in *pb.UpdateProgramS
 	now := time.Now()
 
 	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
-		conn := sqlx.NewSqlConnFromSession(session)
-		showTimeModel := model.NewDProgramShowTimeModel(conn)
-		programModel := model.NewDProgramModel(conn)
+		sessionConn := sqlx.NewSqlConnFromSession(session)
+		showTimeModel := model.NewDProgramShowTimeModel(sessionConn)
+		programModel := model.NewDProgramModel(sessionConn)
 
 		current, err := showTimeModel.FindOne(ctx, in.GetId())
 		if err != nil {
@@ -78,18 +70,18 @@ func (l *UpdateProgramShowTimeLogic) UpdateProgramShowTime(in *pb.UpdateProgramS
 			return err
 		}
 		programGroupID = program.ProgramGroupId
+		if err := validateShowTimeAgainstProgramRushSaleOpenTime(program, current.ShowTime); err != nil {
+			return err
+		}
 
 		current.ShowWeekTime = in.GetShowWeekTime()
-		current.RushSaleOpenTime = rushSaleOpenTime
-		current.RushSaleEndTime = rushSaleEndTime
 		current.ShowEndTime = showEndTime
 		current.EditTime = sql.NullTime{Time: now, Valid: true}
 
 		if err := showTimeModel.Update(ctx, current); err != nil {
 			return err
 		}
-
-		return scheduleRushInventoryPreheat(ctx, l.svcCtx, showTimeModel, conn, current)
+		return nil
 	})
 	if err != nil {
 		return nil, err

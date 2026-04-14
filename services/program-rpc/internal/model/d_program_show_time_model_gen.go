@@ -44,10 +44,7 @@ type (
 		ShowTime               time.Time    `db:"show_time"`                // show datetime
 		ShowDayTime            sql.NullTime `db:"show_day_time"`            // show day datetime
 		ShowWeekTime           string       `db:"show_week_time"`           // weekday text
-		RushSaleOpenTime       sql.NullTime `db:"rush_sale_open_time"`      // rush sale open time
-		RushSaleEndTime        sql.NullTime `db:"rush_sale_end_time"`       // rush sale end time
 		ShowEndTime            sql.NullTime `db:"show_end_time"`            // show end time
-		InventoryPreheatStatus int64        `db:"inventory_preheat_status"` // 0 not preheated, 1 scheduled, 2 completed
 		CreateTime             sql.NullTime `db:"create_time"`              // created at
 		EditTime               sql.NullTime `db:"edit_time"`                // updated at
 		Status                 int64        `db:"status"`                   // 1 active, 0 deleted
@@ -82,14 +79,14 @@ func (m *defaultDProgramShowTimeModel) FindOne(ctx context.Context, id int64) (*
 }
 
 func (m *defaultDProgramShowTimeModel) Insert(ctx context.Context, data *DProgramShowTime) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.RushSaleOpenTime, data.RushSaleEndTime, data.ShowEndTime, data.InventoryPreheatStatus, data.EditTime, data.Status)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, dProgramShowTimeRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.ShowEndTime, data.EditTime, data.Status)
 	return ret, err
 }
 
 func (m *defaultDProgramShowTimeModel) Update(ctx context.Context, data *DProgramShowTime) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, dProgramShowTimeRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.RushSaleOpenTime, data.RushSaleEndTime, data.ShowEndTime, data.InventoryPreheatStatus, data.EditTime, data.Status, data.Id)
+	_, err := m.conn.ExecCtx(ctx, query, data.ProgramId, data.ShowTime, data.ShowDayTime, data.ShowWeekTime, data.ShowEndTime, data.EditTime, data.Status, data.Id)
 	return err
 }
 

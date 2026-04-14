@@ -75,6 +75,8 @@ func (l *UpdateProgramLogic) UpdateProgram(req *types.ProgramUpdateReq) (resp *t
 		HighHeat:                        req.HighHeat,
 		ProgramStatus:                   req.ProgramStatus,
 		IssueTime:                       req.IssueTime,
+		RushSaleOpenTime:                req.RushSaleOpenTime,
+		RushSaleEndTime:                 req.RushSaleEndTime,
 		Status:                          req.Status,
 	})
 	if err != nil {

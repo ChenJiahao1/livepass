@@ -39,6 +39,10 @@ message GetProgramPreorderReq {
   int64 showTimeId = 1;
 }
 
+message ListProgramShowTimesForRushReq {
+  int64 programId = 1;
+}
+
 message ProgramInvalidReq {
   int64 id = 1;
 }
@@ -111,7 +115,9 @@ message CreateProgramReq {
   int64 highHeat = 43;
   int64 programStatus = 44;
   string issueTime = 45;
-  int64 status = 46;
+  string rushSaleOpenTime = 46;
+  string rushSaleEndTime = 47;
+  int64 status = 48;
 }
 
 message CreateProgramResp {
@@ -165,7 +171,9 @@ message UpdateProgramReq {
   int64 highHeat = 44;
   int64 programStatus = 45;
   string issueTime = 46;
-  int64 status = 47;
+  string rushSaleOpenTime = 47;
+  string rushSaleEndTime = 48;
+  int64 status = 49;
 }
 
 message ProgramShowTimeAddReq {
@@ -173,17 +181,13 @@ message ProgramShowTimeAddReq {
   string showTime = 2;
   string showDayTime = 3;
   string showWeekTime = 4;
-  string rushSaleOpenTime = 5;
-  string rushSaleEndTime = 6;
-  string showEndTime = 7;
+  string showEndTime = 5;
 }
 
 message UpdateProgramShowTimeReq {
   int64 id = 1;
   string showWeekTime = 2;
-  string rushSaleOpenTime = 3;
-  string rushSaleEndTime = 4;
-  string showEndTime = 5;
+  string showEndTime = 3;
 }
 
 message ListTicketCategoriesByProgramReq {
@@ -297,6 +301,12 @@ message ProgramPreorderTicketCategoryInfo {
   int64 admissionQuota = 6;
 }
 
+message ProgramShowTimeForRushInfo {
+  int64 showTimeId = 1;
+  string rushSaleOpenTime = 2;
+  int64 inventoryPreheatStatus = 3;
+}
+
 message ProgramCategoryListResp {
   repeated ProgramCategoryInfo list = 1;
 }
@@ -334,6 +344,10 @@ message ProgramPageResp {
 
 message TicketCategoryDetailListResp {
   repeated TicketCategoryDetailInfo list = 1;
+}
+
+message ListProgramShowTimesForRushResp {
+  repeated ProgramShowTimeForRushInfo list = 1;
 }
 
 message ProgramPreorderInfo {
@@ -469,6 +483,9 @@ message ProgramDetailInfo {
   string showDayTime = 51;
   string showWeekTime = 52;
   repeated TicketCategoryInfo ticketCategoryVoList = 53;
+  string rushSaleOpenTime = 54;
+  string rushSaleEndTime = 55;
+  int64 inventoryPreheatStatus = 56;
 }
 
 message PrimeSeatLedgerReq {
@@ -488,6 +505,7 @@ service ProgramRpc {
   rpc PagePrograms(PageProgramsReq) returns (ProgramPageResp);
   rpc GetProgramDetail(GetProgramDetailReq) returns (ProgramDetailInfo);
   rpc GetProgramPreorder(GetProgramPreorderReq) returns (ProgramPreorderInfo);
+  rpc ListProgramShowTimesForRush(ListProgramShowTimesForRushReq) returns (ListProgramShowTimesForRushResp);
   rpc CreateProgramShowTime(ProgramShowTimeAddReq) returns (IdResp);
   rpc UpdateProgramShowTime(UpdateProgramShowTimeReq) returns (BoolResp);
   rpc CreateTicketCategory(TicketCategoryAddReq) returns (IdResp);

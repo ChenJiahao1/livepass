@@ -7,18 +7,28 @@ import (
 	logicpkg "damai-go/services/order-rpc/internal/logic"
 	"damai-go/services/order-rpc/internal/server"
 	"damai-go/services/order-rpc/pb"
+	programrpc "damai-go/services/program-rpc/programrpc"
 )
 
 func TestPrimeAdmissionQuotaUsesInternalAdmissionQuota(t *testing.T) {
 	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
-	_, showTimeID, ticketCategoryID, _, _ := nextRushTestIDs()
-	programRPC.getProgramPreorderResp = buildTestProgramPreorder(showTimeID, ticketCategoryID, 2, 4, 299)
-	programRPC.getProgramPreorderResp.TicketCategoryVoList[0].RemainNumber = 1
-	programRPC.getProgramPreorderResp.TicketCategoryVoList[0].AdmissionQuota = 7
+	programID, showTimeID, ticketCategoryID, _, _ := nextRushTestIDs()
+	programRPC.listProgramShowTimesForRushResp = &programrpc.ListProgramShowTimesForRushResp{
+		List: []*programrpc.ProgramShowTimeForRushInfo{{ShowTimeId: showTimeID}},
+	}
+	programRPC.getProgramPreorderRespByProgramID = map[int64]*programrpc.ProgramPreorderInfo{
+		showTimeID: func() *programrpc.ProgramPreorderInfo {
+			resp := buildTestProgramPreorder(programID, ticketCategoryID, 2, 4, 299)
+			resp.ShowTimeId = showTimeID
+			resp.TicketCategoryVoList[0].RemainNumber = 1
+			resp.TicketCategoryVoList[0].AdmissionQuota = 7
+			return resp
+		}(),
+	}
 
-	if err := logicpkg.PrimeRushRuntime(context.Background(), svcCtx, showTimeID); err != nil {
+	if err := logicpkg.PrimeRushRuntime(context.Background(), svcCtx, programID); err != nil {
 		t.Fatalf("PrimeRushRuntime() error = %v", err)
 	}
 	if programRPC.lastGetProgramPreorderReq == nil || programRPC.lastGetProgramPreorderReq.ShowTimeId != showTimeID {
@@ -38,13 +48,22 @@ func TestPrimeAdmissionQuotaRPCUsesInternalAdmissionQuota(t *testing.T) {
 	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
-	_, showTimeID, ticketCategoryID, _, _ := nextRushTestIDs()
-	programRPC.getProgramPreorderResp = buildTestProgramPreorder(showTimeID, ticketCategoryID, 2, 4, 299)
-	programRPC.getProgramPreorderResp.TicketCategoryVoList[0].RemainNumber = 1
-	programRPC.getProgramPreorderResp.TicketCategoryVoList[0].AdmissionQuota = 9
+	programID, showTimeID, ticketCategoryID, _, _ := nextRushTestIDs()
+	programRPC.listProgramShowTimesForRushResp = &programrpc.ListProgramShowTimesForRushResp{
+		List: []*programrpc.ProgramShowTimeForRushInfo{{ShowTimeId: showTimeID}},
+	}
+	programRPC.getProgramPreorderRespByProgramID = map[int64]*programrpc.ProgramPreorderInfo{
+		showTimeID: func() *programrpc.ProgramPreorderInfo {
+			resp := buildTestProgramPreorder(programID, ticketCategoryID, 2, 4, 299)
+			resp.ShowTimeId = showTimeID
+			resp.TicketCategoryVoList[0].RemainNumber = 1
+			resp.TicketCategoryVoList[0].AdmissionQuota = 9
+			return resp
+		}(),
+	}
 
 	resp, err := server.NewOrderRpcServer(svcCtx).PrimeRushRuntime(context.Background(), &pb.PrimeRushRuntimeReq{
-		ShowTimeId: showTimeID,
+		ProgramId: programID,
 	})
 	if err != nil {
 		t.Fatalf("PrimeRushRuntime RPC error = %v", err)

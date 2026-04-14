@@ -18,14 +18,15 @@ import (
 )
 
 type ShowTimeRecord struct {
+	ProgramID              int64        `db:"program_id"`
 	ID                     int64        `db:"id"`
 	RushSaleOpenTime       sql.NullTime `db:"rush_sale_open_time"`
 	InventoryPreheatStatus int64        `db:"inventory_preheat_status"`
 }
 
 type ShowTimeStore interface {
-	FindOne(ctx context.Context, showTimeID int64) (*ShowTimeRecord, error)
-	MarkInventoryPreheated(ctx context.Context, showTimeID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error)
+	ListByProgramID(ctx context.Context, programID int64) ([]*ShowTimeRecord, error)
+	MarkInventoryPreheatedByProgram(ctx context.Context, programID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error)
 }
 
 type OrderPreheatRPC interface {
@@ -88,17 +89,17 @@ func NewWorkerServiceContext(c config.Config) *WorkerServiceContext {
 	}
 }
 
-func (s *mysqlShowTimeStore) FindOne(ctx context.Context, showTimeID int64) (*ShowTimeRecord, error) {
-	var record ShowTimeRecord
-	err := s.conn.QueryRowCtx(
+func (s *mysqlShowTimeStore) ListByProgramID(ctx context.Context, programID int64) ([]*ShowTimeRecord, error) {
+	var rows []*ShowTimeRecord
+	err := s.conn.QueryRowsCtx(
 		ctx,
-		&record,
-		"select `id`, `rush_sale_open_time`, `inventory_preheat_status` from `d_program_show_time` where `id` = ? and `status` = 1 limit 1",
-		showTimeID,
+		&rows,
+		"select st.`program_id`, st.`id`, p.`rush_sale_open_time`, p.`inventory_preheat_status` from `d_program_show_time` st join `d_program` p on p.`id` = st.`program_id` and p.`status` = 1 where st.`program_id` = ? and st.`status` = 1 order by st.`show_time` asc, st.`id` asc",
+		programID,
 	)
 	switch {
 	case err == nil:
-		return &record, nil
+		return rows, nil
 	case errors.Is(err, sqlx.ErrNotFound), errors.Is(err, sql.ErrNoRows):
 		return nil, xerr.ErrProgramShowTimeNotFound
 	default:
@@ -106,12 +107,12 @@ func (s *mysqlShowTimeStore) FindOne(ctx context.Context, showTimeID int64) (*Sh
 	}
 }
 
-func (s *mysqlShowTimeStore) MarkInventoryPreheated(ctx context.Context, showTimeID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error) {
+func (s *mysqlShowTimeStore) MarkInventoryPreheatedByProgram(ctx context.Context, programID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error) {
 	result, err := s.conn.ExecCtx(
 		ctx,
-		"update `d_program_show_time` set `inventory_preheat_status` = 2, `edit_time` = ? where `id` = ? and `status` = 1 and `rush_sale_open_time` = ?",
+		"update `d_program` set `inventory_preheat_status` = 2, `edit_time` = ? where `id` = ? and `status` = 1 and `rush_sale_open_time` = ?",
 		updatedAt,
-		showTimeID,
+		programID,
 		expectedOpenTime,
 	)
 	if err != nil {

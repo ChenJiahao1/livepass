@@ -31,6 +31,7 @@ const (
 	ProgramRpc_PagePrograms_FullMethodName                  = "/program.ProgramRpc/PagePrograms"
 	ProgramRpc_GetProgramDetail_FullMethodName              = "/program.ProgramRpc/GetProgramDetail"
 	ProgramRpc_GetProgramPreorder_FullMethodName            = "/program.ProgramRpc/GetProgramPreorder"
+	ProgramRpc_ListProgramShowTimesForRush_FullMethodName   = "/program.ProgramRpc/ListProgramShowTimesForRush"
 	ProgramRpc_CreateProgramShowTime_FullMethodName         = "/program.ProgramRpc/CreateProgramShowTime"
 	ProgramRpc_UpdateProgramShowTime_FullMethodName         = "/program.ProgramRpc/UpdateProgramShowTime"
 	ProgramRpc_CreateTicketCategory_FullMethodName          = "/program.ProgramRpc/CreateTicketCategory"
@@ -63,6 +64,7 @@ type ProgramRpcClient interface {
 	PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
 	GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
 	GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
+	ListProgramShowTimesForRush(ctx context.Context, in *ListProgramShowTimesForRushReq, opts ...grpc.CallOption) (*ListProgramShowTimesForRushResp, error)
 	CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
 	UpdateProgramShowTime(ctx context.Context, in *UpdateProgramShowTimeReq, opts ...grpc.CallOption) (*BoolResp, error)
 	CreateTicketCategory(ctx context.Context, in *TicketCategoryAddReq, opts ...grpc.CallOption) (*IdResp, error)
@@ -201,6 +203,16 @@ func (c *programRpcClient) GetProgramPreorder(ctx context.Context, in *GetProgra
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ProgramPreorderInfo)
 	err := c.cc.Invoke(ctx, ProgramRpc_GetProgramPreorder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *programRpcClient) ListProgramShowTimesForRush(ctx context.Context, in *ListProgramShowTimesForRushReq, opts ...grpc.CallOption) (*ListProgramShowTimesForRushResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListProgramShowTimesForRushResp)
+	err := c.cc.Invoke(ctx, ProgramRpc_ListProgramShowTimesForRush_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -363,6 +375,7 @@ type ProgramRpcServer interface {
 	PagePrograms(context.Context, *PageProgramsReq) (*ProgramPageResp, error)
 	GetProgramDetail(context.Context, *GetProgramDetailReq) (*ProgramDetailInfo, error)
 	GetProgramPreorder(context.Context, *GetProgramPreorderReq) (*ProgramPreorderInfo, error)
+	ListProgramShowTimesForRush(context.Context, *ListProgramShowTimesForRushReq) (*ListProgramShowTimesForRushResp, error)
 	CreateProgramShowTime(context.Context, *ProgramShowTimeAddReq) (*IdResp, error)
 	UpdateProgramShowTime(context.Context, *UpdateProgramShowTimeReq) (*BoolResp, error)
 	CreateTicketCategory(context.Context, *TicketCategoryAddReq) (*IdResp, error)
@@ -422,6 +435,9 @@ func (UnimplementedProgramRpcServer) GetProgramDetail(context.Context, *GetProgr
 }
 func (UnimplementedProgramRpcServer) GetProgramPreorder(context.Context, *GetProgramPreorderReq) (*ProgramPreorderInfo, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProgramPreorder not implemented")
+}
+func (UnimplementedProgramRpcServer) ListProgramShowTimesForRush(context.Context, *ListProgramShowTimesForRushReq) (*ListProgramShowTimesForRushResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListProgramShowTimesForRush not implemented")
 }
 func (UnimplementedProgramRpcServer) CreateProgramShowTime(context.Context, *ProgramShowTimeAddReq) (*IdResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateProgramShowTime not implemented")
@@ -698,6 +714,24 @@ func _ProgramRpc_GetProgramPreorder_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProgramRpcServer).GetProgramPreorder(ctx, req.(*GetProgramPreorderReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProgramRpc_ListProgramShowTimesForRush_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProgramShowTimesForRushReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProgramRpcServer).ListProgramShowTimesForRush(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProgramRpc_ListProgramShowTimesForRush_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProgramRpcServer).ListProgramShowTimesForRush(ctx, req.(*ListProgramShowTimesForRushReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1008,6 +1042,10 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetProgramPreorder",
 			Handler:    _ProgramRpc_GetProgramPreorder_Handler,
+		},
+		{
+			MethodName: "ListProgramShowTimesForRush",
+			Handler:    _ProgramRpc_ListProgramShowTimesForRush_Handler,
 		},
 		{
 			MethodName: "CreateProgramShowTime",
