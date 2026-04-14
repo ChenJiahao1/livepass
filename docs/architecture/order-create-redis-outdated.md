@@ -26,7 +26,7 @@ pay_order_logic.go:31。
     frozen:<freezeToken>，同时把 stock 字符串库存值减掉。随后再写一份 freeze metadata，记录 freezeToken/requestNo/showTimeId/ticketCategoryId/ownerOrderNumber/ownerEpoch/expireAt。这一阶段 MySQL
     的 d_seat 还不变，冻结态只存在于 Redis。
 5. 冻座成功后，consumer 在订单域开启 MySQL 事务落库，写六类事实：d_order_xx 主单、d_order_ticket_user_xx 明细、d_order_user_guard、d_order_viewer_guard、d_order_seat_guard、
-    d_order_outbox(order.created)。事务成功后，再把 Redis attempt 投影改成 COMMITTED，删除 inflight，占上 user_active/viewer_active，并登记一个 close_timeout 延迟任务，等订单过期时自动关单。到这里 /
+    d_delay_task_outbox(order.close_timeout)。事务成功后，再把 Redis attempt 投影改成 COMMITTED，删除 inflight，占上 user_active/viewer_active，并登记一个 close_timeout 延迟任务，等订单过期时自动关单。到这里 /
     order/poll 才会看到 SUCCESS。注意，这个 SUCCESS 只是“抢到了一笔未支付订单”。
 6. /order/poll(orderNumber) 完全只读 Redis attempt，不查 MySQL、不推进状态。映射关系是：PENDING_PUBLISH/QUEUED/PROCESSING 在 deadline 前返回 PROCESSING(1)；超过用户 deadline 但还没终态，返回
     VERIFYING(2)；COMMITTED 返回 SUCCESS(3)；RELEASED 返回 FAILED(4)。
@@ -36,7 +36,7 @@ pay_order_logic.go:31。
 8. 用户支付时调 /order/pay。订单服务先走 pay-rpc.MockPay 写一条 d_pay_bill，然后调 program-rpc.ConfirmSeatFreeze。这一步才会把节目域 Redis 里的 frozen 挪到 sold，并把 MySQL d_seat 从 seat_status=1
     直接更新成 seat_status=3。最后订单域再把 d_order_xx 和 d_order_ticket_user_xx 的状态更新成已支付。也就是说，当前实现里 MySQL 的座位“已售事实”是在支付时才落地，不是在下单时。
 9. 如果用户取消，或者 close_timeout 到期自动关单，订单服务会先调用 ProgramRpc.ReleaseSeatFreeze 把 Redis 里的冻结座位退回 available，再在 MySQL 里把 d_order_xx、d_order_ticket_user_xx 改成取消态，
-    删除三张 guard 表的记录，并写 d_order_outbox(order.closed)。最后再把 Redis attempt 收口成 RELEASED，同时把 quota 补回去。
+    删除三张 guard 表的记录。最后再把 Redis attempt 收口成 RELEASED，同时把 quota 补回去。
 
 Redis / Kafka / MySQL 对照
 order-rush Redis key：
@@ -170,16 +170,13 @@ Kafka：
 - 消息体字段定义在 OrderCreateEvent，但 /order/create 真正发出去的是“最小消息”，只带 orderNumber/userId/programId/showTimeId/ticketCategoryId/ticketUserIds/ticketCount/generation/distributionMode/
   takeTicketMode/saleWindowEndAt/showEndAt/commitCutoffAt/userDeadlineAt/occurredAt，初始不带 freezeToken/programSnapshot/ticketUserSnapshot/seatSnapshot。services/order-rpc/internal/event/
   order_create_event.go:10 services/order-rpc/internal/logic/order_create_event_builder.go:153
-- order.created、order.closed 这些并没有在当前代码里继续发 Kafka；它们只是写进 MySQL 的 d_order_outbox，等待后续独立 outbox publisher 去发，目前这段代码里我没看到 publisher。
-
 MySQL：
 
 - 节目域读表：d_program_show_time、d_program、d_ticket_category、d_seat。用途是 preorder 展示、票档校验、场次校验、排座和支付确认。
-- 订单创建事务写表：d_order_xx、d_order_ticket_user_xx、d_order_user_guard、d_order_viewer_guard、d_order_seat_guard、d_order_outbox(eventType=order.created)。sql/order/sharding/d_order_shards.sql
+- 订单创建事务写表：d_order_xx、d_order_ticket_user_xx、d_order_user_guard、d_order_viewer_guard、d_order_seat_guard、d_delay_task_outbox(taskType=order.close_timeout)。sql/order/sharding/d_order_shards.sql
   sql/order/sharding/d_order_ticket_user_shards.sql sql/order/sharding/d_order_user_guard.sql sql/order/sharding/d_order_viewer_guard.sql sql/order/sharding/d_order_seat_guard.sql sql/order/
-  sharding/d_order_outbox.sql
-- 订单取消/过期事务会更新 d_order_xx、d_order_ticket_user_xx，删除三张 guard 表对应记录，并再写一条 d_order_outbox(eventType=order.closed)。services/order-rpc/internal/logic/
-  order_domain_helper.go:246
+  sharding/d_delay_task_outbox.sql
+- 订单取消/过期事务会更新 d_order_xx、d_order_ticket_user_xx，并删除三张 guard 表对应记录。services/order-rpc/internal/logic/order_domain_helper.go:246
 - 支付时 pay-rpc.MockPay 会写 d_pay_bill；随后 PayOrder 更新 d_order_xx/d_order_ticket_user_xx 为已支付。services/pay-rpc/internal/logic/mock_pay_logic.go sql/pay/d_pay_bill.sql
 - 当前实现里 d_seat 在下单阶段不写冻结态；支付确认时才直接把命中的座位从 seat_status=1 改成 seat_status=3。services/program-rpc/internal/model/d_seat_model.go:293
 

@@ -258,10 +258,6 @@ func (tx *fakeMCPOrderTx) InsertSeatGuards(ctx context.Context, guards []*model.
 	return nil
 }
 
-func (tx *fakeMCPOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrderOutbox) error {
-	return nil
-}
-
 func (tx *fakeMCPOrderTx) InsertDelayTasks(ctx context.Context, rows []*model.DDelayTaskOutbox) error {
 	return nil
 }

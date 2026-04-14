@@ -16,7 +16,6 @@ type orderWriteModels struct {
 	userGuard     *model.DOrderUserGuard
 	viewerGuards  []*model.DOrderViewerGuard
 	seatGuards    []*model.DOrderSeatGuard
-	outboxRows    []*model.DOrderOutbox
 	delayTaskRows []*model.DDelayTaskOutbox
 }
 
@@ -128,10 +127,6 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 		})
 	}
 
-	createdOutbox, err := newOrderOutboxRow(now, orderEvent.OrderNumber, orderEvent.ProgramID, orderEvent.ShowTimeID, orderEvent.UserID, "order.created")
-	if err != nil {
-		return nil, err
-	}
 	closeTimeoutTask, err := newCloseTimeoutDelayTaskRow(now, orderEvent.OrderNumber, orderExpireTime)
 	if err != nil {
 		return nil, err
@@ -152,7 +147,6 @@ func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now tim
 		},
 		viewerGuards:  viewerGuards,
 		seatGuards:    seatGuards,
-		outboxRows:    []*model.DOrderOutbox{createdOutbox},
 		delayTaskRows: []*model.DDelayTaskOutbox{closeTimeoutTask},
 	}, nil
 }

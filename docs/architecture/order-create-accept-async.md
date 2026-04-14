@@ -146,7 +146,6 @@ consumer 收到消息后：
   - `d_order_user_guard`
   - `d_order_viewer_guard`
   - `d_order_seat_guard`
-  - `d_order_outbox(order.created)`
   - `d_delay_task_outbox(order.close_timeout)`
 
 事务成功后：
@@ -185,8 +184,6 @@ consumer 收到消息后：
 - MySQL `d_seat` 从冻结态恢复为可售态
 - 更新订单和订单明细为取消态
 - 删除 guard
-- 写 `d_order_outbox(order.closed)`
-
 这属于订单生命周期管理，不属于建单结果判定。
 
 ## Redis / Kafka / MySQL 职责划分
@@ -313,9 +310,7 @@ attempt hash 建议仅保留与受理和结果有关的字段，例如：
 
 - `close_timeout`
 - freeze expiry / release
-- outbox publisher
-
-这三类任务分别服务于订单生命周期、资源回收和事件投递，不参与建单结果判定。
+这两类任务分别服务于订单生命周期和资源回收，不参与建单结果判定。
 
 ## 异常暴露方式
 

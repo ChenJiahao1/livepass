@@ -120,9 +120,6 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 		if err := tx.InsertSeatGuards(ctx, writeModels.seatGuards); err != nil {
 			return err
 		}
-		if err := tx.InsertOutbox(ctx, writeModels.outboxRows); err != nil {
-			return err
-		}
 		if err := tx.InsertDelayTasks(ctx, writeModels.delayTaskRows); err != nil {
 			return err
 		}

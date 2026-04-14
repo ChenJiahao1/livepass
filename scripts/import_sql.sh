@@ -38,7 +38,6 @@ ORDER_SQL_FILES=(
   "sql/order/sharding/d_order_user_guard.sql"
   "sql/order/sharding/d_order_viewer_guard.sql"
   "sql/order/sharding/d_order_seat_guard.sql"
-  "sql/order/sharding/d_order_outbox.sql"
   "sql/order/sharding/d_delay_task_outbox.sql"
 )
 

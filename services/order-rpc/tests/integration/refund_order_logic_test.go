@@ -162,7 +162,6 @@ func TestRefundOrder(t *testing.T) {
 		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_user_guard", 93001)
 		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_viewer_guard", 93001)
 		requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, "d_order_seat_guard", 93001)
-		requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, "d_order_outbox", 93001, 10001, showTimeID, 3001, "order.refunded")
 	})
 
 	t.Run("paid order converges when pay bill already refunded", func(t *testing.T) {

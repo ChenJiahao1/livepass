@@ -99,6 +99,10 @@ type fakeOrderProgramRPC struct {
 	getProgramPreorderErr             error
 	lastGetProgramPreorderReq         *programrpc.GetProgramPreorderReq
 
+	listProgramShowTimesForRushResp    *programrpc.ListProgramShowTimesForRushResp
+	listProgramShowTimesForRushErr     error
+	lastListProgramShowTimesForRushReq *programrpc.ListProgramShowTimesForRushReq
+
 	autoAssignAndFreezeSeatsFunc    func(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq) (*programrpc.AutoAssignAndFreezeSeatsResp, error)
 	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
 	autoAssignAndFreezeSeatsErr     error
@@ -489,7 +493,6 @@ func resetOrderDomainState(t *testing.T) {
 		"sql/order/sharding/d_order_user_guard.sql",
 		"sql/order/sharding/d_order_viewer_guard.sql",
 		"sql/order/sharding/d_order_seat_guard.sql",
-		"sql/order/sharding/d_order_outbox.sql",
 		"sql/order/sharding/d_delay_task_outbox.sql",
 	} {
 		execOrderSQLFile(t, db, relativePath)
@@ -1096,6 +1099,11 @@ func (f *fakeOrderProgramRPC) GetProgramPreorder(ctx context.Context, in *progra
 		return resp, f.getProgramPreorderErr
 	}
 	return f.getProgramPreorderResp, f.getProgramPreorderErr
+}
+
+func (f *fakeOrderProgramRPC) ListProgramShowTimesForRush(ctx context.Context, in *programrpc.ListProgramShowTimesForRushReq, opts ...grpc.CallOption) (*programrpc.ListProgramShowTimesForRushResp, error) {
+	f.lastListProgramShowTimesForRushReq = in
+	return f.listProgramShowTimesForRushResp, f.listProgramShowTimesForRushErr
 }
 
 func (f *fakeOrderProgramRPC) CreateProgramShowTime(ctx context.Context, in *programrpc.ProgramShowTimeAddReq, opts ...grpc.CallOption) (*programrpc.IdResp, error) {

@@ -305,7 +305,6 @@ func (r *shardedOrderRepository) transactByRoute(ctx context.Context, route shar
 			target.userGuardModel,
 			target.viewerGuardModel,
 			target.seatGuardModel,
-			target.outboxModel,
 			target.delayTaskModel,
 		)
 		return fn(ctx, tx)
@@ -319,7 +318,6 @@ type routeStore struct {
 	userGuardModel   model.DOrderUserGuardModel
 	viewerGuardModel model.DOrderViewerGuardModel
 	seatGuardModel   model.DOrderSeatGuardModel
-	outboxModel      model.DOrderOutboxModel
 	delayTaskModel   model.DDelayTaskOutboxModel
 }
 
@@ -336,7 +334,6 @@ func (r *shardedOrderRepository) storeForRoute(route sharding.Route) (*routeStor
 		userGuardModel:   model.NewDOrderUserGuardModelWithTable(conn, shardOrderUserGuardTable(route.TableSuffix)),
 		viewerGuardModel: model.NewDOrderViewerGuardModelWithTable(conn, shardOrderViewerGuardTable(route.TableSuffix)),
 		seatGuardModel:   model.NewDOrderSeatGuardModelWithTable(conn, shardOrderSeatGuardTable(route.TableSuffix)),
-		outboxModel:      model.NewDOrderOutboxModelWithTable(conn, shardOrderOutboxTable(route.TableSuffix)),
 		delayTaskModel:   model.NewDDelayTaskOutboxModelWithTable(conn, delayTaskOutboxTable()),
 	}, nil
 }
@@ -362,11 +359,6 @@ func shardOrderViewerGuardTable(suffix string) string {
 func shardOrderSeatGuardTable(suffix string) string {
 	_ = suffix
 	return "d_order_seat_guard"
-}
-
-func shardOrderOutboxTable(suffix string) string {
-	_ = suffix
-	return "d_order_outbox"
 }
 
 func delayTaskOutboxTable() string {

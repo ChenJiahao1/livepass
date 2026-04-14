@@ -19,14 +19,13 @@ type singleOrderTx struct {
 	userGuardModel   model.DOrderUserGuardModel
 	viewerGuardModel model.DOrderViewerGuardModel
 	seatGuardModel   model.DOrderSeatGuardModel
-	outboxModel      model.DOrderOutboxModel
 	delayTaskModel   model.DDelayTaskOutboxModel
 }
 
 func newSingleOrderTx(route sharding.Route, session sqlx.Session, orderModel model.DOrderModel,
 	ticketModel model.DOrderTicketUserModel, userGuardModel model.DOrderUserGuardModel,
 	viewerGuardModel model.DOrderViewerGuardModel, seatGuardModel model.DOrderSeatGuardModel,
-	outboxModel model.DOrderOutboxModel, delayTaskModel model.DDelayTaskOutboxModel) *singleOrderTx {
+	delayTaskModel model.DDelayTaskOutboxModel) *singleOrderTx {
 	return &singleOrderTx{
 		route:            route,
 		session:          session,
@@ -35,7 +34,6 @@ func newSingleOrderTx(route sharding.Route, session sqlx.Session, orderModel mod
 		userGuardModel:   userGuardModel,
 		viewerGuardModel: viewerGuardModel,
 		seatGuardModel:   seatGuardModel,
-		outboxModel:      outboxModel,
 		delayTaskModel:   delayTaskModel,
 	}
 }
@@ -67,10 +65,6 @@ func (t *singleOrderTx) InsertViewerGuards(ctx context.Context, guards []*model.
 
 func (t *singleOrderTx) InsertSeatGuards(ctx context.Context, guards []*model.DOrderSeatGuard) error {
 	return t.seatGuardModel.InsertBatch(ctx, t.session, guards)
-}
-
-func (t *singleOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrderOutbox) error {
-	return t.outboxModel.InsertBatch(ctx, t.session, rows)
 }
 
 func (t *singleOrderTx) InsertDelayTasks(ctx context.Context, rows []*model.DDelayTaskOutbox) error {
@@ -205,16 +199,6 @@ func (t *dualWriteOrderTx) InsertSeatGuards(ctx context.Context, guards []*model
 	}
 	t.captureShadowError(func() error {
 		return t.shadow.InsertSeatGuards(ctx, guards)
-	})
-	return nil
-}
-
-func (t *dualWriteOrderTx) InsertOutbox(ctx context.Context, rows []*model.DOrderOutbox) error {
-	if err := t.primary.InsertOutbox(ctx, rows); err != nil {
-		return err
-	}
-	t.captureShadowError(func() error {
-		return t.shadow.InsertOutbox(ctx, rows)
 	})
 	return nil
 }

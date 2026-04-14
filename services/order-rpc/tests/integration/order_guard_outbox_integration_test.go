@@ -44,17 +44,14 @@ func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {
 	userGuardTable := "d_order_user_guard"
 	viewerGuardTable := "d_order_viewer_guard"
 	seatGuardTable := "d_order_seat_guard"
-	outboxTable := "d_order_outbox"
-
 	requireOrderCoreFields(t, svcCtx.Config.MySQL.DataSource, orderTable, orderNumber, 10001, 10001, 3001)
 	requireTicketUsersAndSeats(t, svcCtx.Config.MySQL.DataSource, ticketTable, orderNumber, 10001, []int64{701, 702}, []int64{501, 502})
 	requireUserGuard(t, svcCtx.Config.MySQL.DataSource, userGuardTable, orderNumber, 10001, 10001, 3001)
 	requireViewerGuards(t, svcCtx.Config.MySQL.DataSource, viewerGuardTable, orderNumber, 10001, 10001, []int64{701, 702})
 	requireSeatGuards(t, svcCtx.Config.MySQL.DataSource, seatGuardTable, orderNumber, 10001, 10001, []int64{501, 502})
-	requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, outboxTable, orderNumber, 10001, 10001, 3001, "order.created")
 }
 
-func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
+func TestCloseExpiredOrderDeletesGuards(t *testing.T) {
 	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
@@ -75,7 +72,6 @@ func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
 	userGuardTable := "d_order_user_guard"
 	viewerGuardTable := "d_order_viewer_guard"
 	seatGuardTable := "d_order_seat_guard"
-	outboxTable := "d_order_outbox"
 	orderTable := "d_order_" + route.TableSuffix
 
 	closeResp, err := logicpkg.NewCloseExpiredOrderLogic(context.Background(), svcCtx).CloseExpiredOrder(&pb.CloseExpiredOrderReq{
@@ -97,7 +93,6 @@ func TestCloseExpiredOrderDeletesGuardsAndWritesOutbox(t *testing.T) {
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, userGuardTable, orderNumber)
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, viewerGuardTable, orderNumber)
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, seatGuardTable, orderNumber)
-	requireOutboxEvent(t, svcCtx.Config.MySQL.DataSource, outboxTable, orderNumber, 10001, 10001, 3001, "order.closed")
 }
 
 func TestCreateOrderWritesDelayTaskOutbox(t *testing.T) {
@@ -463,51 +458,6 @@ func requireSeatGuards(t *testing.T, dataSource, table string, orderNumber, prog
 	}
 
 	requireInt64SlicesEqual(t, gotSeatIDs, expectedSeatIDs)
-}
-
-func requireOutboxEvent(t *testing.T, dataSource, table string, orderNumber, programID, showTimeID, userID int64, expectedEventType string) {
-	t.Helper()
-
-	db := openOrderTestDB(t, dataSource)
-	defer db.Close()
-
-	var (
-		gotEventType    string
-		payload         string
-		publishedStatus int64
-		gotShowTimeID   int64
-	)
-	err := db.QueryRow(
-		"SELECT event_type, payload, published_status, show_time_id FROM "+table+" WHERE order_number = ? AND event_type = ? LIMIT 1",
-		orderNumber,
-		expectedEventType,
-	).Scan(&gotEventType, &payload, &publishedStatus, &gotShowTimeID)
-	if err != nil {
-		t.Fatalf("query outbox event error: %v", err)
-	}
-	if gotEventType != expectedEventType {
-		t.Fatalf("outbox event_type = %s, want %s", gotEventType, expectedEventType)
-	}
-	if publishedStatus != 0 {
-		t.Fatalf("published_status = %d, want 0", publishedStatus)
-	}
-	if gotShowTimeID != showTimeID {
-		t.Fatalf("outbox show_time_id = %d, want %d", gotShowTimeID, showTimeID)
-	}
-
-	var decoded map[string]int64
-	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
-		t.Fatalf("decode outbox payload error: %v", err)
-	}
-	if decoded["orderNumber"] != orderNumber || decoded["programId"] != programID || decoded["showTimeId"] != showTimeID || decoded["userId"] != userID {
-		t.Fatalf(
-			"unexpected outbox payload, got orderNumber=%d programId=%d showTimeId=%d userId=%d",
-			decoded["orderNumber"],
-			decoded["programId"],
-			decoded["showTimeId"],
-			decoded["userId"],
-		)
-	}
 }
 
 func requireDelayTaskOutbox(t *testing.T, dataSource, table string, orderNumber int64, executeAt string) {
