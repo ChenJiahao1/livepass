@@ -305,27 +305,27 @@ func (x *PageProgramsReq) GetType() int64 {
 	return 0
 }
 
-type GetProgramDetailReq struct {
+type GetProgramDetailViewReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetProgramDetailReq) Reset() {
-	*x = GetProgramDetailReq{}
+func (x *GetProgramDetailViewReq) Reset() {
+	*x = GetProgramDetailViewReq{}
 	mi := &file_program_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetProgramDetailReq) String() string {
+func (x *GetProgramDetailViewReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetProgramDetailReq) ProtoMessage() {}
+func (*GetProgramDetailViewReq) ProtoMessage() {}
 
-func (x *GetProgramDetailReq) ProtoReflect() protoreflect.Message {
+func (x *GetProgramDetailViewReq) ProtoReflect() protoreflect.Message {
 	mi := &file_program_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -337,12 +337,12 @@ func (x *GetProgramDetailReq) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetProgramDetailReq.ProtoReflect.Descriptor instead.
-func (*GetProgramDetailReq) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetProgramDetailViewReq.ProtoReflect.Descriptor instead.
+func (*GetProgramDetailViewReq) Descriptor() ([]byte, []int) {
 	return file_program_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetProgramDetailReq) GetId() int64 {
+func (x *GetProgramDetailViewReq) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
@@ -4077,7 +4077,7 @@ func (x *ReleaseSoldSeatsResp) GetSuccess() bool {
 	return false
 }
 
-type ProgramDetailInfo struct {
+type ProgramDetailViewInfo struct {
 	state                           protoimpl.MessageState `protogen:"open.v1"`
 	Id                              int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	ProgramGroupId                  int64                  `protobuf:"varint,2,opt,name=programGroupId,proto3" json:"programGroupId,omitempty"`
@@ -4139,20 +4139,20 @@ type ProgramDetailInfo struct {
 	sizeCache                       protoimpl.SizeCache
 }
 
-func (x *ProgramDetailInfo) Reset() {
-	*x = ProgramDetailInfo{}
+func (x *ProgramDetailViewInfo) Reset() {
+	*x = ProgramDetailViewInfo{}
 	mi := &file_program_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ProgramDetailInfo) String() string {
+func (x *ProgramDetailViewInfo) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ProgramDetailInfo) ProtoMessage() {}
+func (*ProgramDetailViewInfo) ProtoMessage() {}
 
-func (x *ProgramDetailInfo) ProtoReflect() protoreflect.Message {
+func (x *ProgramDetailViewInfo) ProtoReflect() protoreflect.Message {
 	mi := &file_program_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -4164,397 +4164,397 @@ func (x *ProgramDetailInfo) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ProgramDetailInfo.ProtoReflect.Descriptor instead.
-func (*ProgramDetailInfo) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProgramDetailViewInfo.ProtoReflect.Descriptor instead.
+func (*ProgramDetailViewInfo) Descriptor() ([]byte, []int) {
 	return file_program_proto_rawDescGZIP(), []int{54}
 }
 
-func (x *ProgramDetailInfo) GetId() int64 {
+func (x *ProgramDetailViewInfo) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetProgramGroupId() int64 {
+func (x *ProgramDetailViewInfo) GetProgramGroupId() int64 {
 	if x != nil {
 		return x.ProgramGroupId
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetPrime() int64 {
+func (x *ProgramDetailViewInfo) GetPrime() int64 {
 	if x != nil {
 		return x.Prime
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetProgramGroupVo() *ProgramGroupInfo {
+func (x *ProgramDetailViewInfo) GetProgramGroupVo() *ProgramGroupInfo {
 	if x != nil {
 		return x.ProgramGroupVo
 	}
 	return nil
 }
 
-func (x *ProgramDetailInfo) GetTitle() string {
+func (x *ProgramDetailViewInfo) GetTitle() string {
 	if x != nil {
 		return x.Title
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetActor() string {
+func (x *ProgramDetailViewInfo) GetActor() string {
 	if x != nil {
 		return x.Actor
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetPlace() string {
+func (x *ProgramDetailViewInfo) GetPlace() string {
 	if x != nil {
 		return x.Place
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetItemPicture() string {
+func (x *ProgramDetailViewInfo) GetItemPicture() string {
 	if x != nil {
 		return x.ItemPicture
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetPreSell() int64 {
+func (x *ProgramDetailViewInfo) GetPreSell() int64 {
 	if x != nil {
 		return x.PreSell
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetPreSellInstruction() string {
+func (x *ProgramDetailViewInfo) GetPreSellInstruction() string {
 	if x != nil {
 		return x.PreSellInstruction
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetImportantNotice() string {
+func (x *ProgramDetailViewInfo) GetImportantNotice() string {
 	if x != nil {
 		return x.ImportantNotice
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetAreaId() int64 {
+func (x *ProgramDetailViewInfo) GetAreaId() int64 {
 	if x != nil {
 		return x.AreaId
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetAreaName() string {
+func (x *ProgramDetailViewInfo) GetAreaName() string {
 	if x != nil {
 		return x.AreaName
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetProgramCategoryId() int64 {
+func (x *ProgramDetailViewInfo) GetProgramCategoryId() int64 {
 	if x != nil {
 		return x.ProgramCategoryId
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetProgramCategoryName() string {
+func (x *ProgramDetailViewInfo) GetProgramCategoryName() string {
 	if x != nil {
 		return x.ProgramCategoryName
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetParentProgramCategoryId() int64 {
+func (x *ProgramDetailViewInfo) GetParentProgramCategoryId() int64 {
 	if x != nil {
 		return x.ParentProgramCategoryId
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetParentProgramCategoryName() string {
+func (x *ProgramDetailViewInfo) GetParentProgramCategoryName() string {
 	if x != nil {
 		return x.ParentProgramCategoryName
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetDetail() string {
+func (x *ProgramDetailViewInfo) GetDetail() string {
 	if x != nil {
 		return x.Detail
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetPerOrderLimitPurchaseCount() int64 {
+func (x *ProgramDetailViewInfo) GetPerOrderLimitPurchaseCount() int64 {
 	if x != nil {
 		return x.PerOrderLimitPurchaseCount
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetPerAccountLimitPurchaseCount() int64 {
+func (x *ProgramDetailViewInfo) GetPerAccountLimitPurchaseCount() int64 {
 	if x != nil {
 		return x.PerAccountLimitPurchaseCount
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetRefundTicketRule() string {
+func (x *ProgramDetailViewInfo) GetRefundTicketRule() string {
 	if x != nil {
 		return x.RefundTicketRule
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetDeliveryInstruction() string {
+func (x *ProgramDetailViewInfo) GetDeliveryInstruction() string {
 	if x != nil {
 		return x.DeliveryInstruction
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetEntryRule() string {
+func (x *ProgramDetailViewInfo) GetEntryRule() string {
 	if x != nil {
 		return x.EntryRule
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetChildPurchase() string {
+func (x *ProgramDetailViewInfo) GetChildPurchase() string {
 	if x != nil {
 		return x.ChildPurchase
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetInvoiceSpecification() string {
+func (x *ProgramDetailViewInfo) GetInvoiceSpecification() string {
 	if x != nil {
 		return x.InvoiceSpecification
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetRealTicketPurchaseRule() string {
+func (x *ProgramDetailViewInfo) GetRealTicketPurchaseRule() string {
 	if x != nil {
 		return x.RealTicketPurchaseRule
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetAbnormalOrderDescription() string {
+func (x *ProgramDetailViewInfo) GetAbnormalOrderDescription() string {
 	if x != nil {
 		return x.AbnormalOrderDescription
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetKindReminder() string {
+func (x *ProgramDetailViewInfo) GetKindReminder() string {
 	if x != nil {
 		return x.KindReminder
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetPerformanceDuration() string {
+func (x *ProgramDetailViewInfo) GetPerformanceDuration() string {
 	if x != nil {
 		return x.PerformanceDuration
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetEntryTime() string {
+func (x *ProgramDetailViewInfo) GetEntryTime() string {
 	if x != nil {
 		return x.EntryTime
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetMinPerformanceCount() int64 {
+func (x *ProgramDetailViewInfo) GetMinPerformanceCount() int64 {
 	if x != nil {
 		return x.MinPerformanceCount
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetMainActor() string {
+func (x *ProgramDetailViewInfo) GetMainActor() string {
 	if x != nil {
 		return x.MainActor
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetMinPerformanceDuration() string {
+func (x *ProgramDetailViewInfo) GetMinPerformanceDuration() string {
 	if x != nil {
 		return x.MinPerformanceDuration
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetProhibitedItem() string {
+func (x *ProgramDetailViewInfo) GetProhibitedItem() string {
 	if x != nil {
 		return x.ProhibitedItem
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetDepositSpecification() string {
+func (x *ProgramDetailViewInfo) GetDepositSpecification() string {
 	if x != nil {
 		return x.DepositSpecification
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetTotalCount() int64 {
+func (x *ProgramDetailViewInfo) GetTotalCount() int64 {
 	if x != nil {
 		return x.TotalCount
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetPermitRefund() int64 {
+func (x *ProgramDetailViewInfo) GetPermitRefund() int64 {
 	if x != nil {
 		return x.PermitRefund
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetRefundExplain() string {
+func (x *ProgramDetailViewInfo) GetRefundExplain() string {
 	if x != nil {
 		return x.RefundExplain
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetRelNameTicketEntrance() int64 {
+func (x *ProgramDetailViewInfo) GetRelNameTicketEntrance() int64 {
 	if x != nil {
 		return x.RelNameTicketEntrance
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetRelNameTicketEntranceExplain() string {
+func (x *ProgramDetailViewInfo) GetRelNameTicketEntranceExplain() string {
 	if x != nil {
 		return x.RelNameTicketEntranceExplain
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetPermitChooseSeat() int64 {
+func (x *ProgramDetailViewInfo) GetPermitChooseSeat() int64 {
 	if x != nil {
 		return x.PermitChooseSeat
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetChooseSeatExplain() string {
+func (x *ProgramDetailViewInfo) GetChooseSeatExplain() string {
 	if x != nil {
 		return x.ChooseSeatExplain
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetElectronicDeliveryTicket() int64 {
+func (x *ProgramDetailViewInfo) GetElectronicDeliveryTicket() int64 {
 	if x != nil {
 		return x.ElectronicDeliveryTicket
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetElectronicDeliveryTicketExplain() string {
+func (x *ProgramDetailViewInfo) GetElectronicDeliveryTicketExplain() string {
 	if x != nil {
 		return x.ElectronicDeliveryTicketExplain
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetElectronicInvoice() int64 {
+func (x *ProgramDetailViewInfo) GetElectronicInvoice() int64 {
 	if x != nil {
 		return x.ElectronicInvoice
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetElectronicInvoiceExplain() string {
+func (x *ProgramDetailViewInfo) GetElectronicInvoiceExplain() string {
 	if x != nil {
 		return x.ElectronicInvoiceExplain
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetHighHeat() int64 {
+func (x *ProgramDetailViewInfo) GetHighHeat() int64 {
 	if x != nil {
 		return x.HighHeat
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetProgramStatus() int64 {
+func (x *ProgramDetailViewInfo) GetProgramStatus() int64 {
 	if x != nil {
 		return x.ProgramStatus
 	}
 	return 0
 }
 
-func (x *ProgramDetailInfo) GetIssueTime() string {
+func (x *ProgramDetailViewInfo) GetIssueTime() string {
 	if x != nil {
 		return x.IssueTime
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetShowTime() string {
+func (x *ProgramDetailViewInfo) GetShowTime() string {
 	if x != nil {
 		return x.ShowTime
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetShowDayTime() string {
+func (x *ProgramDetailViewInfo) GetShowDayTime() string {
 	if x != nil {
 		return x.ShowDayTime
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetShowWeekTime() string {
+func (x *ProgramDetailViewInfo) GetShowWeekTime() string {
 	if x != nil {
 		return x.ShowWeekTime
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetTicketCategoryVoList() []*TicketCategoryInfo {
+func (x *ProgramDetailViewInfo) GetTicketCategoryVoList() []*TicketCategoryInfo {
 	if x != nil {
 		return x.TicketCategoryVoList
 	}
 	return nil
 }
 
-func (x *ProgramDetailInfo) GetRushSaleOpenTime() string {
+func (x *ProgramDetailViewInfo) GetRushSaleOpenTime() string {
 	if x != nil {
 		return x.RushSaleOpenTime
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetRushSaleEndTime() string {
+func (x *ProgramDetailViewInfo) GetRushSaleEndTime() string {
 	if x != nil {
 		return x.RushSaleEndTime
 	}
 	return ""
 }
 
-func (x *ProgramDetailInfo) GetInventoryPreheatStatus() int64 {
+func (x *ProgramDetailViewInfo) GetInventoryPreheatStatus() int64 {
 	if x != nil {
 		return x.InventoryPreheatStatus
 	}
@@ -4629,8 +4629,8 @@ const file_program_proto_rawDesc = "" +
 	"\btimeType\x18\x06 \x01(\x03R\btimeType\x12$\n" +
 	"\rstartDateTime\x18\a \x01(\tR\rstartDateTime\x12 \n" +
 	"\vendDateTime\x18\b \x01(\tR\vendDateTime\x12\x12\n" +
-	"\x04type\x18\t \x01(\x03R\x04type\"%\n" +
-	"\x13GetProgramDetailReq\x12\x0e\n" +
+	"\x04type\x18\t \x01(\x03R\x04type\")\n" +
+	"\x17GetProgramDetailViewReq\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"7\n" +
 	"\x15GetProgramPreorderReq\x12\x1e\n" +
 	"\n" +
@@ -4964,8 +4964,8 @@ const file_program_proto_rawDesc = "" +
 	"\aseatIds\x18\x02 \x03(\x03R\aseatIds\x12\x1c\n" +
 	"\trequestNo\x18\x03 \x01(\tR\trequestNo\"0\n" +
 	"\x14ReleaseSoldSeatsResp\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x95\x13\n" +
-	"\x11ProgramDetailInfo\x12\x0e\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x99\x13\n" +
+	"\x15ProgramDetailViewInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12&\n" +
 	"\x0eprogramGroupId\x18\x02 \x01(\x03R\x0eprogramGroupId\x12\x14\n" +
 	"\x05prime\x18\x03 \x01(\x03R\x05prime\x12A\n" +
@@ -5028,7 +5028,7 @@ const file_program_proto_rawDesc = "" +
 	"\x12PrimeSeatLedgerReq\x12\x1e\n" +
 	"\n" +
 	"showTimeId\x18\x01 \x01(\x03R\n" +
-	"showTimeId2\x88\x11\n" +
+	"showTimeId2\x94\x11\n" +
 	"\n" +
 	"ProgramRpc\x12F\n" +
 	"\rCreateProgram\x12\x19.program.CreateProgramReq\x1a\x1a.program.CreateProgramResp\x12=\n" +
@@ -5040,8 +5040,8 @@ const file_program_proto_rawDesc = "" +
 	"\x1dListProgramCategoriesByParent\x12!.program.ParentProgramCategoryReq\x1a .program.ProgramCategoryListResp\x12W\n" +
 	"\x1cBatchCreateProgramCategories\x12$.program.ProgramCategoryBatchSaveReq\x1a\x11.program.BoolResp\x12N\n" +
 	"\x10ListHomePrograms\x12\x1c.program.ListHomeProgramsReq\x1a\x1c.program.ProgramHomeListResp\x12B\n" +
-	"\fPagePrograms\x12\x18.program.PageProgramsReq\x1a\x18.program.ProgramPageResp\x12L\n" +
-	"\x10GetProgramDetail\x12\x1c.program.GetProgramDetailReq\x1a\x1a.program.ProgramDetailInfo\x12R\n" +
+	"\fPagePrograms\x12\x18.program.PageProgramsReq\x1a\x18.program.ProgramPageResp\x12X\n" +
+	"\x14GetProgramDetailView\x12 .program.GetProgramDetailViewReq\x1a\x1e.program.ProgramDetailViewInfo\x12R\n" +
 	"\x12GetProgramPreorder\x12\x1e.program.GetProgramPreorderReq\x1a\x1c.program.ProgramPreorderInfo\x12p\n" +
 	"\x1bListProgramShowTimesForRush\x12'.program.ListProgramShowTimesForRushReq\x1a(.program.ListProgramShowTimesForRushResp\x12H\n" +
 	"\x15CreateProgramShowTime\x12\x1e.program.ProgramShowTimeAddReq\x1a\x0f.program.IdResp\x12M\n" +
@@ -5079,7 +5079,7 @@ var file_program_proto_goTypes = []any{
 	(*IdResp)(nil),                            // 2: program.IdResp
 	(*ListHomeProgramsReq)(nil),               // 3: program.ListHomeProgramsReq
 	(*PageProgramsReq)(nil),                   // 4: program.PageProgramsReq
-	(*GetProgramDetailReq)(nil),               // 5: program.GetProgramDetailReq
+	(*GetProgramDetailViewReq)(nil),           // 5: program.GetProgramDetailViewReq
 	(*GetProgramPreorderReq)(nil),             // 6: program.GetProgramPreorderReq
 	(*ListProgramShowTimesForRushReq)(nil),    // 7: program.ListProgramShowTimesForRushReq
 	(*ProgramInvalidReq)(nil),                 // 8: program.ProgramInvalidReq
@@ -5128,7 +5128,7 @@ var file_program_proto_goTypes = []any{
 	(*EvaluateRefundRuleResp)(nil),            // 51: program.EvaluateRefundRuleResp
 	(*ReleaseSoldSeatsReq)(nil),               // 52: program.ReleaseSoldSeatsReq
 	(*ReleaseSoldSeatsResp)(nil),              // 53: program.ReleaseSoldSeatsResp
-	(*ProgramDetailInfo)(nil),                 // 54: program.ProgramDetailInfo
+	(*ProgramDetailViewInfo)(nil),             // 54: program.ProgramDetailViewInfo
 	(*PrimeSeatLedgerReq)(nil),                // 55: program.PrimeSeatLedgerReq
 }
 var file_program_proto_depIdxs = []int32{
@@ -5145,8 +5145,8 @@ var file_program_proto_depIdxs = []int32{
 	36, // 10: program.ListProgramShowTimesForRushResp.list:type_name -> program.ProgramShowTimeForRushInfo
 	35, // 11: program.ProgramPreorderInfo.ticketCategoryVoList:type_name -> program.ProgramPreorderTicketCategoryInfo
 	27, // 12: program.AutoAssignAndFreezeSeatsResp.seats:type_name -> program.SeatInfo
-	24, // 13: program.ProgramDetailInfo.programGroupVo:type_name -> program.ProgramGroupInfo
-	26, // 14: program.ProgramDetailInfo.ticketCategoryVoList:type_name -> program.TicketCategoryInfo
+	24, // 13: program.ProgramDetailViewInfo.programGroupVo:type_name -> program.ProgramGroupInfo
+	26, // 14: program.ProgramDetailViewInfo.ticketCategoryVoList:type_name -> program.TicketCategoryInfo
 	14, // 15: program.ProgramRpc.CreateProgram:input_type -> program.CreateProgramReq
 	16, // 16: program.ProgramRpc.UpdateProgram:input_type -> program.UpdateProgramReq
 	8,  // 17: program.ProgramRpc.InvalidProgram:input_type -> program.ProgramInvalidReq
@@ -5157,7 +5157,7 @@ var file_program_proto_depIdxs = []int32{
 	13, // 22: program.ProgramRpc.BatchCreateProgramCategories:input_type -> program.ProgramCategoryBatchSaveReq
 	3,  // 23: program.ProgramRpc.ListHomePrograms:input_type -> program.ListHomeProgramsReq
 	4,  // 24: program.ProgramRpc.PagePrograms:input_type -> program.PageProgramsReq
-	5,  // 25: program.ProgramRpc.GetProgramDetail:input_type -> program.GetProgramDetailReq
+	5,  // 25: program.ProgramRpc.GetProgramDetailView:input_type -> program.GetProgramDetailViewReq
 	6,  // 26: program.ProgramRpc.GetProgramPreorder:input_type -> program.GetProgramPreorderReq
 	7,  // 27: program.ProgramRpc.ListProgramShowTimesForRush:input_type -> program.ListProgramShowTimesForRushReq
 	17, // 28: program.ProgramRpc.CreateProgramShowTime:input_type -> program.ProgramShowTimeAddReq
@@ -5184,7 +5184,7 @@ var file_program_proto_depIdxs = []int32{
 	1,  // 49: program.ProgramRpc.BatchCreateProgramCategories:output_type -> program.BoolResp
 	39, // 50: program.ProgramRpc.ListHomePrograms:output_type -> program.ProgramHomeListResp
 	40, // 51: program.ProgramRpc.PagePrograms:output_type -> program.ProgramPageResp
-	54, // 52: program.ProgramRpc.GetProgramDetail:output_type -> program.ProgramDetailInfo
+	54, // 52: program.ProgramRpc.GetProgramDetailView:output_type -> program.ProgramDetailViewInfo
 	43, // 53: program.ProgramRpc.GetProgramPreorder:output_type -> program.ProgramPreorderInfo
 	42, // 54: program.ProgramRpc.ListProgramShowTimesForRush:output_type -> program.ListProgramShowTimesForRushResp
 	2,  // 55: program.ProgramRpc.CreateProgramShowTime:output_type -> program.IdResp

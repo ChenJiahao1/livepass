@@ -24,7 +24,7 @@ type FreezeSeatsResp struct {
 	Seats       []SeatInfo `json:"seats,optional"`
 }
 
-type GetProgramDetailReq struct {
+type GetProgramDetailViewReq struct {
 	ID int64 `json:"id"`
 }
 
@@ -142,7 +142,7 @@ type ProgramCategoryTypeReq struct {
 	Type int64 `json:"type"`
 }
 
-type ProgramDetailInfo struct {
+type ProgramDetailViewInfo struct {
 	ID                              int64                `json:"id"`
 	ProgramGroupID                  int64                `json:"programGroupId"`
 	Prime                           int64                `json:"prime"`
@@ -340,8 +340,8 @@ type ProgramUpdateReq struct {
 	HighHeat                        int64  `json:"highHeat,optional"`
 	ProgramStatus                   int64  `json:"programStatus,optional"`
 	IssueTime                       string `json:"issueTime,optional"`
-	RushSaleOpenTime                string `json:"rushSaleOpenTime"`
-	RushSaleEndTime                 string `json:"rushSaleEndTime"`
+	RushSaleOpenTime                string `json:"rushSaleOpenTime,optional"`
+	RushSaleEndTime                 string `json:"rushSaleEndTime,optional"`
 	Status                          int64  `json:"status,optional"`
 }
 

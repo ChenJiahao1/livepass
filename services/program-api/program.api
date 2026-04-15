@@ -39,8 +39,8 @@ service program-api {
 	@handler ResetProgram
 	post /program/reset/execute (ProgramResetReq) returns (BoolResp)
 
-	@handler GetProgramDetail
-	post /program/detail (GetProgramDetailReq) returns (ProgramDetailInfo)
+	@handler GetProgramDetailView
+	post /program/detail/view (GetProgramDetailViewReq) returns (ProgramDetailViewInfo)
 
 	@handler GetProgramPreorder
 	post /program/preorder/detail (GetProgramPreorderReq) returns (ProgramPreorderInfo)

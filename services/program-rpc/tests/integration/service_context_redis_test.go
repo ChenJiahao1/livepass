@@ -107,7 +107,7 @@ func TestProgramServiceContextWiresProgramLocalCaches(t *testing.T) {
 	svcCtx := svc.NewServiceContext(cfg)
 
 	requireServiceContextDependency(t, svcCtx, "CategorySnapshotCache")
-	requireServiceContextDependency(t, svcCtx, "ProgramDetailCache")
+	requireServiceContextDependency(t, svcCtx, "ProgramDetailViewCache")
 }
 
 func TestProgramServiceContextWiresCacheInvalidationDependencies(t *testing.T) {

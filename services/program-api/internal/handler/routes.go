@@ -41,8 +41,8 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/program/detail",
-				Handler: GetProgramDetailHandler(serverCtx),
+				Path:    "/program/detail/view",
+				Handler: GetProgramDetailViewHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,

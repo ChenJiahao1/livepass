@@ -45,11 +45,11 @@ func TestGetProgramDetailUsesLocalCacheUntilInvalidate(t *testing.T) {
 		},
 	})
 
-	l := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
+	l := logicpkg.NewGetProgramDetailViewLogic(context.Background(), svcCtx)
 
-	first, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	first, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("first GetProgramDetail returned error: %v", err)
+		t.Fatalf("first GetProgramDetailView returned error: %v", err)
 	}
 	if len(first.TicketCategoryVoList) != 2 {
 		t.Fatalf("expected 2 ticket categories on first request, got %+v", first.TicketCategoryVoList)
@@ -59,19 +59,19 @@ func TestGetProgramDetailUsesLocalCacheUntilInvalidate(t *testing.T) {
 	defer db.Close()
 	mustExecProgramSQL(t, db, "DELETE FROM d_ticket_category WHERE program_id = ?", programID)
 
-	second, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	second, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("second GetProgramDetail returned error: %v", err)
+		t.Fatalf("second GetProgramDetailView returned error: %v", err)
 	}
 	if len(second.TicketCategoryVoList) != 2 {
 		t.Fatalf("expected second request to hit L1 cache and keep 2 ticket categories, got %+v", second.TicketCategoryVoList)
 	}
 
-	svcCtx.ProgramDetailCache.Invalidate(programID)
+	svcCtx.ProgramDetailViewCache.Invalidate(programID)
 
-	third, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	third, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("third GetProgramDetail after invalidate returned error: %v", err)
+		t.Fatalf("third GetProgramDetailView after invalidate returned error: %v", err)
 	}
 	if len(third.TicketCategoryVoList) != 0 {
 		t.Fatalf("expected invalidate to force reload empty ticket categories, got %+v", third.TicketCategoryVoList)
@@ -92,10 +92,10 @@ func TestGetProgramDetailKeepsNotFoundSemanticsAcrossRepeatedAccess(t *testing.T
 	assertProgramRelatedCacheKeysMissing(t, svcCtx, programID, programGroupID)
 	assertProgramMissingFromDB(t, svcCtx, programID)
 
-	l := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
+	l := logicpkg.NewGetProgramDetailViewLogic(context.Background(), svcCtx)
 
-	if _, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID}); status.Code(err) != codes.NotFound {
-		t.Fatalf("expected first GetProgramDetail to return not found, got %v", err)
+	if _, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID}); status.Code(err) != codes.NotFound {
+		t.Fatalf("expected first GetProgramDetailView to return not found, got %v", err)
 	}
 
 	seedProgramFixtures(t, svcCtx, programFixture{
@@ -114,8 +114,8 @@ func TestGetProgramDetailKeepsNotFoundSemanticsAcrossRepeatedAccess(t *testing.T
 		},
 	})
 
-	if _, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID}); status.Code(err) != codes.NotFound {
-		t.Fatalf("expected second GetProgramDetail to keep not found semantics, got %v", err)
+	if _, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID}); status.Code(err) != codes.NotFound {
+		t.Fatalf("expected second GetProgramDetailView to keep not found semantics, got %v", err)
 	}
 }
 
@@ -133,10 +133,10 @@ func TestGetProgramDetailReturnsBackfilledProgramImmediatelyAfterWrite(t *testin
 	assertProgramRelatedCacheKeysMissing(t, svcCtx, programID, programGroupID)
 	assertProgramMissingFromDB(t, svcCtx, programID)
 
-	l := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
+	l := logicpkg.NewGetProgramDetailViewLogic(context.Background(), svcCtx)
 
-	if _, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID}); status.Code(err) != codes.NotFound {
-		t.Fatalf("expected first GetProgramDetail to return not found, got %v", err)
+	if _, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID}); status.Code(err) != codes.NotFound {
+		t.Fatalf("expected first GetProgramDetailView to return not found, got %v", err)
 	}
 
 	seedProgramFixtures(t, svcCtx, programFixture{
@@ -159,7 +159,7 @@ func TestGetProgramDetailReturnsBackfilledProgramImmediatelyAfterWrite(t *testin
 	}
 	assertProgramRelatedCacheKeysMissing(t, svcCtx, programID, programGroupID)
 
-	resp, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	resp, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
 		t.Fatalf("expected backfilled program to be visible immediately, got %v", err)
 	}
@@ -203,8 +203,8 @@ func TestResetProgramDomainStateClearsRedisProgramCachesAcrossServiceContexts(t 
 		t.Fatalf("close db error: %v", err)
 	}
 
-	staleLogic := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
-	staleResp, err := staleLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	staleLogic := logicpkg.NewGetProgramDetailViewLogic(context.Background(), svcCtx)
+	staleResp, err := staleLogic.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
 		t.Fatalf("prime stale program detail cache returned error: %v", err)
 	}
@@ -215,10 +215,10 @@ func TestResetProgramDomainStateClearsRedisProgramCachesAcrossServiceContexts(t 
 	resetProgramDomainState(t)
 
 	freshSvcCtx := newProgramTestServiceContext(t)
-	freshLogic := logicpkg.NewGetProgramDetailLogic(context.Background(), freshSvcCtx)
-	freshResp, err := freshLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	freshLogic := logicpkg.NewGetProgramDetailViewLogic(context.Background(), freshSvcCtx)
+	freshResp, err := freshLogic.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("GetProgramDetail after reset returned error: %v", err)
+		t.Fatalf("GetProgramDetailView after reset returned error: %v", err)
 	}
 	if freshResp.Title != baselineTitle {
 		t.Fatalf("expected reset to clear stale redis caches and restore baseline title %q, got %+v", baselineTitle, freshResp)
@@ -259,10 +259,10 @@ func TestProgramDetailCacheReloadAfterPeerBroadcastHitsFreshL2(t *testing.T) {
 		},
 	})
 
-	lA := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtxA)
-	first, err := lA.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	lA := logicpkg.NewGetProgramDetailViewLogic(context.Background(), svcCtxA)
+	first, err := lA.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("first GetProgramDetail returned error: %v", err)
+		t.Fatalf("first GetProgramDetailView returned error: %v", err)
 	}
 	if first.Title != oldTitle {
 		t.Fatalf("expected first title %q, got %+v", oldTitle, first)
@@ -274,9 +274,9 @@ func TestProgramDetailCacheReloadAfterPeerBroadcastHitsFreshL2(t *testing.T) {
 		t.Fatalf("close db error: %v", err)
 	}
 
-	stale, err := lA.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	stale, err := lA.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("second GetProgramDetail returned error: %v", err)
+		t.Fatalf("second GetProgramDetailView returned error: %v", err)
 	}
 	if stale.Title != oldTitle {
 		t.Fatalf("expected local cache to keep old title before invalidation, got %+v", stale)

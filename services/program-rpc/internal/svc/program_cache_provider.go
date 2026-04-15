@@ -8,7 +8,7 @@ import (
 
 type ProgramQueryCaches struct {
 	CategorySnapshotCache   *programcache.CategorySnapshotCache
-	ProgramDetailCache      *programcache.ProgramDetailCache
+	ProgramDetailViewCache  *programcache.ProgramDetailViewCache
 	ProgramCacheRegistry    *programcache.InvalidationRegistry
 	ProgramCacheInvalidator *programcache.ProgramCacheInvalidator
 	ProgramCacheSubscriber  *programcache.PubSubSubscriber
@@ -28,10 +28,10 @@ func newProgramQueryCaches(models ProgramModels, rds *xredis.Client, c config.Co
 		ProgramShowTimeModel:  models.DProgramShowTimeModel,
 		ProgramGroupModel:     models.DProgramGroupModel,
 		CategorySnapshotCache: categorySnapshotCache,
-		// TicketCategory 的展示缓存归属 ProgramDetailCache。
+		// TicketCategory 的展示缓存归属 ProgramDetailViewCache。
 		TicketCategoryModel: models.DTicketCategoryModel,
 	})
-	programDetailCache, err := programcache.NewProgramDetailCache(
+	programDetailViewCache, err := programcache.NewProgramDetailViewCache(
 		detailLoader,
 		c.LocalCache.DetailTTL,
 		c.LocalCache.DetailNotFoundTTL,
@@ -43,9 +43,9 @@ func newProgramQueryCaches(models ProgramModels, rds *xredis.Client, c config.Co
 
 	queryCaches := ProgramQueryCaches{
 		CategorySnapshotCache:   categorySnapshotCache,
-		ProgramDetailCache:      programDetailCache,
-		ProgramCacheRegistry:    programcache.NewInvalidationRegistry(programDetailCache, categorySnapshotCache),
-		ProgramCacheInvalidator: programcache.NewProgramCacheInvalidator(rds, programDetailCache),
+		ProgramDetailViewCache:  programDetailViewCache,
+		ProgramCacheRegistry:    programcache.NewInvalidationRegistry(programDetailViewCache, categorySnapshotCache),
+		ProgramCacheInvalidator: programcache.NewProgramCacheInvalidator(rds, programDetailViewCache),
 	}
 
 	if rds != nil && c.CacheInvalidation.Enabled {

@@ -14,7 +14,7 @@ func TestInvalidationMessageRoundTrip(t *testing.T) {
 		PublishedAt: publishedAt,
 		Entries: []InvalidationEntry{
 			{
-				Cache:     cacheProgramDetail,
+				Cache:     cacheProgramDetailView,
 				ProgramID: 10001,
 			},
 			{
@@ -48,7 +48,7 @@ func TestInvalidationMessageRoundTrip(t *testing.T) {
 	if len(decoded.Entries) != 2 {
 		t.Fatalf("expected 2 entries, got %d", len(decoded.Entries))
 	}
-	if decoded.Entries[0].Cache != cacheProgramDetail || decoded.Entries[0].ProgramID != 10001 {
+	if decoded.Entries[0].Cache != cacheProgramDetailView || decoded.Entries[0].ProgramID != 10001 {
 		t.Fatalf("unexpected first entry: %+v", decoded.Entries[0])
 	}
 	if decoded.Entries[1].Cache != cacheCategorySnapshot || decoded.Entries[1].ProgramID != 0 {

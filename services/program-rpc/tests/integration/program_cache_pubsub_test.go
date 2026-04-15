@@ -47,10 +47,10 @@ func TestProgramDetailPubSubInvalidatesPeerLocalCache(t *testing.T) {
 		},
 	})
 
-	lA := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtxA)
-	first, err := lA.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	lA := logicpkg.NewGetProgramDetailViewLogic(context.Background(), svcCtxA)
+	first, err := lA.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("first GetProgramDetail returned error: %v", err)
+		t.Fatalf("first GetProgramDetailView returned error: %v", err)
 	}
 	if first.Title != oldTitle {
 		t.Fatalf("expected first title %q, got %+v", oldTitle, first)
@@ -62,9 +62,9 @@ func TestProgramDetailPubSubInvalidatesPeerLocalCache(t *testing.T) {
 		t.Fatalf("close db error: %v", err)
 	}
 
-	stale, err := lA.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	stale, err := lA.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("second GetProgramDetail returned error: %v", err)
+		t.Fatalf("second GetProgramDetailView returned error: %v", err)
 	}
 	if stale.Title != oldTitle {
 		t.Fatalf("expected cache to keep old title before invalidation, got %+v", stale)
@@ -120,14 +120,14 @@ func TestCategorySnapshotPubSubInvalidatesPeerLocalCache(t *testing.T) {
 	waitForCategorySnapshotName(t, svcCtxA, categoryID, newName)
 }
 
-func waitForProgramDetailTitle(t *testing.T, logic *logicpkg.GetProgramDetailLogic, programID int64, expected string) {
+func waitForProgramDetailTitle(t *testing.T, logic *logicpkg.GetProgramDetailViewLogic, programID int64, expected string) {
 	t.Helper()
 
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		resp, err := logic.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+		resp, err := logic.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 		if err != nil {
-			t.Fatalf("GetProgramDetail during wait returned error: %v", err)
+			t.Fatalf("GetProgramDetailView during wait returned error: %v", err)
 		}
 		if resp.Title == expected {
 			return

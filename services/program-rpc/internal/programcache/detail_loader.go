@@ -45,7 +45,7 @@ func NewDetailLoader(deps DetailLoaderDeps) *DetailLoader {
 	}
 }
 
-func (l *DetailLoader) Load(ctx context.Context, programID int64) (*pb.ProgramDetailInfo, error) {
+func (l *DetailLoader) Load(ctx context.Context, programID int64) (*pb.ProgramDetailViewInfo, error) {
 	program, err := l.programModel.FindOne(ctx, programID)
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
@@ -90,7 +90,7 @@ func (l *DetailLoader) Load(ctx context.Context, programID int64) (*pb.ProgramDe
 		}
 	}
 
-	return toProgramDetailInfo(program, firstShowTime, groupInfo, categoryMap, ticketCategories), nil
+	return toProgramDetailViewInfo(program, firstShowTime, groupInfo, categoryMap, ticketCategories), nil
 }
 
 func buildCategoryMap(categories []*model.DProgramCategory) map[int64]*model.DProgramCategory {
@@ -130,8 +130,8 @@ func parseProgramGroupJSON(group *model.DProgramGroup) (*pb.ProgramGroupInfo, er
 	}, nil
 }
 
-func toProgramDetailInfo(program *model.DProgram, firstShowTime *model.DProgramShowTime, groupInfo *pb.ProgramGroupInfo, categories map[int64]*model.DProgramCategory, ticketCategories []*model.DTicketCategory) *pb.ProgramDetailInfo {
-	return &pb.ProgramDetailInfo{
+func toProgramDetailViewInfo(program *model.DProgram, firstShowTime *model.DProgramShowTime, groupInfo *pb.ProgramGroupInfo, categories map[int64]*model.DProgramCategory, ticketCategories []*model.DTicketCategory) *pb.ProgramDetailViewInfo {
+	return &pb.ProgramDetailViewInfo{
 		Id:                              program.Id,
 		ProgramGroupId:                  program.ProgramGroupId,
 		Prime:                           program.Prime,

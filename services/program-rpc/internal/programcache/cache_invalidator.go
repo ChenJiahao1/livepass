@@ -13,7 +13,7 @@ import (
 
 type ProgramCacheInvalidator struct {
 	redis         *xredis.Client
-	detailCache   *ProgramDetailCache
+	detailCache   *ProgramDetailViewCache
 	categoryCache *CategorySnapshotCache
 	publisher     PubSubPublisher
 	clock         func() time.Time
@@ -21,7 +21,7 @@ type ProgramCacheInvalidator struct {
 	service       string
 }
 
-func NewProgramCacheInvalidator(redis *xredis.Client, detailCache *ProgramDetailCache) *ProgramCacheInvalidator {
+func NewProgramCacheInvalidator(redis *xredis.Client, detailCache *ProgramDetailViewCache) *ProgramCacheInvalidator {
 	invalidator := &ProgramCacheInvalidator{
 		redis:       redis,
 		detailCache: detailCache,
@@ -69,7 +69,7 @@ func (i *ProgramCacheInvalidator) InvalidateProgram(ctx context.Context, program
 	}
 
 	return i.publish(ctx, []InvalidationEntry{
-		{Cache: cacheProgramDetail, ProgramID: programID},
+		{Cache: cacheProgramDetailView, ProgramID: programID},
 	})
 }
 

@@ -119,9 +119,9 @@ func TestPageProgramsMapsRequestAndPaginationResponse(t *testing.T) {
 	}
 }
 
-func TestGetProgramDetailMapsNestedResponse(t *testing.T) {
+func TestGetProgramDetailViewMapsNestedResponse(t *testing.T) {
 	fake := &fakeProgramRPC{
-		getProgramDetailResp: &programrpc.ProgramDetailInfo{
+		getProgramDetailViewResp: &programrpc.ProgramDetailViewInfo{
 			Id:                        10001,
 			ProgramGroupId:            20001,
 			Title:                     "Phase1 示例演出",
@@ -142,11 +142,11 @@ func TestGetProgramDetailMapsNestedResponse(t *testing.T) {
 			},
 		},
 	}
-	logic := logicpkg.NewGetProgramDetailLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
+	logic := logicpkg.NewGetProgramDetailViewLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
 
-	resp, err := logic.GetProgramDetail(&types.GetProgramDetailReq{ID: 10001})
+	resp, err := logic.GetProgramDetailView(&types.GetProgramDetailViewReq{ID: 10001})
 	if err != nil {
-		t.Fatalf("GetProgramDetail returned error: %v", err)
+		t.Fatalf("GetProgramDetailView returned error: %v", err)
 	}
 	if resp.ID != 10001 || resp.ProgramGroupID != 20001 || resp.ProgramGroupVo.ID != 20001 {
 		t.Fatalf("unexpected response: %+v", resp)
@@ -160,8 +160,8 @@ func TestGetProgramDetailMapsNestedResponse(t *testing.T) {
 	if len(resp.TicketCategoryVoList) != 1 || resp.TicketCategoryVoList[0].ID != 40001 {
 		t.Fatalf("unexpected ticket category response: %+v", resp.TicketCategoryVoList)
 	}
-	if fake.lastGetProgramDetailReq == nil || fake.lastGetProgramDetailReq.Id != 10001 {
-		t.Fatalf("unexpected request: %+v", fake.lastGetProgramDetailReq)
+	if fake.lastGetProgramDetailViewReq == nil || fake.lastGetProgramDetailViewReq.Id != 10001 {
+		t.Fatalf("unexpected request: %+v", fake.lastGetProgramDetailViewReq)
 	}
 }
 

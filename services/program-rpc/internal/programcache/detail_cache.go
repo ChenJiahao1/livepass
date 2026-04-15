@@ -12,35 +12,35 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var ErrProgramNotFound = errors.New("program detail not found")
+var ErrProgramNotFound = errors.New("program detail view not found")
 
-type ProgramDetailLoader interface {
-	Load(ctx context.Context, programID int64) (*pb.ProgramDetailInfo, error)
+type ProgramDetailViewLoader interface {
+	Load(ctx context.Context, programID int64) (*pb.ProgramDetailViewInfo, error)
 }
 
-type ProgramDetailCache struct {
+type ProgramDetailViewCache struct {
 	cache           *collection.Cache
-	loader          ProgramDetailLoader
+	loader          ProgramDetailViewLoader
 	detailTTL       time.Duration
 	notFoundTTL     time.Duration
 	notFoundPayload []byte
 	loadGroup       *loadGroup
 }
 
-func NewProgramDetailCache(loader ProgramDetailLoader, detailTTL, notFoundTTL time.Duration, limit int) (*ProgramDetailCache, error) {
+func NewProgramDetailViewCache(loader ProgramDetailViewLoader, detailTTL, notFoundTTL time.Duration, limit int) (*ProgramDetailViewCache, error) {
 	if loader == nil {
-		return nil, errors.New("program detail loader is required")
+		return nil, errors.New("program detail view loader is required")
 	}
 
 	localCache, err := collection.NewCache(detailTTL,
 		collection.WithLimit(limit),
-		collection.WithName("program-detail-cache"),
+		collection.WithName("program-detail-view-cache"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ProgramDetailCache{
+	return &ProgramDetailViewCache{
 		cache:           localCache,
 		loader:          loader,
 		detailTTL:       detailTTL,
@@ -50,7 +50,7 @@ func NewProgramDetailCache(loader ProgramDetailLoader, detailTTL, notFoundTTL ti
 	}, nil
 }
 
-func (c *ProgramDetailCache) Get(ctx context.Context, programID int64) (*pb.ProgramDetailInfo, error) {
+func (c *ProgramDetailViewCache) Get(ctx context.Context, programID int64) (*pb.ProgramDetailViewInfo, error) {
 	if _, ok := c.cache.Get(detailNotFoundCacheKey(programID)); ok {
 		return nil, ErrProgramNotFound
 	}
@@ -85,7 +85,7 @@ func (c *ProgramDetailCache) Get(ctx context.Context, programID int64) (*pb.Prog
 			return nil, err
 		}
 		if resp == nil {
-			return nil, errors.New("program detail loader returned nil detail")
+			return nil, errors.New("program detail view loader returned nil detail")
 		}
 
 		payload, err := proto.Marshal(resp)
@@ -100,14 +100,14 @@ func (c *ProgramDetailCache) Get(ctx context.Context, programID int64) (*pb.Prog
 		return nil, err
 	}
 
-	resp, ok := loaded.(*pb.ProgramDetailInfo)
+	resp, ok := loaded.(*pb.ProgramDetailViewInfo)
 	if !ok || resp == nil {
-		return nil, errors.New("program detail loader returned invalid payload")
+		return nil, errors.New("program detail view loader returned invalid payload")
 	}
 	return resp, nil
 }
 
-func (c *ProgramDetailCache) Invalidate(programID int64) {
+func (c *ProgramDetailViewCache) Invalidate(programID int64) {
 	c.cache.Del(detailCacheKey(programID))
 	c.cache.Del(detailNotFoundCacheKey(programID))
 }
@@ -120,13 +120,13 @@ func detailNotFoundCacheKey(programID int64) string {
 	return fmt.Sprintf("program:detail:view:notfound:%d", programID)
 }
 
-func decodeProgramDetailPayload(payload any) (*pb.ProgramDetailInfo, error) {
+func decodeProgramDetailPayload(payload any) (*pb.ProgramDetailViewInfo, error) {
 	bytes, ok := payload.([]byte)
 	if !ok {
-		return nil, errors.New("program detail cache payload is not bytes")
+		return nil, errors.New("program detail view cache payload is not bytes")
 	}
 
-	resp := &pb.ProgramDetailInfo{}
+	resp := &pb.ProgramDetailViewInfo{}
 	if err := proto.Unmarshal(bytes, resp); err != nil {
 		return nil, err
 	}

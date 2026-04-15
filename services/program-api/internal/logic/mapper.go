@@ -140,12 +140,12 @@ func mapProgramListInfo(item *programrpc.ProgramListInfo) types.ProgramListInfo 
 	}
 }
 
-func mapProgramDetailInfo(resp *programrpc.ProgramDetailInfo) *types.ProgramDetailInfo {
+func mapProgramDetailViewInfo(resp *programrpc.ProgramDetailViewInfo) *types.ProgramDetailViewInfo {
 	if resp == nil {
-		return &types.ProgramDetailInfo{}
+		return &types.ProgramDetailViewInfo{}
 	}
 
-	return &types.ProgramDetailInfo{
+	return &types.ProgramDetailViewInfo{
 		ID:                              resp.Id,
 		ProgramGroupID:                  resp.ProgramGroupId,
 		Prime:                           resp.Prime,

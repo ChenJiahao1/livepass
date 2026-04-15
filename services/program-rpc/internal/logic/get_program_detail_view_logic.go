@@ -11,22 +11,22 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type GetProgramDetailLogic struct {
+type GetProgramDetailViewLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
 }
 
-func NewGetProgramDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetProgramDetailLogic {
-	return &GetProgramDetailLogic{
+func NewGetProgramDetailViewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetProgramDetailViewLogic {
+	return &GetProgramDetailViewLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,
 		Logger: logx.WithContext(ctx),
 	}
 }
 
-func (l *GetProgramDetailLogic) GetProgramDetail(in *pb.GetProgramDetailReq) (*pb.ProgramDetailInfo, error) {
-	resp, err := l.svcCtx.ProgramDetailCache.Get(l.ctx, in.GetId())
+func (l *GetProgramDetailViewLogic) GetProgramDetailView(in *pb.GetProgramDetailViewReq) (*pb.ProgramDetailViewInfo, error) {
+	resp, err := l.svcCtx.ProgramDetailViewCache.Get(l.ctx, in.GetId())
 	if err != nil {
 		if errors.Is(err, programcache.ErrProgramNotFound) {
 			return nil, programNotFoundError()

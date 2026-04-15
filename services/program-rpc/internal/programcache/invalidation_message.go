@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	cacheProgramDetail    = "program_detail"
-	cacheCategorySnapshot = "category_snapshot"
+	cacheProgramDetailView = "program_detail_view"
+	cacheCategorySnapshot  = "category_snapshot"
 )
 
 var (
 	errInvalidationEntriesEmpty    = errors.New("invalidation message entries is empty")
 	errInvalidationCacheRequired   = errors.New("invalidation entry cache is required")
-	errInvalidationProgramIDNeeded = errors.New("program_detail requires program_id")
+	errInvalidationProgramIDNeeded = errors.New("program_detail_view requires program_id")
 	errInvalidationProgramIDExtra  = errors.New("category_snapshot does not accept program_id")
 )
 
@@ -42,7 +42,7 @@ func (m InvalidationMessage) Validate() error {
 			return errInvalidationCacheRequired
 		}
 		switch entry.Cache {
-		case cacheProgramDetail:
+		case cacheProgramDetailView:
 			if entry.ProgramID <= 0 {
 				return errInvalidationProgramIDNeeded
 			}

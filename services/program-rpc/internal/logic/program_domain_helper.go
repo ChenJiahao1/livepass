@@ -125,8 +125,8 @@ func toProgramListInfo(program *model.DProgram, firstShowTime *model.DProgramSho
 	}
 }
 
-func toProgramDetailInfo(program *model.DProgram, firstShowTime *model.DProgramShowTime, groupInfo *pb.ProgramGroupInfo, categories map[int64]*model.DProgramCategory, ticketCategories []*model.DTicketCategory) *pb.ProgramDetailInfo {
-	return &pb.ProgramDetailInfo{
+func toProgramDetailViewInfo(program *model.DProgram, firstShowTime *model.DProgramShowTime, groupInfo *pb.ProgramGroupInfo, categories map[int64]*model.DProgramCategory, ticketCategories []*model.DTicketCategory) *pb.ProgramDetailViewInfo {
+	return &pb.ProgramDetailViewInfo{
 		Id:                              program.Id,
 		ProgramGroupId:                  program.ProgramGroupId,
 		Prime:                           program.Prime,

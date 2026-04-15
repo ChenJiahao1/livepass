@@ -227,10 +227,10 @@ func TestGetProgramDetailReturnsComposedProgramInfo(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
 
-	l := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
-	resp, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: 10001})
+	l := logicpkg.NewGetProgramDetailViewLogic(context.Background(), svcCtx)
+	resp, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: 10001})
 	if err != nil {
-		t.Fatalf("GetProgramDetail returned error: %v", err)
+		t.Fatalf("GetProgramDetailView returned error: %v", err)
 	}
 	if resp.Id != 10001 || resp.ProgramGroupId != 20001 || resp.Title != "Phase1 示例演出" {
 		t.Fatalf("unexpected program detail base fields: %+v", resp)
@@ -446,8 +446,8 @@ func TestGetProgramDetailReturnsNotFoundWhenProgramMissing(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
 	resetProgramDomainState(t)
 
-	l := logicpkg.NewGetProgramDetailLogic(context.Background(), svcCtx)
-	_, err := l.GetProgramDetail(&pb.GetProgramDetailReq{Id: 99999})
+	l := logicpkg.NewGetProgramDetailViewLogic(context.Background(), svcCtx)
+	_, err := l.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: 99999})
 	if err == nil {
 		t.Fatalf("expected not found error")
 	}

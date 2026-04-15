@@ -12,16 +12,16 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func GetProgramDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func GetProgramDetailViewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GetProgramDetailReq
+		var req types.GetProgramDetailViewReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
 
-		l := logic.NewGetProgramDetailLogic(r.Context(), svcCtx)
-		resp, err := l.GetProgramDetail(&req)
+		l := logic.NewGetProgramDetailViewLogic(r.Context(), svcCtx)
+		resp, err := l.GetProgramDetailView(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

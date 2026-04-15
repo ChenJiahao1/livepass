@@ -29,7 +29,7 @@ const (
 	ProgramRpc_BatchCreateProgramCategories_FullMethodName  = "/program.ProgramRpc/BatchCreateProgramCategories"
 	ProgramRpc_ListHomePrograms_FullMethodName              = "/program.ProgramRpc/ListHomePrograms"
 	ProgramRpc_PagePrograms_FullMethodName                  = "/program.ProgramRpc/PagePrograms"
-	ProgramRpc_GetProgramDetail_FullMethodName              = "/program.ProgramRpc/GetProgramDetail"
+	ProgramRpc_GetProgramDetailView_FullMethodName          = "/program.ProgramRpc/GetProgramDetailView"
 	ProgramRpc_GetProgramPreorder_FullMethodName            = "/program.ProgramRpc/GetProgramPreorder"
 	ProgramRpc_ListProgramShowTimesForRush_FullMethodName   = "/program.ProgramRpc/ListProgramShowTimesForRush"
 	ProgramRpc_CreateProgramShowTime_FullMethodName         = "/program.ProgramRpc/CreateProgramShowTime"
@@ -62,7 +62,7 @@ type ProgramRpcClient interface {
 	BatchCreateProgramCategories(ctx context.Context, in *ProgramCategoryBatchSaveReq, opts ...grpc.CallOption) (*BoolResp, error)
 	ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 	PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
-	GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
+	GetProgramDetailView(ctx context.Context, in *GetProgramDetailViewReq, opts ...grpc.CallOption) (*ProgramDetailViewInfo, error)
 	GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
 	ListProgramShowTimesForRush(ctx context.Context, in *ListProgramShowTimesForRushReq, opts ...grpc.CallOption) (*ListProgramShowTimesForRushResp, error)
 	CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
@@ -189,10 +189,10 @@ func (c *programRpcClient) PagePrograms(ctx context.Context, in *PageProgramsReq
 	return out, nil
 }
 
-func (c *programRpcClient) GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error) {
+func (c *programRpcClient) GetProgramDetailView(ctx context.Context, in *GetProgramDetailViewReq, opts ...grpc.CallOption) (*ProgramDetailViewInfo, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ProgramDetailInfo)
-	err := c.cc.Invoke(ctx, ProgramRpc_GetProgramDetail_FullMethodName, in, out, cOpts...)
+	out := new(ProgramDetailViewInfo)
+	err := c.cc.Invoke(ctx, ProgramRpc_GetProgramDetailView_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +373,7 @@ type ProgramRpcServer interface {
 	BatchCreateProgramCategories(context.Context, *ProgramCategoryBatchSaveReq) (*BoolResp, error)
 	ListHomePrograms(context.Context, *ListHomeProgramsReq) (*ProgramHomeListResp, error)
 	PagePrograms(context.Context, *PageProgramsReq) (*ProgramPageResp, error)
-	GetProgramDetail(context.Context, *GetProgramDetailReq) (*ProgramDetailInfo, error)
+	GetProgramDetailView(context.Context, *GetProgramDetailViewReq) (*ProgramDetailViewInfo, error)
 	GetProgramPreorder(context.Context, *GetProgramPreorderReq) (*ProgramPreorderInfo, error)
 	ListProgramShowTimesForRush(context.Context, *ListProgramShowTimesForRushReq) (*ListProgramShowTimesForRushResp, error)
 	CreateProgramShowTime(context.Context, *ProgramShowTimeAddReq) (*IdResp, error)
@@ -430,8 +430,8 @@ func (UnimplementedProgramRpcServer) ListHomePrograms(context.Context, *ListHome
 func (UnimplementedProgramRpcServer) PagePrograms(context.Context, *PageProgramsReq) (*ProgramPageResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method PagePrograms not implemented")
 }
-func (UnimplementedProgramRpcServer) GetProgramDetail(context.Context, *GetProgramDetailReq) (*ProgramDetailInfo, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetProgramDetail not implemented")
+func (UnimplementedProgramRpcServer) GetProgramDetailView(context.Context, *GetProgramDetailViewReq) (*ProgramDetailViewInfo, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProgramDetailView not implemented")
 }
 func (UnimplementedProgramRpcServer) GetProgramPreorder(context.Context, *GetProgramPreorderReq) (*ProgramPreorderInfo, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProgramPreorder not implemented")
@@ -682,20 +682,20 @@ func _ProgramRpc_PagePrograms_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ProgramRpc_GetProgramDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetProgramDetailReq)
+func _ProgramRpc_GetProgramDetailView_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProgramDetailViewReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ProgramRpcServer).GetProgramDetail(ctx, in)
+		return srv.(ProgramRpcServer).GetProgramDetailView(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ProgramRpc_GetProgramDetail_FullMethodName,
+		FullMethod: ProgramRpc_GetProgramDetailView_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProgramRpcServer).GetProgramDetail(ctx, req.(*GetProgramDetailReq))
+		return srv.(ProgramRpcServer).GetProgramDetailView(ctx, req.(*GetProgramDetailViewReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1036,8 +1036,8 @@ var ProgramRpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ProgramRpc_PagePrograms_Handler,
 		},
 		{
-			MethodName: "GetProgramDetail",
-			Handler:    _ProgramRpc_GetProgramDetail_Handler,
+			MethodName: "GetProgramDetailView",
+			Handler:    _ProgramRpc_GetProgramDetailView_Handler,
 		},
 		{
 			MethodName: "GetProgramPreorder",

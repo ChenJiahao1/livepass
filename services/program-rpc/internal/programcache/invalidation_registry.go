@@ -15,7 +15,7 @@ type InvalidationRegistry struct {
 	categoryCache categoryInvalidator
 }
 
-func NewInvalidationRegistry(detailCache *ProgramDetailCache, categoryCache *CategorySnapshotCache) *InvalidationRegistry {
+func NewInvalidationRegistry(detailCache *ProgramDetailViewCache, categoryCache *CategorySnapshotCache) *InvalidationRegistry {
 	return newInvalidationRegistry(detailCache, categoryCache)
 }
 
@@ -46,7 +46,7 @@ func (r *InvalidationRegistry) Dispatch(msg InvalidationMessage) error {
 		seen[key] = struct{}{}
 
 		switch entry.Cache {
-		case cacheProgramDetail:
+		case cacheProgramDetailView:
 			if r.detailCache != nil {
 				r.detailCache.Invalidate(entry.ProgramID)
 			}

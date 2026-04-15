@@ -24,7 +24,7 @@ type (
 	Empty                             = pb.Empty
 	EvaluateRefundRuleReq             = pb.EvaluateRefundRuleReq
 	EvaluateRefundRuleResp            = pb.EvaluateRefundRuleResp
-	GetProgramDetailReq               = pb.GetProgramDetailReq
+	GetProgramDetailViewReq           = pb.GetProgramDetailViewReq
 	GetProgramPreorderReq             = pb.GetProgramPreorderReq
 	IdResp                            = pb.IdResp
 	ListHomeProgramsReq               = pb.ListHomeProgramsReq
@@ -40,7 +40,7 @@ type (
 	ProgramCategoryInfo               = pb.ProgramCategoryInfo
 	ProgramCategoryListResp           = pb.ProgramCategoryListResp
 	ProgramCategoryTypeReq            = pb.ProgramCategoryTypeReq
-	ProgramDetailInfo                 = pb.ProgramDetailInfo
+	ProgramDetailViewInfo             = pb.ProgramDetailViewInfo
 	ProgramGroupInfo                  = pb.ProgramGroupInfo
 	ProgramHomeListResp               = pb.ProgramHomeListResp
 	ProgramHomeSection                = pb.ProgramHomeSection
@@ -82,7 +82,7 @@ type (
 		BatchCreateProgramCategories(ctx context.Context, in *ProgramCategoryBatchSaveReq, opts ...grpc.CallOption) (*BoolResp, error)
 		ListHomePrograms(ctx context.Context, in *ListHomeProgramsReq, opts ...grpc.CallOption) (*ProgramHomeListResp, error)
 		PagePrograms(ctx context.Context, in *PageProgramsReq, opts ...grpc.CallOption) (*ProgramPageResp, error)
-		GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error)
+		GetProgramDetailView(ctx context.Context, in *GetProgramDetailViewReq, opts ...grpc.CallOption) (*ProgramDetailViewInfo, error)
 		GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error)
 		ListProgramShowTimesForRush(ctx context.Context, in *ListProgramShowTimesForRushReq, opts ...grpc.CallOption) (*ListProgramShowTimesForRushResp, error)
 		CreateProgramShowTime(ctx context.Context, in *ProgramShowTimeAddReq, opts ...grpc.CallOption) (*IdResp, error)
@@ -162,9 +162,9 @@ func (m *defaultProgramRpc) PagePrograms(ctx context.Context, in *PageProgramsRe
 	return client.PagePrograms(ctx, in, opts...)
 }
 
-func (m *defaultProgramRpc) GetProgramDetail(ctx context.Context, in *GetProgramDetailReq, opts ...grpc.CallOption) (*ProgramDetailInfo, error) {
+func (m *defaultProgramRpc) GetProgramDetailView(ctx context.Context, in *GetProgramDetailViewReq, opts ...grpc.CallOption) (*ProgramDetailViewInfo, error) {
 	client := pb.NewProgramRpcClient(m.cli.Conn())
-	return client.GetProgramDetail(ctx, in, opts...)
+	return client.GetProgramDetailView(ctx, in, opts...)
 }
 
 func (m *defaultProgramRpc) GetProgramPreorder(ctx context.Context, in *GetProgramPreorderReq, opts ...grpc.CallOption) (*ProgramPreorderInfo, error) {

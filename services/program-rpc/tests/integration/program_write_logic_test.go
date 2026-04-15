@@ -189,8 +189,8 @@ func TestInvalidProgramMarksProgramOffShelfAndInvalidatesCache(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	detailLogic := logicpkg.NewGetProgramDetailLogic(ctx, svcCtx)
-	if _, err := detailLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: 10001}); err != nil {
+	detailLogic := logicpkg.NewGetProgramDetailViewLogic(ctx, svcCtx)
+	if _, err := detailLogic.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: 10001}); err != nil {
 		t.Fatalf("prime detail cache error: %v", err)
 	}
 
@@ -711,8 +711,8 @@ func TestCreateTicketCategoryPersistsRecordAndInvalidatesProgramDetailCache(t *t
 	})
 
 	ctx := context.Background()
-	detailLogic := logicpkg.NewGetProgramDetailLogic(ctx, svcCtx)
-	if _, err := detailLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: 10001}); err != nil {
+	detailLogic := logicpkg.NewGetProgramDetailViewLogic(ctx, svcCtx)
+	if _, err := detailLogic.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: 10001}); err != nil {
 		t.Fatalf("prime detail cache error: %v", err)
 	}
 
@@ -924,10 +924,10 @@ func TestUpdateProgramRefreshesDetailCacheAndInvalidatesGroupKeys(t *testing.T) 
 	seedProgramGroupFixture(t, svcCtx, newProgramGroup, `[{"programId":10001,"areaId":2,"areaIdName":"上海"}]`, "2026-12-31 19:30:00")
 
 	ctx := context.Background()
-	detailLogic := logicpkg.NewGetProgramDetailLogic(ctx, svcCtx)
-	initial, err := detailLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	detailLogic := logicpkg.NewGetProgramDetailViewLogic(ctx, svcCtx)
+	initial, err := detailLogic.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("GetProgramDetail returned error: %v", err)
+		t.Fatalf("GetProgramDetailView returned error: %v", err)
 	}
 	if initial.GetTitle() != "Phase1 示例演出" {
 		t.Fatalf("unexpected initial detail payload: %+v", initial)
@@ -1019,9 +1019,9 @@ func TestUpdateProgramRefreshesDetailCacheAndInvalidatesGroupKeys(t *testing.T) 
 		t.Fatalf("expected title to be updated, got %+v", program)
 	}
 
-	updatedDetail, err := detailLogic.GetProgramDetail(&pb.GetProgramDetailReq{Id: programID})
+	updatedDetail, err := detailLogic.GetProgramDetailView(&pb.GetProgramDetailViewReq{Id: programID})
 	if err != nil {
-		t.Fatalf("GetProgramDetail after update returned error: %v", err)
+		t.Fatalf("GetProgramDetailView after update returned error: %v", err)
 	}
 	if updatedDetail.GetTitle() != "更新后的节目标题" {
 		t.Fatalf("expected detail cache to be refreshed, got %+v", updatedDetail)
@@ -1240,7 +1240,7 @@ func replaceProgramCacheInvalidatorWithFailingRedis(t *testing.T, svcCtx *svc.Se
 	}
 	redis.Type = "invalid"
 
-	svcCtx.ProgramCacheInvalidator = programcache.NewProgramCacheInvalidator(redis, svcCtx.ProgramDetailCache)
+	svcCtx.ProgramCacheInvalidator = programcache.NewProgramCacheInvalidator(redis, svcCtx.ProgramDetailViewCache)
 }
 
 type failingInvalidationPublisher struct{}

@@ -14,14 +14,14 @@ import (
 
 func TestProgramDetailCacheCachesLoadedDetail(t *testing.T) {
 	loader := &stubDetailLoader{
-		responses: map[int64]*pb.ProgramDetailInfo{
+		responses: map[int64]*pb.ProgramDetailViewInfo{
 			10001: {Id: 10001, Title: "Phase1 示例演出"},
 		},
 	}
 
-	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	cache, err := NewProgramDetailViewCache(loader, 20*time.Second, 5*time.Second, 16)
 	if err != nil {
-		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+		t.Fatalf("NewProgramDetailViewCache returned error: %v", err)
 	}
 
 	first, err := cache.Get(context.Background(), 10001)
@@ -49,9 +49,9 @@ func TestProgramDetailCacheCachesNotFoundResult(t *testing.T) {
 		},
 	}
 
-	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	cache, err := NewProgramDetailViewCache(loader, 20*time.Second, 5*time.Second, 16)
 	if err != nil {
-		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+		t.Fatalf("NewProgramDetailViewCache returned error: %v", err)
 	}
 
 	if _, err := cache.Get(context.Background(), 10002); !errors.Is(err, ErrProgramNotFound) {
@@ -59,7 +59,7 @@ func TestProgramDetailCacheCachesNotFoundResult(t *testing.T) {
 	}
 
 	delete(loader.errors, 10002)
-	loader.responses = map[int64]*pb.ProgramDetailInfo{
+	loader.responses = map[int64]*pb.ProgramDetailViewInfo{
 		10002: {Id: 10002, Title: "newly backfilled"},
 	}
 
@@ -73,14 +73,14 @@ func TestProgramDetailCacheCachesNotFoundResult(t *testing.T) {
 
 func TestProgramDetailCacheInvalidateClearsCachedDetail(t *testing.T) {
 	loader := &stubDetailLoader{
-		responses: map[int64]*pb.ProgramDetailInfo{
+		responses: map[int64]*pb.ProgramDetailViewInfo{
 			10003: {Id: 10003, Title: "v1"},
 		},
 	}
 
-	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	cache, err := NewProgramDetailViewCache(loader, 20*time.Second, 5*time.Second, 16)
 	if err != nil {
-		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+		t.Fatalf("NewProgramDetailViewCache returned error: %v", err)
 	}
 
 	first, err := cache.Get(context.Background(), 10003)
@@ -91,7 +91,7 @@ func TestProgramDetailCacheInvalidateClearsCachedDetail(t *testing.T) {
 		t.Fatalf("expected initial detail title v1, got %+v", first)
 	}
 
-	loader.responses[10003] = &pb.ProgramDetailInfo{Id: 10003, Title: "v2"}
+	loader.responses[10003] = &pb.ProgramDetailViewInfo{Id: 10003, Title: "v2"}
 	cache.Invalidate(10003)
 
 	second, err := cache.Get(context.Background(), 10003)
@@ -113,9 +113,9 @@ func TestProgramDetailCacheInvalidateClearsNotFoundEntry(t *testing.T) {
 		},
 	}
 
-	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	cache, err := NewProgramDetailViewCache(loader, 20*time.Second, 5*time.Second, 16)
 	if err != nil {
-		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+		t.Fatalf("NewProgramDetailViewCache returned error: %v", err)
 	}
 
 	if _, err := cache.Get(context.Background(), 10004); !errors.Is(err, ErrProgramNotFound) {
@@ -123,7 +123,7 @@ func TestProgramDetailCacheInvalidateClearsNotFoundEntry(t *testing.T) {
 	}
 
 	delete(loader.errors, 10004)
-	loader.responses = map[int64]*pb.ProgramDetailInfo{
+	loader.responses = map[int64]*pb.ProgramDetailViewInfo{
 		10004: {Id: 10004, Title: "backfilled after invalidate"},
 	}
 	cache.Invalidate(10004)
@@ -139,14 +139,14 @@ func TestProgramDetailCacheInvalidateClearsNotFoundEntry(t *testing.T) {
 
 func TestProgramDetailCacheDropsCorruptedPayloadAndReloads(t *testing.T) {
 	loader := &stubDetailLoader{
-		responses: map[int64]*pb.ProgramDetailInfo{
+		responses: map[int64]*pb.ProgramDetailViewInfo{
 			10005: {Id: 10005, Title: "reloaded from source"},
 		},
 	}
 
-	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	cache, err := NewProgramDetailViewCache(loader, 20*time.Second, 5*time.Second, 16)
 	if err != nil {
-		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+		t.Fatalf("NewProgramDetailViewCache returned error: %v", err)
 	}
 
 	cache.cache.SetWithExpire(detailCacheKey(10005), []byte("broken"), time.Minute)
@@ -165,12 +165,12 @@ func TestProgramDetailCacheDropsCorruptedPayloadAndReloads(t *testing.T) {
 
 func TestProgramDetailCacheDeduplicatesConcurrentLoads(t *testing.T) {
 	loader := &blockingDetailLoader{
-		resp: &pb.ProgramDetailInfo{Id: 20001, Title: "concurrent load"},
+		resp: &pb.ProgramDetailViewInfo{Id: 20001, Title: "concurrent load"},
 	}
 
-	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	cache, err := NewProgramDetailViewCache(loader, 20*time.Second, 5*time.Second, 16)
 	if err != nil {
-		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+		t.Fatalf("NewProgramDetailViewCache returned error: %v", err)
 	}
 
 	start := make(chan struct{})
@@ -212,20 +212,20 @@ func TestProgramDetailCacheDeduplicatesConcurrentLoads(t *testing.T) {
 
 func TestProgramDetailCacheSharedLoadIgnoresCallerCancel(t *testing.T) {
 	loader := &cancelAwareDetailLoader{
-		resp:    &pb.ProgramDetailInfo{Id: 20002, Title: "shared load"},
+		resp:    &pb.ProgramDetailViewInfo{Id: 20002, Title: "shared load"},
 		started: make(chan struct{}),
 	}
 
-	cache, err := NewProgramDetailCache(loader, 20*time.Second, 5*time.Second, 16)
+	cache, err := NewProgramDetailViewCache(loader, 20*time.Second, 5*time.Second, 16)
 	if err != nil {
-		t.Fatalf("NewProgramDetailCache returned error: %v", err)
+		t.Fatalf("NewProgramDetailViewCache returned error: %v", err)
 	}
 
 	cancelCtx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
 	errCh := make(chan error, 2)
-	respCh := make(chan *pb.ProgramDetailInfo, 1)
+	respCh := make(chan *pb.ProgramDetailViewInfo, 1)
 
 	go func() {
 		_, err := cache.Get(cancelCtx, 20002)
@@ -270,29 +270,29 @@ func TestProgramDetailCacheSharedLoadIgnoresCallerCancel(t *testing.T) {
 }
 
 type stubDetailLoader struct {
-	responses map[int64]*pb.ProgramDetailInfo
+	responses map[int64]*pb.ProgramDetailViewInfo
 	errors    map[int64]error
 	calls     map[int64]int
 }
 
 type blockingDetailLoader struct {
-	resp  *pb.ProgramDetailInfo
+	resp  *pb.ProgramDetailViewInfo
 	calls int32
 }
 
-func (l *blockingDetailLoader) Load(_ context.Context, _ int64) (*pb.ProgramDetailInfo, error) {
+func (l *blockingDetailLoader) Load(_ context.Context, _ int64) (*pb.ProgramDetailViewInfo, error) {
 	atomic.AddInt32(&l.calls, 1)
 	time.Sleep(50 * time.Millisecond)
-	return &pb.ProgramDetailInfo{Id: l.resp.Id, Title: l.resp.Title}, nil
+	return &pb.ProgramDetailViewInfo{Id: l.resp.Id, Title: l.resp.Title}, nil
 }
 
 type cancelAwareDetailLoader struct {
-	resp    *pb.ProgramDetailInfo
+	resp    *pb.ProgramDetailViewInfo
 	calls   int32
 	started chan struct{}
 }
 
-func (l *cancelAwareDetailLoader) Load(ctx context.Context, _ int64) (*pb.ProgramDetailInfo, error) {
+func (l *cancelAwareDetailLoader) Load(ctx context.Context, _ int64) (*pb.ProgramDetailViewInfo, error) {
 	if atomic.AddInt32(&l.calls, 1) == 1 && l.started != nil {
 		close(l.started)
 	}
@@ -300,11 +300,11 @@ func (l *cancelAwareDetailLoader) Load(ctx context.Context, _ int64) (*pb.Progra
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case <-time.After(50 * time.Millisecond):
-		return &pb.ProgramDetailInfo{Id: l.resp.Id, Title: l.resp.Title}, nil
+		return &pb.ProgramDetailViewInfo{Id: l.resp.Id, Title: l.resp.Title}, nil
 	}
 }
 
-func (l *stubDetailLoader) Load(_ context.Context, programID int64) (*pb.ProgramDetailInfo, error) {
+func (l *stubDetailLoader) Load(_ context.Context, programID int64) (*pb.ProgramDetailViewInfo, error) {
 	if l.calls == nil {
 		l.calls = make(map[int64]int)
 	}
@@ -315,7 +315,7 @@ func (l *stubDetailLoader) Load(_ context.Context, programID int64) (*pb.Program
 	}
 
 	if resp := l.responses[programID]; resp != nil {
-		return &pb.ProgramDetailInfo{
+		return &pb.ProgramDetailViewInfo{
 			Id:    resp.Id,
 			Title: resp.Title,
 		}, nil

@@ -10,7 +10,7 @@ func TestInvalidationRegistryDispatchesDetailAndCategoryEntries(t *testing.T) {
 	msg := InvalidationMessage{
 		Entries: []InvalidationEntry{
 			{
-				Cache:     cacheProgramDetail,
+				Cache:     cacheProgramDetailView,
 				ProgramID: 20001,
 			},
 			{
@@ -38,11 +38,11 @@ func TestInvalidationRegistryIgnoresDuplicateEntries(t *testing.T) {
 	msg := InvalidationMessage{
 		Entries: []InvalidationEntry{
 			{
-				Cache:     cacheProgramDetail,
+				Cache:     cacheProgramDetailView,
 				ProgramID: 20002,
 			},
 			{
-				Cache:     cacheProgramDetail,
+				Cache:     cacheProgramDetailView,
 				ProgramID: 20002,
 			},
 			{

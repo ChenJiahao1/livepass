@@ -31,7 +31,7 @@ message PageProgramsReq {
   int64 type = 9;
 }
 
-message GetProgramDetailReq {
+message GetProgramDetailViewReq {
   int64 id = 1;
 }
 
@@ -429,7 +429,7 @@ message ReleaseSoldSeatsResp {
   bool success = 1;
 }
 
-message ProgramDetailInfo {
+message ProgramDetailViewInfo {
   int64 id = 1;
   int64 programGroupId = 2;
   int64 prime = 3;
@@ -503,7 +503,7 @@ service ProgramRpc {
   rpc BatchCreateProgramCategories(ProgramCategoryBatchSaveReq) returns (BoolResp);
   rpc ListHomePrograms(ListHomeProgramsReq) returns (ProgramHomeListResp);
   rpc PagePrograms(PageProgramsReq) returns (ProgramPageResp);
-  rpc GetProgramDetail(GetProgramDetailReq) returns (ProgramDetailInfo);
+  rpc GetProgramDetailView(GetProgramDetailViewReq) returns (ProgramDetailViewInfo);
   rpc GetProgramPreorder(GetProgramPreorderReq) returns (ProgramPreorderInfo);
   rpc ListProgramShowTimesForRush(ListProgramShowTimesForRushReq) returns (ListProgramShowTimesForRushResp);
   rpc CreateProgramShowTime(ProgramShowTimeAddReq) returns (IdResp);

@@ -16,9 +16,9 @@ type (
 		Type int64 `json:"type,optional"`
 	}
 
-	GetProgramDetailReq {
-		ID int64 `json:"id"`
-	}
+		GetProgramDetailViewReq {
+			ID int64 `json:"id"`
+		}
 
 	ProgramInvalidReq {
 		ID int64 `json:"id"`
@@ -184,8 +184,8 @@ type (
 		List []ProgramListInfo `json:"list,optional"`
 	}
 
-	ProgramDetailInfo {
-		ID int64 `json:"id"`
+		ProgramDetailViewInfo {
+			ID int64 `json:"id"`
 		ProgramGroupID int64 `json:"programGroupId"`
 		Prime int64 `json:"prime"`
 		ProgramGroupVo ProgramGroupInfo `json:"programGroupVo"`

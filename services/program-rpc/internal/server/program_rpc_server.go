@@ -73,9 +73,9 @@ func (s *ProgramRpcServer) PagePrograms(ctx context.Context, in *pb.PagePrograms
 	return l.PagePrograms(in)
 }
 
-func (s *ProgramRpcServer) GetProgramDetail(ctx context.Context, in *pb.GetProgramDetailReq) (*pb.ProgramDetailInfo, error) {
-	l := logic.NewGetProgramDetailLogic(ctx, s.svcCtx)
-	return l.GetProgramDetail(in)
+func (s *ProgramRpcServer) GetProgramDetailView(ctx context.Context, in *pb.GetProgramDetailViewReq) (*pb.ProgramDetailViewInfo, error) {
+	l := logic.NewGetProgramDetailViewLogic(ctx, s.svcCtx)
+	return l.GetProgramDetailView(in)
 }
 
 func (s *ProgramRpcServer) GetProgramPreorder(ctx context.Context, in *pb.GetProgramPreorderReq) (*pb.ProgramPreorderInfo, error) {

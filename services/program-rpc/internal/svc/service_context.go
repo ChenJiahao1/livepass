@@ -27,7 +27,7 @@ type ServiceContext struct {
 	DSeatModel                 model.DSeatModel
 	DTicketCategoryModel       model.DTicketCategoryModel
 	CategorySnapshotCache      *programcache.CategorySnapshotCache
-	ProgramDetailCache         *programcache.ProgramDetailCache
+	ProgramDetailViewCache     *programcache.ProgramDetailViewCache
 	ProgramCacheRegistry       *programcache.InvalidationRegistry
 	ProgramCacheInvalidator    *programcache.ProgramCacheInvalidator
 	ProgramCacheSubscriber     *programcache.PubSubSubscriber
@@ -73,7 +73,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		DSeatModel:                 models.DSeatModel,
 		DTicketCategoryModel:       models.DTicketCategoryModel,
 		CategorySnapshotCache:      queryCaches.CategorySnapshotCache,
-		ProgramDetailCache:         queryCaches.ProgramDetailCache,
+		ProgramDetailViewCache:     queryCaches.ProgramDetailViewCache,
 		ProgramCacheRegistry:       queryCaches.ProgramCacheRegistry,
 		ProgramCacheInvalidator:    queryCaches.ProgramCacheInvalidator,
 		ProgramCacheSubscriber:     queryCaches.ProgramCacheSubscriber,

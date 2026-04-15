@@ -19,7 +19,7 @@ func TestNewProgramQueryCachesBuildsDetailCacheAndRegistry(t *testing.T) {
 		if caches.CategorySnapshotCache == nil {
 			t.Fatal("expected category snapshot cache")
 		}
-		if caches.ProgramDetailCache == nil {
+		if caches.ProgramDetailViewCache == nil {
 			t.Fatal("expected detail cache")
 		}
 		if caches.ProgramCacheRegistry == nil {
@@ -28,8 +28,8 @@ func TestNewProgramQueryCachesBuildsDetailCacheAndRegistry(t *testing.T) {
 		if caches.ProgramCacheInvalidator == nil {
 			t.Fatal("expected invalidator")
 		}
-		requireDurationField(t, caches.ProgramDetailCache, "detailTTL", 42*time.Second)
-		requireDurationField(t, caches.ProgramDetailCache, "notFoundTTL", 9*time.Second)
+		requireDurationField(t, caches.ProgramDetailViewCache, "detailTTL", 42*time.Second)
+		requireDurationField(t, caches.ProgramDetailViewCache, "notFoundTTL", 9*time.Second)
 	})
 
 	t.Run("builds subscriber only when redis and invalidation enabled", func(t *testing.T) {

@@ -46,9 +46,9 @@ type fakeProgramRPC struct {
 	pageProgramsErr     error
 	lastPageProgramsReq *programrpc.PageProgramsReq
 
-	getProgramDetailResp    *programrpc.ProgramDetailInfo
-	getProgramDetailErr     error
-	lastGetProgramDetailReq *programrpc.GetProgramDetailReq
+	getProgramDetailViewResp    *programrpc.ProgramDetailViewInfo
+	getProgramDetailViewErr     error
+	lastGetProgramDetailViewReq *programrpc.GetProgramDetailViewReq
 
 	getProgramPreorderResp    *programrpc.ProgramPreorderInfo
 	getProgramPreorderErr     error
@@ -144,9 +144,9 @@ func (f *fakeProgramRPC) PagePrograms(ctx context.Context, in *programrpc.PagePr
 	return f.pageProgramsResp, f.pageProgramsErr
 }
 
-func (f *fakeProgramRPC) GetProgramDetail(ctx context.Context, in *programrpc.GetProgramDetailReq, opts ...grpc.CallOption) (*programrpc.ProgramDetailInfo, error) {
-	f.lastGetProgramDetailReq = in
-	return f.getProgramDetailResp, f.getProgramDetailErr
+func (f *fakeProgramRPC) GetProgramDetailView(ctx context.Context, in *programrpc.GetProgramDetailViewReq, opts ...grpc.CallOption) (*programrpc.ProgramDetailViewInfo, error) {
+	f.lastGetProgramDetailViewReq = in
+	return f.getProgramDetailViewResp, f.getProgramDetailViewErr
 }
 
 func (f *fakeProgramRPC) GetProgramPreorder(ctx context.Context, in *programrpc.GetProgramPreorderReq, opts ...grpc.CallOption) (*programrpc.ProgramPreorderInfo, error) {
