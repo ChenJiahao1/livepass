@@ -1,3 +1,5 @@
+import json
+
 from fastapi.testclient import TestClient
 
 from app.api.routes import get_agent_runtime, get_llm, get_session_store, get_tool_registry
@@ -170,3 +172,25 @@ def test_chat_api_keeps_context_minimal_for_graph_runtime():
     assert second.status_code == 200
     assert "session_state" not in agent_runtime.calls[0]["context"]
     assert "session_state" not in agent_runtime.calls[1]["context"]
+
+
+def test_chat_stream_emits_sse_events_and_reuses_chat_context():
+    app, agent_runtime, _store = build_test_app()
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/agent/chat/stream",
+        headers={"X-User-Id": "3001"},
+        json={"message": "帮我查订单"},
+    ) as response:
+        body = "".join(response.iter_text())
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert agent_runtime.calls[0]["context"]["current_user_id"] == "3001"
+    conversation_id = agent_runtime.calls[0]["config"]["configurable"]["thread_id"]
+    assert f"data: {json.dumps({'conversationId': conversation_id}, ensure_ascii=False)}" in body
+    assert "event: delta" in body
+    assert "已处理：帮我查订单" in body
+    assert f"data: {json.dumps({'status': 'completed'}, ensure_ascii=False)}" in body

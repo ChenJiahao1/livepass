@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
 from functools import lru_cache
 
 import redis
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from app.api.schemas import ChatRequest, ChatResponse
 from app.config import get_settings
@@ -83,15 +86,15 @@ def get_request_llm(
     return llm
 
 
-@router.post("/agent/chat", response_model=ChatResponse)
-async def chat(
+async def run_chat_turn(
+    *,
     request: ChatRequest,
-    agent_runtime=Depends(get_agent_runtime),
-    session_store: ConversationStateStore = Depends(get_session_store),
-    registry: MCPToolRegistry = Depends(get_tool_registry),
-    user_id: int = Depends(get_current_user_id),
-    llm=Depends(get_request_llm),
-) -> ChatResponse:
+    agent_runtime,
+    session_store: ConversationStateStore,
+    registry: MCPToolRegistry,
+    user_id: int,
+    llm,
+) -> tuple[str, str, str]:
     try:
         session = session_store.get_or_create(user_id=user_id, conversation_id=request.conversation_id)
     except SessionOwnershipError as exc:
@@ -115,8 +118,95 @@ async def chat(
     )
     _ = build_audit_record(result=result)
 
-    return ChatResponse(
-        conversationId=session.conversation_id,
-        reply=final_reply,
-        status="handoff" if result.get("need_handoff") else str(result.get("status") or "completed"),
+    response_status = "handoff" if result.get("need_handoff") else str(result.get("status") or "completed")
+    return session.conversation_id, final_reply, response_status
+
+
+@router.post("/agent/chat", response_model=ChatResponse)
+async def chat(
+    request: ChatRequest,
+    agent_runtime=Depends(get_agent_runtime),
+    session_store: ConversationStateStore = Depends(get_session_store),
+    registry: MCPToolRegistry = Depends(get_tool_registry),
+    user_id: int = Depends(get_current_user_id),
+    llm=Depends(get_request_llm),
+) -> ChatResponse:
+    conversation_id, final_reply, response_status = await run_chat_turn(
+        request=request,
+        agent_runtime=agent_runtime,
+        session_store=session_store,
+        registry=registry,
+        user_id=user_id,
+        llm=llm,
     )
+
+    return ChatResponse(
+        conversationId=conversation_id,
+        reply=final_reply,
+        status=response_status,
+    )
+
+
+@router.post("/agent/chat/stream")
+async def chat_stream(
+    request: ChatRequest,
+    agent_runtime=Depends(get_agent_runtime),
+    session_store: ConversationStateStore = Depends(get_session_store),
+    registry: MCPToolRegistry = Depends(get_tool_registry),
+    user_id: int = Depends(get_current_user_id),
+    llm=Depends(get_request_llm),
+) -> StreamingResponse:
+    try:
+        session = session_store.get_or_create(user_id=user_id, conversation_id=request.conversation_id)
+    except SessionOwnershipError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+    async def event_stream() -> AsyncIterator[str]:
+        yield format_sse("meta", {"conversationId": session.conversation_id})
+        try:
+            result = await agent_runtime.ainvoke(
+                {"messages": [{"role": "user", "content": request.message}]},
+                config={"configurable": {"thread_id": session.conversation_id}},
+                context={
+                    "registry": registry,
+                    "llm": llm,
+                    "current_user_id": str(user_id),
+                },
+            )
+            final_reply = result.get("final_reply") or result.get("reply") or ""
+            session_store.save(session)
+            _ = build_trace_record(
+                route_source=result.get("route_source", "rule"),
+                result=result,
+                session=session,
+            )
+            _ = build_audit_record(result=result)
+
+            for chunk in split_stream_text(final_reply):
+                yield format_sse("delta", {"text": chunk})
+
+            response_status = "handoff" if result.get("need_handoff") else str(result.get("status") or "completed")
+            yield format_sse("done", {"status": response_status})
+        except Exception as exc:
+            yield format_sse("error", {"message": str(exc)})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+def format_sse(event: str, data: dict) -> str:
+    payload = json.dumps(data, ensure_ascii=False)
+    return f"event: {event}\ndata: {payload}\n\n"
+
+
+def split_stream_text(text: str, *, chunk_size: int = 12) -> list[str]:
+    if not text:
+        return []
+    return [text[index : index + chunk_size] for index in range(0, len(text), chunk_size)]

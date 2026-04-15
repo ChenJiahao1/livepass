@@ -10,7 +10,7 @@ HTTP API:
 uv run uvicorn app.main:app --reload
 ```
 
-默认对外提供 `POST /agent/chat`。
+默认对外提供 `POST /agent/chat`，前端流式联调可使用 `POST /agent/chat/stream`，响应格式为 `text/event-stream`，事件包括 `meta`、`delta`、`done` 和 `error`。
 
 Go `order` MCP provider:
 
