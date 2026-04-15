@@ -80,6 +80,8 @@ def test_agent_chat_contract_returns_completed_and_handoff_status():
     assert handoff.json()["status"] == "handoff"
     assert agent_runtime.calls[0]["context"]["current_user_id"] == "3001"
     assert agent_runtime.calls[1]["context"]["current_user_id"] == "3001"
+    assert "session_state" not in agent_runtime.calls[0]["context"]
+    assert "session_state" not in agent_runtime.calls[1]["context"]
 
 
 def test_agent_chat_contract_supports_multi_turn_conversation():

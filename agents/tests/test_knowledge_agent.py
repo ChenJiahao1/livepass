@@ -4,6 +4,7 @@ from pathlib import Path
 import httpx
 from langchain_core.messages import HumanMessage
 
+from app.agents.knowledge import KnowledgeAgent
 from app.config import get_settings
 from app.knowledge.service import KnowledgeService
 
@@ -107,3 +108,16 @@ def test_knowledge_service_returns_fallback_for_empty_response(monkeypatch, tmp_
 
     assert "稍后重试" in result["reply"]
     assert result["trace"] == ["knowledge:lightrag_empty"]
+
+
+def test_knowledge_agent_wraps_service_result(monkeypatch, tmp_path: Path):
+    _set_lightrag_env(monkeypatch, tmp_path)
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(200, json={"response": "周杰伦是华语流行音乐代表人物。"})
+    )
+    agent = KnowledgeAgent(service=KnowledgeService(http_client=httpx.AsyncClient(transport=transport)))
+
+    result = asyncio.run(agent.handle({"messages": [HumanMessage(content="周杰伦是谁")]}))
+
+    assert result["agent"] == "knowledge"
+    assert "周杰伦" in result["reply"]

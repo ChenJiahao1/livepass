@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://127.0.0.1:6379/0"
     session_ttl_seconds: int = 1800
     session_key_prefix: str = "agents:conversation"
+    checkpoint_key_prefix: str = "agents:langgraph"
     order_mcp_endpoint: str = "http://127.0.0.1:9082/message"
     order_rpc_target: str = "127.0.0.1:8082"
     program_rpc_target: str = "127.0.0.1:8083"

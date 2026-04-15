@@ -28,7 +28,7 @@ client -> gateway-api -> xxx-api -> xxx-rpc
 - `order`：下单、查单、取消、支付检查、退款、超时关单
 - `pay`：模拟支付、支付单查询、模拟退款
 - `gateway`：统一外部 HTTP 入口
-- `agents`：根级 Python 组件，提供 `/agent/chat` 能力
+- `agents`：根级 Python 组件，提供基于 `LangGraph + MCP + Redis` 的 `/agent/chat` 能力
 
 当前明确约束：
 
