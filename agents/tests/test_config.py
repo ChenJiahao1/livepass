@@ -9,6 +9,7 @@ def test_settings_exposes_customer_runtime_fields(monkeypatch):
 
     assert settings.max_tool_steps == 3
     assert settings.lightrag_base_url == "http://127.0.0.1:9621"
+    assert settings.checkpoint_key_prefix == "agents:langgraph"
 
     get_settings.cache_clear()
 

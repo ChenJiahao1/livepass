@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -10,8 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field
 class SessionOwnershipError(ValueError):
     """Raised when a conversation is accessed by another user."""
 
+
 class StoredConversation(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     conversation_id: str = Field(alias="conversationId")
     user_id: int = Field(alias="userId")
@@ -53,5 +55,11 @@ class ConversationStateStore:
 
     def save(self, session: StoredConversation) -> None:
         key = self.key_for(session.conversation_id)
-        self.redis_client.set(key, session.model_dump_json(by_alias=True))
+        payload = json.dumps(
+            {
+                "conversationId": session.conversation_id,
+                "userId": session.user_id,
+            }
+        )
+        self.redis_client.set(key, payload)
         self.redis_client.expire(key, self.ttl_seconds)

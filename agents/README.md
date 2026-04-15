@@ -1,6 +1,6 @@
 # agents
 
-`agents` 是 `damai-go` 的 Python 智能客服组件，当前基于 `FastAPI + MCP + Redis` 运行。主链路已经收敛为 `ParentAgent -> TaskCard -> SubagentRuntime -> ToolBroker -> MCP Provider`，其中父层负责 LLM 编排与读写权限控制，subagent 在授权 skill bundle 内执行。
+`agents` 是 `damai-go` 的 Python 智能客服组件，当前基于 `FastAPI + LangGraph + MCP + Redis` 运行。`/agent/chat` 的主链路已经恢复为 `coordinator -> supervisor -> specialist`，其中 LangGraph 负责主编排与会话状态推进，MCP provider 负责订单、退款、节目和人工转接等工具能力。
 
 ## 入口
 
@@ -45,25 +45,21 @@ USER_RPC_TARGET=127.0.0.1:8080
 
 - Go `order` MCP provider 基于 go-zero 官方 `mcp` 组件，通过内部 HTTP/Streamable HTTP 提供订单查询和退款能力。
 - Python `handoff` provider 继续通过本地 `damai-mcp-server` stdio 启动。
-- `ParentAgent` 是真正的 LLM 编排者：负责理解用户诉求、决定直接回复/澄清/知识问答/下发 TaskCard，而不是关键词路由器。
-- Python 侧 subagent 只有一份固定 system prompt；具体业务流程、步骤约束和结束条件从 `app/skills/<skill-name>/SKILL.md` 动态载入，运行时注入的是完整 `SKILL.md`。
-- `SKILL.md` 按 Agent Skills / DeerFlow 兼容格式组织并做校验：当前支持 `name`、`description`、`license`、`compatibility`、`metadata`、`allowed-tools`，并兼容 DeerFlow 接受的 `version` / `author` 扩展键。
-- `allowed-tools` 按规范使用空格分隔字符串；`metadata` 约束为 string-to-string 映射。
-- 旧的 LangGraph `graph/coordinator/supervisor` 兼容层、旧专家代理目录和重复 `app/clients` 目录已移除。
-- `TaskCard` 当前携带 `allowed_skills` 与 `requires_confirmation`。父层不再给读链路逐步指定单 tool，而是授权当前可用的 skill bundle。
-- `MCPToolRegistry` 按 provider 首次命中时懒加载并缓存 tool catalog；实际暴露给 subagent 的，是当前任务授权 skill bundle 求并集后的那组 tools。
-- Python 侧 `ToolBroker` 负责 tool 白名单、上下文注入、provider 调度以及对当前 task 的 tool 绑定；对写 skill 还会做确认态硬校验。
-- 明星基础百科问题走独立 `KnowledgeService`，不经过业务 subagent；实时新闻、八卦类问题会返回能力边界提示。
-- 退款链路采用读写分离：
-  - `refund.read` 暴露 `list_user_orders`、`get_order_detail_for_service`、`preview_refund_order`
-  - `refund.write` 只暴露 `refund_order`
-  - 用户先走 `refund.read`，明确确认后才允许进入 `refund.write`
+- LangGraph 状态定义在 `app/state.py`，主状态通过 `app/session/checkpointer.py` 写入 Redis；`app/session/store.py` 只保留 `conversation_id -> user_id` 的 ownership 校验。
+- `coordinator` 只做 `respond / clarify / delegate` 三类判定，不直接调用工具。
+- `supervisor` 只决定下一跳 specialist 或 `finish`，并在 specialist 完成后统一收口。
+- 当前 specialist 包括 `order`、`refund`、`activity`、`handoff`、`knowledge`：
+  - `order`：优先列单或查单详情
+  - `refund`：先做退款预览，确认后才提交退款
+  - `activity`：节目、场次、票档与库存咨询
+  - `handoff`：创建人工接管请求并返回 `need_handoff=True`
+  - `knowledge`：通过 `KnowledgeService` 处理明星基础百科，不回答实时新闻、八卦或热搜
+- `MCPToolRegistry` 按 toolset 复用当前 provider 连接：`order/refund` 走 go-zero MCP，`activity/handoff` 走 Python MCP。
 
 ## 测试
 
 ```bash
-uv run pytest tests/test_task_card.py tests/test_provider_registry.py -v
-uv run pytest tests/test_mcp_registry.py tests/test_go_provider_registry.py tests/test_tool_broker.py -v
-uv run pytest tests/test_parent_agent.py tests/test_policy_engine.py tests/test_skill_resolver.py tests/test_subagent_runtime.py -v
-uv run pytest tests/test_order_refund_flow.py tests/test_handoff_flow.py tests/test_knowledge_agent.py tests/test_session_store.py tests/test_api.py tests/test_e2e_contract.py tests/test_docs.py tests/test_smoke.py -v
+uv run pytest tests/test_prompts.py tests/test_coordinator_agent.py tests/test_supervisor_agent.py tests/test_graph.py -v
+uv run pytest tests/test_agents.py tests/test_order_refund_flow.py tests/test_handoff_flow.py tests/test_knowledge_agent.py -v
+uv run pytest tests/test_api.py tests/test_e2e_contract.py tests/test_session_store.py tests/test_docs.py tests/test_smoke.py tests/test_config.py -v
 ```

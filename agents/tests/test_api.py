@@ -41,16 +41,6 @@ class FakeAgentRuntime:
                 "final_reply": "订单 ORD-10001 当前可退款，预计退款 99.00。是否确认退款？",
                 "current_agent": "refund",
                 "need_handoff": False,
-                "session_state": {
-                    **context["session_state"],
-                    "selected_order_id": "ORD-10001",
-                    "last_refund_preview": {
-                        "order_id": "ORD-10001",
-                        "allow_refund": True,
-                        "refund_amount": "99.00",
-                        "reject_reason": "",
-                    },
-                },
             }
         return {
             **state_payload,
@@ -117,7 +107,7 @@ def test_chat_api_injects_thread_and_user_context():
     body = response.json()
     assert agent_runtime.calls[0]["config"]["configurable"]["thread_id"] == body["conversationId"]
     assert agent_runtime.calls[0]["context"]["current_user_id"] == "3001"
-    assert agent_runtime.calls[0]["context"]["session_state"]["user_id"] == 3001
+    assert "session_state" not in agent_runtime.calls[0]["context"]
     assert body["status"] == "completed"
     assert body["reply"] == "已处理：帮我查订单"
 
@@ -161,8 +151,7 @@ def test_chat_api_reuses_conversation_id_and_starts_new_agent_turn_each_request(
     assert agent_runtime.calls[0]["state"]["messages"] == [{"role": "user", "content": "帮我查订单"}]
     assert agent_runtime.calls[1]["state"]["messages"] == [{"role": "user", "content": "订单 93001 可以退款吗"}]
 
-
-def test_chat_api_persists_last_refund_preview_in_session():
+def test_chat_api_keeps_context_minimal_for_graph_runtime():
     app, agent_runtime, _store = build_test_app()
     client = TestClient(app)
 
@@ -179,9 +168,5 @@ def test_chat_api_persists_last_refund_preview_in_session():
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert agent_runtime.calls[1]["context"]["session_state"]["last_refund_preview"] == {
-        "order_id": "ORD-10001",
-        "allow_refund": True,
-        "refund_amount": "99.00",
-        "reject_reason": "",
-    }
+    assert "session_state" not in agent_runtime.calls[0]["context"]
+    assert "session_state" not in agent_runtime.calls[1]["context"]

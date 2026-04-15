@@ -146,3 +146,56 @@ def build_async_tool(*, name: str, description: str, coroutine):
         name=name,
         description=description,
     )
+
+
+class FakeRedis:
+    def __init__(self):
+        self.values: dict[str, str] = {}
+        self.hashes: dict[str, dict[str, str]] = {}
+        self.expire_calls: list[tuple[str, int]] = []
+
+    def get(self, key: str):
+        return self.values.get(key)
+
+    def set(self, key: str, value: str):
+        self.values[key] = value
+        return True
+
+    def hget(self, key: str, field: str):
+        return self.hashes.get(key, {}).get(field)
+
+    def hset(self, key: str, field: str, value: str):
+        self.hashes.setdefault(key, {})[field] = value
+        return 1
+
+    def hgetall(self, key: str):
+        return dict(self.hashes.get(key, {}))
+
+    def hkeys(self, key: str):
+        return list(self.hashes.get(key, {}).keys())
+
+    def expire(self, key: str, ttl_seconds: int):
+        self.expire_calls.append((key, ttl_seconds))
+        return True
+
+    def scan_iter(self, match: str | None = None):
+        if match is None:
+            for key in [*self.values.keys(), *self.hashes.keys()]:
+                yield key
+            return
+
+        prefix = match.rstrip("*")
+        for key in [*self.values.keys(), *self.hashes.keys()]:
+            if key.startswith(prefix):
+                yield key
+
+    def delete(self, *keys: str):
+        deleted = 0
+        for key in keys:
+            if key in self.values:
+                del self.values[key]
+                deleted += 1
+            if key in self.hashes:
+                del self.hashes[key]
+                deleted += 1
+        return deleted
