@@ -81,7 +81,7 @@
 
 ### 原则三：对外 contract 不变，内部运行时切换
 
-`POST /agent/chat` 的路径、基础请求响应语义、`conversationId`、`reply`、`needHandoff`、`trace` 等主要字段尽量保持兼容，避免网关与验收脚本联动破坏。
+`POST /agent/chat` 的路径、基础请求响应语义，以及当前 API 已对外暴露的 `conversationId`、`reply`、`status` 字段应保持兼容，避免网关与验收脚本联动破坏。`need_handoff`、`trace` 等字段可以继续作为内部 graph 状态或审计字段存在，但不应被误写为当前公开响应 contract。
 
 ### 原则四：MCP 接入层不回退
 
@@ -89,7 +89,7 @@ Go 服务继续在 `go-zero` 内启动 MCP Server；Python 侧继续使用当前
 
 ### 原则五：Checkpoint 是唯一主状态源
 
-`conversation_id` 应映射为 LangGraph `thread_id`，由 checkpointer 负责状态恢复。旧的 session store 若仍需保留，也只作为兼容辅助，而不是主事实源。
+`conversation_id` 应映射为 LangGraph `thread_id`，由 checkpointer 负责业务状态恢复。若仍保留会话归属校验层，也只负责 ownership 校验，而不是承担业务状态存储职责。
 
 ## 方案对比
 
@@ -163,7 +163,8 @@ agents/
     ├── order/system.md
     ├── refund/system.md
     ├── activity/system.md
-    └── handoff/system.md
+    ├── handoff/system.md
+    └── knowledge/system.md
 ```
 
 主链路如下：
@@ -379,6 +380,7 @@ agents/
 
 - 保持 `POST /agent/chat`
 - 保持当前主要请求参数与响应字段兼容
+- 当前公开响应 contract 以 `conversationId`、`reply`、`status` 为准
 - 保持与网关、验收脚本、现有 API 测试的兼容性
 
 ### Checkpointer
@@ -389,7 +391,16 @@ agents/
 - `conversation_id` 映射为 `thread_id`
 - Redis 为 graph 提供跨轮状态恢复
 
-旧的 `session/store.py` 若仍有兼容价值，可以暂时保留，但不再作为主状态源。
+但需要额外明确一条安全约束：
+
+- conversation ownership 仍然必须校验，不能因为切到 checkpoint 就丢失“会话只能由所属用户访问”的限制
+
+推荐两种实现方式：
+
+1. 保留一个极薄的 ownership 映射层，只负责 `conversation_id -> user_id` 的归属校验
+2. 在 graph 首次建会话时把 `user_id` 持久化进 checkpoint，并在每次恢复时显式校验
+
+推荐优先采用方案 1：保留 ownership store，但只负责归属校验；业务状态以 checkpoint 为主。
 
 ## 迁移策略
 
@@ -424,6 +435,7 @@ agents/
 
 - 正式以 checkpoint 为主状态源
 - 完成 `conversation_id -> thread_id` 绑定
+- 保留并收窄 ownership 校验层
 - 补齐跨轮恢复测试
 
 ### 阶段四：退出旧主链路
