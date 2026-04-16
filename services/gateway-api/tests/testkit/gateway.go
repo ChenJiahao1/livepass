@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 	"damai-go/services/gateway-api/internal/config"
 	"damai-go/services/gateway-api/internal/middleware"
 )
+
+var gatewayStartMu sync.Mutex
 
 func MustCreateToken(t *testing.T, userID int64, secret string) string {
 	t.Helper()
@@ -39,7 +42,6 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 
 	c.Name = "gateway-api-test"
 	c.Host = "127.0.0.1"
-	c.Port = freePort(t)
 	c.Auth.AccessSecret = "secret-0001"
 	c.InternalAuth.Secret = "gateway-internal-secret"
 	c.Upstreams = []gateway.Upstream{
@@ -127,6 +129,13 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 
 func StartTestGateway(t *testing.T, c config.Config) (*gateway.Server, string) {
 	t.Helper()
+
+	gatewayStartMu.Lock()
+	defer gatewayStartMu.Unlock()
+
+	if c.Port == 0 {
+		c.Port = freePort(t)
+	}
 
 	server := gateway.MustNewServer(c.GatewayConf)
 	server.Use(middleware.NewCorsMiddleware(c.Cors).Handle)

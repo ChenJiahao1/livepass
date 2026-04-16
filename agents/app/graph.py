@@ -180,7 +180,7 @@ async def _refund_node(state: ConversationState, runtime: Runtime[GraphContext])
 
 
 async def _handoff_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
-    agent = HandoffAgent(registry=runtime.context.get("registry"), llm=_require_context(runtime, "llm"))
+    agent = HandoffAgent(registry=None, llm=runtime.context.get("llm"))
     result = await agent.handle(_hydrate_state(state, runtime))
     return _map_specialist_result(state, result, "handoff")
 

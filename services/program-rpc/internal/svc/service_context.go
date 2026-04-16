@@ -80,3 +80,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		RushInventoryPreheatClient: rushInventoryPreheatClient,
 	}
 }
+
+func NewMCPServiceContext(c config.MCPConfig) *ServiceContext {
+	return NewServiceContext(config.Config{
+		MySQL:                c.MySQL,
+		StoreRedis:           c.StoreRedis,
+		Cache:                c.Cache,
+		LocalCache:           c.LocalCache,
+		CacheInvalidation:    c.CacheInvalidation,
+		RushInventoryPreheat: c.RushInventoryPreheat,
+		Xid:                  c.Xid,
+	})
+}

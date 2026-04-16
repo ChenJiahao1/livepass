@@ -34,10 +34,8 @@ class Settings(BaseSettings):
     agents_mysql_charset: str = "utf8mb4"
     agents_thread_default_title: str = "新会话"
     agents_thread_title_max_length: int = 128
+    activity_mcp_endpoint: str = "http://127.0.0.1:9083/message"
     order_mcp_endpoint: str = "http://127.0.0.1:9082/message"
-    order_rpc_target: str = "127.0.0.1:8082"
-    program_rpc_target: str = "127.0.0.1:8083"
-    user_rpc_target: str = "127.0.0.1:8080"
 
 
 @lru_cache(maxsize=1)

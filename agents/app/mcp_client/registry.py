@@ -1,26 +1,22 @@
-"""MCP tool registry backed by local stdio servers."""
+"""MCP tool registry backed by Go MCP servers."""
 
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from app.config import Settings, get_settings
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SUPPORTED_TOOLSETS = ("activity", "order", "refund", "handoff")
+SUPPORTED_TOOLSETS = ("activity", "order", "refund")
 TOOLSET_TOOL_NAMES = {
     "order": {"list_user_orders", "get_order_detail_for_service"},
     "refund": {"preview_refund_order", "refund_order"},
-    "handoff": {"request_handoff", "create_handoff_ticket"},
 }
 TOOLSET_PROVIDER = {
     "order": "order",
     "refund": "order",
-    "handoff": "handoff",
     "activity": "activity",
 }
 
@@ -63,21 +59,14 @@ class MCPToolRegistry:
     def _build_connections(self) -> dict[str, dict[str, Any]]:
         return {
             "activity": {
-                "transport": "stdio",
-                "command": "uv",
-                "args": ["run", "damai-mcp-server", "--toolset", "activity"],
-                "cwd": str(PROJECT_ROOT),
+                "transport": "streamable_http",
+                "url": self.settings.activity_mcp_endpoint,
+                "headers": {"X-Internal-Caller": "agents"},
             },
             "order": {
                 "transport": "streamable_http",
                 "url": self.settings.order_mcp_endpoint,
                 "headers": {"X-Internal-Caller": "agents"},
-            },
-            "handoff": {
-                "transport": "stdio",
-                "command": "uv",
-                "args": ["run", "damai-mcp-server", "--toolset", "handoff"],
-                "cwd": str(PROJECT_ROOT),
             },
         }
 

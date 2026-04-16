@@ -6,12 +6,19 @@ from app.mcp_client.registry import MCPToolRegistry
 
 def test_registry_points_order_toolset_to_go_provider():
     registry = MCPToolRegistry(
-        settings=Settings(order_mcp_endpoint="http://127.0.0.1:9082/message")
+        settings=Settings(
+            activity_mcp_endpoint="http://127.0.0.1:9083/message",
+            order_mcp_endpoint="http://127.0.0.1:9082/message",
+        )
     )
 
+    assert registry.connections["activity"]["transport"] == "streamable_http"
+    assert registry.connections["activity"]["url"] == "http://127.0.0.1:9083/message"
+    assert registry.connections["activity"]["headers"]["X-Internal-Caller"] == "agents"
     assert registry.connections["order"]["transport"] == "streamable_http"
     assert registry.connections["order"]["url"] == "http://127.0.0.1:9082/message"
     assert registry.connections["order"]["headers"]["X-Internal-Caller"] == "agents"
+    assert "handoff" not in registry.connections
 
 
 class _FakeTool:
@@ -37,7 +44,10 @@ class _FakeClient:
 async def test_registry_invokes_refund_tool_from_cached_provider_catalog():
     client = _FakeClient()
     registry = MCPToolRegistry(
-        settings=Settings(order_mcp_endpoint="http://127.0.0.1:9082/message"),
+        settings=Settings(
+            activity_mcp_endpoint="http://127.0.0.1:9083/message",
+            order_mcp_endpoint="http://127.0.0.1:9082/message",
+        ),
         client=client,
     )
 

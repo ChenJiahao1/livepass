@@ -14,14 +14,13 @@ def test_settings_exposes_customer_runtime_fields(monkeypatch):
     get_settings.cache_clear()
 
 
-def test_settings_default_rpc_targets_match_local_service_ports():
+def test_settings_default_mcp_endpoints_match_local_service_ports():
     get_settings.cache_clear()
 
     settings = get_settings()
 
-    assert settings.user_rpc_target == "127.0.0.1:8080"
-    assert settings.program_rpc_target == "127.0.0.1:8083"
-    assert settings.order_rpc_target == "127.0.0.1:8082"
+    assert settings.activity_mcp_endpoint == "http://127.0.0.1:9083/message"
+    assert settings.order_mcp_endpoint == "http://127.0.0.1:9082/message"
 
     get_settings.cache_clear()
 

@@ -33,18 +33,29 @@ AGENTS_MYSQL_USER=root
 AGENTS_MYSQL_PASSWORD=123456
 AGENTS_MYSQL_DATABASE=damai_agents
 AGENTS_MYSQL_CHARSET=utf8mb4
+ACTIVITY_MCP_ENDPOINT=http://127.0.0.1:9083/message
 ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
-ORDER_RPC_TARGET=127.0.0.1:8082
-PROGRAM_RPC_TARGET=127.0.0.1:8083
-USER_RPC_TARGET=127.0.0.1:8080
 ```
 
 ## 运行时说明
 
+- 业务工具通过 Go MCP server 提供：`activity` 走 `program-mcp`，`order/refund` 走 `order-mcp`。
+- `handoff` 当前不再通过 MCP 执行，仅在编排层保留 TODO 占位。
 - LangGraph checkpoint 仍写入 Redis，但只作为内部运行状态，不对外暴露。
 - 线程、消息、运行读模型写入 MySQL `damai_agents`。
 - Redis ownership 已切换为 `threadId -> userId`。
 - 已移除旧 chat demo 接口，不再提供兼容层。
+
+## 本地联调
+
+```bash
+# Go MCP servers
+go run ./services/order-rpc/cmd/order_mcp_server -f services/order-rpc/etc/order-mcp.yaml
+go run ./services/program-rpc/cmd/program_mcp_server -f services/program-rpc/etc/program-mcp.yaml
+
+# agents API
+uv run uvicorn app.main:app --reload
+```
 
 ## 测试
 
