@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS agent_runs (
   thread_id varchar(64) NOT NULL,
   user_id bigint NOT NULL,
   trigger_message_id varchar(64) NOT NULL,
+  assistant_message_id varchar(64) NOT NULL,
   status varchar(32) NOT NULL,
   started_at datetime(3) NOT NULL,
   completed_at datetime(3) NULL,

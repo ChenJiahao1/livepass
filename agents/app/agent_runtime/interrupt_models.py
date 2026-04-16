@@ -50,7 +50,7 @@ class HumanInterruptPayload:
 
 @dataclass(slots=True)
 class HumanResumePayload:
-    action: Literal["approve", "reject", "respond"]
+    action: Literal["approve", "reject", "edit"]
     reason: str | None = None
     values: dict[str, Any] = field(default_factory=dict)
 

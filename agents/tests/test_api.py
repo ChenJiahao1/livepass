@@ -11,7 +11,6 @@ from app.api.routes import (
     get_llm,
     get_message_repository,
     get_run_repository,
-    get_thread_ownership_store,
     get_thread_repository,
     get_tool_call_repository,
     get_tool_registry,
@@ -21,9 +20,7 @@ from app.messages.repository import InMemoryMessageRepository
 from app.runs.event_store import InMemoryRunEventStore
 from app.runs.repository import InMemoryRunRepository
 from app.runs.tool_call_repository import InMemoryToolCallRepository
-from app.session.store import ThreadOwnershipStore
 from app.threads.repository import InMemoryThreadRepository
-from tests.fakes import FakeRedis
 
 
 def test_create_thread_response_uses_thread_resource_shape():
@@ -49,7 +46,7 @@ def test_create_thread_response_uses_thread_resource_shape():
 def test_create_run_request_rejects_non_user_role():
     with pytest.raises(ValidationError):
         CreateRunRequest.model_validate(
-            {"messages": [{"role": "assistant", "parts": [{"type": "text", "text": "x"}]}]}
+            {"threadId": "thr_01", "input": {"parts": [{"type": "image", "text": "x"}]}}
         )
 
 
@@ -71,11 +68,6 @@ def build_thread_test_client() -> TestClient:
     run_repository = InMemoryRunRepository()
     event_store = InMemoryRunEventStore()
     tool_call_repository = InMemoryToolCallRepository()
-    ownership_store = ThreadOwnershipStore(
-        redis_client=FakeRedis(),
-        ttl_seconds=600,
-        key_prefix="agents:thread",
-    )
     app = create_app()
     app.dependency_overrides[get_agent_runtime] = lambda: FakeAgentRuntime()
     app.dependency_overrides[get_thread_repository] = lambda: thread_repository
@@ -83,16 +75,21 @@ def build_thread_test_client() -> TestClient:
     app.dependency_overrides[get_run_repository] = lambda: run_repository
     app.dependency_overrides[get_event_store] = lambda: event_store
     app.dependency_overrides[get_tool_call_repository] = lambda: tool_call_repository
-    app.dependency_overrides[get_thread_ownership_store] = lambda: ownership_store
     app.dependency_overrides[get_tool_registry] = lambda: object()
     app.dependency_overrides[get_llm] = lambda: object()
     return TestClient(app)
 
 
 def create_run(client: TestClient, *, user_id: str, thread_id: str | None, text: str) -> dict:
-    body = {"messages": [{"role": "user", "parts": [{"type": "text", "text": text}]}]}
-    if thread_id is not None:
-        body["threadId"] = thread_id
+    if thread_id is None:
+        created = client.post("/agent/threads", headers={"X-User-Id": user_id}, json={})
+        assert created.status_code == 200
+        thread_id = created.json()["thread"]["id"]
+    body = {
+        "threadId": thread_id,
+        "input": {"parts": [{"type": "text", "text": text}]},
+        "metadata": {},
+    }
     response = client.post("/agent/runs", headers={"X-User-Id": user_id}, json=body)
     assert response.status_code == 200
     return response.json()
@@ -126,14 +123,14 @@ def test_get_thread_for_other_user_returns_forbidden():
 
     response = client.get(f"/agent/threads/{thread_id}", headers={"X-User-Id": "3002"})
 
-    assert response.status_code == 403
-    assert response.json()["detail"]["error"]["code"] == "FORBIDDEN"
+    assert response.status_code == 404
+    assert response.json()["detail"]["error"]["code"] == "THREAD_NOT_FOUND"
 
 
 def test_message_list_returns_recent_limit_ascending():
     client = build_thread_test_client()
     first = create_run(client, user_id="3001", thread_id=None, text="第0条")
-    thread_id = first["threadId"]
+    thread_id = first["thread"]["id"]
     create_run(client, user_id="3001", thread_id=thread_id, text="第1条")
     create_run(client, user_id="3001", thread_id=thread_id, text="第2条")
 
@@ -147,8 +144,8 @@ def test_message_list_returns_recent_limit_ascending():
 def test_thread_list_supports_cursor_paging():
     client = build_thread_test_client()
 
-    first_thread_id = create_run(client, user_id="3001", thread_id=None, text="第一条")["threadId"]
-    second_thread_id = create_run(client, user_id="3001", thread_id=None, text="第二条")["threadId"]
+    first_thread_id = create_run(client, user_id="3001", thread_id=None, text="第一条")["thread"]["id"]
+    second_thread_id = create_run(client, user_id="3001", thread_id=None, text="第二条")["thread"]["id"]
 
     first_page = client.get("/agent/threads?limit=1", headers={"X-User-Id": "3001"})
 
@@ -173,7 +170,7 @@ def test_thread_list_supports_cursor_paging():
 def test_message_list_supports_before_cursor():
     client = build_thread_test_client()
     first = create_run(client, user_id="3001", thread_id=None, text="第0条")
-    thread_id = first["threadId"]
+    thread_id = first["thread"]["id"]
     create_run(client, user_id="3001", thread_id=thread_id, text="第1条")
     create_run(client, user_id="3001", thread_id=thread_id, text="第2条")
 

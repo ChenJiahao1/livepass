@@ -13,7 +13,6 @@ from app.messages.models import (
     MessageRecord,
 )
 from app.messages.repository import MessageRepository
-from app.session.store import ThreadOwnershipError, ThreadOwnershipStore
 from app.threads.models import ThreadRecord
 from app.threads.repository import ThreadRepository
 
@@ -24,15 +23,21 @@ class MessageService:
         *,
         thread_repository: ThreadRepository,
         message_repository: MessageRepository,
-        ownership_store: ThreadOwnershipStore,
         settings: Settings | None = None,
     ) -> None:
         self.thread_repository = thread_repository
         self.message_repository = message_repository
-        self.ownership_store = ownership_store
         self.settings = settings or get_settings()
 
     def list_messages(self, *, user_id: int, thread_id: str, limit: int, before: str | None):
+        return self.list_thread_messages(
+            user_id=user_id,
+            thread_id=thread_id,
+            limit=limit,
+            before=before,
+        )
+
+    def list_thread_messages(self, *, user_id: int, thread_id: str, limit: int, before: str | None):
         self._ensure_thread_access(user_id=user_id, thread_id=thread_id)
         return self.message_repository.list_by_thread(
             thread_id=thread_id,
@@ -63,6 +68,7 @@ class MessageService:
                 status=MESSAGE_STATUS_COMPLETED,
                 run_id=run_id,
                 created_at=now,
+                updated_at=now,
                 metadata={},
             )
         )
@@ -88,6 +94,7 @@ class MessageService:
         metadata: dict | None = None,
     ) -> MessageRecord:
         self._ensure_thread_access(user_id=user_id, thread_id=thread_id)
+        now = datetime.now(timezone.utc)
         return self.message_repository.create(
             MessageRecord(
                 id=new_message_id(),
@@ -97,7 +104,8 @@ class MessageService:
                 parts=list(parts or []),
                 status=status,
                 run_id=run_id,
-                created_at=datetime.now(timezone.utc),
+                created_at=now,
+                updated_at=now,
                 metadata=dict(metadata or {}),
             )
         )
@@ -139,20 +147,11 @@ class MessageService:
             )
         if thread.user_id != user_id:
             raise ApiError(
-                code=ApiErrorCode.FORBIDDEN,
-                message="无权访问该线程",
-                http_status=403,
+                code=ApiErrorCode.THREAD_NOT_FOUND,
+                message="线程不存在",
+                http_status=404,
                 details={"threadId": thread_id},
             )
-        try:
-            self.ownership_store.assert_owner(thread_id=thread_id, user_id=user_id)
-        except ThreadOwnershipError as exc:
-            raise ApiError(
-                code=ApiErrorCode.FORBIDDEN,
-                message="无权访问该线程",
-                http_status=403,
-                details={"threadId": thread_id},
-            ) from exc
         return thread
 
     def extract_text(self, parts: list[dict]) -> str:

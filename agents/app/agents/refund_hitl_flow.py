@@ -91,7 +91,7 @@ def apply_human_decision(state: ConversationState, runtime: Runtime[GraphContext
 
 async def submit_refund(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
     decision = state.get("human_decision") or {}
-    if decision.get("action") != "approve":
+    if decision.get("action") not in {"approve", "edit"}:
         return {"refund_result": None, "refund_rejected": True}
 
     tools = await _refund_agent(runtime).get_tools()
@@ -182,6 +182,7 @@ def _build_pending_refund_action(
             "title": "退款前确认",
             "description": f"订单 {order_id} 预计退款 {preview['refund_amount']}",
             "riskLevel": "medium",
+            "allowedActions": ["approve", "reject", "edit"],
         },
     )
     return {
@@ -198,8 +199,28 @@ def _build_pending_refund_action(
 def _normalize_decision(decision: Any) -> dict[str, Any]:
     if not isinstance(decision, Mapping):
         return {"action": "reject", "reason": "invalid_resume_payload", "values": {}}
+    if isinstance(decision.get("decisions"), list) and decision["decisions"]:
+        first = decision["decisions"][0]
+        if not isinstance(first, Mapping):
+            return {"action": "reject", "reason": "invalid_resume_payload", "values": {}}
+        decision_type = str(first.get("type") or "").strip()
+        if decision_type == "approve":
+            return {"action": "approve", "reason": first.get("message"), "values": {}}
+        if decision_type == "reject":
+            return {"action": "reject", "reason": first.get("message"), "values": {}}
+        if decision_type == "edit":
+            edited_action = first.get("edited_action")
+            if not isinstance(edited_action, Mapping):
+                return {"action": "reject", "reason": "invalid_resume_payload", "values": {}}
+            args = edited_action.get("args")
+            return {
+                "action": "edit",
+                "reason": first.get("message"),
+                "values": dict(args) if isinstance(args, Mapping) else {},
+            }
+        return {"action": "reject", "reason": "invalid_resume_payload", "values": {}}
     action = str(decision.get("action") or "").strip()
-    if action not in {"approve", "reject", "respond"}:
+    if action not in {"approve", "reject", "edit"}:
         action = "reject"
     values = decision.get("values")
     return {

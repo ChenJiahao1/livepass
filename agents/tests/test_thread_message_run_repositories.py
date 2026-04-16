@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 from app.messages.models import MESSAGE_STATUS_COMPLETED, MessageRecord
 from app.messages.repository import InMemoryMessageRepository
@@ -7,6 +8,7 @@ from app.threads.repository import InMemoryThreadRepository
 NOW = datetime(2026, 4, 16, 10, 0, tzinfo=timezone.utc)
 NOW1 = datetime(2026, 4, 16, 10, 1, tzinfo=timezone.utc)
 NOW2 = datetime(2026, 4, 16, 10, 2, tzinfo=timezone.utc)
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_in_memory_thread_repository_filters_empty_threads_by_default():
@@ -61,6 +63,36 @@ def test_in_memory_message_repository_returns_recent_messages_ascending():
     assert next_cursor is None
 
 
+def test_resource_models_expose_explicit_persistent_fields():
+    from app.messages.models import MessageRecord
+    from app.runs.event_models import RunEventRecord
+    from app.runs.models import RunRecord
+    from app.runs.tool_call_models import ToolCallRecord
+
+    assert "updated_at" in MessageRecord.__dataclass_fields__
+    assert "assistant_message_id" in RunRecord.__dataclass_fields__
+    assert "message_id" in ToolCallRecord.__dataclass_fields__
+    assert "message_id" in RunEventRecord.__dataclass_fields__
+    assert "tool_call_id" in RunEventRecord.__dataclass_fields__
+
+
+def test_agents_sql_files_define_explicit_resource_columns_and_import_list():
+    messages_sql = (REPO_ROOT / "sql/agents/agent_messages.sql").read_text(encoding="utf-8")
+    runs_sql = (REPO_ROOT / "sql/agents/agent_runs.sql").read_text(encoding="utf-8")
+    tool_calls_sql = (REPO_ROOT / "sql/agents/agent_tool_calls.sql").read_text(encoding="utf-8")
+    run_events_sql = (REPO_ROOT / "sql/agents/agent_run_events.sql").read_text(encoding="utf-8")
+    import_sql = (REPO_ROOT / "scripts/import_sql.sh").read_text(encoding="utf-8")
+
+    assert "updated_at datetime(3) NOT NULL" in messages_sql
+    assert "assistant_message_id varchar(64) NOT NULL" in runs_sql
+    assert "message_id varchar(64) NOT NULL" in tool_calls_sql
+    assert "request_json json NOT NULL" in tool_calls_sql
+    assert "message_id varchar(64) NULL" in run_events_sql
+    assert "tool_call_id varchar(64) NULL" in run_events_sql
+    assert '"sql/agents/agent_run_events.sql"' in import_sql
+    assert '"sql/agents/agent_tool_calls.sql"' in import_sql
+
+
 def test_run_event_store_lists_events_after_sequence():
     from app.runs.event_models import RUN_EVENT_TYPE_MESSAGE_DELTA, RUN_EVENT_TYPE_RUN_COMPLETED
     from app.runs.event_store import InMemoryRunEventStore
@@ -89,6 +121,9 @@ def test_run_event_store_lists_events_after_sequence():
     assert event2.sequence_no == 2
     assert [event.sequence_no for event in events] == [2]
     assert [event.event_type for event in events] == [RUN_EVENT_TYPE_RUN_COMPLETED]
+    assert getattr(event1, "message_id", None) == "msg_01"
+    assert event1.payload == {"delta": "你好"}
+    assert getattr(event2, "tool_call_id", None) is None
 
 
 def test_tool_call_repository_updates_waiting_human_to_completed():
@@ -106,9 +141,11 @@ def test_tool_call_repository_updates_waiting_human_to_completed():
             run_id="run_01",
             thread_id="thr_01",
             user_id=3001,
+            message_id="msg_01",
             tool_name="human_approval",
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
             arguments={"title": "退款前确认"},
+            request={"title": "退款前确认"},
             output=None,
             error=None,
             created_at=NOW1,
@@ -132,6 +169,8 @@ def test_tool_call_repository_updates_waiting_human_to_completed():
     assert updated.error is None
     assert updated.completed_at == NOW2
     assert updated.updated_at == NOW2
+    assert updated.message_id == "msg_01"
+    assert updated.metadata.get("request") is None
 
 
 def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
@@ -150,6 +189,7 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
             run_id="run_01",
             thread_id="thr_01",
             user_id=3001,
+            message_id="msg_done",
             tool_name="human_approval",
             status=TOOL_CALL_STATUS_COMPLETED,
             arguments={},
@@ -165,6 +205,7 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
             run_id="run_01",
             thread_id="thr_01",
             user_id=3001,
+            message_id="msg_waiting",
             tool_name="human_approval",
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
             arguments={"action": "refund_order"},
@@ -179,6 +220,8 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
 
     assert waiting is not None
     assert waiting.id == "tool_waiting"
+    assert waiting.message_id == "msg_waiting"
+    assert waiting.metadata.get("request") is None
     assert cancelled is not None
     assert cancelled.status == TOOL_CALL_STATUS_CANCELLED
     assert cancelled.completed_at == NOW2

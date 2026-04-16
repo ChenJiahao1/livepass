@@ -8,12 +8,31 @@ from app.runs.models import RunRecord
 class RuntimeCallbacks(Protocol):
     async def on_run_started(self, *, run: RunRecord) -> None: ...
 
+    async def on_run_updated(
+        self,
+        *,
+        run: RunRecord,
+        status: str,
+        payload: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
     async def on_message_delta(
         self,
         *,
         run: RunRecord,
         message_id: str,
         delta: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
+    async def on_message_updated(
+        self,
+        *,
+        run: RunRecord,
+        message_id: str,
+        status: str,
+        payload: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None: ...
 
@@ -46,11 +65,28 @@ class RuntimeCallbacks(Protocol):
         metadata: dict[str, Any] | None = None,
     ) -> None: ...
 
+    async def on_tool_call_progress(
+        self,
+        *,
+        run: RunRecord,
+        tool_name: str,
+        payload: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
     async def on_tool_call_failed(
         self,
         *,
         run: RunRecord,
         tool_call_id: str,
         error: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
+    async def on_run_progress(
+        self,
+        *,
+        run: RunRecord,
+        payload: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None: ...

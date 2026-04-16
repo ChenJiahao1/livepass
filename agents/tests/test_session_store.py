@@ -1,23 +1,26 @@
 import pytest
 
-from app.session.store import ThreadOwnershipError, ThreadOwnershipStore
-from tests.fakes import FakeRedis
+from app.common.errors import ApiError
+from app.runs.repository import InMemoryRunRepository
+from app.threads.repository import InMemoryThreadRepository
+from app.threads.service import ThreadService
 
 
-def test_thread_ownership_store_uses_thread_id_key():
-    redis = FakeRedis()
-    store = ThreadOwnershipStore(redis_client=redis, ttl_seconds=600, key_prefix="agents:thread")
+def test_thread_ownership_uses_thread_repository_user_id():
+    repository = InMemoryThreadRepository()
+    service = ThreadService(thread_repository=repository, run_repository=InMemoryRunRepository())
 
-    store.save(thread_id="thr_01", user_id=3001)
+    thread = service.create_thread(user_id=3001, title="订单咨询")
 
-    assert redis.values["agents:thread:thr_01"] == '{"threadId": "thr_01", "userId": 3001}'
-    assert store.assert_owner(thread_id="thr_01", user_id=3001) is None
+    assert service.get_thread(user_id=3001, thread_id=thread.id).id == thread.id
 
 
-def test_thread_ownership_store_rejects_other_user():
-    redis = FakeRedis()
-    store = ThreadOwnershipStore(redis_client=redis, ttl_seconds=600, key_prefix="agents:thread")
-    store.save(thread_id="thr_01", user_id=3001)
+def test_thread_ownership_rejects_other_user_from_repository_record():
+    repository = InMemoryThreadRepository()
+    service = ThreadService(thread_repository=repository, run_repository=InMemoryRunRepository())
+    thread = service.create_thread(user_id=3001, title="订单咨询")
 
-    with pytest.raises(ThreadOwnershipError):
-        store.assert_owner(thread_id="thr_01", user_id=3002)
+    with pytest.raises(ApiError) as exc_info:
+        service.get_thread(user_id=3002, thread_id=thread.id)
+
+    assert exc_info.value.code == "THREAD_NOT_FOUND"

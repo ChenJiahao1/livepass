@@ -7,7 +7,6 @@ from app.api.routes import (
     get_llm,
     get_message_repository,
     get_run_repository,
-    get_thread_ownership_store,
     get_thread_repository,
     get_tool_call_repository,
     get_tool_registry,
@@ -17,64 +16,91 @@ from app.messages.repository import InMemoryMessageRepository
 from app.runs.event_store import InMemoryRunEventStore
 from app.runs.repository import InMemoryRunRepository
 from app.runs.tool_call_repository import InMemoryToolCallRepository
-from app.session.store import ThreadOwnershipStore
 from app.threads.repository import InMemoryThreadRepository
-from tests.fakes import FakeRedis, StubRegistry, build_async_tool
 
 
 class FakePauseRuntime:
-    def __init__(self) -> None:
+    def __init__(self, *, allowed_actions: list[str] | None = None) -> None:
         self.resume_payloads: list[dict] = []
+        self.allowed_actions = allowed_actions or ["approve", "reject", "edit"]
 
-    async def ainvoke(self, state_payload, config, context):
+    async def astream(self, state_payload, config, context, stream_mode):
+        del config
+        del context
+        del stream_mode
         if isinstance(state_payload, Command):
             payload = state_payload.resume if isinstance(state_payload.resume, dict) else {}
             self.resume_payloads.append(payload)
-            if payload.get("action") == "approve":
-                return {
-                    "final_reply": "订单 ORD-1 已提交退款，退款金额 100。",
-                    "current_agent": "refund",
-                    "need_handoff": False,
-                    "route_source": "rule",
-                    "refund_result": {"order_id": "ORD-1", "accepted": True, "refund_amount": "100"},
-                }
-            return {
-                "final_reply": "已取消本次退款操作。",
-                "current_agent": "refund",
-                "need_handoff": False,
-                "route_source": "rule",
-                "refund_result": None,
-            }
-        return {
-            "final_reply": "订单预览完成",
-            "current_agent": "refund",
-            "need_handoff": False,
-            "route_source": "rule",
-            "tool_call": {
-                "toolName": "human_approval",
-                "args": {
-                    "action": "refund_order",
-                    "orderId": "ORD-1",
-                    "values": {"order_id": "ORD-1", "reason": "用户发起退款", "user_id": "3001"},
-                },
-                "request": {"title": "退款前确认", "description": "订单 ORD-1 预计退款 100", "riskLevel": "medium"},
+            if payload == {"decisions": [{"type": "approve"}]}:
+                yield ("messages", {"delta": "订单 ORD-1 已提交退款，退款金额 100。"})
+                return
+            if payload == {
+                "decisions": [
+                    {
+                        "type": "edit",
+                        "edited_action": {
+                            "name": "refund_order",
+                            "args": {
+                                "order_id": "ORD-1",
+                                "reason": "客服改成退全款",
+                                "user_id": "3001",
+                            },
+                        },
+                    }
+                ]
+            }:
+                yield ("messages", {"delta": "订单 ORD-1 已提交退款，退款金额 100。"})
+                return
+            yield ("messages", {"delta": "已取消本次退款操作。"})
+            return
+
+        yield ("messages", {"delta": "订单预览完成"})
+        yield (
+            "updates",
+            {
+                "__interrupt__": (
+                    _FakeInterrupt(
+                        {
+                            "toolName": "human_approval",
+                            "args": {
+                                "action": "refund_order",
+                                "orderId": "ORD-1",
+                                "values": {
+                                    "order_id": "ORD-1",
+                                    "reason": "用户发起退款",
+                                    "user_id": "3001",
+                                },
+                            },
+                            "request": {
+                                "title": "退款前确认",
+                                "description": "订单 ORD-1 预计退款 100",
+                                "allowedActions": list(self.allowed_actions),
+                            },
+                        }
+                    ),
+                )
             },
-        }
+        )
+
+    async def ainvoke(self, state_payload, config, context):
+        del state_payload
+        del config
+        del context
+        raise AssertionError("run runtime should use astream")
 
 
-def build_client() -> tuple[TestClient, InMemoryToolCallRepository, FakePauseRuntime]:
+class _FakeInterrupt:
+    def __init__(self, value: dict) -> None:
+        self.value = value
+
+
+def build_client(*, allowed_actions: list[str] | None = None) -> tuple[TestClient, InMemoryToolCallRepository, FakePauseRuntime]:
+    runtime = FakePauseRuntime(allowed_actions=allowed_actions)
     thread_repository = InMemoryThreadRepository()
     message_repository = InMemoryMessageRepository()
     run_repository = InMemoryRunRepository()
     event_store = InMemoryRunEventStore()
     tool_call_repository = InMemoryToolCallRepository()
-    ownership_store = ThreadOwnershipStore(
-        redis_client=FakeRedis(),
-        ttl_seconds=600,
-        key_prefix="agents:thread",
-    )
-
-    runtime = FakePauseRuntime()
     app = create_app()
     app.dependency_overrides[get_agent_runtime] = lambda: runtime
     app.dependency_overrides[get_thread_repository] = lambda: thread_repository
@@ -82,127 +108,194 @@ def build_client() -> tuple[TestClient, InMemoryToolCallRepository, FakePauseRun
     app.dependency_overrides[get_run_repository] = lambda: run_repository
     app.dependency_overrides[get_event_store] = lambda: event_store
     app.dependency_overrides[get_tool_call_repository] = lambda: tool_call_repository
-    app.dependency_overrides[get_thread_ownership_store] = lambda: ownership_store
-    app.dependency_overrides[get_tool_registry] = lambda: StubRegistry()
+    app.dependency_overrides[get_tool_registry] = lambda: object()
     app.dependency_overrides[get_llm] = lambda: object()
     return TestClient(app), tool_call_repository, runtime
 
 
-def test_resume_waiting_human_tool_call_restarts_same_run():
-    client, tool_call_repository, _runtime = build_client()
+def create_thread(client: TestClient) -> str:
+    response = client.post("/agent/threads", headers={"X-User-Id": "3001"}, json={"title": "退款咨询"})
+    assert response.status_code == 200
+    return response.json()["thread"]["id"]
+
+
+def test_resume_waiting_human_tool_call_restarts_same_run_and_thread():
+    client, tool_call_repository, runtime = build_client()
+    thread_id = create_thread(client)
     created = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "我要退款"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "metadata": {},
+        },
     ).json()
     tool_call_id = next(iter(tool_call_repository._tool_calls.keys()))
 
     response = client.post(
-        f"/agent/runs/{created['runId']}/tool-calls/{tool_call_id}/resume",
+        f"/agent/runs/{created['run']['id']}/tool-calls/{tool_call_id}/resume",
         headers={"X-User-Id": "3001"},
         json={"action": "approve", "reason": "同意退款", "values": {}},
     )
 
     assert response.status_code == 200
-    assert response.json()["run"]["id"] == created["runId"]
-    assert response.json()["run"]["status"] == "completed"
+    assert response.json()["run"]["id"] == created["run"]["id"]
+    assert response.json()["run"]["threadId"] == thread_id
+    assert runtime.resume_payloads == [{"decisions": [{"type": "approve"}]}]
 
 
-def test_cancel_requires_action_run_returns_cancelled():
-    client, _tool_call_repository, _runtime = build_client()
+def test_cancel_completed_run_returns_run_not_active():
+    client, tool_call_repository, _runtime = build_client()
+    thread_id = create_thread(client)
     created = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "我要退款"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "metadata": {},
+        },
     ).json()
+    tool_call_id = next(iter(tool_call_repository._tool_calls.keys()))
 
-    response = client.post(
-        f"/agent/runs/{created['runId']}/cancel",
+    resume_response = client.post(
+        f"/agent/runs/{created['run']['id']}/tool-calls/{tool_call_id}/resume",
+        headers={"X-User-Id": "3001"},
+        json={"action": "approve", "reason": "同意退款", "values": {}},
+    )
+    assert resume_response.status_code == 200
+
+    cancel_response = client.post(
+        f"/agent/runs/{created['run']['id']}/cancel",
         headers={"X-User-Id": "3001"},
     )
 
-    assert response.status_code == 200
-    assert response.json()["run"]["status"] == "cancelled"
-
-
-def test_resume_with_foreign_tool_call_returns_client_error():
-    client, tool_call_repository, _runtime = build_client()
-    first = client.post(
-        "/agent/runs",
-        headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "我要退款 A"}]}]},
-    ).json()
-    second = client.post(
-        "/agent/runs",
-        headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "我要退款 B"}]}]},
-    ).json()
-    tool_call_ids = list(tool_call_repository._tool_calls.keys())
-
-    response = client.post(
-        f"/agent/runs/{first['runId']}/tool-calls/{tool_call_ids[-1]}/resume",
-        headers={"X-User-Id": "3001"},
-        json={"action": "approve", "reason": "错单恢复", "values": {}},
-    )
-
-    assert response.status_code in {400, 404, 409}
+    assert cancel_response.status_code == 409
+    assert cancel_response.json()["detail"]["error"]["code"] == "RUN_NOT_ACTIVE"
 
 
 def test_resume_completed_run_is_idempotent_for_same_action():
     client, tool_call_repository, runtime = build_client()
+    thread_id = create_thread(client)
     created = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "我要退款"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "metadata": {},
+        },
     ).json()
     tool_call_id = next(iter(tool_call_repository._tool_calls.keys()))
 
     first_response = client.post(
-        f"/agent/runs/{created['runId']}/tool-calls/{tool_call_id}/resume",
+        f"/agent/runs/{created['run']['id']}/tool-calls/{tool_call_id}/resume",
         headers={"X-User-Id": "3001"},
         json={"action": "approve", "reason": "同意退款", "values": {}},
     )
     assert first_response.status_code == 200
 
     second_response = client.post(
-        f"/agent/runs/{created['runId']}/tool-calls/{tool_call_id}/resume",
+        f"/agent/runs/{created['run']['id']}/tool-calls/{tool_call_id}/resume",
         headers={"X-User-Id": "3001"},
         json={"action": "approve", "reason": "重复恢复", "values": {}},
     )
 
     assert second_response.status_code == 200
     assert second_response.json()["run"]["status"] == "completed"
-    assert runtime.resume_payloads == [
-        {
-            "action": "approve",
-            "reason": "同意退款",
-            "values": {
-                "order_id": "ORD-1",
-                "reason": "用户发起退款",
-                "user_id": "3001",
-            },
-        }
-    ]
+    assert len(runtime.resume_payloads) == 1
 
 
-def test_cancel_cancelled_run_is_idempotent():
-    client, _tool_call_repository, _runtime = build_client()
+def test_resume_edit_maps_to_langgraph_edited_action_payload():
+    client, tool_call_repository, runtime = build_client()
+    thread_id = create_thread(client)
     created = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "我要退款"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "metadata": {},
+        },
     ).json()
+    tool_call_id = next(iter(tool_call_repository._tool_calls.keys()))
+
+    response = client.post(
+        f"/agent/runs/{created['run']['id']}/tool-calls/{tool_call_id}/resume",
+        headers={"X-User-Id": "3001"},
+        json={"action": "edit", "reason": "改参数", "values": {"reason": "客服改成退全款"}},
+    )
+
+    assert response.status_code == 200
+    assert runtime.resume_payloads[-1] == {
+        "decisions": [
+            {
+                "type": "edit",
+                "edited_action": {
+                    "name": "refund_order",
+                    "args": {
+                        "order_id": "ORD-1",
+                        "reason": "客服改成退全款",
+                        "user_id": "3001",
+                    },
+                },
+            }
+        ]
+    }
+
+
+def test_resume_rejects_action_not_in_allowed_actions():
+    client, tool_call_repository, _runtime = build_client(allowed_actions=["approve", "reject"])
+    thread_id = create_thread(client)
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "metadata": {},
+        },
+    ).json()
+    tool_call_id = next(iter(tool_call_repository._tool_calls.keys()))
+
+    response = client.post(
+        f"/agent/runs/{created['run']['id']}/tool-calls/{tool_call_id}/resume",
+        headers={"X-User-Id": "3001"},
+        json={"action": "edit", "reason": "不允许编辑", "values": {"reason": "x"}},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["error"]["code"] == "TOOL_CALL_DECISION_NOT_ALLOWED"
+
+
+def test_create_run_rejects_second_active_run_with_conflict_details():
+    client, _tool_call_repository, _runtime = build_client()
+    thread_id = create_thread(client)
 
     first_response = client.post(
-        f"/agent/runs/{created['runId']}/cancel",
+        "/agent/runs",
         headers={"X-User-Id": "3001"},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "第一次发起"}]},
+            "metadata": {},
+        },
     )
     assert first_response.status_code == 200
+    first_run_id = first_response.json()["run"]["id"]
 
     second_response = client.post(
-        f"/agent/runs/{created['runId']}/cancel",
+        "/agent/runs",
         headers={"X-User-Id": "3001"},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "第二次发起"}]},
+            "metadata": {},
+        },
     )
 
-    assert second_response.status_code == 200
-    assert second_response.json()["run"]["status"] == "cancelled"
+    assert second_response.status_code == 409
+    assert second_response.json()["detail"]["error"]["code"] == "ACTIVE_RUN_EXISTS"
+    assert second_response.json()["detail"]["error"]["details"]["threadId"] == thread_id
+    assert second_response.json()["detail"]["error"]["details"]["activeRunId"] == first_run_id

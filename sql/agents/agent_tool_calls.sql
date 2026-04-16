@@ -1,11 +1,13 @@
 CREATE TABLE IF NOT EXISTS agent_tool_calls (
   id varchar(64) PRIMARY KEY,
   run_id varchar(64) NOT NULL,
+  message_id varchar(64) NOT NULL,
   thread_id varchar(64) NOT NULL,
   user_id bigint NOT NULL,
   tool_name varchar(128) NOT NULL,
   status varchar(32) NOT NULL,
   arguments_json json NOT NULL,
+  request_json json NOT NULL,
   output_json json NULL,
   error_json json NULL,
   created_at datetime(3) NOT NULL,
