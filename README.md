@@ -7,6 +7,12 @@
 - `README.md` 面向项目开发者，说明项目定位、架构分层、目录结构、启动方式、测试方式与联调入口。
 - `AGENTS.md` 面向仓库内使用的 AI agent，约束代码生成、命名、目录组织与工作方式。
 
+## 关联前端仓库
+
+- 当前配套前端项目路径：`/home/chenjiahao/code/project/damai-web`
+- 当前后端项目路径：`/home/chenjiahao/code/project/damai-go`
+- 前后端联调、接口契约确认与 `agents` LocalRuntime 对接时，默认以上两个目录是一组对应工程
+
 ## 当前架构
 
 当前项目采用三层职责划分：
