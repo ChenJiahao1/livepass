@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS agent_tool_calls (
   message_id varchar(64) NOT NULL,
   thread_id varchar(64) NOT NULL,
   user_id bigint NOT NULL,
+  message_id varchar(64) NULL,
   tool_name varchar(128) NOT NULL,
   status varchar(32) NOT NULL,
   arguments_json json NOT NULL,

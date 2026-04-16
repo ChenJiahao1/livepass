@@ -99,10 +99,24 @@ class AgentRuntimeService:
             should_stop=should_stop,
         )
 
-    async def _invoke_runtime(self, *, payload: Any, thread_id: str, user_id: int) -> dict[str, Any]:
+    async def _invoke_runtime(
+        self,
+        *,
+        payload: Any,
+        thread_id: str,
+        user_id: int,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
         config = {"configurable": {"thread_id": thread_id}}
+        registry = self.registry
+        if run_id and hasattr(registry, "bind_context"):
+            registry = registry.bind_context(
+                user_id=str(user_id),
+                thread_id=thread_id,
+                run_id=run_id,
+            )
         context = {
-            "registry": self.registry,
+            "registry": registry,
             "llm": self.llm,
             "knowledge_service": self.knowledge_service,
             "current_user_id": str(user_id),
@@ -129,8 +143,15 @@ class AgentRuntimeService:
         result = AgentRuntimeRunResult()
         if hasattr(self.agent_runtime, "astream"):
             config = {"configurable": {"thread_id": run.thread_id}}
+            registry = self.registry
+            if hasattr(registry, "bind_context"):
+                registry = registry.bind_context(
+                    user_id=str(run.user_id),
+                    thread_id=run.thread_id,
+                    run_id=run.id,
+                )
             context = {
-                "registry": self.registry,
+                "registry": registry,
                 "llm": self.llm,
                 "knowledge_service": self.knowledge_service,
                 "current_user_id": str(run.user_id),

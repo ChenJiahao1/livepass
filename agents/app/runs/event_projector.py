@@ -149,17 +149,18 @@ class RunEventProjector:
             run_id=run.id,
         )
         tool_call_id = new_tool_call_id()
+        message_id = str(run.metadata.get("assistantMessageId", "")) or None
         record = ToolCallRecord(
             id=tool_call_id,
             run_id=run.id,
-            message_id=run.assistant_message_id,
             thread_id=run.thread_id,
             user_id=run.user_id,
+            message_id=message_id or run.assistant_message_id,
             tool_name=tool_name,
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
             arguments=dict(args),
-            request=dict(request),
-            output=None,
+            human_request=dict(request),
+            result=None,
             error=None,
             created_at=run.started_at,
             updated_at=run.started_at,
@@ -181,7 +182,7 @@ class RunEventProjector:
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_CREATED,
             payload=projected_payload,
-            message_id=run.assistant_message_id,
+            message_id=record.message_id,
             tool_call_id=tool_call_id,
             now=run.started_at,
         )
@@ -210,7 +211,7 @@ class RunEventProjector:
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
             payload={**projected_payload, "metadata": metadata or {}, "status": "waiting_human"},
-            message_id=run.assistant_message_id,
+            message_id=self._message_id_for_tool_call(tool_call_id) or run.assistant_message_id,
             tool_call_id=tool_call_id,
             now=run.started_at,
         )
@@ -234,7 +235,7 @@ class RunEventProjector:
         self.tool_call_repository.update_status(
             tool_call_id=tool_call_id,
             status="completed",
-            output=output,
+            result=output,
             error=None,
             now=now,
         )
@@ -285,7 +286,7 @@ class RunEventProjector:
         self.tool_call_repository.update_status(
             tool_call_id=tool_call_id,
             status="failed",
-            output=None,
+            result=None,
             error=error,
             now=now,
         )
@@ -450,3 +451,9 @@ class RunEventProjector:
             now=now,
         )
         self.event_bus.publish(run_id=record.run_id, sequence_no=record.sequence_no)
+
+    def _message_id_for_tool_call(self, tool_call_id: str) -> str | None:
+        if not tool_call_id:
+            return None
+        tool_call = self.tool_call_repository.find_by_id(tool_call_id=tool_call_id)
+        return tool_call.message_id if tool_call is not None else None

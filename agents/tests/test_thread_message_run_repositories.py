@@ -141,12 +141,12 @@ def test_tool_call_repository_updates_waiting_human_to_completed():
             run_id="run_01",
             thread_id="thr_01",
             user_id=3001,
-            message_id="msg_01",
+            message_id="msg_asst_01",
             tool_name="human_approval",
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
             arguments={"title": "退款前确认"},
-            request={"title": "退款前确认"},
-            output=None,
+            human_request={"title": "退款前确认", "allowedActions": ["approve", "reject"]},
+            result=None,
             error=None,
             created_at=NOW1,
             updated_at=NOW1,
@@ -158,19 +158,19 @@ def test_tool_call_repository_updates_waiting_human_to_completed():
     updated = repo.update_status(
         tool_call_id="tool_01",
         status=TOOL_CALL_STATUS_COMPLETED,
-        output={"action": "approve"},
+        result={"action": "approve"},
         error=None,
         now=NOW2,
     )
 
     assert updated is not None
     assert updated.status == TOOL_CALL_STATUS_COMPLETED
-    assert updated.output == {"action": "approve"}
+    assert updated.message_id == "msg_asst_01"
+    assert updated.human_request == {"title": "退款前确认", "allowedActions": ["approve", "reject"]}
+    assert updated.result == {"action": "approve"}
     assert updated.error is None
     assert updated.completed_at == NOW2
     assert updated.updated_at == NOW2
-    assert updated.message_id == "msg_01"
-    assert updated.metadata.get("request") is None
 
 
 def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
@@ -189,11 +189,11 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
             run_id="run_01",
             thread_id="thr_01",
             user_id=3001,
-            message_id="msg_done",
+            message_id="msg_asst_01",
             tool_name="human_approval",
             status=TOOL_CALL_STATUS_COMPLETED,
             arguments={},
-            request={},
+            human_request={},
             completed_at=NOW1,
             created_at=NOW1,
             updated_at=NOW1,
@@ -205,11 +205,11 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
             run_id="run_01",
             thread_id="thr_01",
             user_id=3001,
-            message_id="msg_waiting",
+            message_id="msg_asst_01",
             tool_name="human_approval",
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
             arguments={"action": "refund_order"},
-            request={"title": "退款前确认"},
+            human_request={"title": "退款前确认", "allowedActions": ["approve", "reject"]},
             created_at=NOW1,
             updated_at=NOW1,
         )
@@ -220,8 +220,8 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
 
     assert waiting is not None
     assert waiting.id == "tool_waiting"
-    assert waiting.message_id == "msg_waiting"
-    assert waiting.metadata.get("request") is None
+    assert waiting.message_id == "msg_asst_01"
+    assert waiting.human_request == {"title": "退款前确认", "allowedActions": ["approve", "reject"]}
     assert cancelled is not None
     assert cancelled.status == TOOL_CALL_STATUS_CANCELLED
     assert cancelled.completed_at == NOW2
