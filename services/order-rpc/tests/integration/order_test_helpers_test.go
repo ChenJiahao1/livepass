@@ -1089,7 +1089,7 @@ func (f *fakeOrderProgramRPC) PagePrograms(ctx context.Context, in *programrpc.P
 	return nil, nil
 }
 
-func (f *fakeOrderProgramRPC) GetProgramDetail(ctx context.Context, in *programrpc.GetProgramDetailReq, opts ...grpc.CallOption) (*programrpc.ProgramDetailInfo, error) {
+func (f *fakeOrderProgramRPC) GetProgramDetailView(ctx context.Context, in *programrpc.GetProgramDetailViewReq, opts ...grpc.CallOption) (*programrpc.ProgramDetailViewInfo, error) {
 	return nil, nil
 }
 
