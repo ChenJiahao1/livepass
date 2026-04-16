@@ -1,196 +1,195 @@
-import json
+from datetime import datetime, timezone
 
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
-from app.api.routes import get_agent_runtime, get_llm, get_session_store, get_tool_registry
-from app.config import get_settings
+from app.api.schemas import CreateThreadResponse, SendMessageRequest, ThreadDTO
+from app.api.routes import (
+    get_agent_runtime,
+    get_llm,
+    get_message_repository,
+    get_run_repository,
+    get_thread_ownership_store,
+    get_thread_repository,
+    get_tool_registry,
+)
 from app.main import create_app
-from app.session.store import ConversationStateStore
+from app.messages.repository import InMemoryMessageRepository
+from app.runs.repository import InMemoryRunRepository
+from app.session.store import ThreadOwnershipStore
+from app.threads.repository import InMemoryThreadRepository
+from tests.fakes import FakeRedis
 
 
-class FakeRedis:
-    def __init__(self):
-        self.values: dict[str, str] = {}
+def test_create_thread_response_uses_thread_resource_shape():
+    thread = ThreadDTO(
+        id="thr_01",
+        title="新会话",
+        status="active",
+        created_at=datetime(2026, 4, 16, 10, 0, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 4, 16, 10, 0, tzinfo=timezone.utc),
+        last_message_at=None,
+        metadata={},
+    )
 
-    def get(self, key: str):
-        return self.values.get(key)
+    body = CreateThreadResponse(thread=thread).model_dump(by_alias=True)
 
-    def set(self, key: str, value: str):
-        self.values[key] = value
-        return True
+    assert set(body.keys()) == {"thread"}
+    assert body["thread"]["id"] == "thr_01"
+    assert body["thread"]["lastMessageAt"] is None
 
-    def expire(self, key: str, ttl_seconds: int):
-        return True
+
+def test_send_message_request_rejects_non_user_role():
+    with pytest.raises(ValidationError):
+        SendMessageRequest.model_validate(
+            {"message": {"role": "assistant", "parts": [{"type": "text", "text": "x"}]}}
+        )
 
 
 class FakeAgentRuntime:
-    def __init__(self):
+    def __init__(self) -> None:
         self.calls: list[dict] = []
 
     async def ainvoke(self, state_payload, config, context):
         self.calls.append({"state": state_payload, "config": config, "context": context})
         message = state_payload["messages"][-1]["content"]
-        if "人工" in message:
-            return {
-                **state_payload,
-                "reply": "已为你转接人工客服，请稍候。",
-                "current_agent": "handoff",
-                "need_handoff": True,
-            }
-        if "退款预览" in message:
-            return {
-                **state_payload,
-                "final_reply": "订单 ORD-10001 当前可退款，预计退款 99.00。是否确认退款？",
-                "current_agent": "refund",
-                "need_handoff": False,
-            }
         return {
             **state_payload,
             "final_reply": f"已处理：{message}",
             "current_agent": "order",
             "need_handoff": False,
+            "route_source": "rule",
         }
 
 
-def build_test_app():
+def build_thread_test_client() -> tuple[TestClient, FakeAgentRuntime]:
     agent_runtime = FakeAgentRuntime()
-    store = ConversationStateStore(redis_client=FakeRedis(), ttl_seconds=600)
-    app = create_app()
-    app.dependency_overrides[get_agent_runtime] = lambda: agent_runtime
-    app.dependency_overrides[get_session_store] = lambda: store
-    app.dependency_overrides[get_tool_registry] = lambda: object()
-    app.dependency_overrides[get_llm] = lambda: object()
-    return app, agent_runtime, store
-
-
-def test_chat_requires_user_header():
-    client = TestClient(create_app())
-
-    response = client.post("/agent/chat", json={"message": "你好，帮我查订单"})
-
-    assert response.status_code in {400, 401}
-
-
-def test_chat_requires_configured_llm(monkeypatch, tmp_path):
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.chdir(tmp_path)
-    get_settings.cache_clear()
-    get_llm.cache_clear()
-    app = create_app()
-    app.dependency_overrides[get_session_store] = lambda: ConversationStateStore(
+    thread_repository = InMemoryThreadRepository()
+    message_repository = InMemoryMessageRepository()
+    run_repository = InMemoryRunRepository()
+    ownership_store = ThreadOwnershipStore(
         redis_client=FakeRedis(),
         ttl_seconds=600,
-    )
-    client = TestClient(app)
-
-    response = client.post(
-        "/agent/chat",
-        headers={"X-User-Id": "3001"},
-        json={"message": "帮我查订单"},
+        key_prefix="agents:thread",
     )
 
-    assert response.status_code == 503
-    assert "OPENAI_API_KEY" in response.json()["detail"]
-    get_settings.cache_clear()
-    get_llm.cache_clear()
+    app = create_app()
+    app.dependency_overrides[get_agent_runtime] = lambda: agent_runtime
+    app.dependency_overrides[get_thread_repository] = lambda: thread_repository
+    app.dependency_overrides[get_message_repository] = lambda: message_repository
+    app.dependency_overrides[get_run_repository] = lambda: run_repository
+    app.dependency_overrides[get_thread_ownership_store] = lambda: ownership_store
+    app.dependency_overrides[get_tool_registry] = lambda: object()
+    app.dependency_overrides[get_llm] = lambda: object()
+    return TestClient(app), agent_runtime
 
 
-def test_chat_api_injects_thread_and_user_context():
-    app, agent_runtime, _store = build_test_app()
-    client = TestClient(app)
+def test_create_thread_allows_empty_thread_but_list_hides_it():
+    client, _runtime = build_thread_test_client()
 
-    response = client.post(
-        "/agent/chat",
-        headers={"X-User-Id": "3001"},
-        json={"message": "帮我查订单"},
-    )
+    created = client.post("/agent/threads", headers={"X-User-Id": "3001"}, json={})
+    listed = client.get("/agent/threads", headers={"X-User-Id": "3001"})
+
+    assert created.status_code == 200
+    assert created.json()["thread"]["id"].startswith("thr_")
+    assert created.json()["thread"]["lastMessageAt"] is None
+    assert listed.status_code == 200
+    assert listed.json() == {"threads": [], "nextCursor": None}
+
+
+def test_get_missing_thread_returns_error_shape():
+    client, _runtime = build_thread_test_client()
+
+    response = client.get("/agent/threads/thr_missing", headers={"X-User-Id": "3001"})
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["error"]["code"] == "THREAD_NOT_FOUND"
+
+
+def test_get_thread_for_other_user_returns_forbidden():
+    client, _runtime = build_thread_test_client()
+    thread_id = client.post("/agent/threads", headers={"X-User-Id": "3001"}, json={}).json()["thread"]["id"]
+
+    response = client.get(f"/agent/threads/{thread_id}", headers={"X-User-Id": "3002"})
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["error"]["code"] == "FORBIDDEN"
+
+
+def test_message_list_returns_recent_limit_ascending():
+    client, _runtime = build_thread_test_client()
+    thread_id = client.post("/agent/threads", headers={"X-User-Id": "3001"}, json={}).json()["thread"]["id"]
+    for index in range(3):
+        client.post(
+            f"/agent/threads/{thread_id}/messages",
+            headers={"X-User-Id": "3001"},
+            json={"message": {"role": "user", "parts": [{"type": "text", "text": f"第{index}条"}]}},
+        )
+
+    response = client.get(f"/agent/threads/{thread_id}/messages?limit=2", headers={"X-User-Id": "3001"})
 
     assert response.status_code == 200
-    body = response.json()
-    assert agent_runtime.calls[0]["config"]["configurable"]["thread_id"] == body["conversationId"]
-    assert agent_runtime.calls[0]["context"]["current_user_id"] == "3001"
-    assert "session_state" not in agent_runtime.calls[0]["context"]
-    assert body["status"] == "completed"
-    assert body["reply"] == "已处理：帮我查订单"
+    assert len(response.json()["messages"]) == 2
+    assert response.json()["messages"][0]["createdAt"] <= response.json()["messages"][1]["createdAt"]
 
 
-def test_chat_api_maps_reply_fallback_and_handoff_status():
-    app, _agent_runtime, _store = build_test_app()
-    client = TestClient(app)
+def test_thread_list_supports_cursor_paging():
+    client, _runtime = build_thread_test_client()
 
-    response = client.post(
-        "/agent/chat",
+    first_thread_id = client.post("/agent/threads", headers={"X-User-Id": "3001"}, json={}).json()["thread"]["id"]
+    client.post(
+        f"/agent/threads/{first_thread_id}/messages",
         headers={"X-User-Id": "3001"},
-        json={"message": "我要人工客服"},
+        json={"message": {"role": "user", "parts": [{"type": "text", "text": "第一条"}]}},
     )
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "handoff"
-    assert body["reply"] == "已为你转接人工客服，请稍候。"
-
-
-def test_chat_api_reuses_conversation_id_and_starts_new_agent_turn_each_request():
-    app, agent_runtime, _store = build_test_app()
-    client = TestClient(app)
-
-    first = client.post(
-        "/agent/chat",
+    second_thread_id = client.post("/agent/threads", headers={"X-User-Id": "3001"}, json={}).json()["thread"]["id"]
+    client.post(
+        f"/agent/threads/{second_thread_id}/messages",
         headers={"X-User-Id": "3001"},
-        json={"message": "帮我查订单"},
-    )
-    second = client.post(
-        "/agent/chat",
-        headers={"X-User-Id": "3001"},
-        json={"message": "订单 93001 可以退款吗", "conversationId": first.json()["conversationId"]},
+        json={"message": {"role": "user", "parts": [{"type": "text", "text": "第二条"}]}},
     )
 
-    assert first.status_code == 200
-    assert second.status_code == 200
-    assert second.json()["conversationId"] == first.json()["conversationId"]
-    assert agent_runtime.calls[0]["config"]["configurable"]["thread_id"] == first.json()["conversationId"]
-    assert agent_runtime.calls[1]["config"]["configurable"]["thread_id"] == first.json()["conversationId"]
-    assert agent_runtime.calls[0]["state"]["messages"] == [{"role": "user", "content": "帮我查订单"}]
-    assert agent_runtime.calls[1]["state"]["messages"] == [{"role": "user", "content": "订单 93001 可以退款吗"}]
+    first_page = client.get("/agent/threads?limit=1", headers={"X-User-Id": "3001"})
 
-def test_chat_api_keeps_context_minimal_for_graph_runtime():
-    app, agent_runtime, _store = build_test_app()
-    client = TestClient(app)
+    assert first_page.status_code == 200
+    assert len(first_page.json()["threads"]) == 1
+    assert first_page.json()["nextCursor"] is not None
 
-    first = client.post(
-        "/agent/chat",
+    second_page = client.get(
+        "/agent/threads",
         headers={"X-User-Id": "3001"},
-        json={"message": "帮我做退款预览"},
-    )
-    second = client.post(
-        "/agent/chat",
-        headers={"X-User-Id": "3001"},
-        json={"message": "确认退款", "conversationId": first.json()["conversationId"]},
+        params={"limit": 1, "cursor": first_page.json()["nextCursor"]},
     )
 
-    assert first.status_code == 200
-    assert second.status_code == 200
-    assert "session_state" not in agent_runtime.calls[0]["context"]
-    assert "session_state" not in agent_runtime.calls[1]["context"]
+    assert second_page.status_code == 200
+    assert len(second_page.json()["threads"]) == 1
+    assert second_page.json()["threads"][0]["id"] != first_page.json()["threads"][0]["id"]
 
 
-def test_chat_stream_emits_sse_events_and_reuses_chat_context():
-    app, agent_runtime, _store = build_test_app()
-    client = TestClient(app)
+def test_message_list_supports_before_cursor():
+    client, _runtime = build_thread_test_client()
+    thread_id = client.post("/agent/threads", headers={"X-User-Id": "3001"}, json={}).json()["thread"]["id"]
+    for index in range(3):
+        client.post(
+            f"/agent/threads/{thread_id}/messages",
+            headers={"X-User-Id": "3001"},
+            json={"message": {"role": "user", "parts": [{"type": "text", "text": f"第{index}条"}]}},
+        )
 
-    with client.stream(
-        "POST",
-        "/agent/chat/stream",
+    first_page = client.get(f"/agent/threads/{thread_id}/messages?limit=2", headers={"X-User-Id": "3001"})
+
+    assert first_page.status_code == 200
+    assert len(first_page.json()["messages"]) == 2
+    assert first_page.json()["nextCursor"] is not None
+
+    second_page = client.get(
+        f"/agent/threads/{thread_id}/messages",
         headers={"X-User-Id": "3001"},
-        json={"message": "帮我查订单"},
-    ) as response:
-        body = "".join(response.iter_text())
+        params={"limit": 2, "before": first_page.json()["nextCursor"]},
+    )
 
-    assert response.status_code == 200
-    assert response.headers["content-type"].startswith("text/event-stream")
-    assert agent_runtime.calls[0]["context"]["current_user_id"] == "3001"
-    conversation_id = agent_runtime.calls[0]["config"]["configurable"]["thread_id"]
-    assert f"data: {json.dumps({'conversationId': conversation_id}, ensure_ascii=False)}" in body
-    assert "event: delta" in body
-    assert "已处理：帮我查订单" in body
-    assert f"data: {json.dumps({'status': 'completed'}, ensure_ascii=False)}" in body
+    assert second_page.status_code == 200
+    assert len(second_page.json()["messages"]) >= 1
+    assert second_page.json()["messages"][-1]["id"] != first_page.json()["messages"][-1]["id"]

@@ -24,3 +24,18 @@ def test_settings_default_rpc_targets_match_local_service_ports():
     assert settings.order_rpc_target == "127.0.0.1:8082"
 
     get_settings.cache_clear()
+
+
+def test_agents_mysql_defaults_are_configured(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("AGENTS_MYSQL_HOST", raising=False)
+    get_settings.cache_clear()
+
+    settings = get_settings()
+
+    assert settings.agents_mysql_host == "127.0.0.1"
+    assert settings.agents_mysql_port == 3306
+    assert settings.agents_mysql_database == "damai_agents"
+    assert settings.agents_thread_default_title == "新会话"
+
+    get_settings.cache_clear()

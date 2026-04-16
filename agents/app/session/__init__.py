@@ -1,11 +1,10 @@
 """Session persistence package."""
 
 from app.session.checkpointer import RedisCheckpointSaver
-from app.session.store import ConversationStateStore, SessionOwnershipError, StoredConversation
+from app.session.store import ThreadOwnershipError, ThreadOwnershipStore
 
 __all__ = [
-    "ConversationStateStore",
     "RedisCheckpointSaver",
-    "SessionOwnershipError",
-    "StoredConversation",
+    "ThreadOwnershipError",
+    "ThreadOwnershipStore",
 ]

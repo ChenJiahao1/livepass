@@ -13,6 +13,7 @@ MYSQL_DB_USER="${MYSQL_DB_USER:-damai_user}"
 MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-damai_program}"
 MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-damai_order}"
 MYSQL_DB_PAY="${MYSQL_DB_PAY:-damai_pay}"
+MYSQL_DB_AGENTS="${MYSQL_DB_AGENTS:-damai_agents}"
 
 USER_SQL_FILES=(
   "sql/user/d_user.sql"
@@ -44,6 +45,12 @@ ORDER_SQL_FILES=(
 PAY_SQL_FILES=(
   "sql/pay/d_pay_bill.sql"
   "sql/pay/d_refund_bill.sql"
+)
+
+AGENTS_SQL_FILES=(
+  "sql/agents/agent_threads.sql"
+  "sql/agents/agent_messages.sql"
+  "sql/agents/agent_runs.sql"
 )
 
 log() {
@@ -126,6 +133,9 @@ main() {
         ;;
       pay)
         import_domain "pay" "${MYSQL_DB_PAY}" "${PAY_SQL_FILES[@]}"
+        ;;
+      agents)
+        import_domain "agents" "${MYSQL_DB_AGENTS}" "${AGENTS_SQL_FILES[@]}"
         ;;
       "")
         ;;

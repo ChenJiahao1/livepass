@@ -611,7 +611,7 @@ func TestGatewayForwardsAuthorizedPayRequests(t *testing.T) {
 	}
 }
 
-func TestGatewayBlocksUnauthorizedAgentRequest(t *testing.T) {
+func TestGatewayBlocksUnauthorizedAgentThreadRequest(t *testing.T) {
 	t.Parallel()
 
 	userAPI := httptest.NewServer(http.NotFoundHandler())
@@ -636,7 +636,7 @@ func TestGatewayBlocksUnauthorizedAgentRequest(t *testing.T) {
 	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000, agentsAPI.URL))
 	defer server.Stop()
 
-	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/chat", nil, bytes.NewBufferString(`{"message":"hi"}`))
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/threads", nil, bytes.NewBufferString(`{}`))
 	defer resp.Body.Close()
 
 	if called {
@@ -647,7 +647,7 @@ func TestGatewayBlocksUnauthorizedAgentRequest(t *testing.T) {
 	}
 }
 
-func TestGatewayForwardsAuthorizedAgentRequestWithUserHeader(t *testing.T) {
+func TestGatewayForwardsAuthorizedAgentThreadRequestWithUserHeader(t *testing.T) {
 	t.Parallel()
 
 	userAPI := httptest.NewServer(http.NotFoundHandler())
@@ -668,7 +668,7 @@ func TestGatewayForwardsAuthorizedAgentRequestWithUserHeader(t *testing.T) {
 		gotPath = r.URL.Path
 		gotUserHeader = r.Header.Get("X-User-Id")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"service":"agents"}`))
+		_, _ = w.Write([]byte(`{"thread":{"id":"thr_01"}}`))
 	}))
 	defer agentsAPI.Close()
 
@@ -678,7 +678,7 @@ func TestGatewayForwardsAuthorizedAgentRequestWithUserHeader(t *testing.T) {
 	headers := map[string]string{
 		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 	}
-	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/chat", headers, bytes.NewBufferString(`{"message":"hi"}`))
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/threads", headers, bytes.NewBufferString(`{}`))
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -688,13 +688,13 @@ func TestGatewayForwardsAuthorizedAgentRequestWithUserHeader(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
-	if gotPath != "/agent/chat" {
-		t.Fatalf("expected upstream path /agent/chat, got %q", gotPath)
+	if gotPath != "/agent/threads" {
+		t.Fatalf("expected upstream path /agent/threads, got %q", gotPath)
 	}
 	if gotUserHeader != "3001" {
 		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
 	}
-	if string(body) != `{"service":"agents"}` {
+	if string(body) != `{"thread":{"id":"thr_01"}}` {
 		t.Fatalf("expected agents body, got %s", string(body))
 	}
 }

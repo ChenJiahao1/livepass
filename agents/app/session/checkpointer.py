@@ -1,4 +1,4 @@
-"""Redis-backed LangGraph checkpointer keyed by conversation thread."""
+"""Redis-backed LangGraph checkpointer keyed by resource thread."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def _unpack_typed(value: str) -> tuple[str, bytes]:
 
 
 class RedisCheckpointSaver(BaseCheckpointSaver[str]):
-    """Persist LangGraph checkpoints in Redis using `thread_id=conversation_id`."""
+    """Persist LangGraph checkpoints in Redis using the resource `thread_id`."""
 
     def __init__(
         self,

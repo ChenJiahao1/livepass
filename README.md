@@ -28,7 +28,7 @@ client -> gateway-api -> xxx-api -> xxx-rpc
 - `order`：下单、查单、取消、支付检查、退款、超时关单
 - `pay`：模拟支付、支付单查询、模拟退款
 - `gateway`：统一外部 HTTP 入口
-- `agents`：根级 Python 组件，提供基于 `LangGraph + MCP + Redis` 的 `/agent/chat` 能力
+- `agents`：根级 Python 组件，提供基于 `LangGraph + MCP + Redis + MySQL` 的 `Thread / Message / Run` API
 
 当前明确约束：
 
@@ -70,7 +70,7 @@ damai-go/
 - `user`：注册、登录、用户资料与观演人链路
 - `program`：分类、首页、分页、详情、票档、预下单详情、自动分座冻结
 - `order` / `pay`：下单、查单、取消、模拟支付、退款、超时关单
-- `gateway` / `agents`：统一 HTTP 入口与 `/agent/chat` 联调
+- `gateway` / `agents`：统一 HTTP 入口与 `Thread / Message / Run` 联调
 
 ## 本地依赖
 
@@ -100,7 +100,7 @@ docker compose -f deploy/mysql/docker-compose.sharding.yml up -d
 
 ## 初始化数据
 
-MySQL 容器启动后，执行统一导入脚本初始化 `user/program/order/pay` 域表结构与种子数据：
+MySQL 容器启动后，执行统一导入脚本初始化 `user/program/order/pay/agents` 域表结构与种子数据：
 
 ```bash
 bash scripts/import_sql.sh
@@ -120,7 +120,14 @@ MYSQL_DB_USER=damai_user \
 MYSQL_DB_PROGRAM=damai_program \
 MYSQL_DB_ORDER=damai_order \
 MYSQL_DB_PAY=damai_pay \
+MYSQL_DB_AGENTS=damai_agents \
 bash scripts/import_sql.sh
+```
+
+如果只导入 agents 相关表：
+
+```bash
+IMPORT_DOMAINS=agents bash scripts/import_sql.sh
 ```
 
 ## 运行测试
@@ -203,7 +210,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 - 下单主路径：`docs/api/order-checkout-acceptance.md`
 - 下单失败分支：`docs/api/order-checkout-failure-acceptance.md`
 - 退款主路径：`docs/api/order-refund-acceptance.md`
-- 智能客服联调：`scripts/acceptance/agent_chat.sh`
+- 智能客服联调：`scripts/acceptance/agent_threads.sh`
 
 可执行脚本：
 
@@ -211,7 +218,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 bash scripts/acceptance/order_checkout.sh
 bash scripts/acceptance/order_checkout_failures.sh
 bash scripts/acceptance/order_refund.sh
-JWT=<user-jwt> bash scripts/acceptance/agent_chat.sh
+JWT=<user-jwt> bash scripts/acceptance/agent_threads.sh
 ```
 
 `agents` 契约测试：

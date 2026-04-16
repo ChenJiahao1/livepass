@@ -1,15 +1,9 @@
 from pathlib import Path
 
 
-def test_docs_describe_go_order_provider_and_python_handoff_provider():
+def test_agents_readme_documents_thread_api():
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "/agent/chat" in readme
-    assert "FastAPI + LangGraph + MCP + Redis" in readme
-    assert "coordinator -> supervisor -> specialist" in readme
-    assert "app/session/checkpointer.py" in readme
-    assert "Go `order` MCP provider" in readme
-    assert "Python `handoff` provider" in readme
-    assert "ORDER_MCP_ENDPOINT" in readme
-    assert "不再保留无模型 fallback" in readme
-    assert "KnowledgeService" in readme
+    assert "/agent/threads" in readme
+    assert "/agent/chat" not in readme
+    assert "Thread / Message / Run" in readme

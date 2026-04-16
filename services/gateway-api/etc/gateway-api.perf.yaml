@@ -116,4 +116,16 @@ Upstreams:
       Timeout: 3000
     Mappings:
       - Method: post
-        Path: /agent/chat
+        Path: /agent/threads
+      - Method: get
+        Path: /agent/threads
+      - Method: get
+        Path: /agent/threads/:threadId
+      - Method: patch
+        Path: /agent/threads/:threadId
+      - Method: get
+        Path: /agent/threads/:threadId/messages
+      - Method: post
+        Path: /agent/threads/:threadId/messages
+      - Method: get
+        Path: /agent/threads/:threadId/runs/:runId

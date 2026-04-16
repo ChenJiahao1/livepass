@@ -20,6 +20,7 @@ dependencies = [
   "langgraph>=1.0.2",
   "mcp[cli]>=1.20.0",
   "pydantic-settings>=2.11.0",
+  "pymysql>=1.1.1",
   "pytest>=8.3.0",
   "python-dotenv>=1.1.1",
   "redis>=5.2.0",

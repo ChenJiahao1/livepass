@@ -111,7 +111,13 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 				Timeout: timeout,
 			},
 			Mappings: []gateway.RouteMapping{
-				{Method: http.MethodPost, Path: "/agent/chat"},
+				{Method: http.MethodPost, Path: "/agent/threads"},
+				{Method: http.MethodGet, Path: "/agent/threads"},
+				{Method: http.MethodGet, Path: "/agent/threads/:threadId"},
+				{Method: http.MethodPatch, Path: "/agent/threads/:threadId"},
+				{Method: http.MethodGet, Path: "/agent/threads/:threadId/messages"},
+				{Method: http.MethodPost, Path: "/agent/threads/:threadId/messages"},
+				{Method: http.MethodGet, Path: "/agent/threads/:threadId/runs/:runId"},
 			},
 		})
 	}
