@@ -17,4 +17,5 @@ class ThreadRecord:
     created_at: datetime
     updated_at: datetime
     last_message_at: datetime | None = None
+    active_run_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)

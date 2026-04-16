@@ -14,8 +14,7 @@ class ConversationState(MessagesState):
     selected_order_id: NotRequired[str | None]
     current_user_id: NotRequired[str | None]
     last_refund_preview: NotRequired[dict[str, Any] | None]
-    pending_confirmation: NotRequired[bool]
-    pending_action: NotRequired[str | None]
+    tool_call: NotRequired[dict[str, Any] | None]
     need_handoff: NotRequired[bool]
 
     route: NotRequired[Intent | None]

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from app.common.errors import ApiError, ApiErrorCode
 from app.config import Settings, get_settings
+from app.runs.repository import RunRepository
 from app.session.store import ThreadOwnershipError, ThreadOwnershipStore
 from app.threads.models import THREAD_STATUS_ACTIVE, ThreadRecord
 from app.threads.repository import ThreadRepository
@@ -22,10 +23,12 @@ class ThreadService:
         *,
         thread_repository: ThreadRepository,
         ownership_store: ThreadOwnershipStore,
+        run_repository: RunRepository | None = None,
         settings: Settings | None = None,
     ) -> None:
         self.thread_repository = thread_repository
         self.ownership_store = ownership_store
+        self.run_repository = run_repository
         self.settings = settings or get_settings()
 
     def create_thread(self, *, user_id: int, title: str | None) -> ThreadRecord:
@@ -54,6 +57,7 @@ class ThreadService:
             cursor=cursor,
             include_empty=include_empty,
         )
+        threads = [self._with_active_run(thread) for thread in threads]
         return ThreadListResult(threads=threads, next_cursor=next_cursor)
 
     def get_thread(self, *, user_id: int, thread_id: str) -> ThreadRecord:
@@ -84,7 +88,7 @@ class ThreadService:
                 details={"threadId": thread_id},
             ) from exc
 
-        return thread
+        return self._with_active_run(thread)
 
     def update_title_from_first_message(self, *, thread: ThreadRecord, text: str) -> ThreadRecord:
         title = text.strip()[: self.settings.agents_thread_title_max_length] or self.settings.agents_thread_default_title
@@ -108,4 +112,11 @@ class ThreadService:
                 status=status,
                 now=datetime.now(timezone.utc),
             ) or thread
+        return self._with_active_run(thread)
+
+    def _with_active_run(self, thread: ThreadRecord) -> ThreadRecord:
+        if self.run_repository is None:
+            return thread
+        active_run = self.run_repository.find_active_by_thread(thread_id=thread.id)
+        thread.active_run_id = active_run.id if active_run else None
         return thread

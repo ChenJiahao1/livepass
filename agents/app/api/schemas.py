@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,6 +29,7 @@ class ThreadDTO(ApiSchemaModel):
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
     last_message_at: datetime | None = Field(default=None, alias="lastMessageAt")
+    active_run_id: str | None = Field(default=None, alias="activeRunId")
     metadata: dict = Field(default_factory=dict)
 
 
@@ -84,8 +85,9 @@ class GetThreadResponse(ApiSchemaModel):
     thread: ThreadDTO
 
 
-class SendMessageRequest(ApiSchemaModel):
-    message: MessageInputDTO
+class RunInputMessageDTO(ApiSchemaModel):
+    role: Literal["user"]
+    parts: list[TextPartDTO] = Field(min_length=1)
 
 
 class ListMessagesResponse(ApiSchemaModel):
@@ -93,10 +95,20 @@ class ListMessagesResponse(ApiSchemaModel):
     next_cursor: str | None = Field(default=None, alias="nextCursor")
 
 
-class SendMessageResponse(ApiSchemaModel):
-    run: RunDTO
-    messages: list[MessageDTO] = Field(default_factory=list)
-    thread: ThreadDTO
+class CreateRunRequest(ApiSchemaModel):
+    thread_id: str | None = Field(default=None, alias="threadId")
+    messages: list[RunInputMessageDTO] = Field(min_length=1)
+
+
+class CreateRunResponse(ApiSchemaModel):
+    run_id: str = Field(alias="runId")
+    thread_id: str = Field(alias="threadId")
+
+
+class ResumeToolCallRequest(ApiSchemaModel):
+    action: Literal["approve", "reject", "respond"]
+    reason: str | None = None
+    values: dict[str, Any] = Field(default_factory=dict)
 
 
 class GetRunResponse(ApiSchemaModel):

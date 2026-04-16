@@ -6,6 +6,7 @@ from typing import Any
 
 MESSAGE_ROLE_USER = "user"
 MESSAGE_ROLE_ASSISTANT = "assistant"
+MESSAGE_STATUS_IN_PROGRESS = "in_progress"
 MESSAGE_STATUS_COMPLETED = "completed"
 MESSAGE_STATUS_ERROR = "error"
 

@@ -1,9 +1,8 @@
 """Refund specialist agent."""
 
+from app.agent_runtime.human_tools import human_approval
 from app.agents.base import ToolCallingAgent
 from app.state import ConversationState
-
-CONFIRM_KEYWORDS = ("确认退款", "提交退款", "确认", "继续退款")
 
 
 class RefundAgent(ToolCallingAgent):
@@ -18,30 +17,12 @@ class RefundAgent(ToolCallingAgent):
 
         tools = await self.get_tools()
         current_user_id = state.get("current_user_id")
-        message = self.latest_user_message(state)
         preview = state.get("last_refund_preview") or {}
-        allow_refund = bool(preview.get("allow_refund") or preview.get("allowRefund"))
-        wants_submit = allow_refund and any(keyword in message for keyword in CONFIRM_KEYWORDS)
+        if not preview:
+            preview_tool = self.find_tool(tools, "preview_refund_order")
+        else:
+            preview_tool = None
 
-        if wants_submit:
-            refund_tool = self.find_tool(tools, "refund_order")
-            if refund_tool is not None:
-                payload = {"order_id": order_id, "reason": "用户发起退款"}
-                if current_user_id is not None:
-                    payload["user_id"] = current_user_id
-                result = await refund_tool.ainvoke(payload)
-                refund_amount = result.get("refund_amount") or result.get("refundAmount", "待确认")
-                return self.result(
-                    state,
-                    reply=f"订单 {order_id} 已提交退款，退款金额 {refund_amount}。",
-                    specialist_result=result,
-                    selected_order_id=order_id,
-                    pending_confirmation=False,
-                    pending_action=None,
-                    result_summary="退款已提交",
-                )
-
-        preview_tool = self.find_tool(tools, "preview_refund_order")
         if preview_tool is not None:
             payload = {"order_id": order_id}
             if current_user_id is not None:
@@ -60,14 +41,30 @@ class RefundAgent(ToolCallingAgent):
                     "refund_percent": refund_percent,
                     "reject_reason": preview.get("reject_reason") or preview.get("rejectReason") or "",
                 }
+                tool_call = await human_approval.ainvoke(
+                    {
+                        "title": "退款前确认",
+                        "description": f"订单 {order_id} 预计退款 {refund_amount}",
+                        "riskLevel": "medium",
+                        "action": "refund_order",
+                        "orderId": order_id,
+                        "refundAmount": str(refund_amount),
+                        "values": {
+                            "order_id": order_id,
+                            "reason": "用户发起退款",
+                            "user_id": current_user_id,
+                        },
+                    }
+                )
                 return self.result(
                     state,
                     reply=f"订单 {order_id} 当前可退款，预计退款 {refund_amount}，退款比例 {refund_percent}%。是否确认退款？",
                     specialist_result=preview,
                     selected_order_id=order_id,
                     last_refund_preview=preview_payload,
-                    pending_confirmation=True,
-                    pending_action="refund_submit",
+                    tool_call=tool_call,
+                    status="requires_action",
+                    completed=False,
                     result_summary="退款资格已确认",
                 )
             reject_reason = preview.get("reject_reason") or preview.get("rejectReason") or "当前订单不可退。"
@@ -76,8 +73,6 @@ class RefundAgent(ToolCallingAgent):
                 reply=reject_reason,
                 specialist_result=preview,
                 selected_order_id=order_id,
-                pending_confirmation=False,
-                pending_action=None,
                 result_summary="退款预览拒绝",
             )
 
