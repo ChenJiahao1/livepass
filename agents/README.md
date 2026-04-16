@@ -15,8 +15,11 @@ uv run uvicorn app.main:app --reload
 - `GET /agent/threads/{threadId}`
 - `PATCH /agent/threads/{threadId}`
 - `GET /agent/threads/{threadId}/messages`
-- `POST /agent/threads/{threadId}/messages`
-- `GET /agent/threads/{threadId}/runs/{runId}`
+- `POST /agent/runs`
+- `GET /agent/runs/{runId}`
+- `GET /agent/runs/{runId}/stream`
+- `POST /agent/runs/{runId}/tool-calls/{toolCallId}/resume`
+- `POST /agent/runs/{runId}/cancel`
 
 ## 关键环境变量
 
@@ -45,6 +48,7 @@ ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
 - 线程、消息、运行读模型写入 MySQL `damai_agents`。
 - Redis ownership 已切换为 `threadId -> userId`。
 - 已移除旧 chat demo 接口，不再提供兼容层。
+- 历史消息通过 `GET /agent/threads/{threadId}/messages` 查询，活动态通过 `run_events` 与 `stream` 恢复。
 
 ## 本地联调
 
@@ -60,5 +64,5 @@ uv run uvicorn app.main:app --reload
 ## 测试
 
 ```bash
-uv run pytest tests/test_api.py tests/test_e2e_contract.py tests/test_thread_message_run_repositories.py tests/test_thread_message_run_services.py tests/test_session_store.py tests/test_docs.py tests/test_smoke.py tests/test_config.py -v
+uv run pytest tests/test_api.py tests/test_run_contract_api.py tests/test_run_stream_service.py tests/test_run_executor.py tests/test_run_resume_cancel_api.py tests/test_e2e_contract.py tests/test_thread_message_run_repositories.py tests/test_thread_message_run_services.py tests/test_session_store.py tests/test_docs.py tests/test_smoke.py tests/test_config.py -v
 ```

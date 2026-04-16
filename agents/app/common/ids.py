@@ -13,3 +13,11 @@ def new_message_id() -> str:
 
 def new_run_id() -> str:
     return f"run_{uuid4().hex}"
+
+
+def new_run_event_id() -> str:
+    return f"evt_{uuid4().hex}"
+
+
+def new_tool_call_id() -> str:
+    return f"tool_{uuid4().hex}"

@@ -1,0 +1,156 @@
+from fastapi.testclient import TestClient
+
+from app.api.routes import (
+    get_agent_runtime,
+    get_event_store,
+    get_llm,
+    get_message_repository,
+    get_run_repository,
+    get_thread_ownership_store,
+    get_thread_repository,
+    get_tool_call_repository,
+    get_tool_registry,
+)
+from app.main import create_app
+from app.messages.repository import InMemoryMessageRepository
+from app.runs.event_store import InMemoryRunEventStore
+from app.runs.repository import InMemoryRunRepository
+from app.runs.tool_call_repository import InMemoryToolCallRepository
+from app.session.store import ThreadOwnershipStore
+from app.threads.repository import InMemoryThreadRepository
+from tests.fakes import FakeRedis
+
+
+class FakeAgentRuntime:
+    def __init__(self, *, requires_action: bool = False) -> None:
+        self.requires_action = requires_action
+
+    async def ainvoke(self, state_payload, config, context):
+        message = state_payload["messages"][-1]["content"]
+        if self.requires_action:
+            return {
+                "final_reply": f"订单预览完成：{message}",
+                "current_agent": "refund",
+                "need_handoff": False,
+                "route_source": "rule",
+                "tool_call": {
+                    "toolName": "human_approval",
+                    "arguments": {"action": "refund_order", "orderId": "ORD-1"},
+                },
+            }
+        return {
+            "final_reply": f"已处理：{message}",
+            "current_agent": "order",
+            "need_handoff": False,
+            "route_source": "rule",
+        }
+
+
+class FailingAgentRuntime:
+    async def ainvoke(self, state_payload, config, context):
+        raise RuntimeError("runtime exploded")
+
+
+def build_client(*, requires_action: bool = False, runtime=None) -> TestClient:
+    thread_repository = InMemoryThreadRepository()
+    message_repository = InMemoryMessageRepository()
+    run_repository = InMemoryRunRepository()
+    event_store = InMemoryRunEventStore()
+    tool_call_repository = InMemoryToolCallRepository()
+    ownership_store = ThreadOwnershipStore(
+        redis_client=FakeRedis(),
+        ttl_seconds=600,
+        key_prefix="agents:thread",
+    )
+    app = create_app()
+    app.dependency_overrides[get_agent_runtime] = lambda: runtime or FakeAgentRuntime(requires_action=requires_action)
+    app.dependency_overrides[get_thread_repository] = lambda: thread_repository
+    app.dependency_overrides[get_message_repository] = lambda: message_repository
+    app.dependency_overrides[get_run_repository] = lambda: run_repository
+    app.dependency_overrides[get_event_store] = lambda: event_store
+    app.dependency_overrides[get_tool_call_repository] = lambda: tool_call_repository
+    app.dependency_overrides[get_thread_ownership_store] = lambda: ownership_store
+    app.dependency_overrides[get_tool_registry] = lambda: object()
+    app.dependency_overrides[get_llm] = lambda: object()
+    return TestClient(app)
+
+
+def test_post_agent_runs_returns_run_id_and_thread_id():
+    client = build_client()
+
+    response = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["runId"].startswith("run_")
+    assert response.json()["threadId"].startswith("thr_")
+
+
+def test_get_agent_runs_by_run_id_returns_status_summary():
+    client = build_client()
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+    ).json()
+
+    response = client.get(f"/agent/runs/{created['runId']}", headers={"X-User-Id": "3001"})
+
+    assert response.status_code == 200
+    assert response.json()["run"]["id"] == created["runId"]
+    assert response.json()["run"]["threadId"] == created["threadId"]
+    assert response.json()["run"]["status"] in {"queued", "running", "completed"}
+
+
+def test_get_thread_includes_active_run_id():
+    client = build_client(requires_action=True)
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+    ).json()
+
+    response = client.get(f"/agent/threads/{created['threadId']}", headers={"X-User-Id": "3001"})
+
+    assert response.status_code == 200
+    assert response.json()["thread"]["activeRunId"] == created["runId"]
+
+
+def test_get_agent_run_stream_replays_history():
+    client = build_client()
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+    ).json()
+
+    with client.stream(
+        "GET",
+        f"/agent/runs/{created['runId']}/stream",
+        headers={"X-User-Id": "3001"},
+        params={"after": 0},
+    ) as response:
+        body = "".join(response.iter_text())
+
+    assert response.status_code == 200
+    assert "run_started" in body
+    assert "message_delta" in body
+    assert "run_completed" in body
+
+
+def test_get_agent_run_returns_failed_after_runtime_error():
+    client = build_client(runtime=FailingAgentRuntime())
+
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+    ).json()
+
+    response = client.get(f"/agent/runs/{created['runId']}", headers={"X-User-Id": "3001"})
+
+    assert response.status_code == 200
+    assert response.json()["run"]["status"] == "failed"

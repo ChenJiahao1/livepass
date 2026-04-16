@@ -9,5 +9,6 @@ CREATE TABLE IF NOT EXISTS agent_messages (
   created_at datetime(3) NOT NULL,
   metadata_json json NULL,
   KEY idx_agent_messages_thread_created (thread_id, created_at, id),
-  KEY idx_agent_messages_user_thread (user_id, thread_id)
+  KEY idx_agent_messages_user_thread (user_id, thread_id),
+  KEY idx_agent_messages_run_id (run_id, created_at, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

@@ -62,8 +62,7 @@ class ToolCallingAgent:
         selected_order_id: str | None = None,
         selected_program_id: str | None = None,
         last_refund_preview: dict[str, Any] | None = None,
-        pending_confirmation: bool | None = None,
-        pending_action: str | None = None,
+        tool_call: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "reply": reply,
@@ -83,10 +82,8 @@ class ToolCallingAgent:
             payload["specialist_result"] = specialist_result
         if last_refund_preview is not None:
             payload["last_refund_preview"] = last_refund_preview
-        if pending_confirmation is not None:
-            payload["pending_confirmation"] = pending_confirmation
-        if pending_action is not None:
-            payload["pending_action"] = pending_action
+        if tool_call is not None:
+            payload["tool_call"] = tool_call
         return payload
 
     def find_tool(self, tools: list, *names: str):

@@ -636,7 +636,7 @@ func TestGatewayBlocksUnauthorizedAgentThreadRequest(t *testing.T) {
 	server, baseURL := testkit.StartTestGateway(t, testkit.NewTestConfig(t, userAPI.URL, programAPI.URL, orderAPI.URL, payAPI.URL, 1000, agentsAPI.URL))
 	defer server.Stop()
 
-	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/threads", nil, bytes.NewBufferString(`{}`))
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/runs", nil, bytes.NewBufferString(`{}`))
 	defer resp.Body.Close()
 
 	if called {
@@ -647,7 +647,7 @@ func TestGatewayBlocksUnauthorizedAgentThreadRequest(t *testing.T) {
 	}
 }
 
-func TestGatewayForwardsAuthorizedAgentThreadRequestWithUserHeader(t *testing.T) {
+func TestGatewayForwardsAuthorizedAgentRunRequestWithUserHeader(t *testing.T) {
 	t.Parallel()
 
 	userAPI := httptest.NewServer(http.NotFoundHandler())
@@ -678,7 +678,7 @@ func TestGatewayForwardsAuthorizedAgentThreadRequestWithUserHeader(t *testing.T)
 	headers := map[string]string{
 		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 	}
-	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/threads", headers, bytes.NewBufferString(`{}`))
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/runs", headers, bytes.NewBufferString(`{}`))
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -688,8 +688,8 @@ func TestGatewayForwardsAuthorizedAgentThreadRequestWithUserHeader(t *testing.T)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
-	if gotPath != "/agent/threads" {
-		t.Fatalf("expected upstream path /agent/threads, got %q", gotPath)
+	if gotPath != "/agent/runs" {
+		t.Fatalf("expected upstream path /agent/runs, got %q", gotPath)
 	}
 	if gotUserHeader != "3001" {
 		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)

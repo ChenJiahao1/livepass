@@ -118,8 +118,11 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 				{Method: http.MethodGet, Path: "/agent/threads/:threadId"},
 				{Method: http.MethodPatch, Path: "/agent/threads/:threadId"},
 				{Method: http.MethodGet, Path: "/agent/threads/:threadId/messages"},
-				{Method: http.MethodPost, Path: "/agent/threads/:threadId/messages"},
-				{Method: http.MethodGet, Path: "/agent/threads/:threadId/runs/:runId"},
+				{Method: http.MethodPost, Path: "/agent/runs"},
+				{Method: http.MethodGet, Path: "/agent/runs/:runId"},
+				{Method: http.MethodGet, Path: "/agent/runs/:runId/stream"},
+				{Method: http.MethodPost, Path: "/agent/runs/:runId/tool-calls/:toolCallId/resume"},
+				{Method: http.MethodPost, Path: "/agent/runs/:runId/cancel"},
 			},
 		})
 	}

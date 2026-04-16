@@ -91,7 +91,7 @@ func TestAuthMiddlewareRejectsAgentRequestWithoutAuthorization(t *testing.T) {
 	t.Parallel()
 
 	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
-	req := httptest.NewRequest(http.MethodPost, "/agent/threads", nil)
+	req := httptest.NewRequest(http.MethodPost, "/agent/runs", nil)
 
 	recorder := httptest.NewRecorder()
 	var called bool
@@ -204,7 +204,7 @@ func TestAuthMiddlewarePassesAgentRequestWithValidTokenAndInjectsUserHeader(t *t
 	t.Parallel()
 
 	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
-	req := httptest.NewRequest(http.MethodPost, "/agent/threads", nil)
+	req := httptest.NewRequest(http.MethodPost, "/agent/runs", nil)
 	req.Header.Set("Authorization", "Bearer "+testkit.MustCreateToken(t, 3001, "secret-0001"))
 
 	recorder := httptest.NewRecorder()

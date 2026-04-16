@@ -125,7 +125,13 @@ Upstreams:
         Path: /agent/threads/:threadId
       - Method: get
         Path: /agent/threads/:threadId/messages
-      - Method: post
-        Path: /agent/threads/:threadId/messages
       - Method: get
-        Path: /agent/threads/:threadId/runs/:runId
+        Path: /agent/runs/:runId
+      - Method: post
+        Path: /agent/runs
+      - Method: get
+        Path: /agent/runs/:runId/stream
+      - Method: post
+        Path: /agent/runs/:runId/tool-calls/:toolCallId/resume
+      - Method: post
+        Path: /agent/runs/:runId/cancel

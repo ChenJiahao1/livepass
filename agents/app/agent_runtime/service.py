@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.agent_runtime.callbacks import RuntimeCallbacks
+
 
 @dataclass(slots=True)
 class AgentRuntimeResult:
@@ -43,3 +45,49 @@ class AgentRuntimeService:
             "needHandoff": bool(result.get("need_handoff")),
         }
         return AgentRuntimeResult(reply=reply, metadata=metadata, raw_result=result)
+
+    async def invoke_run(
+        self,
+        *,
+        run,
+        user_text: str,
+        callbacks: RuntimeCallbacks,
+    ) -> dict[str, Any]:
+        await callbacks.on_run_started(run=run)
+        result = await self.agent_runtime.ainvoke(
+            {"messages": [{"role": "user", "content": user_text}]},
+            config={"configurable": {"thread_id": run.thread_id}},
+            context={
+                "registry": self.registry,
+                "llm": self.llm,
+                "knowledge_service": self.knowledge_service,
+                "current_user_id": str(run.user_id),
+            },
+        )
+        reply = str(result.get("final_reply") or result.get("reply") or "")
+        if reply:
+            await callbacks.on_message_delta(
+                run=run,
+                message_id=str(run.metadata.get("assistantMessageId", "")),
+                delta=reply,
+                metadata={
+                    "routeSource": result.get("route_source", "rule"),
+                    "specialist": result.get("current_agent"),
+                    "needHandoff": bool(result.get("need_handoff")),
+                },
+            )
+        tool_call = result.get("tool_call")
+        if tool_call:
+            await callbacks.on_tool_call_started(
+                run=run,
+                tool_name=tool_call["toolName"],
+                arguments=dict(tool_call.get("arguments", {})),
+                metadata={"specialist": result.get("current_agent")},
+            )
+            await callbacks.on_tool_call_requires_human(
+                run=run,
+                tool_name=tool_call["toolName"],
+                arguments=dict(tool_call.get("arguments", {})),
+                metadata={"specialist": result.get("current_agent")},
+            )
+        return result

@@ -4,9 +4,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+RUN_STATUS_QUEUED = "queued"
 RUN_STATUS_RUNNING = "running"
+RUN_STATUS_REQUIRES_ACTION = "requires_action"
 RUN_STATUS_COMPLETED = "completed"
 RUN_STATUS_FAILED = "failed"
+RUN_STATUS_CANCELLED = "cancelled"
 
 
 @dataclass(slots=True)

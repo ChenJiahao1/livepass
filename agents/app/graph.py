@@ -238,8 +238,6 @@ def _map_specialist_result(state: ConversationState, result: dict[str, Any], age
     }
     if result.get("last_refund_preview") is not None:
         payload["last_refund_preview"] = result["last_refund_preview"]
-    if result.get("pending_confirmation") is not None:
-        payload["pending_confirmation"] = result["pending_confirmation"]
-    if result.get("pending_action") is not None:
-        payload["pending_action"] = result["pending_action"]
+    if result.get("tool_call") is not None:
+        payload["tool_call"] = result["tool_call"]
     return payload

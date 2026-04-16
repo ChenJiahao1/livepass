@@ -13,6 +13,8 @@ from app.threads.repository import MySQLConnectionFactory
 class MessageRepository(Protocol):
     def create(self, record: MessageRecord) -> MessageRecord: ...
 
+    def find_by_id(self, *, message_id: str) -> MessageRecord | None: ...
+
     def list_by_thread(
         self,
         *,
@@ -24,6 +26,15 @@ class MessageRepository(Protocol):
 
     def count_by_thread(self, *, thread_id: str, user_id: int) -> int: ...
 
+    def update_status(
+        self,
+        *,
+        message_id: str,
+        status: str,
+        parts: list[dict] | None,
+        metadata: dict | None,
+    ) -> MessageRecord | None: ...
+
 
 class InMemoryMessageRepository:
     def __init__(self) -> None:
@@ -32,6 +43,12 @@ class InMemoryMessageRepository:
     def create(self, record: MessageRecord) -> MessageRecord:
         self._messages.append(record)
         return replace(record)
+
+    def find_by_id(self, *, message_id: str) -> MessageRecord | None:
+        for record in self._messages:
+            if record.id == message_id:
+                return replace(record)
+        return None
 
     def list_by_thread(
         self,
@@ -63,6 +80,25 @@ class InMemoryMessageRepository:
                 if record.thread_id == thread_id and record.user_id == user_id
             ]
         )
+
+    def update_status(
+        self,
+        *,
+        message_id: str,
+        status: str,
+        parts: list[dict] | None,
+        metadata: dict | None,
+    ) -> MessageRecord | None:
+        for record in self._messages:
+            if record.id != message_id:
+                continue
+            record.status = status
+            if parts is not None:
+                record.parts = list(parts)
+            if metadata is not None:
+                record.metadata = dict(metadata)
+            return replace(record)
+        return None
 
 
 class MySQLMessageRepository:
@@ -96,6 +132,23 @@ class MySQLMessageRepository:
         except Exception:
             connection.rollback()
             raise
+        finally:
+            connection.close()
+
+    def find_by_id(self, *, message_id: str) -> MessageRecord | None:
+        connection = self.connection_factory.connect()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT id, thread_id, user_id, role, parts_json, status, run_id, created_at, metadata_json
+                    FROM agent_messages
+                    WHERE id = %s
+                    """,
+                    (message_id,),
+                )
+                row = cursor.fetchone()
+            return self._map_row(row) if row else None
         finally:
             connection.close()
 
@@ -143,6 +196,35 @@ class MySQLMessageRepository:
                 )
                 row = cursor.fetchone()
             return int(row["total"])
+        finally:
+            connection.close()
+
+    def update_status(
+        self,
+        *,
+        message_id: str,
+        status: str,
+        parts: list[dict] | None,
+        metadata: dict | None,
+    ) -> MessageRecord | None:
+        connection = self.connection_factory.connect()
+        try:
+            updates = {"status": status}
+            if parts is not None:
+                updates["parts_json"] = json.dumps(parts)
+            if metadata is not None:
+                updates["metadata_json"] = json.dumps(metadata)
+            assignments = ", ".join(f"{field} = %s" for field in updates.keys())
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"UPDATE agent_messages SET {assignments} WHERE id = %s",
+                    (*updates.values(), message_id),
+                )
+            connection.commit()
+            return self.find_by_id(message_id=message_id)
+        except Exception:
+            connection.rollback()
+            raise
         finally:
             connection.close()
 
