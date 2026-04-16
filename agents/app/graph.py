@@ -63,6 +63,7 @@ def build_graph_app(*, checkpointer=None):
 
 
 def _prepare_turn_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
+    _require_context(runtime, "llm")
     payload: dict[str, Any] = {
         "route": None,
         "coordinator_action": None,
@@ -83,22 +84,8 @@ def _prepare_turn_node(state: ConversationState, runtime: Runtime[GraphContext])
 
 def _coordinator_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
     hydrated = _hydrate_state(state, runtime)
-    llm = runtime.context.get("llm")
+    llm = _require_context(runtime, "llm")
     current_user_id = hydrated.get("current_user_id")
-
-    if llm is None:
-        reply = "请补充一下你想咨询的节目、订单或退款问题。"
-        return {
-            "coordinator_action": "clarify",
-            "business_ready": False,
-            "delegated": False,
-            "trace": ["coordinator:clarify"],
-            "current_user_id": current_user_id,
-            "current_agent": "coordinator",
-            "reply": reply,
-            "final_reply": reply,
-            "messages": [AIMessage(content=reply)],
-        }
 
     result = CoordinatorAgent(llm=llm).handle(hydrated)
     base_state: dict[str, Any] = {
@@ -127,7 +114,7 @@ def _coordinator_node(state: ConversationState, runtime: Runtime[GraphContext]) 
 
 def _supervisor_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
     hydrated = _hydrate_state(state, runtime)
-    llm = runtime.context.get("llm")
+    llm = _require_context(runtime, "llm")
     current_user_id = hydrated.get("current_user_id")
 
     specialist_result = hydrated.get("specialist_result") or {}
@@ -157,20 +144,6 @@ def _supervisor_node(state: ConversationState, runtime: Runtime[GraphContext]) -
             "final_reply": hydrated.get("final_reply", ""),
         }
 
-    if llm is None:
-        return {
-            "current_agent": "supervisor",
-            "next_agent": "finish",
-            "route": hydrated.get("route"),
-            "last_intent": hydrated.get("last_intent", "unknown"),
-            "trace": hydrated.get("trace", []),
-            "selected_order_id": hydrated.get("selected_order_id"),
-            "need_handoff": False,
-            "current_user_id": current_user_id,
-            "reply": "",
-            "final_reply": hydrated.get("final_reply", ""),
-        }
-
     result = SupervisorAgent(llm=llm).handle(hydrated)
     payload = {
         "current_agent": "supervisor",
@@ -189,25 +162,25 @@ def _supervisor_node(state: ConversationState, runtime: Runtime[GraphContext]) -
 
 
 async def _activity_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
-    agent = ActivityAgent(registry=runtime.context.get("registry"), llm=runtime.context.get("llm"))
+    agent = ActivityAgent(registry=runtime.context.get("registry"), llm=_require_context(runtime, "llm"))
     result = await agent.handle(_hydrate_state(state, runtime))
     return _map_specialist_result(state, result, "activity")
 
 
 async def _order_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
-    agent = OrderAgent(registry=runtime.context.get("registry"), llm=runtime.context.get("llm"))
+    agent = OrderAgent(registry=runtime.context.get("registry"), llm=_require_context(runtime, "llm"))
     result = await agent.handle(_hydrate_state(state, runtime))
     return _map_specialist_result(state, result, "order")
 
 
 async def _refund_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
-    agent = RefundAgent(registry=runtime.context.get("registry"), llm=runtime.context.get("llm"))
+    agent = RefundAgent(registry=runtime.context.get("registry"), llm=_require_context(runtime, "llm"))
     result = await agent.handle(_hydrate_state(state, runtime))
     return _map_specialist_result(state, result, "refund")
 
 
 async def _handoff_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
-    agent = HandoffAgent(registry=runtime.context.get("registry"), llm=runtime.context.get("llm"))
+    agent = HandoffAgent(registry=runtime.context.get("registry"), llm=_require_context(runtime, "llm"))
     result = await agent.handle(_hydrate_state(state, runtime))
     return _map_specialist_result(state, result, "handoff")
 
@@ -236,6 +209,13 @@ def _hydrate_state(state: ConversationState, runtime: Runtime[GraphContext]) -> 
     if not payload.get("current_user_id") and runtime.context.get("current_user_id"):
         payload["current_user_id"] = runtime.context["current_user_id"]
     return payload
+
+
+def _require_context(runtime: Runtime[GraphContext], key: str) -> Any:
+    value = runtime.context.get(key)
+    if value is None:
+        raise ValueError(f"{key} is required")
+    return value
 
 
 def _map_specialist_result(state: ConversationState, result: dict[str, Any], agent_name: str) -> dict[str, Any]:

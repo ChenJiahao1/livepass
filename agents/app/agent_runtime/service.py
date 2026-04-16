@@ -3,9 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.observability.audit import build_audit_record
-from app.observability.tracing import build_trace_record
-
 
 @dataclass(slots=True)
 class AgentRuntimeResult:
@@ -45,11 +42,4 @@ class AgentRuntimeService:
             "specialist": result.get("current_agent"),
             "needHandoff": bool(result.get("need_handoff")),
         }
-        _ = build_trace_record(
-            route_source=metadata["routeSource"],
-            result=result,
-            thread_id=thread_id,
-            user_id=user_id,
-        )
-        _ = build_audit_record(result=result)
         return AgentRuntimeResult(reply=reply, metadata=metadata, raw_result=result)

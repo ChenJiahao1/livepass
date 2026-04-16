@@ -1,12 +1,7 @@
-import asyncio
-from types import SimpleNamespace
-
 import pytest
 
 from app.config import Settings
 from app.mcp_client.registry import MCPToolRegistry
-from app.mcp_client.tracing import trace_tool_calls
-from langchain_mcp_adapters.interceptors import MCPToolCallRequest
 
 
 def test_registry_points_order_toolset_to_go_provider():
@@ -17,24 +12,6 @@ def test_registry_points_order_toolset_to_go_provider():
     assert registry.connections["order"]["transport"] == "streamable_http"
     assert registry.connections["order"]["url"] == "http://127.0.0.1:9082/message"
     assert registry.connections["order"]["headers"]["X-Internal-Caller"] == "agents"
-
-
-def test_trace_tool_calls_appends_trace_entries():
-    trace: list[str] = []
-    request = MCPToolCallRequest(
-        name="get_order_detail_for_service",
-        args={"order_id": "93001"},
-        server_name="order",
-        headers=None,
-        runtime=SimpleNamespace(context={"trace": trace}),
-    )
-
-    async def handler(_request):
-        return {"ok": True}
-
-    asyncio.run(trace_tool_calls(request, handler))
-
-    assert trace == ["tool:get_order_detail_for_service"]
 
 
 class _FakeTool:

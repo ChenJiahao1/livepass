@@ -9,7 +9,6 @@ from typing import Any
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from app.config import Settings, get_settings
-from app.mcp_client.tracing import trace_tool_calls
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SUPPORTED_TOOLSETS = ("activity", "order", "refund", "handoff")
@@ -36,10 +35,7 @@ class MCPToolRegistry:
     ) -> None:
         self.settings = settings or get_settings()
         self.connections = connections or self._build_connections()
-        self._client = client or MultiServerMCPClient(
-            self.connections,
-            tool_interceptors=[trace_tool_calls],
-        )
+        self._client = client or MultiServerMCPClient(self.connections)
         self._cache: dict[str, list] = {}
 
     async def get_provider_tools(self, server_name: str) -> list:

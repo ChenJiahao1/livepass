@@ -9,27 +9,6 @@ from langchain_core.runnables import RunnableLambda
 from langchain_core.tools import StructuredTool
 from pydantic import Field
 
-from app.mcp_client.tracing import append_tool_trace
-
-
-def make_tool_call_message(
-    name: str,
-    args: dict[str, Any],
-    *,
-    call_id: str = "call-1",
-) -> AIMessage:
-    return AIMessage(
-        content="",
-        tool_calls=[
-            {
-                "id": call_id,
-                "name": name,
-                "args": args,
-                "type": "tool_call",
-            }
-        ],
-    )
-
 
 class ScriptedChatModel(BaseChatModel):
     responses: list[AIMessage | str] = Field(default_factory=list)
@@ -137,7 +116,6 @@ class StubRegistry:
 def build_async_tool(*, name: str, description: str, coroutine):
     @wraps(coroutine)
     async def _wrapped(*args, **kwargs):
-        append_tool_trace(name)
         return await coroutine(*args, **kwargs)
 
     _wrapped.__signature__ = inspect.signature(coroutine)

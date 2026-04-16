@@ -22,7 +22,7 @@ async def test_order_agent_lists_user_orders_before_detail_lookup():
             ]
         }
     )
-    result = await OrderAgent(registry=registry, llm=None).handle(
+    result = await OrderAgent(registry=registry, llm=object()).handle(
         {"messages": [HumanMessage(content="帮我查订单")], "current_user_id": "1001"}
     )
 
@@ -45,7 +45,7 @@ async def test_refund_agent_previews_order_before_submit():
             ]
         }
     )
-    result = await RefundAgent(registry=registry, llm=None).handle(
+    result = await RefundAgent(registry=registry, llm=object()).handle(
         {"messages": [HumanMessage(content="ORD-1 可以退款吗")], "selected_order_id": "ORD-1"}
     )
 
