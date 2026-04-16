@@ -14,7 +14,11 @@ class ConversationState(MessagesState):
     selected_order_id: NotRequired[str | None]
     current_user_id: NotRequired[str | None]
     last_refund_preview: NotRequired[dict[str, Any] | None]
-    tool_call: NotRequired[dict[str, Any] | None]
+    refund_preview: NotRequired[dict[str, Any] | None]
+    pending_human_action: NotRequired[dict[str, Any] | None]
+    human_decision: NotRequired[dict[str, Any] | None]
+    refund_result: NotRequired[dict[str, Any] | None]
+    refund_rejected: NotRequired[bool]
     need_handoff: NotRequired[bool]
 
     route: NotRequired[Intent | None]

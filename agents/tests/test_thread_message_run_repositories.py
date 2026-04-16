@@ -132,3 +132,53 @@ def test_tool_call_repository_updates_waiting_human_to_completed():
     assert updated.error is None
     assert updated.completed_at == NOW2
     assert updated.updated_at == NOW2
+
+
+def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
+    from app.runs.tool_call_models import (
+        TOOL_CALL_STATUS_CANCELLED,
+        TOOL_CALL_STATUS_COMPLETED,
+        TOOL_CALL_STATUS_WAITING_HUMAN,
+        ToolCallRecord,
+    )
+    from app.runs.tool_call_repository import InMemoryToolCallRepository
+
+    repo = InMemoryToolCallRepository()
+    repo.create(
+        ToolCallRecord(
+            id="tool_done",
+            run_id="run_01",
+            thread_id="thr_01",
+            user_id=3001,
+            tool_name="human_approval",
+            status=TOOL_CALL_STATUS_COMPLETED,
+            arguments={},
+            request={},
+            completed_at=NOW1,
+            created_at=NOW1,
+            updated_at=NOW1,
+        )
+    )
+    repo.create(
+        ToolCallRecord(
+            id="tool_waiting",
+            run_id="run_01",
+            thread_id="thr_01",
+            user_id=3001,
+            tool_name="human_approval",
+            status=TOOL_CALL_STATUS_WAITING_HUMAN,
+            arguments={"action": "refund_order"},
+            request={"title": "退款前确认"},
+            created_at=NOW1,
+            updated_at=NOW1,
+        )
+    )
+
+    waiting = repo.find_waiting_by_run(run_id="run_01")
+    cancelled = repo.mark_cancelled(tool_call_id="tool_waiting", now=NOW2)
+
+    assert waiting is not None
+    assert waiting.id == "tool_waiting"
+    assert cancelled is not None
+    assert cancelled.status == TOOL_CALL_STATUS_CANCELLED
+    assert cancelled.completed_at == NOW2

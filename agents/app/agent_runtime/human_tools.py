@@ -1,16 +1,33 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
-
-@dataclass(slots=True)
-class LocalHumanTool:
-    name: str
-
-    async def ainvoke(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return {"toolName": self.name, "arguments": dict(payload)}
+from app.agent_runtime.interrupt_models import HumanInterruptPayload
 
 
-human_approval = LocalHumanTool(name="human_approval")
-human_input = LocalHumanTool(name="human_input")
+def build_human_approval_interrupt(
+    *,
+    action: str,
+    args: dict[str, Any],
+    request: dict[str, Any],
+) -> HumanInterruptPayload:
+    return HumanInterruptPayload(
+        tool_name="human_approval",
+        action=action,
+        args={**args, "action": action},
+        request=dict(request),
+    )
+
+
+def build_human_input_interrupt(
+    *,
+    action: str,
+    args: dict[str, Any],
+    request: dict[str, Any],
+) -> HumanInterruptPayload:
+    return HumanInterruptPayload(
+        tool_name="human_input",
+        action=action,
+        args={**args, "action": action},
+        request=dict(request),
+    )

@@ -35,7 +35,16 @@ class FakeAgentRuntime:
                 "route_source": "rule",
                 "tool_call": {
                     "toolName": "human_approval",
-                    "arguments": {"action": "refund_order", "orderId": "ORD-1"},
+                    "args": {
+                        "action": "refund_order",
+                        "orderId": "ORD-1",
+                        "values": {"order_id": "ORD-1", "reason": "用户发起退款", "user_id": "3001"},
+                    },
+                    "request": {
+                        "title": "退款前确认",
+                        "description": "订单 ORD-1 预计退款 100",
+                        "riskLevel": "medium",
+                    },
                 },
             }
         return {
@@ -117,6 +126,30 @@ def test_get_thread_includes_active_run_id():
 
     assert response.status_code == 200
     assert response.json()["thread"]["activeRunId"] == created["runId"]
+
+
+def test_run_stream_event_uses_args_and_request_instead_of_arguments():
+    client = build_client(requires_action=True)
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我退款"}]}]},
+    ).json()
+
+    with client.stream(
+        "GET",
+        f"/agent/runs/{created['runId']}/stream",
+        headers={"X-User-Id": "3001"},
+        params={"after": 0},
+    ) as response:
+        body = "".join(response.iter_text())
+
+    assert response.status_code == 200
+    assert "tool_call_requires_human" in body
+    assert "run_paused" in body
+    assert '"args"' in body
+    assert '"request"' in body
+    assert '"arguments"' not in body
 
 
 def test_get_agent_run_stream_replays_history():

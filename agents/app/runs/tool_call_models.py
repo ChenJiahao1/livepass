@@ -20,6 +20,7 @@ class ToolCallRecord:
     tool_name: str
     status: str
     arguments: dict[str, Any] = field(default_factory=dict)
+    request: dict[str, Any] = field(default_factory=dict)
     output: dict[str, Any] | None = None
     error: dict[str, Any] | None = None
     created_at: datetime | None = None

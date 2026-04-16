@@ -13,7 +13,16 @@ from app.agents.coordinator import CoordinatorAgent
 from app.agents.handoff import HandoffAgent
 from app.agents.knowledge import KnowledgeAgent
 from app.agents.order import OrderAgent
-from app.agents.refund import RefundAgent
+from app.agents.refund_hitl_flow import (
+    apply_human_decision,
+    finish_refund,
+    prepare_refund,
+    preview_refund,
+    request_refund_approval,
+    should_preview_refund,
+    should_request_refund_approval,
+    submit_refund,
+)
 from app.agents.supervisor import SupervisorAgent
 from app.state import ConversationState, GraphContext
 
@@ -28,7 +37,12 @@ def build_graph_app(*, checkpointer=None):
     builder.add_node("supervisor", _supervisor_node)
     builder.add_node("activity", _activity_node)
     builder.add_node("order", _order_node)
-    builder.add_node("refund", _refund_node)
+    builder.add_node("refund_prepare", prepare_refund)
+    builder.add_node("refund_preview", preview_refund)
+    builder.add_node("refund_request_approval", request_refund_approval)
+    builder.add_node("refund_apply_human_decision", apply_human_decision)
+    builder.add_node("refund_submit", submit_refund)
+    builder.add_node("refund_finish", finish_refund)
     builder.add_node("handoff", _handoff_node)
     builder.add_node("knowledge", _knowledge_node)
 
@@ -48,7 +62,7 @@ def build_graph_app(*, checkpointer=None):
         {
             "activity": "activity",
             "order": "order",
-            "refund": "refund",
+            "refund": "refund_prepare",
             "handoff": "handoff",
             "knowledge": "knowledge",
             END: END,
@@ -56,7 +70,26 @@ def build_graph_app(*, checkpointer=None):
     )
     builder.add_edge("activity", "supervisor")
     builder.add_edge("order", "supervisor")
-    builder.add_edge("refund", "supervisor")
+    builder.add_conditional_edges(
+        "refund_prepare",
+        should_preview_refund,
+        {
+            "preview": "refund_preview",
+            "finish": "refund_finish",
+        },
+    )
+    builder.add_conditional_edges(
+        "refund_preview",
+        should_request_refund_approval,
+        {
+            "request_approval": "refund_request_approval",
+            "finish": "refund_finish",
+        },
+    )
+    builder.add_edge("refund_request_approval", "refund_apply_human_decision")
+    builder.add_edge("refund_apply_human_decision", "refund_submit")
+    builder.add_edge("refund_submit", "refund_finish")
+    builder.add_edge("refund_finish", "supervisor")
     builder.add_edge("handoff", END)
     builder.add_edge("knowledge", "supervisor")
     return builder.compile(checkpointer=checkpointer)
@@ -76,6 +109,11 @@ def _prepare_turn_node(state: ConversationState, runtime: Runtime[GraphContext])
         "current_agent": None,
         "final_reply": "",
         "reply": "",
+        "pending_human_action": None,
+        "human_decision": None,
+        "refund_preview": None,
+        "refund_result": None,
+        "refund_rejected": False,
     }
     if not state.get("current_user_id") and runtime.context.get("current_user_id"):
         payload["current_user_id"] = runtime.context["current_user_id"]
@@ -173,12 +211,6 @@ async def _order_node(state: ConversationState, runtime: Runtime[GraphContext]) 
     return _map_specialist_result(state, result, "order")
 
 
-async def _refund_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
-    agent = RefundAgent(registry=runtime.context.get("registry"), llm=_require_context(runtime, "llm"))
-    result = await agent.handle(_hydrate_state(state, runtime))
-    return _map_specialist_result(state, result, "refund")
-
-
 async def _handoff_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
     agent = HandoffAgent(registry=None, llm=runtime.context.get("llm"))
     result = await agent.handle(_hydrate_state(state, runtime))
@@ -238,6 +270,4 @@ def _map_specialist_result(state: ConversationState, result: dict[str, Any], age
     }
     if result.get("last_refund_preview") is not None:
         payload["last_refund_preview"] = result["last_refund_preview"]
-    if result.get("tool_call") is not None:
-        payload["tool_call"] = result["tool_call"]
     return payload

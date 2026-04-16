@@ -1,6 +1,5 @@
 """Refund specialist agent."""
 
-from app.agent_runtime.human_tools import human_approval
 from app.agents.base import ToolCallingAgent
 from app.state import ConversationState
 
@@ -41,28 +40,12 @@ class RefundAgent(ToolCallingAgent):
                     "refund_percent": refund_percent,
                     "reject_reason": preview.get("reject_reason") or preview.get("rejectReason") or "",
                 }
-                tool_call = await human_approval.ainvoke(
-                    {
-                        "title": "退款前确认",
-                        "description": f"订单 {order_id} 预计退款 {refund_amount}",
-                        "riskLevel": "medium",
-                        "action": "refund_order",
-                        "orderId": order_id,
-                        "refundAmount": str(refund_amount),
-                        "values": {
-                            "order_id": order_id,
-                            "reason": "用户发起退款",
-                            "user_id": current_user_id,
-                        },
-                    }
-                )
                 return self.result(
                     state,
                     reply=f"订单 {order_id} 当前可退款，预计退款 {refund_amount}，退款比例 {refund_percent}%。是否确认退款？",
                     specialist_result=preview,
                     selected_order_id=order_id,
                     last_refund_preview=preview_payload,
-                    tool_call=tool_call,
                     status="requires_action",
                     completed=False,
                     result_summary="退款资格已确认",

@@ -50,6 +50,13 @@ class RunErrorDTO(ApiSchemaModel):
     details: dict = Field(default_factory=dict)
 
 
+class HumanToolCallDTO(ApiSchemaModel):
+    tool_call_id: str = Field(alias="toolCallId")
+    tool_name: str = Field(alias="toolName")
+    args: dict[str, Any] = Field(default_factory=dict)
+    request: dict[str, Any] = Field(default_factory=dict)
+
+
 class RunDTO(ApiSchemaModel):
     id: str
     thread_id: str = Field(alias="threadId")

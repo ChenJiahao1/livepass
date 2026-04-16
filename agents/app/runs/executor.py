@@ -8,9 +8,11 @@ from app.messages.service import MessageService
 from app.runs.event_projector import RunEventProjector
 from app.runs.event_models import RUN_EVENT_TYPE_RUN_CANCELLED, RUN_EVENT_TYPE_RUN_RESUMED
 from app.runs.event_store import RunEventStore
-from app.runs.models import RUN_STATUS_QUEUED, RUN_STATUS_REQUIRES_ACTION, RUN_STATUS_RUNNING
+from app.runs.resume_command_executor import ResumeCommandExecutor
+from app.runs.models import RUN_STATUS_CANCELLED, RUN_STATUS_QUEUED, RUN_STATUS_REQUIRES_ACTION, RUN_STATUS_RUNNING
 from app.runs.repository import RunRepository
 from app.runs.service import RunService
+from app.runs.tool_call_models import TOOL_CALL_STATUS_COMPLETED, TOOL_CALL_STATUS_WAITING_HUMAN
 from app.runs.tool_call_repository import ToolCallRepository
 
 
@@ -31,6 +33,7 @@ class RunExecutor:
         self.event_store = event_store
         self.tool_call_repository = tool_call_repository
         self.runtime_service = runtime_service
+        self.resume_executor = ResumeCommandExecutor(runtime_service=runtime_service)
 
     async def start(self, run_id: str) -> None:
         run = self._get_run(run_id)
@@ -46,7 +49,7 @@ class RunExecutor:
                 user_text=str(run.metadata.get("userText", "")),
                 callbacks=projector,
             )
-            if result.get("tool_call"):
+            if result.get("tool_call") or result.get("__interrupt__"):
                 return
             await projector.finalize_run(
                 run=run,
@@ -59,11 +62,22 @@ class RunExecutor:
         run = self._get_run(run_id)
         tool_call = self._get_tool_call(run=run, tool_call_id=tool_call_id)
         if run.status != RUN_STATUS_REQUIRES_ACTION:
+            if self._is_idempotent_resume(run=run, tool_call=tool_call, action_payload=action_payload):
+                return
             raise ApiError(
                 code=ApiErrorCode.RUN_STATE_INVALID,
                 message="当前运行状态不可恢复",
                 http_status=409,
                 details={"runId": run.id, "status": run.status},
+            )
+        if tool_call.status != TOOL_CALL_STATUS_WAITING_HUMAN:
+            if self._is_idempotent_resume(run=run, tool_call=tool_call, action_payload=action_payload):
+                return
+            raise ApiError(
+                code=ApiErrorCode.RUN_STATE_INVALID,
+                message="当前工具调用状态不可恢复",
+                http_status=409,
+                details={"runId": run.id, "toolCallId": tool_call_id, "status": tool_call.status},
             )
 
         self.run_service.resume_run(user_id=run.user_id, run_id=run_id)
@@ -83,65 +97,35 @@ class RunExecutor:
             message_service=self.message_service,
         )
         try:
-            action = action_payload.get("action")
-            if action == "approve" and tool_call.arguments.get("action") == "refund_order":
-                values = dict(tool_call.arguments.get("values", {}))
-                values.update(action_payload.get("values", {}))
-                result = await self.runtime_service.registry.invoke(
-                    server_name="refund",
-                    tool_name="refund_order",
-                    payload=values,
-                )
-                refund_amount = result.get("refund_amount") or result.get("refundAmount", "待确认")
-                reply = f"订单 {values.get('order_id')} 已提交退款，退款金额 {refund_amount}。"
-            else:
-                reply = "已取消本次人工确认操作。"
-
-            self.tool_call_repository.update_status(
+            result = await self.resume_executor.resume(
+                run=run,
+                tool_call=tool_call,
+                action_payload=action_payload,
+                callbacks=projector,
+            )
+            await projector.on_tool_call_completed(
+                run=run,
                 tool_call_id=tool_call_id,
-                status="completed",
-                output={"action": action},
-                error=None,
-                now=datetime.now(timezone.utc),
+                output={"action": action_payload.get("action")},
             )
-            assistant_message_id = str(run.metadata.get("assistantMessageId", ""))
-            self.event_store.append(
-                run_id=run.id,
-                thread_id=run.thread_id,
-                user_id=run.user_id,
-                event_type="message_delta",
-                payload={"messageId": assistant_message_id, "delta": reply},
-                now=datetime.now(timezone.utc),
-            )
-            self.message_service.update_message_status(
-                user_id=run.user_id,
-                thread_id=run.thread_id,
-                message_id=assistant_message_id,
-                status="completed",
-                parts=[{"type": "text", "text": reply}],
-                metadata={},
-            )
-            self.run_service.mark_completed(run_id=run.id, output_message_ids=[assistant_message_id])
-            self.event_store.append(
-                run_id=run.id,
-                thread_id=run.thread_id,
-                user_id=run.user_id,
-                event_type="run_completed",
-                payload={"status": "completed", "outputMessageIds": [assistant_message_id]},
-                now=datetime.now(timezone.utc),
+            if result.get("tool_call") or result.get("__interrupt__"):
+                return
+            await projector.finalize_run(
+                run=run,
+                output_message_ids=[str(run.metadata.get("assistantMessageId", ""))],
             )
         except Exception as exc:
-            self.tool_call_repository.update_status(
+            await projector.on_tool_call_failed(
+                run=run,
                 tool_call_id=tool_call_id,
-                status="failed",
-                output=None,
                 error={"message": str(exc) or "运行失败"},
-                now=datetime.now(timezone.utc),
             )
             await projector.fail_run(run=run, message=str(exc) or "运行失败")
 
     async def cancel(self, run_id: str) -> None:
         run = self._get_run(run_id)
+        if run.status == RUN_STATUS_CANCELLED:
+            return
         if run.status not in {RUN_STATUS_QUEUED, RUN_STATUS_RUNNING, RUN_STATUS_REQUIRES_ACTION}:
             raise ApiError(
                 code=ApiErrorCode.RUN_STATE_INVALID,
@@ -150,6 +134,12 @@ class RunExecutor:
                 details={"runId": run.id, "status": run.status},
             )
         self.run_service.mark_cancelled(run_id=run_id)
+        waiting_tool_call = self.tool_call_repository.find_waiting_by_run(run_id=run.id)
+        if waiting_tool_call is not None:
+            self.tool_call_repository.mark_cancelled(
+                tool_call_id=waiting_tool_call.id,
+                now=datetime.now(timezone.utc),
+            )
         self.event_store.append(
             run_id=run.id,
             thread_id=run.thread_id,
@@ -180,3 +170,14 @@ class RunExecutor:
                 details={"runId": run.id, "toolCallId": tool_call_id},
             )
         return tool_call
+
+    def _is_idempotent_resume(self, *, run, tool_call, action_payload: dict) -> bool:
+        if tool_call.status != TOOL_CALL_STATUS_COMPLETED:
+            return False
+        completed_action = ""
+        if isinstance(tool_call.output, dict):
+            completed_action = str(tool_call.output.get("action") or "")
+        requested_action = str(action_payload.get("action") or "")
+        if not requested_action or completed_action != requested_action:
+            return False
+        return run.status != RUN_STATUS_REQUIRES_ACTION

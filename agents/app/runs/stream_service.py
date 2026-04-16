@@ -7,11 +7,13 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_RUN_CANCELLED,
     RUN_EVENT_TYPE_RUN_COMPLETED,
     RUN_EVENT_TYPE_RUN_FAILED,
+    RUN_EVENT_TYPE_RUN_PAUSED,
     RunEventRecord,
 )
 from app.runs.event_store import RunEventStore
 
 TERMINAL_EVENT_TYPES = {
+    RUN_EVENT_TYPE_RUN_PAUSED,
     RUN_EVENT_TYPE_RUN_COMPLETED,
     RUN_EVENT_TYPE_RUN_FAILED,
     RUN_EVENT_TYPE_RUN_CANCELLED,

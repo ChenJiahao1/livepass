@@ -3,15 +3,20 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from app.agent_runtime.interrupt_models import HumanInterruptPayload
 from app.common.errors import ApiErrorCode
 from app.common.ids import new_tool_call_id
 from app.messages.models import MESSAGE_STATUS_COMPLETED
 from app.messages.service import MessageService
+from app.runs.interrupt_bridge import InterruptBridge
 from app.runs.event_models import (
     RUN_EVENT_TYPE_MESSAGE_DELTA,
     RUN_EVENT_TYPE_RUN_COMPLETED,
     RUN_EVENT_TYPE_RUN_FAILED,
+    RUN_EVENT_TYPE_RUN_PAUSED,
     RUN_EVENT_TYPE_RUN_STARTED,
+    RUN_EVENT_TYPE_TOOL_CALL_COMPLETED,
+    RUN_EVENT_TYPE_TOOL_CALL_FAILED,
     RUN_EVENT_TYPE_TOOL_CALL_REQUIRES_HUMAN,
     RUN_EVENT_TYPE_TOOL_CALL_STARTED,
 )
@@ -30,12 +35,15 @@ class RunEventProjector:
         tool_call_repository: ToolCallRepository,
         run_service: RunService,
         message_service: MessageService,
+        interrupt_bridge: InterruptBridge | None = None,
     ) -> None:
         self.event_store = event_store
         self.tool_call_repository = tool_call_repository
         self.run_service = run_service
         self.message_service = message_service
+        self.interrupt_bridge = interrupt_bridge or InterruptBridge()
         self._message_buffers: dict[str, str] = {}
+        self._active_tool_call_ids: dict[str, str] = {}
 
     async def on_run_started(self, *, run: RunRecord) -> None:
         self.run_service.mark_running(run_id=run.id)
@@ -71,9 +79,14 @@ class RunEventProjector:
         *,
         run: RunRecord,
         tool_name: str,
-        arguments: dict[str, Any],
+        args: dict[str, Any],
+        request: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        self.interrupt_bridge.assert_no_waiting_human_tool_call(
+            tool_call_repository=self.tool_call_repository,
+            run_id=run.id,
+        )
         tool_call_id = new_tool_call_id()
         record = ToolCallRecord(
             id=tool_call_id,
@@ -82,7 +95,8 @@ class RunEventProjector:
             user_id=run.user_id,
             tool_name=tool_name,
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
-            arguments=dict(arguments),
+            arguments=dict(args),
+            request=dict(request),
             output=None,
             error=None,
             created_at=run.started_at,
@@ -91,12 +105,22 @@ class RunEventProjector:
             metadata=dict(metadata or {}),
         )
         self.tool_call_repository.create(record)
+        self._active_tool_call_ids[run.id] = tool_call_id
+        projected_payload = self.interrupt_bridge.project_interrupt(
+            tool_call_id=tool_call_id,
+            interrupt=HumanInterruptPayload(
+                tool_name=tool_name,  # type: ignore[arg-type]
+                action=str(args.get("action") or ""),
+                args=dict(args),
+                request=dict(request),
+            ),
+        )
         self.event_store.append(
             run_id=run.id,
             thread_id=run.thread_id,
             user_id=run.user_id,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_STARTED,
-            payload={"toolCallId": tool_call_id, "toolName": tool_name, "arguments": arguments},
+            payload=projected_payload,
             now=run.started_at,
         )
 
@@ -105,16 +129,35 @@ class RunEventProjector:
         *,
         run: RunRecord,
         tool_name: str,
-        arguments: dict[str, Any],
+        args: dict[str, Any],
+        request: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None:
         self.run_service.mark_requires_action(run_id=run.id)
+        tool_call_id = self._active_tool_call_ids.get(run.id, "")
+        projected_payload = self.interrupt_bridge.project_interrupt(
+            tool_call_id=tool_call_id,
+            interrupt=HumanInterruptPayload(
+                tool_name=tool_name,  # type: ignore[arg-type]
+                action=str(args.get("action") or ""),
+                args=dict(args),
+                request=dict(request),
+            ),
+        )
         self.event_store.append(
             run_id=run.id,
             thread_id=run.thread_id,
             user_id=run.user_id,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_REQUIRES_HUMAN,
-            payload={"toolName": tool_name, "arguments": arguments, "metadata": metadata or {}},
+            payload={**projected_payload, "metadata": metadata or {}},
+            now=run.started_at,
+        )
+        self.event_store.append(
+            run_id=run.id,
+            thread_id=run.thread_id,
+            user_id=run.user_id,
+            event_type=RUN_EVENT_TYPE_RUN_PAUSED,
+            payload={"status": "requires_action", "toolCallId": tool_call_id},
             now=run.started_at,
         )
 
@@ -126,7 +169,22 @@ class RunEventProjector:
         output: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        return None
+        now = datetime.now(timezone.utc)
+        self.tool_call_repository.update_status(
+            tool_call_id=tool_call_id,
+            status="completed",
+            output=output,
+            error=None,
+            now=now,
+        )
+        self.event_store.append(
+            run_id=run.id,
+            thread_id=run.thread_id,
+            user_id=run.user_id,
+            event_type=RUN_EVENT_TYPE_TOOL_CALL_COMPLETED,
+            payload={"toolCallId": tool_call_id, "output": output, "metadata": metadata or {}},
+            now=now,
+        )
 
     async def on_tool_call_failed(
         self,
@@ -136,7 +194,22 @@ class RunEventProjector:
         error: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        return None
+        now = datetime.now(timezone.utc)
+        self.tool_call_repository.update_status(
+            tool_call_id=tool_call_id,
+            status="failed",
+            output=None,
+            error=error,
+            now=now,
+        )
+        self.event_store.append(
+            run_id=run.id,
+            thread_id=run.thread_id,
+            user_id=run.user_id,
+            event_type=RUN_EVENT_TYPE_TOOL_CALL_FAILED,
+            payload={"toolCallId": tool_call_id, "error": error, "metadata": metadata or {}},
+            now=now,
+        )
 
     async def finalize_run(self, *, run: RunRecord, output_message_ids: list[str]) -> None:
         assistant_message_id = str(run.metadata.get("assistantMessageId", ""))

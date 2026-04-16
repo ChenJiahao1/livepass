@@ -2,6 +2,12 @@
 
 `agents` 是 `damai-go` 的 Python 智能客服组件，当前提供面向 assistant-ui external-store 的 `Thread / Message / Run` API。
 
+当前运行时基线：
+
+- Python 3.12
+- LangGraph 1.1.6
+- FastAPI + LangGraph + MCP + Redis + MySQL
+
 ## 入口
 
 ```bash
@@ -45,10 +51,12 @@ ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
 - 业务工具通过 Go MCP server 提供：`activity` 走 `program-mcp`，`order/refund` 走 `order-mcp`。
 - `handoff` 当前不再通过 MCP 执行，仅在编排层保留 TODO 占位。
 - LangGraph checkpoint 仍写入 Redis，但只作为内部运行状态，不对外暴露。
+- 退款 HITL 中断走图内 `interrupt()` / `Command(resume=...)` 恢复链路，不再额外维护 executor 手写退款分支。
 - 线程、消息、运行读模型写入 MySQL `damai_agents`。
 - Redis ownership 已切换为 `threadId -> userId`。
 - 已移除旧 chat demo 接口，不再提供兼容层。
-- 历史消息通过 `GET /agent/threads/{threadId}/messages` 查询，活动态通过 `run_events` 与 `stream` 恢复。
+- 历史消息通过 `GET /agent/threads/{threadId}/messages` 查询；活动态可通过 `GET /agent/runs/{runId}/stream?after=<sequenceNo>` 的 `after 游标回放历史事件` 并续接增量事件。
+- `POST /agent/runs/{runId}/tool-calls/{toolCallId}/resume` 与 `POST /agent/runs/{runId}/cancel` 在同一请求重复提交时保持安全，`resume / cancel 接口按同一请求做幂等处理`。
 
 ## 本地联调
 

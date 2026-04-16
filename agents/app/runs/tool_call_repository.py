@@ -5,12 +5,15 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Protocol
 
+from app.runs.tool_call_models import TOOL_CALL_STATUS_CANCELLED, TOOL_CALL_STATUS_WAITING_HUMAN
 from app.runs.tool_call_models import ToolCallRecord
 from app.threads.repository import MySQLConnectionFactory
 
 
 class ToolCallRepository(Protocol):
     def create(self, record: ToolCallRecord) -> ToolCallRecord: ...
+
+    def find_waiting_by_run(self, *, run_id: str) -> ToolCallRecord | None: ...
 
     def update_status(
         self,
@@ -24,6 +27,8 @@ class ToolCallRepository(Protocol):
 
     def find_by_id(self, *, tool_call_id: str) -> ToolCallRecord | None: ...
 
+    def mark_cancelled(self, *, tool_call_id: str, now: datetime) -> ToolCallRecord | None: ...
+
 
 class InMemoryToolCallRepository:
     def __init__(self) -> None:
@@ -32,6 +37,12 @@ class InMemoryToolCallRepository:
     def create(self, record: ToolCallRecord) -> ToolCallRecord:
         self._tool_calls[record.id] = record
         return replace(record)
+
+    def find_waiting_by_run(self, *, run_id: str) -> ToolCallRecord | None:
+        for record in self._tool_calls.values():
+            if record.run_id == run_id and record.status == TOOL_CALL_STATUS_WAITING_HUMAN:
+                return replace(record)
+        return None
 
     def update_status(
         self,
@@ -55,6 +66,15 @@ class InMemoryToolCallRepository:
     def find_by_id(self, *, tool_call_id: str) -> ToolCallRecord | None:
         record = self._tool_calls.get(tool_call_id)
         return replace(record) if record else None
+
+    def mark_cancelled(self, *, tool_call_id: str, now: datetime) -> ToolCallRecord | None:
+        return self.update_status(
+            tool_call_id=tool_call_id,
+            status=TOOL_CALL_STATUS_CANCELLED,
+            output=None,
+            error=None,
+            now=now,
+        )
 
 
 class MySQLToolCallRepository:
@@ -85,7 +105,7 @@ class MySQLToolCallRepository:
                         record.created_at,
                         record.updated_at,
                         record.completed_at,
-                        json.dumps(record.metadata),
+                        json.dumps({**record.metadata, "request": record.request}),
                     ),
                 )
             connection.commit()
@@ -93,6 +113,26 @@ class MySQLToolCallRepository:
         except Exception:
             connection.rollback()
             raise
+        finally:
+            connection.close()
+
+    def find_waiting_by_run(self, *, run_id: str) -> ToolCallRecord | None:
+        connection = self.connection_factory.connect()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT id, run_id, thread_id, user_id, tool_name, status, arguments_json, output_json,
+                           error_json, created_at, updated_at, completed_at, metadata_json
+                    FROM agent_tool_calls
+                    WHERE run_id = %s AND status = %s
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT 1
+                    """,
+                    (run_id, TOOL_CALL_STATUS_WAITING_HUMAN),
+                )
+                row = cursor.fetchone()
+            return self._map_row(row) if row else None
         finally:
             connection.close()
 
@@ -150,11 +190,22 @@ class MySQLToolCallRepository:
         finally:
             connection.close()
 
+    def mark_cancelled(self, *, tool_call_id: str, now: datetime) -> ToolCallRecord | None:
+        return self.update_status(
+            tool_call_id=tool_call_id,
+            status=TOOL_CALL_STATUS_CANCELLED,
+            output=None,
+            error=None,
+            now=now,
+        )
+
     def _map_row(self, row: dict) -> ToolCallRecord:
         arguments = row.get("arguments_json")
         output = row.get("output_json")
         error = row.get("error_json")
         metadata = row.get("metadata_json")
+        parsed_metadata = json.loads(metadata) if metadata else {}
+        request = parsed_metadata.pop("request", {})
         return ToolCallRecord(
             id=row["id"],
             run_id=row["run_id"],
@@ -163,10 +214,11 @@ class MySQLToolCallRepository:
             tool_name=row["tool_name"],
             status=row["status"],
             arguments=json.loads(arguments) if arguments else {},
+            request=request if isinstance(request, dict) else {},
             output=json.loads(output) if output else None,
             error=json.loads(error) if error else None,
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             completed_at=row["completed_at"],
-            metadata=json.loads(metadata) if metadata else {},
+            metadata=parsed_metadata,
         )

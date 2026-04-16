@@ -62,7 +62,6 @@ class ToolCallingAgent:
         selected_order_id: str | None = None,
         selected_program_id: str | None = None,
         last_refund_preview: dict[str, Any] | None = None,
-        tool_call: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "reply": reply,
@@ -82,8 +81,6 @@ class ToolCallingAgent:
             payload["specialist_result"] = specialist_result
         if last_refund_preview is not None:
             payload["last_refund_preview"] = last_refund_preview
-        if tool_call is not None:
-            payload["tool_call"] = tool_call
         return payload
 
     def find_tool(self, tools: list, *names: str):
@@ -111,6 +108,9 @@ class ToolCallingAgent:
         preview = state.get("last_refund_preview") or {}
         if preview.get("order_id"):
             return str(preview["order_id"])
+        refund_preview = state.get("refund_preview") or {}
+        if refund_preview.get("order_id"):
+            return str(refund_preview["order_id"])
         message = self.latest_user_message(state)
         match = ORDER_ID_PATTERN.search(message)
         if not match:

@@ -22,7 +22,8 @@ class RuntimeCallbacks(Protocol):
         *,
         run: RunRecord,
         tool_name: str,
-        arguments: dict[str, Any],
+        args: dict[str, Any],
+        request: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None: ...
 
@@ -31,7 +32,8 @@ class RuntimeCallbacks(Protocol):
         *,
         run: RunRecord,
         tool_name: str,
-        arguments: dict[str, Any],
+        args: dict[str, Any],
+        request: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None: ...
 

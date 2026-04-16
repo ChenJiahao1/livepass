@@ -7,7 +7,7 @@ from typing import Any
 RUN_EVENT_TYPE_RUN_CREATED = "run_created"
 RUN_EVENT_TYPE_RUN_STARTED = "run_started"
 RUN_EVENT_TYPE_RUN_RESUMED = "run_resumed"
-RUN_EVENT_TYPE_RUN_REQUIRES_ACTION = "run_requires_action"
+RUN_EVENT_TYPE_RUN_PAUSED = "run_paused"
 RUN_EVENT_TYPE_RUN_COMPLETED = "run_completed"
 RUN_EVENT_TYPE_RUN_FAILED = "run_failed"
 RUN_EVENT_TYPE_RUN_CANCELLED = "run_cancelled"

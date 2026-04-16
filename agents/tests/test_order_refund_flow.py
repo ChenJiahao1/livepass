@@ -51,7 +51,7 @@ async def test_graph_lists_orders_before_refund_submit():
 
 
 @pytest.mark.anyio
-async def test_refund_flow_emits_human_approval_tool_call_instead_of_pending_confirmation():
+async def test_refund_flow_emits_human_approval_interrupt_instead_of_pending_confirmation():
     calls: list[str] = []
 
     async def _preview_refund_order(order_id: str, user_id: str | None = None):
@@ -78,8 +78,10 @@ async def test_refund_flow_emits_human_approval_tool_call_instead_of_pending_con
     )
 
     result = await run_graph_turns(messages=["ORD-1 可以退款吗"], registry=registry, llm=llm)
+    interrupts = result.get("__interrupt__")
 
     assert calls == ["preview_refund_order"]
-    assert result["tool_call"]["toolName"] == "human_approval"
-    assert result["tool_call"]["arguments"]["action"] == "refund_order"
+    assert interrupts
+    assert interrupts[0].value["toolName"] == "human_approval"
+    assert interrupts[0].value["args"]["action"] == "refund_order"
     assert "pending_confirmation" not in result
