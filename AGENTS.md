@@ -10,7 +10,8 @@
 
 - 生成的代码将接受严格代码评审，要求结构清晰、命名准确、边界明确。
 - 先遵守本文件，再参考 `.codex/README.md` 与 `.codex/ai-context/` 中的补充上下文。
-- 涉及 go-zero 服务开发时，必须使用 `zero-skills`。
+- 涉及 Go 或 go-zero 服务开发时，必须使用 `zero-skills`。
+- 开发 `agents` 模块时，若任务不涉及 Go 开发（如 Python 代码、提示词、工具编排、文档等），则不要求使用 `zero-skills`。
 - 当前对应前端项目路径：`/home/chenjiahao/code/project/damai-web`。
 - 涉及前后端联调、接口契约或页面行为时，默认这是当前 `damai-go` 对应的前端工程。
 
