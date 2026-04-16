@@ -1,6 +1,7 @@
 import pytest
 
 from app.config import Settings
+from app.mcp_client.execution_context import ToolExecutionContext
 from app.mcp_client.registry import MCPToolRegistry
 
 
@@ -25,8 +26,10 @@ class _FakeTool:
     def __init__(self, name: str):
         self.name = name
         self.description = name
+        self.calls: list[dict] = []
 
     async def ainvoke(self, payload: dict):
+        self.calls.append(dict(payload))
         return {"tool_name": self.name, "payload": payload}
 
 
@@ -62,3 +65,88 @@ async def test_registry_invokes_refund_tool_from_cached_provider_catalog():
         "payload": {"order_id": "ORD-10001"},
     }
     assert client.calls == ["order"]
+
+
+@pytest.mark.anyio
+async def test_registry_invoke_routes_through_bound_execution_context():
+    client = _FakeClient()
+    registry = MCPToolRegistry(
+        settings=Settings(
+            activity_mcp_endpoint="http://127.0.0.1:9083/message",
+            order_mcp_endpoint="http://127.0.0.1:9082/message",
+        ),
+        client=client,
+    )
+
+    result = await registry.invoke(
+        server_name="order",
+        tool_name="preview_refund_order",
+        payload={"order_id": "ORD-10001"},
+        context=ToolExecutionContext(
+            user_id="3001",
+            thread_id="thr_001",
+            run_id="run_001",
+            tool_call_id="tool_001",
+        ),
+    )
+
+    assert result == {
+        "tool_name": "preview_refund_order",
+        "payload": {
+            "order_id": "ORD-10001",
+            "_meta": {
+                "userId": "3001",
+                "threadId": "thr_001",
+                "runId": "run_001",
+                "toolCallId": "tool_001",
+            },
+        },
+    }
+    preview_tool = next(tool for tool in client.tools if tool.name == "preview_refund_order")
+    assert preview_tool.calls == [
+        {
+            "order_id": "ORD-10001",
+            "_meta": {
+                "userId": "3001",
+                "threadId": "thr_001",
+                "runId": "run_001",
+                "toolCallId": "tool_001",
+            },
+        }
+    ]
+
+
+@pytest.mark.anyio
+async def test_bound_registry_wraps_tools_with_runtime_context():
+    client = _FakeClient()
+    registry = MCPToolRegistry(
+        settings=Settings(
+            activity_mcp_endpoint="http://127.0.0.1:9083/message",
+            order_mcp_endpoint="http://127.0.0.1:9082/message",
+        ),
+        client=client,
+    )
+    bound_registry = registry.bind_context(
+        user_id="3001",
+        thread_id="thr_001",
+        run_id="run_001",
+        tool_call_id_factory=lambda: "tool_generated_001",
+    )
+
+    tools = await bound_registry.get_tools("refund")
+    tool = next(tool for tool in tools if tool.name == "preview_refund_order")
+
+    result = await tool.ainvoke({"order_id": "ORD-10001"})
+
+    assert result == {
+        "tool_name": "preview_refund_order",
+        "payload": {
+            "order_id": "ORD-10001",
+            "_meta": {
+                "userId": "3001",
+                "threadId": "thr_001",
+                "runId": "run_001",
+                "toolCallId": "tool_generated_001",
+            },
+        },
+    }
