@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,8 +17,7 @@ class TextPartDTO(ApiSchemaModel):
     text: str = Field(min_length=1)
 
 
-class MessageInputDTO(ApiSchemaModel):
-    role: Literal["user"]
+class RunInputDTO(ApiSchemaModel):
     parts: list[TextPartDTO] = Field(min_length=1)
 
 
@@ -30,31 +29,24 @@ class ThreadDTO(ApiSchemaModel):
     updated_at: datetime = Field(alias="updatedAt")
     last_message_at: datetime | None = Field(default=None, alias="lastMessageAt")
     active_run_id: str | None = Field(default=None, alias="activeRunId")
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class MessageDTO(ApiSchemaModel):
     id: str
     thread_id: str = Field(alias="threadId")
     role: Literal["user", "assistant"]
-    parts: list[TextPartDTO] = Field(min_length=1)
+    parts: list[TextPartDTO] = Field(default_factory=list)
     status: str
     created_at: datetime = Field(alias="createdAt")
     run_id: str | None = Field(default=None, alias="runId")
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RunErrorDTO(ApiSchemaModel):
     code: str
     message: str
-    details: dict = Field(default_factory=dict)
-
-
-class HumanToolCallDTO(ApiSchemaModel):
-    tool_call_id: str = Field(alias="toolCallId")
-    tool_name: str = Field(alias="toolName")
-    args: dict[str, Any] = Field(default_factory=dict)
-    request: dict[str, Any] = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class RunDTO(ApiSchemaModel):
@@ -62,21 +54,22 @@ class RunDTO(ApiSchemaModel):
     thread_id: str = Field(alias="threadId")
     status: str
     trigger_message_id: str = Field(alias="triggerMessageId")
-    output_message_ids: list[str] = Field(default_factory=list, alias="outputMessageIds")
+    assistant_message_id: str = Field(alias="assistantMessageId")
     started_at: datetime = Field(alias="startedAt")
     completed_at: datetime | None = Field(default=None, alias="completedAt")
     error: RunErrorDTO | None = None
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ErrorDTO(ApiSchemaModel):
     code: str
     message: str
-    details: dict = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class CreateThreadRequest(ApiSchemaModel):
     title: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class CreateThreadResponse(ApiSchemaModel):
@@ -92,40 +85,53 @@ class GetThreadResponse(ApiSchemaModel):
     thread: ThreadDTO
 
 
-class RunInputMessageDTO(ApiSchemaModel):
-    role: Literal["user"]
-    parts: list[TextPartDTO] = Field(min_length=1)
-
-
-class ListMessagesResponse(ApiSchemaModel):
+class ListThreadMessagesResponse(ApiSchemaModel):
     messages: list[MessageDTO] = Field(default_factory=list)
     next_cursor: str | None = Field(default=None, alias="nextCursor")
 
 
 class CreateRunRequest(ApiSchemaModel):
-    thread_id: str | None = Field(default=None, alias="threadId")
-    messages: list[RunInputMessageDTO] = Field(min_length=1)
+    thread_id: str = Field(alias="threadId")
+    input: RunInputDTO
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class CreateRunResponse(ApiSchemaModel):
-    run_id: str = Field(alias="runId")
-    thread_id: str = Field(alias="threadId")
+    thread: ThreadDTO
+    run: RunDTO
+    accepted_message: MessageDTO = Field(alias="acceptedMessage")
+    assistant_message: MessageDTO = Field(alias="assistantMessage")
+
+
+ResumeToolCallAction: TypeAlias = Literal["approve", "reject", "edit"]
 
 
 class ResumeToolCallRequest(ApiSchemaModel):
-    action: Literal["approve", "reject", "respond"]
+    action: ResumeToolCallAction
     reason: str | None = None
     values: dict[str, Any] = Field(default_factory=dict)
+
+
+class HumanRequestDTO(ApiSchemaModel):
+    kind: Literal["approval", "input"]
+    title: str
+    description: str | None = None
+    allowed_actions: list[ResumeToolCallAction] = Field(default_factory=list, alias="allowedActions")
 
 
 class GetRunResponse(ApiSchemaModel):
     run: RunDTO
 
 
-class PatchThreadRequest(ApiSchemaModel):
+class UpdateThreadRequest(ApiSchemaModel):
     title: str | None = None
     status: Literal["active", "archived"] | None = None
 
 
-class PatchThreadResponse(ApiSchemaModel):
+class UpdateThreadResponse(ApiSchemaModel):
     thread: ThreadDTO
+
+
+PatchThreadRequest = UpdateThreadRequest
+PatchThreadResponse = UpdateThreadResponse
+ListMessagesResponse = ListThreadMessagesResponse

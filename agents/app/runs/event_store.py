@@ -19,10 +19,14 @@ class RunEventStore(Protocol):
         user_id: int,
         event_type: str,
         payload: dict,
+        message_id: str | None = None,
+        tool_call_id: str | None = None,
         now: datetime,
     ) -> RunEventRecord: ...
 
     def list_after(self, *, run_id: str, after_sequence_no: int) -> list[RunEventRecord]: ...
+
+    def latest(self, *, run_id: str) -> RunEventRecord | None: ...
 
 
 class InMemoryRunEventStore:
@@ -37,9 +41,14 @@ class InMemoryRunEventStore:
         user_id: int,
         event_type: str,
         payload: dict,
+        message_id: str | None = None,
+        tool_call_id: str | None = None,
         now: datetime,
     ) -> RunEventRecord:
         events = self._events_by_run.setdefault(run_id, [])
+        payload_data = dict(payload)
+        resolved_message_id = message_id or payload_data.pop("messageId", None)
+        resolved_tool_call_id = tool_call_id or payload_data.pop("toolCallId", None)
         record = RunEventRecord(
             id=new_run_event_id(),
             run_id=run_id,
@@ -47,7 +56,9 @@ class InMemoryRunEventStore:
             user_id=user_id,
             sequence_no=len(events) + 1,
             event_type=event_type,
-            payload=dict(payload),
+            message_id=resolved_message_id,
+            tool_call_id=resolved_tool_call_id,
+            payload=payload_data,
             created_at=now,
         )
         events.append(record)
@@ -56,6 +67,10 @@ class InMemoryRunEventStore:
     def list_after(self, *, run_id: str, after_sequence_no: int) -> list[RunEventRecord]:
         events = self._events_by_run.get(run_id, [])
         return [replace(record) for record in events if record.sequence_no > after_sequence_no]
+
+    def latest(self, *, run_id: str) -> RunEventRecord | None:
+        events = self._events_by_run.get(run_id, [])
+        return replace(events[-1]) if events else None
 
 
 class MySQLRunEventStore:
@@ -70,6 +85,8 @@ class MySQLRunEventStore:
         user_id: int,
         event_type: str,
         payload: dict,
+        message_id: str | None = None,
+        tool_call_id: str | None = None,
         now: datetime,
     ) -> RunEventRecord:
         connection = self.connection_factory.connect()
@@ -86,6 +103,9 @@ class MySQLRunEventStore:
                 )
                 row = cursor.fetchone()
                 sequence_no = int(row["last_sequence_no"]) + 1
+                payload_data = dict(payload)
+                resolved_message_id = message_id or payload_data.pop("messageId", None)
+                resolved_tool_call_id = tool_call_id or payload_data.pop("toolCallId", None)
                 record = RunEventRecord(
                     id=new_run_event_id(),
                     run_id=run_id,
@@ -93,14 +113,16 @@ class MySQLRunEventStore:
                     user_id=user_id,
                     sequence_no=sequence_no,
                     event_type=event_type,
-                    payload=dict(payload),
+                    message_id=resolved_message_id,
+                    tool_call_id=resolved_tool_call_id,
+                    payload=payload_data,
                     created_at=now,
                 )
                 cursor.execute(
                     """
                     INSERT INTO agent_run_events (
-                      id, run_id, thread_id, user_id, sequence_no, event_type, payload_json, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                      id, run_id, thread_id, user_id, sequence_no, event_type, message_id, tool_call_id, payload_json, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         record.id,
@@ -109,6 +131,8 @@ class MySQLRunEventStore:
                         record.user_id,
                         record.sequence_no,
                         record.event_type,
+                        record.message_id,
+                        record.tool_call_id,
                         json.dumps(record.payload),
                         record.created_at,
                     ),
@@ -127,7 +151,7 @@ class MySQLRunEventStore:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, run_id, thread_id, user_id, sequence_no, event_type, payload_json, created_at
+                    SELECT id, run_id, thread_id, user_id, sequence_no, event_type, message_id, tool_call_id, payload_json, created_at
                     FROM agent_run_events
                     WHERE run_id = %s AND sequence_no > %s
                     ORDER BY sequence_no ASC
@@ -139,6 +163,25 @@ class MySQLRunEventStore:
         finally:
             connection.close()
 
+    def latest(self, *, run_id: str) -> RunEventRecord | None:
+        connection = self.connection_factory.connect()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT id, run_id, thread_id, user_id, sequence_no, event_type, message_id, tool_call_id, payload_json, created_at
+                    FROM agent_run_events
+                    WHERE run_id = %s
+                    ORDER BY sequence_no DESC
+                    LIMIT 1
+                    """,
+                    (run_id,),
+                )
+                row = cursor.fetchone()
+            return self._map_row(row) if row else None
+        finally:
+            connection.close()
+
     def _map_row(self, row: dict) -> RunEventRecord:
         return RunEventRecord(
             id=row["id"],
@@ -147,6 +190,8 @@ class MySQLRunEventStore:
             user_id=int(row["user_id"]),
             sequence_no=int(row["sequence_no"]),
             event_type=row["event_type"],
+            message_id=row.get("message_id"),
+            tool_call_id=row.get("tool_call_id"),
             payload=json.loads(row["payload_json"]),
             created_at=row["created_at"],
         )

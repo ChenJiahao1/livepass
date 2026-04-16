@@ -51,6 +51,8 @@ AGENTS_SQL_FILES=(
   "sql/agents/agent_threads.sql"
   "sql/agents/agent_messages.sql"
   "sql/agents/agent_runs.sql"
+  "sql/agents/agent_run_events.sql"
+  "sql/agents/agent_tool_calls.sql"
 )
 
 log() {

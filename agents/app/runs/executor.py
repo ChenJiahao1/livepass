@@ -5,12 +5,13 @@ from datetime import datetime, timezone
 from app.agent_runtime.service import AgentRuntimeService
 from app.common.errors import ApiError, ApiErrorCode
 from app.messages.service import MessageService
+from app.runs.event_bus import RunEventBus
+from app.runs.event_models import RUN_EVENT_TYPE_RUN_UPDATED
 from app.runs.event_projector import RunEventProjector
-from app.runs.event_models import RUN_EVENT_TYPE_RUN_CANCELLED, RUN_EVENT_TYPE_RUN_RESUMED
 from app.runs.event_store import RunEventStore
-from app.runs.resume_command_executor import ResumeCommandExecutor
 from app.runs.models import RUN_STATUS_CANCELLED, RUN_STATUS_QUEUED, RUN_STATUS_REQUIRES_ACTION, RUN_STATUS_RUNNING
 from app.runs.repository import RunRepository
+from app.runs.resume_command_executor import ResumeCommandExecutor
 from app.runs.service import RunService
 from app.runs.tool_call_models import TOOL_CALL_STATUS_COMPLETED, TOOL_CALL_STATUS_WAITING_HUMAN
 from app.runs.tool_call_repository import ToolCallRepository
@@ -24,6 +25,7 @@ class RunExecutor:
         run_service: RunService,
         message_service: MessageService,
         event_store: RunEventStore,
+        event_bus: RunEventBus,
         tool_call_repository: ToolCallRepository,
         runtime_service: AgentRuntimeService,
     ) -> None:
@@ -31,6 +33,7 @@ class RunExecutor:
         self.run_service = run_service
         self.message_service = message_service
         self.event_store = event_store
+        self.event_bus = event_bus
         self.tool_call_repository = tool_call_repository
         self.runtime_service = runtime_service
         self.resume_executor = ResumeCommandExecutor(runtime_service=runtime_service)
@@ -39,22 +42,22 @@ class RunExecutor:
         run = self._get_run(run_id)
         projector = RunEventProjector(
             event_store=self.event_store,
+            event_bus=self.event_bus,
             tool_call_repository=self.tool_call_repository,
             run_service=self.run_service,
             message_service=self.message_service,
         )
         try:
+            await projector.on_run_created(run=run)
             result = await self.runtime_service.invoke_run(
                 run=run,
                 user_text=str(run.metadata.get("userText", "")),
                 callbacks=projector,
+                should_stop=lambda: self._should_stop(run.id),
             )
-            if result.get("tool_call") or result.get("__interrupt__"):
+            if result.requires_action or result.cancelled:
                 return
-            await projector.finalize_run(
-                run=run,
-                output_message_ids=[str(run.metadata.get("assistantMessageId", ""))],
-            )
+            await projector.finalize_run(run=run, output_message_ids=[run.assistant_message_id])
         except Exception as exc:
             await projector.fail_run(run=run, message=str(exc) or "运行失败")
 
@@ -65,7 +68,7 @@ class RunExecutor:
             if self._is_idempotent_resume(run=run, tool_call=tool_call, action_payload=action_payload):
                 return
             raise ApiError(
-                code=ApiErrorCode.RUN_STATE_INVALID,
+                code=ApiErrorCode.RUN_NOT_ACTIVE,
                 message="当前运行状态不可恢复",
                 http_status=409,
                 details={"runId": run.id, "status": run.status},
@@ -74,24 +77,28 @@ class RunExecutor:
             if self._is_idempotent_resume(run=run, tool_call=tool_call, action_payload=action_payload):
                 return
             raise ApiError(
-                code=ApiErrorCode.RUN_STATE_INVALID,
+                code=ApiErrorCode.TOOL_CALL_NOT_WAITING_HUMAN,
                 message="当前工具调用状态不可恢复",
                 http_status=409,
                 details={"runId": run.id, "toolCallId": tool_call_id, "status": tool_call.status},
             )
 
         self.run_service.resume_run(user_id=run.user_id, run_id=run_id)
-        self.event_store.append(
+        now = datetime.now(timezone.utc)
+        record = self.event_store.append(
             run_id=run.id,
             thread_id=run.thread_id,
             user_id=run.user_id,
-            event_type=RUN_EVENT_TYPE_RUN_RESUMED,
-            payload={"toolCallId": tool_call_id, "action": action_payload.get("action")},
-            now=datetime.now(timezone.utc),
+            event_type=RUN_EVENT_TYPE_RUN_UPDATED,
+            tool_call_id=tool_call_id,
+            payload={"status": "running", "action": action_payload.get("action")},
+            now=now,
         )
+        self.event_bus.publish(run_id=record.run_id, sequence_no=record.sequence_no)
 
         projector = RunEventProjector(
             event_store=self.event_store,
+            event_bus=self.event_bus,
             tool_call_repository=self.tool_call_repository,
             run_service=self.run_service,
             message_service=self.message_service,
@@ -102,18 +109,18 @@ class RunExecutor:
                 tool_call=tool_call,
                 action_payload=action_payload,
                 callbacks=projector,
+                should_stop=lambda: self._should_stop(run.id),
             )
             await projector.on_tool_call_completed(
                 run=run,
                 tool_call_id=tool_call_id,
                 output={"action": action_payload.get("action")},
             )
-            if result.get("tool_call") or result.get("__interrupt__"):
+            if result.requires_action or result.cancelled:
                 return
-            await projector.finalize_run(
-                run=run,
-                output_message_ids=[str(run.metadata.get("assistantMessageId", ""))],
-            )
+            await projector.finalize_run(run=run, output_message_ids=[run.assistant_message_id])
+        except ApiError:
+            raise
         except Exception as exc:
             await projector.on_tool_call_failed(
                 run=run,
@@ -128,26 +135,19 @@ class RunExecutor:
             return
         if run.status not in {RUN_STATUS_QUEUED, RUN_STATUS_RUNNING, RUN_STATUS_REQUIRES_ACTION}:
             raise ApiError(
-                code=ApiErrorCode.RUN_STATE_INVALID,
+                code=ApiErrorCode.RUN_NOT_ACTIVE,
                 message="当前运行状态不可取消",
                 http_status=409,
                 details={"runId": run.id, "status": run.status},
             )
-        self.run_service.mark_cancelled(run_id=run_id)
-        waiting_tool_call = self.tool_call_repository.find_waiting_by_run(run_id=run.id)
-        if waiting_tool_call is not None:
-            self.tool_call_repository.mark_cancelled(
-                tool_call_id=waiting_tool_call.id,
-                now=datetime.now(timezone.utc),
-            )
-        self.event_store.append(
-            run_id=run.id,
-            thread_id=run.thread_id,
-            user_id=run.user_id,
-            event_type=RUN_EVENT_TYPE_RUN_CANCELLED,
-            payload={"status": "cancelled"},
-            now=datetime.now(timezone.utc),
+        projector = RunEventProjector(
+            event_store=self.event_store,
+            event_bus=self.event_bus,
+            tool_call_repository=self.tool_call_repository,
+            run_service=self.run_service,
+            message_service=self.message_service,
         )
+        await projector.cancel_run(run=run)
 
     def _get_run(self, run_id: str):
         run = self.run_repository.find_by_id(run_id=run_id)
@@ -181,3 +181,7 @@ class RunExecutor:
         if not requested_action or completed_action != requested_action:
             return False
         return run.status != RUN_STATUS_REQUIRES_ACTION
+
+    def _should_stop(self, run_id: str) -> bool:
+        run = self.run_repository.find_by_id(run_id=run_id)
+        return run is not None and run.status == RUN_STATUS_CANCELLED

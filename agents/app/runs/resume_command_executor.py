@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
-from app.agent_runtime.service import AgentRuntimeService
+from app.agent_runtime.service import AgentRuntimeRunResult, AgentRuntimeService
 from app.runs.interrupt_bridge import InterruptBridge
 from app.runs.models import RunRecord
 from app.runs.tool_call_models import ToolCallRecord
@@ -25,7 +25,8 @@ class ResumeCommandExecutor:
         tool_call: ToolCallRecord,
         action_payload: Mapping[str, Any],
         callbacks,
-    ) -> dict[str, Any]:
+        should_stop: Callable[[], bool] | None = None,
+    ) -> AgentRuntimeRunResult:
         resume_payload = self.interrupt_bridge.build_command_resume_payload(
             tool_call=tool_call,
             action_payload=action_payload,
@@ -34,4 +35,5 @@ class ResumeCommandExecutor:
             run=run,
             resume_payload=resume_payload,
             callbacks=callbacks,
+            should_stop=should_stop,
         )

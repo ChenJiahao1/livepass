@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS agent_messages (
   status varchar(32) NOT NULL,
   run_id varchar(64) NULL,
   created_at datetime(3) NOT NULL,
+  updated_at datetime(3) NOT NULL,
   metadata_json json NULL,
   KEY idx_agent_messages_thread_created (thread_id, created_at, id),
   KEY idx_agent_messages_user_thread (user_id, thread_id),

@@ -7,13 +7,12 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_RUN_CANCELLED,
     RUN_EVENT_TYPE_RUN_COMPLETED,
     RUN_EVENT_TYPE_RUN_FAILED,
-    RUN_EVENT_TYPE_RUN_PAUSED,
+    RUN_EVENT_TYPE_RUN_UPDATED,
     RunEventRecord,
 )
 from app.runs.event_store import RunEventStore
 
 TERMINAL_EVENT_TYPES = {
-    RUN_EVENT_TYPE_RUN_PAUSED,
     RUN_EVENT_TYPE_RUN_COMPLETED,
     RUN_EVENT_TYPE_RUN_FAILED,
     RUN_EVENT_TYPE_RUN_CANCELLED,
@@ -32,6 +31,22 @@ class RunStreamService:
         self.event_bus = event_bus
         self.poll_interval_seconds = poll_interval_seconds
 
+    def serialize_event(self, event: RunEventRecord, *, debug: dict | None = None) -> dict:
+        payload = {
+            "schemaVersion": "2026-04-16",
+            "sequenceNo": event.sequence_no,
+            "type": event.event_type,
+            "runId": event.run_id,
+            "threadId": event.thread_id,
+            "messageId": event.message_id,
+            "toolCallId": event.tool_call_id,
+            "createdAt": event.created_at.isoformat().replace("+00:00", "Z") if event.created_at else None,
+            "payload": dict(event.payload),
+        }
+        if debug:
+            payload["debug"] = dict(debug)
+        return payload
+
     async def stream_events(self, *, run_id: str, after_sequence_no: int):
         current = after_sequence_no
         queue = self.event_bus.subscribe(run_id=run_id)
@@ -42,12 +57,20 @@ class RunStreamService:
                     for event in events:
                         current = event.sequence_no
                         yield event
-                        if event.event_type in TERMINAL_EVENT_TYPES:
+                        if self._should_close_stream(event):
                             return
                     continue
+                latest_event = self.event_store.latest(run_id=run_id)
+                if latest_event is not None and latest_event.sequence_no <= current and self._should_close_stream(latest_event):
+                    return
                 try:
                     await asyncio.wait_for(queue.get(), timeout=self.poll_interval_seconds)
                 except asyncio.TimeoutError:
                     await asyncio.sleep(self.poll_interval_seconds)
         finally:
             self.event_bus.unsubscribe(run_id=run_id, queue=queue)
+
+    def _should_close_stream(self, event: RunEventRecord) -> bool:
+        if event.event_type in TERMINAL_EVENT_TYPES:
+            return True
+        return event.event_type == RUN_EVENT_TYPE_RUN_UPDATED and event.payload.get("status") == "requires_action"

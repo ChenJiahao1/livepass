@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Protocol
 
 from app.common.cursor import decode_cursor, encode_cursor
@@ -97,6 +97,7 @@ class InMemoryMessageRepository:
                 record.parts = list(parts)
             if metadata is not None:
                 record.metadata = dict(metadata)
+            record.updated_at = datetime.now(timezone.utc)
             return replace(record)
         return None
 
@@ -112,8 +113,8 @@ class MySQLMessageRepository:
                 cursor.execute(
                     """
                     INSERT INTO agent_messages (
-                      id, thread_id, user_id, role, parts_json, status, run_id, created_at, metadata_json
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                      id, thread_id, user_id, role, parts_json, status, run_id, created_at, updated_at, metadata_json
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         record.id,
@@ -124,6 +125,7 @@ class MySQLMessageRepository:
                         record.status,
                         record.run_id,
                         record.created_at,
+                        record.updated_at,
                         json.dumps(record.metadata),
                     ),
                 )
@@ -141,7 +143,7 @@ class MySQLMessageRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, thread_id, user_id, role, parts_json, status, run_id, created_at, metadata_json
+                    SELECT id, thread_id, user_id, role, parts_json, status, run_id, created_at, updated_at, metadata_json
                     FROM agent_messages
                     WHERE id = %s
                     """,
@@ -163,7 +165,7 @@ class MySQLMessageRepository:
         connection = self.connection_factory.connect()
         try:
             sql = """
-                SELECT id, thread_id, user_id, role, parts_json, status, run_id, created_at, metadata_json
+                SELECT id, thread_id, user_id, role, parts_json, status, run_id, created_at, updated_at, metadata_json
                 FROM agent_messages
                 WHERE thread_id = %s AND user_id = %s
             """
@@ -214,6 +216,7 @@ class MySQLMessageRepository:
                 updates["parts_json"] = json.dumps(parts)
             if metadata is not None:
                 updates["metadata_json"] = json.dumps(metadata)
+            updates["updated_at"] = datetime.now(timezone.utc)
             assignments = ", ".join(f"{field} = %s" for field in updates.keys())
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -239,6 +242,7 @@ class MySQLMessageRepository:
             status=row["status"],
             run_id=row.get("run_id"),
             created_at=row["created_at"],
+            updated_at=row.get("updated_at"),
             metadata=json.loads(metadata) if metadata else {},
         )
 

@@ -6,7 +6,6 @@ from app.api.routes import (
     get_llm,
     get_message_repository,
     get_run_repository,
-    get_thread_ownership_store,
     get_thread_repository,
     get_tool_call_repository,
     get_tool_registry,
@@ -16,9 +15,7 @@ from app.messages.repository import InMemoryMessageRepository
 from app.runs.event_store import InMemoryRunEventStore
 from app.runs.repository import InMemoryRunRepository
 from app.runs.tool_call_repository import InMemoryToolCallRepository
-from app.session.store import ThreadOwnershipStore
 from app.threads.repository import InMemoryThreadRepository
-from tests.fakes import FakeRedis
 
 
 class FakeAgentRuntime:
@@ -43,7 +40,6 @@ class FakeAgentRuntime:
                     "request": {
                         "title": "退款前确认",
                         "description": "订单 ORD-1 预计退款 100",
-                        "riskLevel": "medium",
                     },
                 },
             }
@@ -66,11 +62,6 @@ def build_client(*, requires_action: bool = False, runtime=None) -> TestClient:
     run_repository = InMemoryRunRepository()
     event_store = InMemoryRunEventStore()
     tool_call_repository = InMemoryToolCallRepository()
-    ownership_store = ThreadOwnershipStore(
-        redis_client=FakeRedis(),
-        ttl_seconds=600,
-        key_prefix="agents:thread",
-    )
     app = create_app()
     app.dependency_overrides[get_agent_runtime] = lambda: runtime or FakeAgentRuntime(requires_action=requires_action)
     app.dependency_overrides[get_thread_repository] = lambda: thread_repository
@@ -78,112 +69,142 @@ def build_client(*, requires_action: bool = False, runtime=None) -> TestClient:
     app.dependency_overrides[get_run_repository] = lambda: run_repository
     app.dependency_overrides[get_event_store] = lambda: event_store
     app.dependency_overrides[get_tool_call_repository] = lambda: tool_call_repository
-    app.dependency_overrides[get_thread_ownership_store] = lambda: ownership_store
     app.dependency_overrides[get_tool_registry] = lambda: object()
     app.dependency_overrides[get_llm] = lambda: object()
     return TestClient(app)
 
 
-def test_post_agent_runs_returns_run_id_and_thread_id():
+def create_thread(client: TestClient) -> str:
+    response = client.post("/agent/threads", headers={"X-User-Id": "3001"}, json={"title": "订单咨询"})
+    assert response.status_code == 200
+    return response.json()["thread"]["id"]
+
+
+def test_post_agent_runs_uses_thread_input_and_returns_nested_resources():
     client = build_client()
+    thread_id = create_thread(client)
 
     response = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "metadata": {},
+        },
     )
 
     assert response.status_code == 200
-    assert response.json()["runId"].startswith("run_")
-    assert response.json()["threadId"].startswith("thr_")
+    body = response.json()
+    assert body["thread"]["id"] == thread_id
+    assert body["run"]["threadId"] == thread_id
+    assert body["run"]["assistantMessageId"].startswith("msg_")
+    assert body["acceptedMessage"]["metadata"] == {}
+    assert body["assistantMessage"]["role"] == "assistant"
+    assert body["assistantMessage"]["status"] == "in_progress"
+    assert body["assistantMessage"]["parts"] == []
 
 
-def test_get_agent_runs_by_run_id_returns_status_summary():
+def test_create_run_request_schema_does_not_expose_client_message_id():
     client = build_client()
-    created = client.post(
-        "/agent/runs",
-        headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
-    ).json()
 
-    response = client.get(f"/agent/runs/{created['runId']}", headers={"X-User-Id": "3001"})
+    response = client.get("/openapi.json")
 
     assert response.status_code == 200
-    assert response.json()["run"]["id"] == created["runId"]
-    assert response.json()["run"]["threadId"] == created["threadId"]
-    assert response.json()["run"]["status"] in {"queued", "running", "completed"}
+    run_input_schema = response.json()["components"]["schemas"]["RunInputDTO"]
+    assert "clientMessageId" not in run_input_schema["properties"]
 
 
-def test_get_thread_includes_active_run_id():
-    client = build_client(requires_action=True)
+def test_get_agent_runs_by_run_id_returns_new_run_resource_shape():
+    client = build_client()
+    thread_id = create_thread(client)
     created = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "metadata": {},
+        },
     ).json()
 
-    response = client.get(f"/agent/threads/{created['threadId']}", headers={"X-User-Id": "3001"})
+    response = client.get(f"/agent/runs/{created['run']['id']}", headers={"X-User-Id": "3001"})
 
     assert response.status_code == 200
-    assert response.json()["thread"]["activeRunId"] == created["runId"]
+    assert response.json()["run"]["id"] == created["run"]["id"]
+    assert response.json()["run"]["threadId"] == thread_id
+    assert response.json()["run"]["assistantMessageId"] == created["assistantMessage"]["id"]
 
 
-def test_run_stream_event_uses_args_and_request_instead_of_arguments():
+def test_get_agent_run_events_uses_new_sse_envelope_and_after_cursor():
     client = build_client(requires_action=True)
+    thread_id = create_thread(client)
     created = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我退款"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "帮我退款"}]},
+            "metadata": {},
+        },
     ).json()
 
     with client.stream(
         "GET",
-        f"/agent/runs/{created['runId']}/stream",
+        f"/agent/runs/{created['run']['id']}/events",
         headers={"X-User-Id": "3001"},
         params={"after": 0},
     ) as response:
         body = "".join(response.iter_text())
 
     assert response.status_code == 200
-    assert "tool_call_requires_human" in body
-    assert "run_paused" in body
-    assert '"args"' in body
-    assert '"request"' in body
-    assert '"arguments"' not in body
+    assert "event: agent.run.event" in body
+    assert "schemaVersion" in body
+    assert "message.delta" in body
+    assert "tool_call.updated" in body
+    assert "run.updated" in body
 
 
-def test_get_agent_run_stream_replays_history():
+def test_get_agent_run_events_after_cursor_is_strictly_greater_than_after():
     client = build_client()
+    thread_id = create_thread(client)
     created = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "metadata": {},
+        },
     ).json()
 
     with client.stream(
         "GET",
-        f"/agent/runs/{created['runId']}/stream",
+        f"/agent/runs/{created['run']['id']}/events",
         headers={"X-User-Id": "3001"},
-        params={"after": 0},
+        params={"after": 12},
     ) as response:
         body = "".join(response.iter_text())
 
     assert response.status_code == 200
-    assert "run_started" in body
-    assert "message_delta" in body
-    assert "run_completed" in body
+    assert "id: 12\n" not in body
 
 
 def test_get_agent_run_returns_failed_after_runtime_error():
     client = build_client(runtime=FailingAgentRuntime())
+    thread_id = create_thread(client)
 
     created = client.post(
         "/agent/runs",
         headers={"X-User-Id": "3001"},
-        json={"messages": [{"role": "user", "parts": [{"type": "text", "text": "帮我查订单"}]}]},
+        json={
+            "threadId": thread_id,
+            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "metadata": {},
+        },
     ).json()
 
-    response = client.get(f"/agent/runs/{created['runId']}", headers={"X-User-Id": "3001"})
+    response = client.get(f"/agent/runs/{created['run']['id']}", headers={"X-User-Id": "3001"})
 
     assert response.status_code == 200
     assert response.json()["run"]["status"] == "failed"

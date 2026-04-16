@@ -15,6 +15,7 @@ TOOL_CALL_STATUS_CANCELLED = "cancelled"
 class ToolCallRecord:
     id: str
     run_id: str
+    message_id: str
     thread_id: str
     user_id: int
     tool_name: str

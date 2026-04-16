@@ -9,6 +9,7 @@ MESSAGE_ROLE_ASSISTANT = "assistant"
 MESSAGE_STATUS_IN_PROGRESS = "in_progress"
 MESSAGE_STATUS_COMPLETED = "completed"
 MESSAGE_STATUS_ERROR = "error"
+MESSAGE_STATUS_CANCELLED = "cancelled"
 
 
 @dataclass(slots=True)
@@ -27,4 +28,5 @@ class MessageRecord:
     status: str = MESSAGE_STATUS_COMPLETED
     run_id: str | None = None
     created_at: datetime | None = None
+    updated_at: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)

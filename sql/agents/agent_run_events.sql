@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS agent_run_events (
   user_id bigint NOT NULL,
   sequence_no bigint NOT NULL,
   event_type varchar(64) NOT NULL,
+  message_id varchar(64) NULL,
+  tool_call_id varchar(64) NULL,
   payload_json json NOT NULL,
   created_at datetime(3) NOT NULL,
   UNIQUE KEY uk_agent_run_events_run_seq (run_id, sequence_no),

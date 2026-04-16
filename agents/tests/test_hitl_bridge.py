@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from app.agent_runtime.interrupt_models import HumanInterruptPayload
-from app.common.errors import ApiError
+from app.common.errors import ApiError, ApiErrorCode
 from app.runs.interrupt_bridge import InterruptBridge
 from app.runs.tool_call_models import TOOL_CALL_STATUS_WAITING_HUMAN, ToolCallRecord
 from app.runs.tool_call_repository import InMemoryToolCallRepository
@@ -35,6 +35,13 @@ def test_interrupt_bridge_projects_approval_payload_to_human_tool_contract():
             "title": "退款前确认",
             "description": "订单 ORD-1 预计退款 100",
             "riskLevel": "medium",
+            "allowedActions": ["approve", "reject", "edit"],
+        },
+        "humanRequest": {
+            "kind": "approval",
+            "title": "退款前确认",
+            "description": "订单 ORD-1 预计退款 100",
+            "allowedActions": ["approve", "reject", "edit"],
         },
     }
 
@@ -45,6 +52,7 @@ def test_bridge_rejects_second_waiting_human_tool_call_in_same_run():
         ToolCallRecord(
             id="tool_01",
             run_id="run_01",
+            message_id="msg_01",
             thread_id="thr_01",
             user_id=3001,
             tool_name="human_approval",
@@ -65,10 +73,11 @@ def test_bridge_rejects_second_waiting_human_tool_call_in_same_run():
     assert exc_info.value.http_status == 409
 
 
-def test_bridge_restores_resume_payload_from_tool_call_record():
+def test_bridge_maps_approve_to_langgraph_decision_payload():
     record = ToolCallRecord(
         id="tool_01",
         run_id="run_01",
+        message_id="msg_01",
         thread_id="thr_01",
         user_id=3001,
         tool_name="human_approval",
@@ -77,7 +86,7 @@ def test_bridge_restores_resume_payload_from_tool_call_record():
             "action": "refund_order",
             "values": {"order_id": "ORD-1", "reason": "用户发起退款", "user_id": "3001"},
         },
-        request={"title": "退款前确认"},
+        request={"title": "退款前确认", "allowedActions": ["approve", "reject", "edit"]},
     )
 
     payload = InterruptBridge().build_command_resume_payload(
@@ -86,12 +95,65 @@ def test_bridge_restores_resume_payload_from_tool_call_record():
     )
 
     assert payload == {
-        "action": "approve",
-        "reason": "同意退款",
-        "values": {
-            "order_id": "ORD-1",
-            "reason": "用户发起退款",
-            "user_id": "3001",
-            "operator": "agent",
-        },
+        "decisions": [{"type": "approve"}],
     }
+
+
+def test_bridge_maps_edit_to_edited_action_payload():
+    record = ToolCallRecord(
+        id="tool_01",
+        run_id="run_01",
+        message_id="msg_01",
+        thread_id="thr_01",
+        user_id=3001,
+        tool_name="human_approval",
+        status=TOOL_CALL_STATUS_WAITING_HUMAN,
+        arguments={
+            "action": "refund_order",
+            "values": {"order_id": "ORD-1", "reason": "用户发起退款", "user_id": "3001"},
+        },
+        request={"title": "退款前确认", "allowedActions": ["approve", "reject", "edit"]},
+    )
+
+    payload = InterruptBridge().build_command_resume_payload(
+        tool_call=record,
+        action_payload={"action": "edit", "reason": "改成备注退款", "values": {"reason": "客服修改后退款"}},
+    )
+
+    assert payload == {
+        "decisions": [
+            {
+                "type": "edit",
+                "edited_action": {
+                    "name": "refund_order",
+                    "args": {
+                        "order_id": "ORD-1",
+                        "reason": "客服修改后退款",
+                        "user_id": "3001",
+                    },
+                },
+            }
+        ]
+    }
+
+
+def test_bridge_rejects_action_outside_allowed_actions():
+    record = ToolCallRecord(
+        id="tool_01",
+        run_id="run_01",
+        message_id="msg_01",
+        thread_id="thr_01",
+        user_id=3001,
+        tool_name="human_approval",
+        status=TOOL_CALL_STATUS_WAITING_HUMAN,
+        arguments={"action": "refund_order", "values": {"order_id": "ORD-1"}},
+        request={"title": "退款前确认", "allowedActions": ["approve", "reject"]},
+    )
+
+    with pytest.raises(ApiError) as exc_info:
+        InterruptBridge().build_command_resume_payload(
+            tool_call=record,
+            action_payload={"action": "edit", "reason": "不允许编辑", "values": {"reason": "x"}},
+        )
+
+    assert exc_info.value.code == ApiErrorCode.TOOL_CALL_DECISION_NOT_ALLOWED

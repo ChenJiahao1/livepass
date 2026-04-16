@@ -30,7 +30,7 @@ func TestGatewayForwardsAgentRunsWithInjectedUserHeader(t *testing.T) {
 		gotUserHeader = r.Header.Get("X-User-Id")
 		gotAuthorization = r.Header.Get("Authorization")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"runId":"run_01","threadId":"thr_01"}`))
+		_, _ = w.Write([]byte(`{"thread":{"id":"thr_01","activeRunId":"run_01"},"run":{"id":"run_01","threadId":"thr_01","assistantMessageId":"msg_01","status":"queued"},"acceptedMessage":{"id":"msg_user_01","runId":"run_01","metadata":{}},"assistantMessage":{"id":"msg_01","threadId":"thr_01","runId":"run_01","role":"assistant","status":"in_progress","parts":[]}}`))
 	}))
 	defer agentsAPI.Close()
 
@@ -40,7 +40,7 @@ func TestGatewayForwardsAgentRunsWithInjectedUserHeader(t *testing.T) {
 	headers := map[string]string{
 		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 	}
-	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/runs", headers, bytes.NewBufferString(`{}`))
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/runs", headers, bytes.NewBufferString(`{"threadId":"thr_01","input":{"parts":[{"type":"text","text":"帮我查订单"}]},"metadata":{}}`))
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -59,7 +59,7 @@ func TestGatewayForwardsAgentRunsWithInjectedUserHeader(t *testing.T) {
 	if gotUserHeader != "3001" {
 		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
 	}
-	if string(body) != `{"runId":"run_01","threadId":"thr_01"}` {
+	if string(body) != `{"thread":{"id":"thr_01","activeRunId":"run_01"},"run":{"id":"run_01","threadId":"thr_01","assistantMessageId":"msg_01","status":"queued"},"acceptedMessage":{"id":"msg_user_01","runId":"run_01","metadata":{}},"assistantMessage":{"id":"msg_01","threadId":"thr_01","runId":"run_01","role":"assistant","status":"in_progress","parts":[]}}` {
 		t.Fatalf("expected agents body, got %s", string(body))
 	}
 }
@@ -100,7 +100,7 @@ func TestGatewayDoesNotForwardLegacyAgentMessageRoute(t *testing.T) {
 	}
 }
 
-func TestGatewayForwardsAgentRunStreamAfterQuery(t *testing.T) {
+func TestGatewayForwardsAgentRunEventsAfterQuery(t *testing.T) {
 	t.Parallel()
 
 	userAPI := httptest.NewServer(http.NotFoundHandler())
@@ -120,7 +120,7 @@ func TestGatewayForwardsAgentRunStreamAfterQuery(t *testing.T) {
 		gotQuery = r.URL.RawQuery
 		gotUserHeader = r.Header.Get("X-User-Id")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("data: {\"eventType\":\"run_started\"}\n\n"))
+		_, _ = w.Write([]byte("id: 13\nevent: agent.run.event\ndata: {\"schemaVersion\":\"2026-04-16\",\"sequenceNo\":13,\"type\":\"run.updated\"}\n\n"))
 	}))
 	defer agentsAPI.Close()
 
@@ -130,7 +130,7 @@ func TestGatewayForwardsAgentRunStreamAfterQuery(t *testing.T) {
 	headers := map[string]string{
 		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 	}
-	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodGet, "/agent/runs/run_01/stream?after=12", headers, nil)
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodGet, "/agent/runs/run_01/events?after=12", headers, nil)
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -140,8 +140,8 @@ func TestGatewayForwardsAgentRunStreamAfterQuery(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
-	if gotPath != "/agent/runs/run_01/stream" {
-		t.Fatalf("expected upstream path /agent/runs/run_01/stream, got %q", gotPath)
+	if gotPath != "/agent/runs/run_01/events" {
+		t.Fatalf("expected upstream path /agent/runs/run_01/events, got %q", gotPath)
 	}
 	if gotQuery != "after=12" {
 		t.Fatalf("expected raw query after=12, got %q", gotQuery)
@@ -149,7 +149,7 @@ func TestGatewayForwardsAgentRunStreamAfterQuery(t *testing.T) {
 	if gotUserHeader != "3001" {
 		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
 	}
-	if string(body) != "data: {\"eventType\":\"run_started\"}\n\n" {
+	if string(body) != "id: 13\nevent: agent.run.event\ndata: {\"schemaVersion\":\"2026-04-16\",\"sequenceNo\":13,\"type\":\"run.updated\"}\n\n" {
 		t.Fatalf("expected stream body preserved, got %q", string(body))
 	}
 }

@@ -120,7 +120,7 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 				{Method: http.MethodGet, Path: "/agent/threads/:threadId/messages"},
 				{Method: http.MethodPost, Path: "/agent/runs"},
 				{Method: http.MethodGet, Path: "/agent/runs/:runId"},
-				{Method: http.MethodGet, Path: "/agent/runs/:runId/stream"},
+				{Method: http.MethodGet, Path: "/agent/runs/:runId/events"},
 				{Method: http.MethodPost, Path: "/agent/runs/:runId/tool-calls/:toolCallId/resume"},
 				{Method: http.MethodPost, Path: "/agent/runs/:runId/cancel"},
 			},

@@ -134,7 +134,7 @@ Upstreams:
       - Method: post
         Path: /agent/runs
       - Method: get
-        Path: /agent/runs/:runId/stream
+        Path: /agent/runs/:runId/events
       - Method: post
         Path: /agent/runs/:runId/tool-calls/:toolCallId/resume
       - Method: post

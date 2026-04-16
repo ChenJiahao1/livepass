@@ -203,7 +203,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 
 - `user-rpc`、`program-rpc`、`order-rpc`、`pay-rpc` 默认注册到本地 `etcd`
 - `gateway-api` 是统一外部入口，负责把 HTTP 请求转发到各域 API 或 `agents`
-- `agents` 的运行态支持 `GET /agent/runs/{runId}/stream?after=` 回放 run 事件，并对 `resume/cancel` 重试保持接口级幂等
+- `agents` 的运行态支持 `GET /agent/runs/{runId}/events?after=` 回放 run 事件，并对 `resume/cancel` 重试保持接口级幂等
 - `/order/create` 采用 `accept + async` 模式：Redis admission 成功后立即返回 `orderNumber`，异步 consumer 再完成锁座、写单与 guard 落库
 - `/order/poll` 优先读取 Redis 中的 rush attempt 投影，并在非终态时回查 MySQL 是否已出现未支付订单
 - `jobs/order-close/cmd/worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单

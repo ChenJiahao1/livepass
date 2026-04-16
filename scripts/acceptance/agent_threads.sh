@@ -63,12 +63,12 @@ main() {
   local create_body
   local thread_id
   local messages_body
-  local send_body
+  local run_create_body
   local run_id
   local run_body
   local threads_body
 
-  create_body="$(gateway_curl POST /agent/threads '{}')"
+  create_body="$(gateway_curl POST /agent/threads '{"title":"订单咨询"}')"
   assert_thread_body "${create_body}"
   thread_id="$(printf '%s' "${create_body}" | jq -r '.thread.id')"
   log "create_thread=${create_body}"
@@ -78,13 +78,13 @@ main() {
   [[ "$(printf '%s' "${messages_body}" | jq '.messages | length')" == "0" ]] || fail "expected empty initial messages"
   log "initial_messages=${messages_body}"
 
-  send_body="$(gateway_curl POST "/agent/threads/${thread_id}/messages" "$(jq -nc --arg message "$(agent_case_order)" '{message:{role:"user",parts:[{type:"text",text:$message}]}}')")"
-  printf '%s' "${send_body}" | jq -e '.thread.id != "" and .run.status != "" and (.messages | length) >= 1' >/dev/null \
-    || fail "invalid send response: ${send_body}"
-  run_id="$(printf '%s' "${send_body}" | jq -r '.run.id')"
-  log "send_message=${send_body}"
+  run_create_body="$(gateway_curl POST /agent/runs "$(jq -nc --arg thread_id "${thread_id}" --arg message "$(agent_case_order)" '{threadId:$thread_id,input:{parts:[{type:"text",text:$message}]},metadata:{}}')")"
+  printf '%s' "${run_create_body}" | jq -e '.thread.id != "" and .run.id != "" and .assistantMessage.id != ""' >/dev/null \
+    || fail "invalid create run response: ${run_create_body}"
+  run_id="$(printf '%s' "${run_create_body}" | jq -r '.run.id')"
+  log "create_run=${run_create_body}"
 
-  run_body="$(gateway_curl GET "/agent/threads/${thread_id}/runs/${run_id}")"
+  run_body="$(gateway_curl GET "/agent/runs/${run_id}")"
   assert_run_body "${run_body}"
   log "get_run=${run_body}"
 

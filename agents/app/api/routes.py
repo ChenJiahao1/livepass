@@ -17,11 +17,11 @@ from app.api.schemas import (
     CreateThreadResponse,
     GetRunResponse,
     GetThreadResponse,
-    ListMessagesResponse,
+    ListThreadMessagesResponse,
     ListThreadsResponse,
     MessageDTO,
-    PatchThreadRequest,
-    PatchThreadResponse,
+    UpdateThreadRequest,
+    UpdateThreadResponse,
     ResumeToolCallRequest,
     RunDTO,
     RunErrorDTO,
@@ -43,7 +43,6 @@ from app.runs.service import RunService
 from app.runs.stream_service import RunStreamService
 from app.runs.tool_call_repository import MySQLToolCallRepository, ToolCallRepository
 from app.session.checkpointer import RedisCheckpointSaver
-from app.session.store import ThreadOwnershipStore
 from app.threads.repository import MySQLConnectionFactory, MySQLThreadRepository, ThreadRepository
 from app.threads.service import ThreadService
 
@@ -125,36 +124,23 @@ def get_run_repository() -> RunRepository:
     return MySQLRunRepository(get_connection_factory())
 
 
-def get_thread_ownership_store() -> ThreadOwnershipStore:
-    settings = get_settings()
-    return ThreadOwnershipStore(
-        redis_client=get_redis_client(),
-        ttl_seconds=settings.session_ttl_seconds,
-        key_prefix=settings.session_key_prefix,
-    )
-
-
 def get_thread_service(
     thread_repository: ThreadRepository = Depends(get_thread_repository),
     run_repository: RunRepository = Depends(get_run_repository),
-    ownership_store: ThreadOwnershipStore = Depends(get_thread_ownership_store),
 ) -> ThreadService:
     return ThreadService(
         thread_repository=thread_repository,
         run_repository=run_repository,
-        ownership_store=ownership_store,
     )
 
 
 def get_run_service(
     run_repository: RunRepository = Depends(get_run_repository),
     message_service: MessageService = Depends(lambda: None),
-    ownership_store: ThreadOwnershipStore = Depends(get_thread_ownership_store),
 ) -> RunService:
     return RunService(
         run_repository=run_repository,
         message_service=message_service,
-        ownership_store=ownership_store,
     )
 
 
@@ -173,24 +159,20 @@ def get_runtime_service(
 def get_message_service(
     thread_repository: ThreadRepository = Depends(get_thread_repository),
     message_repository: MessageRepository = Depends(get_message_repository),
-    ownership_store: ThreadOwnershipStore = Depends(get_thread_ownership_store),
 ) -> MessageService:
     return MessageService(
         thread_repository=thread_repository,
         message_repository=message_repository,
-        ownership_store=ownership_store,
     )
 
 
 def get_run_service_with_messages(
     run_repository: RunRepository = Depends(get_run_repository),
     message_service: MessageService = Depends(get_message_service),
-    ownership_store: ThreadOwnershipStore = Depends(get_thread_ownership_store),
 ) -> RunService:
     return RunService(
         run_repository=run_repository,
         message_service=message_service,
-        ownership_store=ownership_store,
     )
 
 
@@ -199,6 +181,7 @@ def get_run_executor(
     run_service: RunService = Depends(get_run_service_with_messages),
     message_service: MessageService = Depends(get_message_service),
     event_store: RunEventStore = Depends(get_event_store),
+    event_bus: RunEventBus = Depends(get_event_bus),
     tool_call_repository: ToolCallRepository = Depends(get_tool_call_repository),
     runtime_service: AgentRuntimeService = Depends(get_runtime_service),
 ) -> RunExecutor:
@@ -207,6 +190,7 @@ def get_run_executor(
         run_service=run_service,
         message_service=message_service,
         event_store=event_store,
+        event_bus=event_bus,
         tool_call_repository=tool_call_repository,
         runtime_service=runtime_service,
     )
@@ -252,7 +236,7 @@ def to_run_dto(run) -> RunDTO:
         threadId=run.thread_id,
         status=run.status,
         triggerMessageId=run.trigger_message_id,
-        outputMessageIds=list(run.metadata.get("outputMessageIds", [])),
+        assistantMessageId=run.assistant_message_id,
         startedAt=run.started_at,
         completedAt=run.completed_at,
         error=RunErrorDTO(**error) if error else None,
@@ -310,41 +294,41 @@ async def get_thread(
         raise to_http_exception(exc) from exc
 
 
-@router.patch("/agent/threads/{thread_id}", response_model=PatchThreadResponse)
+@router.patch("/agent/threads/{thread_id}", response_model=UpdateThreadResponse)
 async def patch_thread(
     thread_id: str,
-    request: PatchThreadRequest,
+    request: UpdateThreadRequest,
     user_id: int = Depends(get_current_user_id),
     thread_service: ThreadService = Depends(get_thread_service),
-) -> PatchThreadResponse:
+) -> UpdateThreadResponse:
     try:
-        thread = thread_service.patch_thread(
+        thread = thread_service.update_thread(
             user_id=user_id,
             thread_id=thread_id,
             title=request.title,
             status=request.status,
         )
-        return PatchThreadResponse(thread=to_thread_dto(thread))
+        return UpdateThreadResponse(thread=to_thread_dto(thread))
     except ApiError as exc:
         raise to_http_exception(exc) from exc
 
 
-@router.get("/agent/threads/{thread_id}/messages", response_model=ListMessagesResponse)
+@router.get("/agent/threads/{thread_id}/messages", response_model=ListThreadMessagesResponse)
 async def list_messages(
     thread_id: str,
     user_id: int = Depends(get_current_user_id),
     message_service: MessageService = Depends(get_message_service),
     limit: int = Query(default=20, ge=1, le=100),
     before: str | None = Query(default=None),
-) -> ListMessagesResponse:
+) -> ListThreadMessagesResponse:
     try:
-        messages, next_cursor = message_service.list_messages(
+        messages, next_cursor = message_service.list_thread_messages(
             user_id=user_id,
             thread_id=thread_id,
             limit=limit,
             before=before,
         )
-        return ListMessagesResponse(
+        return ListThreadMessagesResponse(
             messages=[to_message_dto(message) for message in messages],
             nextCursor=next_cursor,
         )
@@ -362,20 +346,19 @@ async def create_run(
     run_executor: RunExecutor = Depends(get_run_executor),
 ) -> CreateRunResponse:
     try:
-        thread_id = request.thread_id
-        if thread_id is None:
-            thread = thread_service.create_thread(user_id=user_id, title=None)
-            thread_id = thread.id
-        else:
-            thread_service.get_thread(user_id=user_id, thread_id=thread_id)
-        first_message = request.messages[0]
-        run = run_service.create_run(
+        run, user_message, assistant_message = run_service.create_run(
             user_id=user_id,
-            thread_id=thread_id,
-            parts=[part.model_dump() for part in first_message.parts],
+            thread_id=request.thread_id,
+            parts=[part.model_dump() for part in request.input.parts],
         )
         background_tasks.add_task(run_executor.start, run.id)
-        return CreateRunResponse(runId=run.id, threadId=thread_id)
+        thread = thread_service.get_thread(user_id=user_id, thread_id=request.thread_id)
+        return CreateRunResponse(
+            thread=to_thread_dto(thread),
+            run=to_run_dto(run),
+            acceptedMessage=to_message_dto(user_message),
+            assistantMessage=to_message_dto(assistant_message),
+        )
     except ApiError as exc:
         raise to_http_exception(exc) from exc
 
@@ -393,8 +376,8 @@ async def get_run(
         raise to_http_exception(exc) from exc
 
 
-@router.get("/agent/runs/{run_id}/stream")
-async def stream_run(
+@router.get("/agent/runs/{run_id}/events")
+async def list_run_events(
     run_id: str,
     user_id: int = Depends(get_current_user_id),
     after: int = Query(default=0, ge=0),
@@ -408,16 +391,12 @@ async def stream_run(
 
     async def _generate():
         async for event in run_stream_service.stream_events(run_id=run_id, after_sequence_no=after):
-            payload = {
-                "id": event.id,
-                "runId": event.run_id,
-                "threadId": event.thread_id,
-                "sequenceNo": event.sequence_no,
-                "eventType": event.event_type,
-                "payload": event.payload,
-                "createdAt": event.created_at.isoformat() if event.created_at else None,
-            }
-            yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            payload = run_stream_service.serialize_event(event)
+            yield (
+                f"id: {event.sequence_no}\n"
+                "event: agent.run.event\n"
+                f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            )
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
 

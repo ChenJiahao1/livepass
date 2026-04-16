@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from app.common.errors import ApiError, ApiErrorCode
 from app.config import Settings, get_settings
 from app.runs.repository import RunRepository
-from app.session.store import ThreadOwnershipError, ThreadOwnershipStore
 from app.threads.models import THREAD_STATUS_ACTIVE, ThreadRecord
 from app.threads.repository import ThreadRepository
 
@@ -22,12 +21,10 @@ class ThreadService:
         self,
         *,
         thread_repository: ThreadRepository,
-        ownership_store: ThreadOwnershipStore,
         run_repository: RunRepository | None = None,
         settings: Settings | None = None,
     ) -> None:
         self.thread_repository = thread_repository
-        self.ownership_store = ownership_store
         self.run_repository = run_repository
         self.settings = settings or get_settings()
 
@@ -38,7 +35,6 @@ class ThreadService:
             title=title or self.settings.agents_thread_default_title,
             now=now,
         )
-        self.ownership_store.save(thread_id=thread.id, user_id=user_id)
         return thread
 
     def list_threads(
@@ -72,21 +68,11 @@ class ThreadService:
 
         if thread.user_id != user_id:
             raise ApiError(
-                code=ApiErrorCode.FORBIDDEN,
-                message="无权访问该线程",
-                http_status=403,
+                code=ApiErrorCode.THREAD_NOT_FOUND,
+                message="线程不存在",
+                http_status=404,
                 details={"threadId": thread_id},
             )
-
-        try:
-            self.ownership_store.assert_owner(thread_id=thread_id, user_id=user_id)
-        except ThreadOwnershipError as exc:
-            raise ApiError(
-                code=ApiErrorCode.FORBIDDEN,
-                message="无权访问该线程",
-                http_status=403,
-                details={"threadId": thread_id},
-            ) from exc
 
         return self._with_active_run(thread)
 
@@ -96,6 +82,21 @@ class ThreadService:
         return updated or thread
 
     def patch_thread(
+        self,
+        *,
+        user_id: int,
+        thread_id: str,
+        title: str | None,
+        status: str | None,
+    ) -> ThreadRecord:
+        return self.update_thread(
+            user_id=user_id,
+            thread_id=thread_id,
+            title=title,
+            status=status,
+        )
+
+    def update_thread(
         self,
         *,
         user_id: int,

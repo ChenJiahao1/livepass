@@ -88,24 +88,26 @@ class MySQLToolCallRepository:
                 cursor.execute(
                     """
                     INSERT INTO agent_tool_calls (
-                      id, run_id, thread_id, user_id, tool_name, status, arguments_json, output_json,
-                      error_json, created_at, updated_at, completed_at, metadata_json
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                      id, run_id, message_id, thread_id, user_id, tool_name, status, arguments_json, request_json,
+                      output_json, error_json, created_at, updated_at, completed_at, metadata_json
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         record.id,
                         record.run_id,
+                        record.message_id,
                         record.thread_id,
                         record.user_id,
                         record.tool_name,
                         record.status,
                         json.dumps(record.arguments),
+                        json.dumps(record.request),
                         json.dumps(record.output) if record.output is not None else None,
                         json.dumps(record.error) if record.error is not None else None,
                         record.created_at,
                         record.updated_at,
                         record.completed_at,
-                        json.dumps({**record.metadata, "request": record.request}),
+                        json.dumps(record.metadata),
                     ),
                 )
             connection.commit()
@@ -122,8 +124,8 @@ class MySQLToolCallRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, run_id, thread_id, user_id, tool_name, status, arguments_json, output_json,
-                           error_json, created_at, updated_at, completed_at, metadata_json
+                    SELECT id, run_id, message_id, thread_id, user_id, tool_name, status, arguments_json, request_json,
+                           output_json, error_json, created_at, updated_at, completed_at, metadata_json
                     FROM agent_tool_calls
                     WHERE run_id = %s AND status = %s
                     ORDER BY created_at DESC, id DESC
@@ -178,8 +180,8 @@ class MySQLToolCallRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, run_id, thread_id, user_id, tool_name, status, arguments_json, output_json,
-                           error_json, created_at, updated_at, completed_at, metadata_json
+                    SELECT id, run_id, message_id, thread_id, user_id, tool_name, status, arguments_json, request_json,
+                           output_json, error_json, created_at, updated_at, completed_at, metadata_json
                     FROM agent_tool_calls
                     WHERE id = %s
                     """,
@@ -201,24 +203,24 @@ class MySQLToolCallRepository:
 
     def _map_row(self, row: dict) -> ToolCallRecord:
         arguments = row.get("arguments_json")
+        request = row.get("request_json")
         output = row.get("output_json")
         error = row.get("error_json")
         metadata = row.get("metadata_json")
-        parsed_metadata = json.loads(metadata) if metadata else {}
-        request = parsed_metadata.pop("request", {})
         return ToolCallRecord(
             id=row["id"],
             run_id=row["run_id"],
+            message_id=row["message_id"],
             thread_id=row["thread_id"],
             user_id=int(row["user_id"]),
             tool_name=row["tool_name"],
             status=row["status"],
             arguments=json.loads(arguments) if arguments else {},
-            request=request if isinstance(request, dict) else {},
+            request=json.loads(request) if request else {},
             output=json.loads(output) if output else None,
             error=json.loads(error) if error else None,
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             completed_at=row["completed_at"],
-            metadata=parsed_metadata,
+            metadata=json.loads(metadata) if metadata else {},
         )
