@@ -11,7 +11,7 @@
 ## 入口
 
 ```bash
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.api.app:app --reload
 ```
 
 当前 HTTP API：
@@ -79,7 +79,7 @@ go run ./services/order-rpc/cmd/order_mcp_server -f services/order-rpc/etc/order
 go run ./services/program-rpc/cmd/program_mcp_server -f services/program-rpc/etc/program-mcp.yaml
 
 # agents API
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.api.app:app --reload
 ```
 
 ## 测试

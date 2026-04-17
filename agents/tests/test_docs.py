@@ -18,6 +18,8 @@ def test_agents_readme_documents_thread_api():
     assert "Thread / Message / Run" in readme
     assert "Python 3.12" in readme
     assert "LangGraph 1.1.6" in readme
+    assert "uv run uvicorn app.api.app:app --reload" in readme
+    assert "uv run uvicorn app.main:app --reload" not in readme
     assert "after 游标回放历史事件" in readme
     assert "input.content" in readme
     assert "outputMessageId" in readme
