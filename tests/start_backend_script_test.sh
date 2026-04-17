@@ -62,7 +62,8 @@ assert_contains 'services/program-rpc/cmd/program_mcp_server'
 assert_not_contains 'generate_proto_stubs'
 assert_not_contains 'agents-generate-proto-stubs'
 assert_contains 'services/gateway-api/gateway.go'
-assert_contains 'uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload'
+assert_contains 'uv run uvicorn app.api.app:app --host 0.0.0.0 --port 8891 --reload'
+assert_not_contains 'uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload'
 assert_contains ":(8080|8081|8082|8083|8084|8888|8889|8890|8891|8892|9082|9083) "
 
 printf '[start-backend-test] ok\n'

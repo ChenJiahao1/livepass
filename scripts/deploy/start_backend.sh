@@ -427,7 +427,7 @@ force_restart_requested_services() {
   log "force restarting requested services"
 
   if [[ "${ONLY_AGENTS}" == "1" ]]; then
-    stop_service "agents" 8891 "uvicorn app.main:app"
+    stop_service "agents" 8891 "uvicorn app.api.app:app"
     stop_service "program-mcp" 9083 "program_mcp_server"
     stop_service "order-mcp" 9082 "order_mcp_server"
     stop_service "order-rpc" 8082 "services/order-rpc/order.go"
@@ -437,7 +437,7 @@ force_restart_requested_services() {
   fi
 
   stop_service "gateway-api" 8081 "services/gateway-api/gateway.go"
-  stop_service "agents" 8891 "uvicorn app.main:app"
+  stop_service "agents" 8891 "uvicorn app.api.app:app"
   stop_service "program-mcp" 9083 "program_mcp_server"
   stop_service "order-mcp" 9082 "order_mcp_server"
   stop_service "pay-api" 8892 "services/pay-api/pay.go"
@@ -573,7 +573,7 @@ start_optional_services() {
 
   start_service "order-mcp" 9082 "order_mcp_server" "go run ./services/order-rpc/cmd/order_mcp_server -f services/order-rpc/etc/order-mcp.yaml"
   start_service "program-mcp" 9083 "program_mcp_server" "go run ./services/program-rpc/cmd/program_mcp_server -f services/program-rpc/etc/program-mcp.yaml"
-  start_service "agents" 8891 "uvicorn app.main:app" "cd agents && uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload"
+  start_service "agents" 8891 "uvicorn app.api.app:app" "cd agents && uv run uvicorn app.api.app:app --host 0.0.0.0 --port 8891 --reload"
 }
 
 start_gateway() {
