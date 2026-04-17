@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Mapping
 
 from app.agent_runtime.interrupt_models import HumanInterruptPayload
 from app.common.errors import ApiErrorCode
@@ -33,6 +34,7 @@ from app.runs.event_store import RunEventStore
 from app.runs.interrupt_bridge import InterruptBridge
 from app.runs.models import RunRecord
 from app.runs.service import RunService
+from app.runs.tool_call_contract import serialize_tool_call_event
 from app.runs.tool_call_models import TOOL_CALL_STATUS_WAITING_HUMAN, ToolCallRecord
 from app.runs.tool_call_repository import ToolCallRepository
 
@@ -156,25 +158,6 @@ class RunEventProjector:
         )
         tool_call_id = new_tool_call_id()
         message_id = str(run.metadata.get("outputMessageId", "")) or None
-        record = ToolCallRecord(
-            id=tool_call_id,
-            run_id=run.id,
-            thread_id=run.thread_id,
-            user_id=run.user_id,
-            message_id=message_id or run.output_message_id,
-            name=tool_name,
-            status=TOOL_CALL_STATUS_WAITING_HUMAN,
-            input=dict(args),
-            human_request=dict(request),
-            output=None,
-            error=None,
-            created_at=run.started_at,
-            updated_at=run.started_at,
-            completed_at=None,
-            metadata=dict(metadata or {}),
-        )
-        self.tool_call_repository.create(record)
-        self._active_tool_call_ids[run.id] = tool_call_id
         projected_payload = self.interrupt_bridge.project_interrupt(
             tool_call_id=tool_call_id,
             interrupt=HumanInterruptPayload(
@@ -184,17 +167,32 @@ class RunEventProjector:
                 request=dict(request),
             ),
         )
+        record = ToolCallRecord(
+            id=tool_call_id,
+            run_id=run.id,
+            thread_id=run.thread_id,
+            user_id=run.user_id,
+            message_id=message_id or run.output_message_id,
+            name=tool_name,
+            status=TOOL_CALL_STATUS_WAITING_HUMAN,
+            input=dict(args),
+            human_request=dict(projected_payload["humanRequest"]),
+            output=None,
+            error=None,
+            created_at=run.started_at,
+            updated_at=run.started_at,
+            completed_at=None,
+            metadata=dict(metadata or {}),
+        )
+        self.tool_call_repository.create(record)
+        self._active_tool_call_ids[run.id] = tool_call_id
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_CREATED,
             payload={
-                "toolCall": {
-                    "id": tool_call_id,
-                    "messageId": record.message_id,
-                    "name": tool_name,
-                    "status": "running",
-                    "input": dict(args),
-                }
+                "toolCall": serialize_tool_call_event(
+                    replace(record, status="running"),
+                )
             },
             message_id=record.message_id,
             tool_call_id=tool_call_id,
@@ -232,14 +230,20 @@ class RunEventProjector:
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
             payload={
-                "toolCall": {
-                    "id": tool_call_id,
-                    "messageId": self._message_id_for_tool_call(tool_call_id) or run.output_message_id,
-                    "name": tool_name,
-                    "status": "waiting_human",
-                    "input": dict(args),
-                    "humanRequest": projected_payload["humanRequest"],
-                },
+                "toolCall": serialize_tool_call_event(
+                    ToolCallRecord(
+                        id=tool_call_id,
+                        run_id=run.id,
+                        thread_id=run.thread_id,
+                        user_id=run.user_id,
+                        message_id=self._message_id_for_tool_call(tool_call_id) or run.output_message_id,
+                        name=tool_name,
+                        status=TOOL_CALL_STATUS_WAITING_HUMAN,
+                        input=dict(args),
+                        human_request=dict(projected_payload["humanRequest"]),
+                        metadata=dict(metadata or {}),
+                    )
+                ),
                 **({"metadata": metadata} if metadata else {}),
             },
             message_id=self._message_id_for_tool_call(tool_call_id) or run.output_message_id,
@@ -256,26 +260,24 @@ class RunEventProjector:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         now = datetime.now(timezone.utc)
-        self.tool_call_repository.update_status(
+        updated_tool_call = self.tool_call_repository.update_status(
             tool_call_id=tool_call_id,
             status="completed",
             error=None,
             now=now,
             output=output,
         )
-        tool_call = self.tool_call_repository.find_by_id(tool_call_id=tool_call_id)
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_COMPLETED,
             payload={
-                "toolCall": {
-                    "id": tool_call_id,
-                    "status": "completed",
-                    "output": output,
-                },
+                "toolCall": serialize_tool_call_event(
+                    updated_tool_call
+                    or self._fallback_tool_call(run=run, tool_call_id=tool_call_id, status="completed", output=output)
+                ),
                 **({"metadata": metadata} if metadata else {}),
             },
-            message_id=tool_call.message_id if tool_call else run.output_message_id,
+            message_id=updated_tool_call.message_id if updated_tool_call else run.output_message_id,
             tool_call_id=tool_call_id,
             now=now,
         )
@@ -293,7 +295,23 @@ class RunEventProjector:
         if tool_call_id is None:
             tool_call_id = new_tool_call_id()
             self._progress_tool_call_ids[progress_key] = tool_call_id
-        event_payload = {"toolCall": {"id": tool_call_id, "name": tool_name, **dict(payload)}}
+        event_payload = {
+            "toolCall": serialize_tool_call_event(
+                ToolCallRecord(
+                    id=tool_call_id,
+                    run_id=run.id,
+                    thread_id=run.thread_id,
+                    user_id=run.user_id,
+                    message_id=run.output_message_id,
+                    name=tool_name,
+                    status=str(payload.get("status") or "running"),
+                    input=self._mapping_field(payload.get("input")),
+                    output=self._optional_mapping_field(payload.get("output")),
+                    error=self._optional_mapping_field(payload.get("error")),
+                    metadata=dict(metadata or {}),
+                )
+            )
+        }
         if metadata:
             event_payload["metadata"] = dict(metadata)
         self._append_event(
@@ -314,26 +332,23 @@ class RunEventProjector:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         now = datetime.now(timezone.utc)
-        self.tool_call_repository.update_status(
+        updated_tool_call = self.tool_call_repository.update_status(
             tool_call_id=tool_call_id,
             status="failed",
             error=error,
             now=now,
             output=None,
         )
-        tool_call = self.tool_call_repository.find_by_id(tool_call_id=tool_call_id)
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_FAILED,
             payload={
-                "toolCall": {
-                    "id": tool_call_id,
-                    "status": "failed",
-                    "error": error,
-                },
+                "toolCall": serialize_tool_call_event(
+                    updated_tool_call or self._fallback_tool_call(run=run, tool_call_id=tool_call_id, status="failed", error=error)
+                ),
                 **({"metadata": metadata} if metadata else {}),
             },
-            message_id=tool_call.message_id if tool_call else run.output_message_id,
+            message_id=updated_tool_call.message_id if updated_tool_call else run.output_message_id,
             tool_call_id=tool_call_id,
             now=now,
         )
@@ -421,13 +436,13 @@ class RunEventProjector:
         now = datetime.now(timezone.utc)
         waiting_tool_call = self.tool_call_repository.find_waiting_by_run(run_id=run.id)
         if waiting_tool_call is not None:
-            self.tool_call_repository.mark_cancelled(tool_call_id=waiting_tool_call.id, now=now)
+            cancelled_tool_call = self.tool_call_repository.mark_cancelled(tool_call_id=waiting_tool_call.id, now=now)
             self._append_event(
                 run=run,
                 event_type=RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
                 message_id=waiting_tool_call.message_id,
                 tool_call_id=waiting_tool_call.id,
-                payload={"toolCall": {"id": waiting_tool_call.id, "status": "cancelled"}},
+                payload={"toolCall": serialize_tool_call_event(cancelled_tool_call or replace(waiting_tool_call, status="cancelled"))},
                 now=now,
             )
         self.run_service.mark_cancelled(run_id=run.id)
@@ -480,3 +495,31 @@ class RunEventProjector:
             return None
         tool_call = self.tool_call_repository.find_by_id(tool_call_id=tool_call_id)
         return tool_call.message_id if tool_call is not None else None
+
+    def _fallback_tool_call(
+        self,
+        *,
+        run: RunRecord,
+        tool_call_id: str,
+        status: str,
+        output: dict[str, Any] | None = None,
+        error: dict[str, Any] | None = None,
+    ) -> ToolCallRecord:
+        return ToolCallRecord(
+            id=tool_call_id,
+            run_id=run.id,
+            thread_id=run.thread_id,
+            user_id=run.user_id,
+            message_id=run.output_message_id,
+            name="tool",
+            status=status,
+            input={},
+            output=output,
+            error=error,
+        )
+
+    def _mapping_field(self, value: Any) -> dict[str, Any]:
+        return dict(value) if isinstance(value, Mapping) else {}
+
+    def _optional_mapping_field(self, value: Any) -> dict[str, Any] | None:
+        return dict(value) if isinstance(value, Mapping) else None

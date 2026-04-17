@@ -123,10 +123,27 @@ class HumanRequestDTO(ApiSchemaModel):
     allowed_actions: list[ResumeToolCallAction] = Field(default_factory=list, alias="allowedActions")
 
 
+class ToolCallDTO(ApiSchemaModel):
+    id: str
+    run_id: str = Field(alias="runId")
+    thread_id: str = Field(alias="threadId")
+    message_id: str | None = Field(default=None, alias="messageId")
+    name: str
+    status: str
+    input: dict[str, Any] = Field(default_factory=dict)
+    output: dict[str, Any] | None = None
+    error: dict[str, Any] | None = None
+    human_request: HumanRequestDTO | None = Field(default=None, alias="humanRequest")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = Field(default=None, alias="createdAt")
+    updated_at: datetime | None = Field(default=None, alias="updatedAt")
+    completed_at: datetime | None = Field(default=None, alias="completedAt")
+
+
 class GetRunResponse(ApiSchemaModel):
     run: RunDTO
     output_message: MessageDTO | None = Field(default=None, alias="outputMessage")
-    active_tool_call: dict[str, Any] | None = Field(default=None, alias="activeToolCall")
+    active_tool_call: ToolCallDTO | None = Field(default=None, alias="activeToolCall")
 
 
 class UpdateThreadRequest(ApiSchemaModel):

@@ -129,6 +129,24 @@ def test_create_run_request_schema_does_not_expose_client_message_id():
     assert "outputMessageId" in run_schema["properties"]
 
 
+def test_openapi_get_run_response_exposes_typed_active_tool_call_schema():
+    client = build_client()
+
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schemas = response.json()["components"]["schemas"]
+    get_run_response = schemas["GetRunResponse"]
+    active_tool_call_schema = get_run_response["properties"]["activeToolCall"]
+    assert "$ref" in active_tool_call_schema["anyOf"][0]
+    tool_call_schema_name = active_tool_call_schema["anyOf"][0]["$ref"].split("/")[-1]
+    tool_call_schema = schemas[tool_call_schema_name]
+    assert "humanRequest" in tool_call_schema["properties"]
+    human_request_schema = tool_call_schema["properties"]["humanRequest"]
+    assert "$ref" in human_request_schema["anyOf"][0]
+    assert human_request_schema["anyOf"][0]["$ref"].endswith("/HumanRequestDTO")
+
+
 def test_get_agent_runs_by_run_id_returns_new_run_resource_shape():
     client = build_client()
     thread_id = create_thread(client)

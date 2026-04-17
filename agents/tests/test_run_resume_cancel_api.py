@@ -1,3 +1,5 @@
+import json
+
 from fastapi.testclient import TestClient
 from langgraph.types import Command
 
@@ -169,6 +171,51 @@ def test_get_run_snapshot_returns_output_message_and_active_tool_call():
     assert body["outputMessage"]["id"] == created["outputMessage"]["id"]
     assert body["activeToolCall"]["id"] == tool_call_id
     assert body["activeToolCall"]["status"] == "waiting_human"
+    assert body["activeToolCall"]["humanRequest"] == {
+        "kind": "approval",
+        "title": "退款前确认",
+        "description": "订单 ORD-1 预计退款 100",
+        "allowedActions": ["approve", "reject", "edit"],
+    }
+
+
+def test_get_run_snapshot_active_tool_call_human_request_matches_sse_waiting_human_shape():
+    client, tool_call_repository, _runtime = build_client()
+    thread_id = create_thread(client)
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={
+            "threadId": thread_id,
+            "input": {"content": [{"type": "text", "text": "我要退款"}]},
+            "metadata": {},
+        },
+    ).json()
+    tool_call_id = next(iter(tool_call_repository._tool_calls.keys()))
+
+    run_snapshot = client.get(f"/agent/runs/{created['run']['id']}", headers={"X-User-Id": "3001"}).json()
+
+    with client.stream(
+        "GET",
+        f"/agent/runs/{created['run']['id']}/events",
+        headers={"X-User-Id": "3001"},
+        params={"after": 0},
+    ) as response:
+        body = "".join(response.iter_text())
+
+    assert response.status_code == 200
+    waiting_human_payload = None
+    for line in body.splitlines():
+        if not line.startswith("data: "):
+            continue
+        payload = json.loads(line.removeprefix("data: "))
+        if payload["type"] == "tool_call.waiting_human":
+            waiting_human_payload = payload
+            break
+
+    assert waiting_human_payload is not None
+    assert run_snapshot["activeToolCall"]["id"] == tool_call_id
+    assert run_snapshot["activeToolCall"]["humanRequest"] == waiting_human_payload["toolCall"]["humanRequest"]
 
 
 def test_cancel_completed_run_returns_run_not_active():

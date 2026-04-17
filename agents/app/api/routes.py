@@ -20,6 +20,7 @@ from app.api.schemas import (
     ListThreadMessagesResponse,
     ListThreadsResponse,
     MessageDTO,
+    ToolCallDTO,
     UpdateThreadRequest,
     UpdateThreadResponse,
     ResumeToolCallRequest,
@@ -41,6 +42,7 @@ from app.runs.executor import RunExecutor
 from app.runs.repository import MySQLRunRepository, RunRepository
 from app.runs.service import RunService
 from app.runs.stream_service import RunStreamService
+from app.runs.tool_call_contract import serialize_tool_call
 from app.runs.tool_call_repository import MySQLToolCallRepository, ToolCallRepository
 from app.session.checkpointer import RedisCheckpointSaver
 from app.threads.repository import MySQLConnectionFactory, MySQLThreadRepository, ThreadRepository
@@ -250,23 +252,8 @@ def to_run_dto(run) -> RunDTO:
     )
 
 
-def to_tool_call_snapshot(tool_call) -> dict[str, Any]:
-    return {
-        "id": tool_call.id,
-        "runId": tool_call.run_id,
-        "threadId": tool_call.thread_id,
-        "messageId": tool_call.message_id,
-        "name": tool_call.name,
-        "status": tool_call.status,
-        "input": tool_call.input,
-        "output": tool_call.output,
-        "error": tool_call.error,
-        "humanRequest": tool_call.human_request,
-        "metadata": tool_call.metadata,
-        "createdAt": tool_call.created_at,
-        "updatedAt": tool_call.updated_at,
-        "completedAt": tool_call.completed_at,
-    }
+def to_tool_call_dto(tool_call) -> ToolCallDTO:
+    return ToolCallDTO(**serialize_tool_call(tool_call))
 
 
 def build_run_snapshot_response(
@@ -280,7 +267,7 @@ def build_run_snapshot_response(
     return GetRunResponse(
         run=to_run_dto(run),
         outputMessage=to_message_dto(output_message) if output_message else None,
-        activeToolCall=to_tool_call_snapshot(active_tool_call) if active_tool_call else None,
+        activeToolCall=to_tool_call_dto(active_tool_call) if active_tool_call else None,
     )
 
 

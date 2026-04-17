@@ -23,6 +23,8 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_RUN_PROGRESS,
     RUN_EVENT_TYPE_RUN_UPDATED,
     RUN_EVENT_TYPE_TOOL_CALL_CREATED,
+    RUN_EVENT_TYPE_TOOL_CALL_COMPLETED,
+    RUN_EVENT_TYPE_TOOL_CALL_FAILED,
     RUN_EVENT_TYPE_TOOL_CALL_PROGRESS,
     RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
     RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
@@ -86,6 +88,38 @@ class PauseRuntime:
                 "request": {"title": "退款前确认", "description": "订单 ORD-1 预计退款 100"},
             },
         }
+
+
+class FailingResumeRuntime(PauseRuntime):
+    async def astream(self, state_payload, config, context, stream_mode):
+        del config
+        del context
+        del stream_mode
+        if isinstance(state_payload, Command):
+            raise RuntimeError("resume exploded")
+        yield (
+            "updates",
+            {
+                "__interrupt__": (
+                    _FakeInterrupt(
+                        {
+                            "toolName": "human_approval",
+                            "args": {
+                                "action": "refund_order",
+                                "orderId": "ORD-1",
+                                "values": {"order_id": "ORD-1", "reason": "用户发起退款", "user_id": "3001"},
+                            },
+                            "request": {"title": "退款前确认", "description": "订单 ORD-1 预计退款 100"},
+                        }
+                    ),
+                )
+            },
+        )
+
+
+class _FakeInterrupt:
+    def __init__(self, value: dict) -> None:
+        self.value = value
 
 
 class StreamOnlyRuntime:
@@ -244,6 +278,8 @@ async def test_cancel_waiting_human_run_closes_tool_and_message_snapshots():
     assert paused_events[1].message_id == saved_run.output_message_id
     assert paused_events[3].message_id == saved_run.output_message_id
     assert paused_events[3].tool_call_id == tool_call_id
+    assert paused_events[3].payload["toolCall"]["messageId"] == saved_run.output_message_id
+    assert paused_events[3].payload["toolCall"]["humanRequest"] == paused_events[5].payload["toolCall"]["humanRequest"]
     assert paused_events[5].message_id == saved_run.output_message_id
     assert paused_events[5].tool_call_id == tool_call_id
 
@@ -256,8 +292,60 @@ async def test_cancel_waiting_human_run_closes_tool_and_message_snapshots():
         RUN_EVENT_TYPE_RUN_CANCELLED,
     ]
     assert events[-3].payload["toolCall"]["status"] == "cancelled"
+    assert events[-3].payload["toolCall"]["messageId"] == saved_run.output_message_id
+    assert events[-3].payload["toolCall"]["humanRequest"] == paused_events[5].payload["toolCall"]["humanRequest"]
     assert events[-2].payload["message"]["status"] == "cancelled"
     assert events[-1].payload["run"]["status"] == "cancelled"
+
+
+@pytest.mark.anyio
+async def test_resume_projects_completed_tool_call_with_same_snapshot_shape():
+    executor, run_service, _thread_service, _message_service, event_store, tool_call_repo, _thread_id, run_id = build_executor(
+        runtime=PauseRuntime()
+    )
+
+    await executor.start(run_id)
+    tool_call_id = next(iter(tool_call_repo._tool_calls.keys()))
+    waiting_event = event_store.list_after(run_id=run_id, after_sequence_no=0)[-1]
+
+    await executor.resume(run_id, tool_call_id, {"action": "approve", "values": {}})
+
+    events = event_store.list_after(run_id=run_id, after_sequence_no=0)
+    completed_event = next(event for event in events if event.event_type == RUN_EVENT_TYPE_TOOL_CALL_COMPLETED)
+    saved_run = run_service.get_run(user_id=3001, run_id=run_id)
+
+    assert completed_event.payload["toolCall"]["id"] == tool_call_id
+    assert completed_event.payload["toolCall"]["messageId"] == saved_run.output_message_id
+    assert completed_event.payload["toolCall"]["name"] == "human_approval"
+    assert completed_event.payload["toolCall"]["status"] == "completed"
+    assert completed_event.payload["toolCall"]["input"] == waiting_event.payload["toolCall"]["input"]
+    assert completed_event.payload["toolCall"]["humanRequest"] == waiting_event.payload["toolCall"]["humanRequest"]
+    assert completed_event.payload["toolCall"]["output"] == {"action": "approve"}
+
+
+@pytest.mark.anyio
+async def test_resume_projects_failed_tool_call_with_same_snapshot_shape():
+    executor, run_service, _thread_service, _message_service, event_store, tool_call_repo, _thread_id, run_id = build_executor(
+        runtime=FailingResumeRuntime()
+    )
+
+    await executor.start(run_id)
+    tool_call_id = next(iter(tool_call_repo._tool_calls.keys()))
+    waiting_event = event_store.list_after(run_id=run_id, after_sequence_no=0)[-1]
+
+    await executor.resume(run_id, tool_call_id, {"action": "approve", "values": {}})
+
+    events = event_store.list_after(run_id=run_id, after_sequence_no=0)
+    failed_event = next(event for event in events if event.event_type == RUN_EVENT_TYPE_TOOL_CALL_FAILED)
+    saved_run = run_service.get_run(user_id=3001, run_id=run_id)
+
+    assert failed_event.payload["toolCall"]["id"] == tool_call_id
+    assert failed_event.payload["toolCall"]["messageId"] == saved_run.output_message_id
+    assert failed_event.payload["toolCall"]["name"] == "human_approval"
+    assert failed_event.payload["toolCall"]["status"] == "failed"
+    assert failed_event.payload["toolCall"]["input"] == waiting_event.payload["toolCall"]["input"]
+    assert failed_event.payload["toolCall"]["humanRequest"] == waiting_event.payload["toolCall"]["humanRequest"]
+    assert failed_event.payload["toolCall"]["error"] == {"message": "resume exploded"}
 
 
 @pytest.mark.anyio
@@ -285,4 +373,9 @@ async def test_executor_projects_langgraph_stream_chunks_without_result_dicts():
         RUN_EVENT_TYPE_MESSAGE_COMPLETED,
         RUN_EVENT_TYPE_RUN_COMPLETED,
     ]
+    tool_progress_event = next(event for event in events if event.event_type == RUN_EVENT_TYPE_TOOL_CALL_PROGRESS)
+    assert tool_progress_event.payload["toolCall"]["messageId"] == saved_run.output_message_id
+    assert tool_progress_event.payload["toolCall"]["name"] == "preview_refund_order"
+    assert tool_progress_event.payload["toolCall"]["status"] == "completed"
+    assert tool_progress_event.payload["toolCall"]["input"] == {}
     assert messages[1].content == [{"type": "text", "text": "正在查询订单"}]
