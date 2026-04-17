@@ -162,6 +162,42 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	}
 }
 
+func TestLoadOrderMCPConfigIncludesShardingRouteMapAndShards(t *testing.T) {
+	t.Parallel()
+
+	configFile := filepath.Join("..", "..", "etc", "order-mcp.yaml")
+	c, err := config.LoadMCP(configFile)
+	if err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.Sharding.Mode != "shard_only" {
+		t.Fatalf("expected order-mcp sharding mode shard_only, got %s", c.Sharding.Mode)
+	}
+	if len(c.Sharding.Shards) != 2 {
+		t.Fatalf("expected 2 order-mcp sharding mysql configs, got %d", len(c.Sharding.Shards))
+	}
+	if c.Sharding.RouteMap.Version != "v1" {
+		t.Fatalf("expected order-mcp sharding route map version v1, got %s", c.Sharding.RouteMap.Version)
+	}
+	if len(c.Sharding.RouteMap.Entries) != 1024 {
+		t.Fatalf("expected order-mcp route map entries 1024, got %d", len(c.Sharding.RouteMap.Entries))
+	}
+
+	routeMap, err := sharding.NewRouteMap(c.Sharding.RouteMap.Version, toRouteEntries(c.Sharding.RouteMap.Entries))
+	if err != nil {
+		t.Fatalf("build route map from mcp config: %v", err)
+	}
+	userID := int64(3001)
+	route, err := routeMap.RouteByLogicSlot(sharding.LogicSlotByUserID(userID))
+	if err != nil {
+		t.Fatalf("route mcp config user %d: %v", userID, err)
+	}
+	if route.DBKey == "" || route.TableSuffix == "" {
+		t.Fatalf("expected mcp config route for user %d to be complete, got %+v", userID, route)
+	}
+}
+
 func TestOrderCreateAcceptAsyncConfigRemovesLegacyTimeDrivenFields(t *testing.T) {
 	t.Parallel()
 

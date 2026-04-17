@@ -10,7 +10,11 @@ Mcp:
   MessageEndpoint: /message
 
 MySQL:
-  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order_integration?parseTime=true
+  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  MaxOpenConns: 24
+  MaxIdleConns: 8
+  ConnMaxLifetime: 3m
+  ConnMaxIdleTime: 1m
 
 ProgramRpc:
   Endpoints:
@@ -26,3 +30,18 @@ UserRpc:
 
 Sharding:
   Mode: shard_only
+  Shards:
+    order-db-0:
+      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+      MaxOpenConns: 24
+      MaxIdleConns: 8
+      ConnMaxLifetime: 3m
+      ConnMaxIdleTime: 1m
+    order-db-1:
+      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+      MaxOpenConns: 24
+      MaxIdleConns: 8
+      ConnMaxLifetime: 3m
+      ConnMaxIdleTime: 1m
+  RouteMap:
+    File: order.route-map.yaml
