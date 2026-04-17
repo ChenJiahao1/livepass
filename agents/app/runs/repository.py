@@ -5,7 +5,7 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Protocol
 
-from app.common.errors import ApiError, ApiErrorCode
+from app.shared.errors import ApiError, ApiErrorCode
 from app.conversations.messages.models import MessageRecord
 from app.conversations.messages.repository import MessageRepository
 from app.runs.models import (
@@ -17,7 +17,8 @@ from app.runs.models import (
     RUN_STATUS_RUNNING,
     RunRecord,
 )
-from app.conversations.threads.repository import MySQLConnectionFactory, ThreadRepository
+from app.integrations.storage.mysql import MySQLConnectionFactory
+from app.conversations.threads.repository import ThreadRepository
 
 ACTIVE_RUN_STATUSES = {RUN_STATUS_QUEUED, RUN_STATUS_RUNNING, RUN_STATUS_REQUIRES_ACTION}
 

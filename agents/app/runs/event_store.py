@@ -5,9 +5,9 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Protocol
 
-from app.common.ids import new_run_event_id
+from app.shared.ids import new_run_event_id
 from app.runs.event_models import RunEventRecord
-from app.conversations.threads.repository import MySQLConnectionFactory
+from app.integrations.storage.mysql import MySQLConnectionFactory
 
 
 class RunEventStore(Protocol):

@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from app.common.errors import ApiError, ApiErrorCode
-from app.config import Settings, get_settings
+from app.shared.errors import ApiError, ApiErrorCode
+from app.shared.config import Settings, get_settings
 from app.runs.repository import RunRepository
 from app.conversations.threads.models import THREAD_STATUS_ACTIVE, ThreadRecord
 from app.conversations.threads.repository import ThreadRepository

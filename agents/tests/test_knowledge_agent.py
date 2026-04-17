@@ -5,8 +5,8 @@ import httpx
 from langchain_core.messages import HumanMessage
 
 from app.agents.specialists.knowledge_specialist import KnowledgeAgent
-from app.config import get_settings
-from app.knowledge.service import KnowledgeService
+from app.shared.config import get_settings
+from app.integrations.knowledge.service import KnowledgeService
 
 
 def _set_lightrag_env(monkeypatch, tmp_path: Path, *, api_key: str | None = "test-rag-key"):

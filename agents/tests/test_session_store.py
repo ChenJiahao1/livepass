@@ -1,6 +1,6 @@
 import pytest
 
-from app.common.errors import ApiError
+from app.shared.errors import ApiError
 from app.runs.repository import InMemoryRunRepository
 from app.conversations.threads.repository import InMemoryThreadRepository
 from app.conversations.threads.service import ThreadService

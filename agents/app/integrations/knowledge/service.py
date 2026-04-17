@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 from langchain_core.messages import AnyMessage
 
-from app.config import Settings, get_settings
+from app.shared.config import Settings, get_settings
 
 REALTIME_KEYWORDS = ("最近", "最新", "新闻", "八卦", "热搜", "绯闻", "近况", "动态", "今天")
 

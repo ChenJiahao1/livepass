@@ -29,11 +29,11 @@ from app.api.schemas import (
     TextContentDTO,
     ThreadDTO,
 )
-from app.common.errors import ApiError, to_http_exception
-from app.config import get_settings
+from app.shared.errors import ApiError, to_http_exception
+from app.shared.config import get_settings
 from app.graph import build_graph_app
-from app.llm.client import build_chat_model
-from app.mcp_client.registry import MCPToolRegistry
+from app.agents.llm import build_chat_model
+from app.integrations.mcp.registry import MCPToolRegistry
 from app.conversations.messages.repository import MessageRepository, MySQLMessageRepository
 from app.conversations.messages.service import MessageService
 from app.runs.execution.event_bus import RunEventBus
@@ -44,8 +44,9 @@ from app.runs.execution.runtime import RunService
 from app.runs.execution.stream import RunStreamService
 from app.runs.tool_call_contract import serialize_tool_call
 from app.runs.tool_call_repository import MySQLToolCallRepository, ToolCallRepository
-from app.session.checkpointer import RedisCheckpointSaver
-from app.conversations.threads.repository import MySQLConnectionFactory, MySQLThreadRepository, ThreadRepository
+from app.integrations.storage.redis import RedisCheckpointSaver
+from app.integrations.storage.mysql import MySQLConnectionFactory
+from app.conversations.threads.repository import MySQLThreadRepository, ThreadRepository
 from app.conversations.threads.service import ThreadService
 
 router = APIRouter()

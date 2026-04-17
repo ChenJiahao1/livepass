@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.llm.schemas import CoordinatorDecision, SupervisorDecision
+from app.agents.llm import CoordinatorDecision, SupervisorDecision
 from app.shared.prompt_loader import PromptLoader
 
 

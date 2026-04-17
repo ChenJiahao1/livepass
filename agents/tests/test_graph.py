@@ -4,7 +4,7 @@ from pathlib import Path
 from langgraph.checkpoint.base import empty_checkpoint
 
 from app.graph.builder import build_graph_app
-from app.session.checkpointer import RedisCheckpointSaver
+from app.integrations.storage.redis import RedisCheckpointSaver
 from app.graph.state import ConversationState
 from tests.fakes import FakeRedis, ScriptedChatModel, StubRegistry
 

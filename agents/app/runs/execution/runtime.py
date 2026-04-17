@@ -324,8 +324,8 @@ class AgentRuntimeService:
 
 from datetime import datetime, timedelta, timezone
 
-from app.common.errors import ApiError, ApiErrorCode
-from app.common.ids import new_message_id, new_run_id
+from app.shared.errors import ApiError, ApiErrorCode
+from app.shared.ids import new_message_id, new_run_id
 from app.conversations.messages.models import (
     MESSAGE_ROLE_ASSISTANT,
     MESSAGE_ROLE_USER,

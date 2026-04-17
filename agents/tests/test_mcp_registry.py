@@ -1,8 +1,8 @@
 import pytest
 
-from app.config import Settings
-from app.mcp_client.execution_context import ToolExecutionContext
-from app.mcp_client.registry import MCPToolRegistry
+from app.shared.config import Settings
+from app.integrations.mcp.execution_context import ToolExecutionContext
+from app.integrations.mcp.registry import MCPToolRegistry
 
 
 def test_registry_points_order_toolset_to_go_provider():

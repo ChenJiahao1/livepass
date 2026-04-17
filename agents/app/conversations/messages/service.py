@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from app.common.errors import ApiError, ApiErrorCode
-from app.common.ids import new_message_id
-from app.config import Settings, get_settings
+from app.shared.errors import ApiError, ApiErrorCode
+from app.shared.ids import new_message_id
+from app.shared.config import Settings, get_settings
 from app.conversations.messages.models import (
     MESSAGE_ROLE_ASSISTANT,
     MESSAGE_ROLE_USER,

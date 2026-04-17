@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.knowledge.service import KnowledgeService
+from app.integrations.knowledge.service import KnowledgeService
 from app.graph.state import ConversationState
 
 

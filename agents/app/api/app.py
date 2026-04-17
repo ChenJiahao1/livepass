@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 
 from app.api.routes import router
-from app.config import get_settings
+from app.shared.config import get_settings
 
 
 def create_app() -> FastAPI:

@@ -5,12 +5,10 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Protocol
 
-import pymysql
-
-from app.common.cursor import decode_cursor, encode_cursor
-from app.common.ids import new_thread_id
-from app.config import Settings, get_settings
+from app.shared.cursor import decode_cursor, encode_cursor
+from app.shared.ids import new_thread_id
 from app.conversations.threads.models import THREAD_STATUS_ACTIVE, THREAD_STATUS_ARCHIVED, ThreadRecord
+from app.integrations.storage.mysql import MySQLConnectionFactory
 
 
 class ThreadRepository(Protocol):
@@ -127,23 +125,6 @@ class InMemoryThreadRepository:
 
     def archive(self, *, thread_id: str, now: datetime) -> ThreadRecord | None:
         return self.update_status(thread_id=thread_id, status=THREAD_STATUS_ARCHIVED, now=now)
-
-
-class MySQLConnectionFactory:
-    def __init__(self, settings: Settings | None = None) -> None:
-        self.settings = settings or get_settings()
-
-    def connect(self):
-        return pymysql.connect(
-            host=self.settings.agents_mysql_host,
-            port=self.settings.agents_mysql_port,
-            user=self.settings.agents_mysql_user,
-            password=self.settings.agents_mysql_password,
-            database=self.settings.agents_mysql_database,
-            charset=self.settings.agents_mysql_charset,
-            cursorclass=pymysql.cursors.DictCursor,
-            autocommit=False,
-        )
 
 
 class MySQLThreadRepository:

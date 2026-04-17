@@ -9,10 +9,10 @@ from typing import Any
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
-from app.config import Settings, get_settings
-from app.common.ids import new_tool_call_id
-from app.mcp_client.execution_context import ToolExecutionContext
-from app.mcp_client.interceptor import MCPToolInterceptor
+from app.shared.config import Settings, get_settings
+from app.shared.ids import new_tool_call_id
+from app.integrations.mcp.execution_context import ToolExecutionContext
+from app.integrations.mcp.interceptor import MCPToolInterceptor
 
 SUPPORTED_TOOLSETS = ("activity", "order", "refund")
 TOOLSET_TOOL_NAMES = {

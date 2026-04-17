@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from app.runs.execution.runtime import AgentRuntimeService
-from app.common.errors import ApiError, ApiErrorCode
+from app.shared.errors import ApiError, ApiErrorCode
 from app.conversations.messages.service import MessageService
 from app.runs.execution.event_bus import RunEventBus
 from app.runs.event_models import RUN_EVENT_TYPE_RUN_UPDATED

@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from typing import Any, Mapping
 
 from app.runs.interrupt_models import HumanInterruptPayload
-from app.common.errors import ApiErrorCode
-from app.common.ids import new_tool_call_id
+from app.shared.errors import ApiErrorCode
+from app.shared.ids import new_tool_call_id
 from app.conversations.messages.models import MESSAGE_STATUS_CANCELLED, MESSAGE_STATUS_COMPLETED, MESSAGE_STATUS_ERROR
 from app.conversations.messages.service import MessageService
 from app.runs.execution.event_bus import RunEventBus

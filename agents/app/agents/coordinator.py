@@ -3,7 +3,7 @@
 from langchain_core.messages import SystemMessage
 from langchain_core.messages.utils import convert_to_messages
 
-from app.llm.schemas import CoordinatorDecision
+from app.agents.llm import CoordinatorDecision
 from app.shared.prompt_loader import PromptLoader
 from app.graph.state import ConversationState
 

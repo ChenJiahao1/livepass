@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.runs.interrupt_models import HumanResumePayload
-from app.common.errors import ApiError, ApiErrorCode
+from app.shared.errors import ApiError, ApiErrorCode
 from app.runs.interrupt_models import HumanInterruptPayload
 from app.runs.tool_call_contract import build_human_request, normalize_allowed_actions
 from app.runs.tool_call_repository import ToolCallRepository

@@ -1,5 +1,5 @@
-from app.config import Settings
-from app.mcp_client.registry import MCPToolRegistry
+from app.shared.config import Settings
+from app.integrations.mcp.registry import MCPToolRegistry
 
 
 def test_mcp_registry_prefers_go_order_provider():

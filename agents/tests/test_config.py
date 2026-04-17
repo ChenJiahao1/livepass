@@ -1,4 +1,23 @@
-from app.config import get_settings
+from pathlib import Path
+
+from app.shared.config import get_settings
+
+
+def test_shared_and_integrations_modules_exist():
+    assert Path("app/shared/config.py").is_file()
+    assert Path("app/shared/errors.py").is_file()
+    assert Path("app/shared/ids.py").is_file()
+    assert Path("app/shared/cursor.py").is_file()
+    assert Path("app/integrations/mcp/registry.py").is_file()
+    assert Path("app/integrations/mcp/interceptor.py").is_file()
+    assert Path("app/integrations/mcp/execution_context.py").is_file()
+    assert Path("app/integrations/knowledge/service.py").is_file()
+    assert Path("app/integrations/storage/mysql.py").is_file()
+    assert Path("app/integrations/storage/redis.py").is_file()
+    assert Path("app/agents/llm.py").is_file()
+    assert not Path("app/config.py").exists()
+    assert not Path("app/common/errors.py").exists()
+    assert not Path("app/llm/client.py").exists()
 
 
 def test_settings_exposes_customer_runtime_fields(monkeypatch):

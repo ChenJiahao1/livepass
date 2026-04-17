@@ -4,9 +4,9 @@ import asyncio
 
 import pytest
 
-from app.common.errors import ApiError
-from app.mcp_client.execution_context import ToolExecutionContext
-from app.mcp_client.interceptor import MCPToolInterceptor
+from app.shared.errors import ApiError
+from app.integrations.mcp.execution_context import ToolExecutionContext
+from app.integrations.mcp.interceptor import MCPToolInterceptor
 
 
 class _TimeoutTool:

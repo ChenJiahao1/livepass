@@ -4,8 +4,8 @@ import asyncio
 import json
 from typing import Any
 
-from app.common.errors import ApiError, ApiErrorCode
-from app.mcp_client.execution_context import ToolExecutionContext
+from app.shared.errors import ApiError, ApiErrorCode
+from app.integrations.mcp.execution_context import ToolExecutionContext
 
 
 class MCPToolInterceptor:
