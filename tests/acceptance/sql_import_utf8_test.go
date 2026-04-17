@@ -93,6 +93,59 @@ func TestImportSQLScriptPreservesUTF8ProgramSeed(t *testing.T) {
 	}
 }
 
+func TestImportSQLScriptCreatesUserDevAccount(t *testing.T) {
+	adminDB := openAcceptanceMySQL(t, xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/?parseTime=true"))
+	defer adminDB.Close()
+
+	dbName := fmt.Sprintf("damai_user_import_seed_%d", time.Now().UnixNano())
+	dropAcceptanceDatabase(t, adminDB, dbName)
+	defer dropAcceptanceDatabase(t, adminDB, dbName)
+
+	cmd := exec.Command("bash", filepath.Join(acceptanceProjectRoot(t), "scripts", "import_sql.sh"))
+	cmd.Dir = acceptanceProjectRoot(t)
+	cmd.Env = append(
+		os.Environ(),
+		"IMPORT_DOMAINS=user",
+		"MYSQL_CONTAINER=docker-compose-mysql-1",
+		"MYSQL_PASSWORD=123456",
+		"MYSQL_DB_USER="+dbName,
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("run import_sql.sh error: %v\noutput:\n%s", err, output)
+	}
+
+	userDB := openAcceptanceMySQL(
+		t,
+		xmysql.WithLocalTime(fmt.Sprintf("root:123456@tcp(127.0.0.1:3306)/%s?parseTime=true", dbName)),
+	)
+	defer userDB.Close()
+
+	var userID int64
+	var name, password string
+	if err := userDB.QueryRow("SELECT id, name, password FROM d_user WHERE mobile = ?", "13800000000").Scan(&userID, &name, &password); err != nil {
+		t.Fatalf("query d_user seed error: %v", err)
+	}
+	if userID != 10001 {
+		t.Fatalf("unexpected seed user id: %d", userID)
+	}
+	if name != "测试用户" {
+		t.Fatalf("unexpected seed user name: %q", name)
+	}
+	if password != "e10adc3949ba59abbe56e057f20f883e" {
+		t.Fatalf("unexpected seed user password hash: %q", password)
+	}
+
+	var mappedUserID int64
+	if err := userDB.QueryRow("SELECT user_id FROM d_user_mobile WHERE mobile = ?", "13800000000").Scan(&mappedUserID); err != nil {
+		t.Fatalf("query d_user_mobile seed error: %v", err)
+	}
+	if mappedUserID != userID {
+		t.Fatalf("unexpected mobile mapping user id: got %d want %d", mappedUserID, userID)
+	}
+}
+
 func TestImportSQLScriptCreatesAgentsSchemaWithRequiredColumns(t *testing.T) {
 	adminDB := openAcceptanceMySQL(t, xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/?parseTime=true"))
 	defer adminDB.Close()

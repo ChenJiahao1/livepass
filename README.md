@@ -136,6 +136,11 @@ bash scripts/import_sql.sh
 IMPORT_DOMAINS=agents bash scripts/import_sql.sh
 ```
 
+本地初始化后会预置一个普通测试用户：
+
+- 手机号：`13800000000`
+- 密码：`123456`
+
 ## 运行测试
 
 Go 服务与作业：

@@ -20,6 +20,7 @@ USER_SQL_FILES=(
   "sql/user/d_user_mobile.sql"
   "sql/user/d_user_email.sql"
   "sql/user/d_ticket_user.sql"
+  "sql/user/dev_seed.sql"
 )
 
 PROGRAM_SQL_FILES=(
