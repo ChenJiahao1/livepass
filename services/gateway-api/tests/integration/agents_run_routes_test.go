@@ -30,7 +30,7 @@ func TestGatewayForwardsAgentRunsWithInjectedUserHeader(t *testing.T) {
 		gotUserHeader = r.Header.Get("X-User-Id")
 		gotAuthorization = r.Header.Get("Authorization")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"thread":{"id":"thr_01","activeRunId":"run_01"},"run":{"id":"run_01","threadId":"thr_01","assistantMessageId":"msg_01","status":"queued"},"acceptedMessage":{"id":"msg_user_01","runId":"run_01","metadata":{}},"assistantMessage":{"id":"msg_01","threadId":"thr_01","runId":"run_01","role":"assistant","status":"in_progress","parts":[]}}`))
+		_, _ = w.Write([]byte(`{"thread":{"id":"thr_01","activeRunId":"run_01"},"run":{"id":"run_01","threadId":"thr_01","outputMessageId":"msg_01","status":"queued"},"inputMessage":{"id":"msg_user_01","runId":"run_01","metadata":{},"content":[{"type":"text","text":"帮我查订单"}]},"outputMessage":{"id":"msg_01","threadId":"thr_01","runId":"run_01","role":"assistant","status":"streaming","content":[]}}`))
 	}))
 	defer agentsAPI.Close()
 
@@ -40,7 +40,7 @@ func TestGatewayForwardsAgentRunsWithInjectedUserHeader(t *testing.T) {
 	headers := map[string]string{
 		"Authorization": "Bearer " + testkit.MustCreateToken(t, 3001, "secret-0001"),
 	}
-	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/runs", headers, bytes.NewBufferString(`{"threadId":"thr_01","input":{"parts":[{"type":"text","text":"帮我查订单"}]},"metadata":{}}`))
+	resp := testkit.DoGatewayRequest(t, baseURL, http.MethodPost, "/agent/runs", headers, bytes.NewBufferString(`{"threadId":"thr_01","input":{"content":[{"type":"text","text":"帮我查订单"}]},"metadata":{}}`))
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -59,7 +59,7 @@ func TestGatewayForwardsAgentRunsWithInjectedUserHeader(t *testing.T) {
 	if gotUserHeader != "3001" {
 		t.Fatalf("expected X-User-Id 3001, got %q", gotUserHeader)
 	}
-	if string(body) != `{"thread":{"id":"thr_01","activeRunId":"run_01"},"run":{"id":"run_01","threadId":"thr_01","assistantMessageId":"msg_01","status":"queued"},"acceptedMessage":{"id":"msg_user_01","runId":"run_01","metadata":{}},"assistantMessage":{"id":"msg_01","threadId":"thr_01","runId":"run_01","role":"assistant","status":"in_progress","parts":[]}}` {
+	if string(body) != `{"thread":{"id":"thr_01","activeRunId":"run_01"},"run":{"id":"run_01","threadId":"thr_01","outputMessageId":"msg_01","status":"queued"},"inputMessage":{"id":"msg_user_01","runId":"run_01","metadata":{},"content":[{"type":"text","text":"帮我查订单"}]},"outputMessage":{"id":"msg_01","threadId":"thr_01","runId":"run_01","role":"assistant","status":"streaming","content":[]}}` {
 		t.Fatalf("expected agents body, got %s", string(body))
 	}
 }

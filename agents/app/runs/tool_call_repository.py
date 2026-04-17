@@ -22,7 +22,6 @@ class ToolCallRepository(Protocol):
         status: str,
         error: dict | None,
         now: datetime,
-        result: dict | None = None,
         output: dict | None = None,
     ) -> ToolCallRecord | None: ...
 
@@ -52,15 +51,13 @@ class InMemoryToolCallRepository:
         status: str,
         error: dict | None,
         now: datetime,
-        result: dict | None = None,
         output: dict | None = None,
     ) -> ToolCallRecord | None:
         record = self._tool_calls.get(tool_call_id)
         if record is None:
             return None
-        resolved_result = result if result is not None else output
         record.status = status
-        record.result = dict(resolved_result) if resolved_result is not None else None
+        record.output = dict(output) if output is not None else None
         record.error = dict(error) if error is not None else None
         record.updated_at = now
         record.completed_at = now if status in {"completed", "failed", "cancelled"} else None
@@ -74,9 +71,9 @@ class InMemoryToolCallRepository:
         return self.update_status(
             tool_call_id=tool_call_id,
             status=TOOL_CALL_STATUS_CANCELLED,
-            result=None,
             error=None,
             now=now,
+            output=None,
         )
 
 
@@ -91,7 +88,7 @@ class MySQLToolCallRepository:
                 cursor.execute(
                     """
                     INSERT INTO agent_tool_calls (
-                      id, run_id, thread_id, user_id, message_id, tool_name, status, arguments_json, request_json,
+                      id, run_id, thread_id, user_id, message_id, name, status, input_json, human_request_json,
                       output_json, error_json, created_at, updated_at, completed_at, metadata_json
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
@@ -101,11 +98,11 @@ class MySQLToolCallRepository:
                         record.thread_id,
                         record.user_id,
                         record.message_id,
-                        record.tool_name,
+                        record.name,
                         record.status,
-                        json.dumps(record.arguments),
+                        json.dumps(record.input),
                         json.dumps(record.human_request),
-                        json.dumps(record.result) if record.result is not None else None,
+                        json.dumps(record.output) if record.output is not None else None,
                         json.dumps(record.error) if record.error is not None else None,
                         record.created_at,
                         record.updated_at,
@@ -127,7 +124,7 @@ class MySQLToolCallRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, run_id, thread_id, user_id, message_id, tool_name, status, arguments_json, request_json,
+                    SELECT id, run_id, thread_id, user_id, message_id, name, status, input_json, human_request_json,
                            output_json, error_json, created_at, updated_at, completed_at, metadata_json
                     FROM agent_tool_calls
                     WHERE run_id = %s AND status = %s
@@ -148,11 +145,9 @@ class MySQLToolCallRepository:
         status: str,
         error: dict | None,
         now: datetime,
-        result: dict | None = None,
         output: dict | None = None,
     ) -> ToolCallRecord | None:
         completed_at = now if status in {"completed", "failed", "cancelled"} else None
-        resolved_result = result if result is not None else output
         connection = self.connection_factory.connect()
         try:
             with connection.cursor() as cursor:
@@ -164,7 +159,7 @@ class MySQLToolCallRepository:
                     """,
                     (
                         status,
-                        json.dumps(resolved_result) if resolved_result is not None else None,
+                        json.dumps(output) if output is not None else None,
                         json.dumps(error) if error is not None else None,
                         now,
                         completed_at,
@@ -185,7 +180,7 @@ class MySQLToolCallRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, run_id, thread_id, user_id, message_id, tool_name, status, arguments_json, request_json,
+                    SELECT id, run_id, thread_id, user_id, message_id, name, status, input_json, human_request_json,
                            output_json, error_json, created_at, updated_at, completed_at, metadata_json
                     FROM agent_tool_calls
                     WHERE id = %s
@@ -201,14 +196,14 @@ class MySQLToolCallRepository:
         return self.update_status(
             tool_call_id=tool_call_id,
             status=TOOL_CALL_STATUS_CANCELLED,
-            result=None,
             error=None,
             now=now,
+            output=None,
         )
 
     def _map_row(self, row: dict) -> ToolCallRecord:
-        arguments = row.get("arguments_json")
-        request = row.get("request_json")
+        input_data = row.get("input_json")
+        request = row.get("human_request_json")
         output = row.get("output_json")
         error = row.get("error_json")
         metadata = row.get("metadata_json")
@@ -218,11 +213,11 @@ class MySQLToolCallRepository:
             thread_id=row["thread_id"],
             user_id=int(row["user_id"]),
             message_id=row.get("message_id"),
-            tool_name=row["tool_name"],
+            name=row["name"],
             status=row["status"],
-            arguments=_parse_json_object(arguments),
+            input=_parse_json_object(input_data),
             human_request=_parse_json_object(request),
-            result=_parse_json_object(output) if output else None,
+            output=_parse_json_object(output) if output else None,
             error=_parse_json_object(error) if error else None,
             created_at=row["created_at"],
             updated_at=row["updated_at"],

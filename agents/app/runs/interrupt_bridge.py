@@ -49,7 +49,7 @@ class InterruptBridge:
         action_payload: Mapping[str, Any],
     ) -> dict[str, Any]:
         resume_payload = self.parse_resume_payload(action_payload)
-        allowed_actions = self._normalize_allowed_actions(tool_call.request)
+        allowed_actions = self._normalize_allowed_actions(tool_call.human_request)
         if resume_payload.action not in allowed_actions:
             raise ApiError(
                 code=ApiErrorCode.TOOL_CALL_DECISION_NOT_ALLOWED,
@@ -62,14 +62,14 @@ class InterruptBridge:
                     "allowedActions": allowed_actions,
                 },
             )
-        base_values = tool_call.arguments.get("values")
+        base_values = tool_call.input.get("values")
         merged_values = dict(base_values) if isinstance(base_values, Mapping) else {}
         merged_values.update(resume_payload.values)
         if resume_payload.action == "approve":
             return {"decisions": [{"type": "approve"}]}
         if resume_payload.action == "reject":
             return {"decisions": [{"type": "reject", "message": resume_payload.reason or ""}]}
-        tool_name = str(tool_call.arguments.get("action") or tool_call.tool_name).strip()
+        tool_name = str(tool_call.input.get("action") or tool_call.name).strip()
         return {
             "decisions": [
                 {

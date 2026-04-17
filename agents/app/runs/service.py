@@ -39,10 +39,10 @@ class RunService:
         *,
         user_id: int,
         thread_id: str,
-        parts: list[dict],
+        content: list[dict],
     ) -> tuple[RunRecord, MessageRecord, MessageRecord]:
         run_id = new_run_id()
-        user_text = self.message_service.extract_text(parts)
+        user_text = self.message_service.extract_text(content)
         now = datetime.now(timezone.utc)
         assistant_now = now + timedelta(microseconds=1)
         user_message = MessageRecord(
@@ -50,7 +50,7 @@ class RunService:
             thread_id=thread_id,
             user_id=user_id,
             role=MESSAGE_ROLE_USER,
-            parts=list(parts),
+            content=list(content),
             status=MESSAGE_STATUS_COMPLETED,
             run_id=run_id,
             created_at=now,
@@ -62,7 +62,7 @@ class RunService:
             thread_id=thread_id,
             user_id=user_id,
             role=MESSAGE_ROLE_ASSISTANT,
-            parts=[],
+            content=[],
             status=MESSAGE_STATUS_IN_PROGRESS,
             run_id=run_id,
             created_at=assistant_now,
@@ -74,7 +74,7 @@ class RunService:
             thread_id=thread_id,
             user_id=user_id,
             trigger_message_id=user_message.id,
-            assistant_message_id=assistant_message.id,
+            output_message_id=assistant_message.id,
             status=RUN_STATUS_QUEUED,
             started_at=now,
             completed_at=None,

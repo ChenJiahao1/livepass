@@ -6,14 +6,15 @@ from typing import Any
 
 MESSAGE_ROLE_USER = "user"
 MESSAGE_ROLE_ASSISTANT = "assistant"
-MESSAGE_STATUS_IN_PROGRESS = "in_progress"
+MESSAGE_STATUS_STREAMING = "streaming"
+MESSAGE_STATUS_IN_PROGRESS = MESSAGE_STATUS_STREAMING
 MESSAGE_STATUS_COMPLETED = "completed"
-MESSAGE_STATUS_ERROR = "error"
+MESSAGE_STATUS_ERROR = "failed"
 MESSAGE_STATUS_CANCELLED = "cancelled"
 
 
 @dataclass(slots=True)
-class MessagePart:
+class MessageContent:
     type: str
     text: str
 
@@ -24,7 +25,7 @@ class MessageRecord:
     thread_id: str
     user_id: int
     role: str
-    parts: list[dict[str, Any]] = field(default_factory=list)
+    content: list[dict[str, Any]] = field(default_factory=list)
     status: str = MESSAGE_STATUS_COMPLETED
     run_id: str | None = None
     created_at: datetime | None = None

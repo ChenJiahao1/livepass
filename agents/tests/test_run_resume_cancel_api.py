@@ -127,7 +127,7 @@ def test_resume_waiting_human_tool_call_restarts_same_run_and_thread():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "input": {"content": [{"type": "text", "text": "我要退款"}]},
             "metadata": {},
         },
     ).json()
@@ -142,7 +142,33 @@ def test_resume_waiting_human_tool_call_restarts_same_run_and_thread():
     assert response.status_code == 200
     assert response.json()["run"]["id"] == created["run"]["id"]
     assert response.json()["run"]["threadId"] == thread_id
+    assert response.json()["outputMessage"]["id"] == created["outputMessage"]["id"]
     assert runtime.resume_payloads == [{"decisions": [{"type": "approve"}]}]
+
+
+def test_get_run_snapshot_returns_output_message_and_active_tool_call():
+    client, tool_call_repository, _runtime = build_client()
+    thread_id = create_thread(client)
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={
+            "threadId": thread_id,
+            "input": {"content": [{"type": "text", "text": "我要退款"}]},
+            "metadata": {},
+        },
+    ).json()
+    tool_call_id = next(iter(tool_call_repository._tool_calls.keys()))
+
+    response = client.get(f"/agent/runs/{created['run']['id']}", headers={"X-User-Id": "3001"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body.keys()) == {"run", "outputMessage", "activeToolCall"}
+    assert body["run"]["id"] == created["run"]["id"]
+    assert body["outputMessage"]["id"] == created["outputMessage"]["id"]
+    assert body["activeToolCall"]["id"] == tool_call_id
+    assert body["activeToolCall"]["status"] == "waiting_human"
 
 
 def test_cancel_completed_run_returns_run_not_active():
@@ -153,7 +179,7 @@ def test_cancel_completed_run_returns_run_not_active():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "input": {"content": [{"type": "text", "text": "我要退款"}]},
             "metadata": {},
         },
     ).json()
@@ -183,7 +209,7 @@ def test_resume_completed_run_is_idempotent_for_same_action():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "input": {"content": [{"type": "text", "text": "我要退款"}]},
             "metadata": {},
         },
     ).json()
@@ -215,7 +241,7 @@ def test_resume_edit_maps_to_langgraph_edited_action_payload():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "input": {"content": [{"type": "text", "text": "我要退款"}]},
             "metadata": {},
         },
     ).json()
@@ -253,7 +279,7 @@ def test_resume_rejects_action_not_in_allowed_actions():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "我要退款"}]},
+            "input": {"content": [{"type": "text", "text": "我要退款"}]},
             "metadata": {},
         },
     ).json()
@@ -278,7 +304,7 @@ def test_create_run_rejects_second_active_run_with_conflict_details():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "第一次发起"}]},
+            "input": {"content": [{"type": "text", "text": "第一次发起"}]},
             "metadata": {},
         },
     )
@@ -290,7 +316,7 @@ def test_create_run_rejects_second_active_run_with_conflict_details():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "第二次发起"}]},
+            "input": {"content": [{"type": "text", "text": "第二次发起"}]},
             "metadata": {},
         },
     )

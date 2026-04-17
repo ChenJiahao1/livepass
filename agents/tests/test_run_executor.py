@@ -12,8 +12,10 @@ from app.messages.service import MessageService
 from app.runs.event_bus import RunEventBus
 from app.runs.event_models import (
     RUN_EVENT_TYPE_MESSAGE_CREATED,
+    RUN_EVENT_TYPE_MESSAGE_COMPLETED,
+    RUN_EVENT_TYPE_MESSAGE_FAILED,
+    RUN_EVENT_TYPE_MESSAGE_CANCELLED,
     RUN_EVENT_TYPE_MESSAGE_DELTA,
-    RUN_EVENT_TYPE_MESSAGE_UPDATED,
     RUN_EVENT_TYPE_RUN_CANCELLED,
     RUN_EVENT_TYPE_RUN_COMPLETED,
     RUN_EVENT_TYPE_RUN_CREATED,
@@ -23,6 +25,7 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_TOOL_CALL_CREATED,
     RUN_EVENT_TYPE_TOOL_CALL_PROGRESS,
     RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
+    RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
 )
 from app.runs.event_store import InMemoryRunEventStore
 from app.runs.executor import RunExecutor
@@ -157,7 +160,7 @@ def build_executor(
     run, _, _ = run_service.create_run(
         user_id=3001,
         thread_id=thread.id,
-        parts=[{"type": "text", "text": "帮我查订单"}],
+        content=[{"type": "text", "text": "帮我查订单"}],
     )
     return executor, run_service, thread_service, message_service, event_store, tool_call_repo, thread.id, run.id
 
@@ -178,18 +181,19 @@ async def test_executor_start_persists_run_created_message_created_and_terminal_
         RUN_EVENT_TYPE_MESSAGE_CREATED,
         RUN_EVENT_TYPE_RUN_UPDATED,
         RUN_EVENT_TYPE_MESSAGE_DELTA,
-        RUN_EVENT_TYPE_MESSAGE_UPDATED,
-        RUN_EVENT_TYPE_RUN_UPDATED,
+        RUN_EVENT_TYPE_MESSAGE_COMPLETED,
         RUN_EVENT_TYPE_RUN_COMPLETED,
     ]
-    assert [event.sequence_no for event in events] == [1, 2, 3, 4, 5, 6, 7]
+    assert [event.sequence_no for event in events] == [1, 2, 3, 4, 5, 6]
     assert all(event.run_id == run_id for event in events)
     assert all(event.thread_id == thread_id for event in events)
-    assert events[1].message_id == saved_run.assistant_message_id
-    assert events[3].message_id == saved_run.assistant_message_id
-    assert events[4].payload["status"] == "completed"
-    assert events[5].payload["status"] == "completed"
-    assert messages[1].parts == [{"type": "text", "text": "已处理：帮我查订单"}]
+    assert events[1].message_id == saved_run.output_message_id
+    assert events[3].message_id == saved_run.output_message_id
+    assert events[3].payload["delta"] == {"type": "text", "text": "已处理：帮我查订单"}
+    assert events[4].payload["message"]["status"] == "completed"
+    assert events[4].payload["message"]["content"] == [{"type": "text", "text": "已处理：帮我查订单"}]
+    assert events[5].payload["run"]["status"] == "completed"
+    assert messages[1].content == [{"type": "text", "text": "已处理：帮我查订单"}]
 
 
 @pytest.mark.anyio
@@ -206,10 +210,10 @@ async def test_executor_runtime_failure_persists_failed_message_snapshot():
 
     assert saved_run.status == "failed"
     assert messages[1].status == MESSAGE_STATUS_ERROR
-    assert events[-2].event_type == RUN_EVENT_TYPE_RUN_UPDATED
-    assert events[-2].payload["status"] == "failed"
+    assert events[-2].event_type == RUN_EVENT_TYPE_MESSAGE_FAILED
+    assert events[-2].payload["message"]["status"] == "failed"
     assert events[-1].event_type == RUN_EVENT_TYPE_RUN_FAILED
-    assert events[-1].payload["status"] == "failed"
+    assert events[-1].payload["run"]["status"] == "failed"
 
 
 @pytest.mark.anyio
@@ -234,27 +238,26 @@ async def test_cancel_waiting_human_run_closes_tool_and_message_snapshots():
         RUN_EVENT_TYPE_MESSAGE_CREATED,
         RUN_EVENT_TYPE_RUN_UPDATED,
         RUN_EVENT_TYPE_TOOL_CALL_CREATED,
-        RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
         RUN_EVENT_TYPE_RUN_UPDATED,
+        RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
     ]
-    assert paused_events[1].message_id == saved_run.assistant_message_id
-    assert paused_events[3].message_id == saved_run.assistant_message_id
+    assert paused_events[1].message_id == saved_run.output_message_id
+    assert paused_events[3].message_id == saved_run.output_message_id
     assert paused_events[3].tool_call_id == tool_call_id
-    assert paused_events[4].message_id == saved_run.assistant_message_id
-    assert paused_events[4].tool_call_id == tool_call_id
+    assert paused_events[5].message_id == saved_run.output_message_id
+    assert paused_events[5].tool_call_id == tool_call_id
 
     assert saved_run.status == "cancelled"
     assert thread.active_run_id is None
     assert messages[1].status == "cancelled"
-    assert [event.event_type for event in events[-4:]] == [
+    assert [event.event_type for event in events[-3:]] == [
         RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
-        RUN_EVENT_TYPE_MESSAGE_UPDATED,
-        RUN_EVENT_TYPE_RUN_UPDATED,
+        RUN_EVENT_TYPE_MESSAGE_CANCELLED,
         RUN_EVENT_TYPE_RUN_CANCELLED,
     ]
-    assert events[-4].payload["status"] == "cancelled"
-    assert events[-3].payload["status"] == "cancelled"
-    assert events[-2].payload["status"] == "cancelled"
+    assert events[-3].payload["toolCall"]["status"] == "cancelled"
+    assert events[-2].payload["message"]["status"] == "cancelled"
+    assert events[-1].payload["run"]["status"] == "cancelled"
 
 
 @pytest.mark.anyio
@@ -279,8 +282,7 @@ async def test_executor_projects_langgraph_stream_chunks_without_result_dicts():
         RUN_EVENT_TYPE_MESSAGE_DELTA,
         RUN_EVENT_TYPE_TOOL_CALL_PROGRESS,
         RUN_EVENT_TYPE_RUN_PROGRESS,
-        RUN_EVENT_TYPE_MESSAGE_UPDATED,
-        RUN_EVENT_TYPE_RUN_UPDATED,
+        RUN_EVENT_TYPE_MESSAGE_COMPLETED,
         RUN_EVENT_TYPE_RUN_COMPLETED,
     ]
-    assert messages[1].parts == [{"type": "text", "text": "正在查询订单"}]
+    assert messages[1].content == [{"type": "text", "text": "正在查询订单"}]

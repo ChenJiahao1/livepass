@@ -57,7 +57,7 @@ class RunExecutor:
             )
             if result.requires_action or result.cancelled:
                 return
-            await projector.finalize_run(run=run, output_message_ids=[run.assistant_message_id])
+            await projector.finalize_run(run=run, output_message_ids=[run.output_message_id])
         except Exception as exc:
             await projector.fail_run(run=run, message=str(exc) or "运行失败")
 
@@ -118,7 +118,7 @@ class RunExecutor:
             )
             if result.requires_action or result.cancelled:
                 return
-            await projector.finalize_run(run=run, output_message_ids=[run.assistant_message_id])
+            await projector.finalize_run(run=run, output_message_ids=[run.output_message_id])
         except ApiError:
             raise
         except Exception as exc:

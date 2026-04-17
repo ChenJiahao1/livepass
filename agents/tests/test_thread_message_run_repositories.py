@@ -36,7 +36,7 @@ def test_in_memory_message_repository_returns_recent_messages_ascending():
             thread_id="thr_01",
             user_id=3001,
             role="assistant",
-            parts=[{"type": "text", "text": "二"}],
+            content=[{"type": "text", "text": "二"}],
             status=MESSAGE_STATUS_COMPLETED,
             run_id="run_01",
             created_at=NOW2,
@@ -49,7 +49,7 @@ def test_in_memory_message_repository_returns_recent_messages_ascending():
             thread_id="thr_01",
             user_id=3001,
             role="user",
-            parts=[{"type": "text", "text": "一"}],
+            content=[{"type": "text", "text": "一"}],
             status=MESSAGE_STATUS_COMPLETED,
             run_id="run_01",
             created_at=NOW1,
@@ -60,6 +60,7 @@ def test_in_memory_message_repository_returns_recent_messages_ascending():
     messages, next_cursor = repo.list_by_thread(thread_id="thr_01", user_id=3001, limit=50, before=None)
 
     assert [message.id for message in messages] == ["msg_1", "msg_2"]
+    assert messages[0].content == [{"type": "text", "text": "一"}]
     assert next_cursor is None
 
 
@@ -72,7 +73,7 @@ def test_mysql_message_repository_accepts_tuple_rows_from_cursor():
             "thread_id": "thr_01",
             "user_id": 3001,
             "role": "assistant",
-            "parts_json": '[{"type":"text","text":"二"}]',
+            "content_json": '[{"type":"text","text":"二"}]',
             "status": MESSAGE_STATUS_COMPLETED,
             "run_id": "run_01",
             "created_at": NOW2,
@@ -84,7 +85,7 @@ def test_mysql_message_repository_accepts_tuple_rows_from_cursor():
             "thread_id": "thr_01",
             "user_id": 3001,
             "role": "user",
-            "parts_json": '[{"type":"text","text":"一"}]',
+            "content_json": '[{"type":"text","text":"一"}]',
             "status": MESSAGE_STATUS_COMPLETED,
             "run_id": "run_01",
             "created_at": NOW1,
@@ -122,6 +123,7 @@ def test_mysql_message_repository_accepts_tuple_rows_from_cursor():
     messages, next_cursor = repo.list_by_thread(thread_id="thr_01", user_id=3001, limit=50, before=None)
 
     assert [message.id for message in messages] == ["msg_1", "msg_2"]
+    assert messages[0].content == [{"type": "text", "text": "一"}]
     assert next_cursor is None
 
 
@@ -132,8 +134,14 @@ def test_resource_models_expose_explicit_persistent_fields():
     from app.runs.tool_call_models import ToolCallRecord
 
     assert "updated_at" in MessageRecord.__dataclass_fields__
-    assert "assistant_message_id" in RunRecord.__dataclass_fields__
+    assert "content" in MessageRecord.__dataclass_fields__
+    assert "parts" not in MessageRecord.__dataclass_fields__
+    assert "output_message_id" in RunRecord.__dataclass_fields__
+    assert "assistant_message_id" not in RunRecord.__dataclass_fields__
     assert "message_id" in ToolCallRecord.__dataclass_fields__
+    assert "name" in ToolCallRecord.__dataclass_fields__
+    assert "input" in ToolCallRecord.__dataclass_fields__
+    assert "output" in ToolCallRecord.__dataclass_fields__
     assert "message_id" in RunEventRecord.__dataclass_fields__
     assert "tool_call_id" in RunEventRecord.__dataclass_fields__
 
@@ -146,9 +154,13 @@ def test_agents_sql_files_define_explicit_resource_columns_and_import_list():
     import_sql = (REPO_ROOT / "scripts/import_sql.sh").read_text(encoding="utf-8")
 
     assert "updated_at datetime(3) NOT NULL" in messages_sql
-    assert "assistant_message_id varchar(64) NOT NULL" in runs_sql
+    assert "content_json json NOT NULL" in messages_sql
+    assert "parts_json" not in messages_sql
+    assert "output_message_id varchar(64) NOT NULL" in runs_sql
     assert "message_id varchar(64) NOT NULL" in tool_calls_sql
-    assert "request_json json NOT NULL" in tool_calls_sql
+    assert "input_json json NOT NULL" in tool_calls_sql
+    assert "human_request_json json NOT NULL" in tool_calls_sql
+    assert "output_json json NULL" in tool_calls_sql
     assert "message_id varchar(64) NULL" in run_events_sql
     assert "tool_call_id varchar(64) NULL" in run_events_sql
     assert '"sql/agents/agent_run_events.sql"' in import_sql
@@ -165,7 +177,7 @@ def test_run_event_store_lists_events_after_sequence():
         thread_id="thr_01",
         user_id=3001,
         event_type=RUN_EVENT_TYPE_MESSAGE_DELTA,
-        payload={"messageId": "msg_01", "delta": "你好"},
+        payload={"messageId": "msg_01", "delta": {"type": "text", "text": "你好"}},
         now=NOW1,
     )
     event2 = store.append(
@@ -184,7 +196,7 @@ def test_run_event_store_lists_events_after_sequence():
     assert [event.sequence_no for event in events] == [2]
     assert [event.event_type for event in events] == [RUN_EVENT_TYPE_RUN_COMPLETED]
     assert getattr(event1, "message_id", None) == "msg_01"
-    assert event1.payload == {"delta": "你好"}
+    assert event1.payload == {"delta": {"type": "text", "text": "你好"}}
     assert getattr(event2, "tool_call_id", None) is None
 
 
@@ -204,11 +216,11 @@ def test_tool_call_repository_updates_waiting_human_to_completed():
             thread_id="thr_01",
             user_id=3001,
             message_id="msg_asst_01",
-            tool_name="human_approval",
+            name="human_approval",
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
-            arguments={"title": "退款前确认"},
+            input={"title": "退款前确认"},
             human_request={"title": "退款前确认", "allowedActions": ["approve", "reject"]},
-            result=None,
+            output=None,
             error=None,
             created_at=NOW1,
             updated_at=NOW1,
@@ -220,16 +232,18 @@ def test_tool_call_repository_updates_waiting_human_to_completed():
     updated = repo.update_status(
         tool_call_id="tool_01",
         status=TOOL_CALL_STATUS_COMPLETED,
-        result={"action": "approve"},
         error=None,
         now=NOW2,
+        output={"action": "approve"},
     )
 
     assert updated is not None
     assert updated.status == TOOL_CALL_STATUS_COMPLETED
     assert updated.message_id == "msg_asst_01"
+    assert updated.name == "human_approval"
+    assert updated.input == {"title": "退款前确认"}
     assert updated.human_request == {"title": "退款前确认", "allowedActions": ["approve", "reject"]}
-    assert updated.result == {"action": "approve"}
+    assert updated.output == {"action": "approve"}
     assert updated.error is None
     assert updated.completed_at == NOW2
     assert updated.updated_at == NOW2
@@ -252,9 +266,9 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
             thread_id="thr_01",
             user_id=3001,
             message_id="msg_asst_01",
-            tool_name="human_approval",
+            name="human_approval",
             status=TOOL_CALL_STATUS_COMPLETED,
-            arguments={},
+            input={},
             human_request={},
             completed_at=NOW1,
             created_at=NOW1,
@@ -268,9 +282,9 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
             thread_id="thr_01",
             user_id=3001,
             message_id="msg_asst_01",
-            tool_name="human_approval",
+            name="human_approval",
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
-            arguments={"action": "refund_order"},
+            input={"action": "refund_order"},
             human_request={"title": "退款前确认", "allowedActions": ["approve", "reject"]},
             created_at=NOW1,
             updated_at=NOW1,
@@ -283,6 +297,8 @@ def test_tool_call_repository_finds_waiting_human_by_run_and_marks_cancelled():
     assert waiting is not None
     assert waiting.id == "tool_waiting"
     assert waiting.message_id == "msg_asst_01"
+    assert waiting.name == "human_approval"
+    assert waiting.input["action"] == "refund_order"
     assert waiting.human_request == {"title": "退款前确认", "allowedActions": ["approve", "reject"]}
     assert cancelled is not None
     assert cancelled.status == TOOL_CALL_STATUS_CANCELLED

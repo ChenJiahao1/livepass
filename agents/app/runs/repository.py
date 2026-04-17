@@ -204,7 +204,7 @@ class MySQLRunRepository:
                 cursor.execute(
                     """
                     INSERT INTO agent_runs (
-                      id, thread_id, user_id, trigger_message_id, assistant_message_id, status, started_at, completed_at, error_json, metadata_json
+                      id, thread_id, user_id, trigger_message_id, output_message_id, status, started_at, completed_at, error_json, metadata_json
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
@@ -212,7 +212,7 @@ class MySQLRunRepository:
                         record.thread_id,
                         record.user_id,
                         record.trigger_message_id,
-                        record.assistant_message_id,
+                        record.output_message_id,
                         record.status,
                         record.started_at,
                         record.completed_at,
@@ -299,7 +299,7 @@ class MySQLRunRepository:
                 cursor.execute(
                     """
                     INSERT INTO agent_messages (
-                      id, thread_id, user_id, role, parts_json, status, run_id, created_at, updated_at, metadata_json
+                      id, thread_id, user_id, role, content_json, status, run_id, created_at, updated_at, metadata_json
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
@@ -307,7 +307,7 @@ class MySQLRunRepository:
                         user_message.thread_id,
                         user_message.user_id,
                         user_message.role,
-                        json.dumps(user_message.parts),
+                        json.dumps(user_message.content),
                         user_message.status,
                         user_message.run_id,
                         user_message.created_at,
@@ -318,7 +318,7 @@ class MySQLRunRepository:
                 cursor.execute(
                     """
                     INSERT INTO agent_messages (
-                      id, thread_id, user_id, role, parts_json, status, run_id, created_at, updated_at, metadata_json
+                      id, thread_id, user_id, role, content_json, status, run_id, created_at, updated_at, metadata_json
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
@@ -326,7 +326,7 @@ class MySQLRunRepository:
                         assistant_message.thread_id,
                         assistant_message.user_id,
                         assistant_message.role,
-                        json.dumps(assistant_message.parts),
+                        json.dumps(assistant_message.content),
                         assistant_message.status,
                         assistant_message.run_id,
                         assistant_message.created_at,
@@ -337,7 +337,7 @@ class MySQLRunRepository:
                 cursor.execute(
                     """
                     INSERT INTO agent_runs (
-                      id, thread_id, user_id, trigger_message_id, assistant_message_id, status, started_at, completed_at, error_json, metadata_json
+                      id, thread_id, user_id, trigger_message_id, output_message_id, status, started_at, completed_at, error_json, metadata_json
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
@@ -345,7 +345,7 @@ class MySQLRunRepository:
                         run.thread_id,
                         run.user_id,
                         run.trigger_message_id,
-                        run.assistant_message_id,
+                        run.output_message_id,
                         run.status,
                         run.started_at,
                         run.completed_at,
@@ -409,7 +409,7 @@ class MySQLRunRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, thread_id, user_id, trigger_message_id, assistant_message_id, status, started_at, completed_at, error_json, metadata_json
+                    SELECT id, thread_id, user_id, trigger_message_id, output_message_id, status, started_at, completed_at, error_json, metadata_json
                     FROM agent_runs
                     WHERE id = %s
                     """,
@@ -426,7 +426,7 @@ class MySQLRunRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, thread_id, user_id, trigger_message_id, assistant_message_id, status, started_at, completed_at, error_json, metadata_json
+                    SELECT id, thread_id, user_id, trigger_message_id, output_message_id, status, started_at, completed_at, error_json, metadata_json
                     FROM agent_runs
                     WHERE thread_id = %s AND status IN (%s, %s, %s)
                     ORDER BY started_at DESC, id DESC
@@ -490,7 +490,7 @@ class MySQLRunRepository:
             thread_id=row["thread_id"],
             user_id=int(row["user_id"]),
             trigger_message_id=row["trigger_message_id"],
-            assistant_message_id=row["assistant_message_id"],
+            output_message_id=row["output_message_id"],
             status=row["status"],
             started_at=row["started_at"],
             completed_at=row.get("completed_at"),

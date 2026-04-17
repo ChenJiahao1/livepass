@@ -43,10 +43,10 @@ def test_create_thread_response_uses_thread_resource_shape():
     assert body["thread"]["activeRunId"] is None
 
 
-def test_create_run_request_rejects_non_user_role():
+def test_create_run_request_rejects_non_text_content():
     with pytest.raises(ValidationError):
         CreateRunRequest.model_validate(
-            {"threadId": "thr_01", "input": {"parts": [{"type": "image", "text": "x"}]}}
+            {"threadId": "thr_01", "input": {"content": [{"type": "image", "imageUrl": "https://example.com/a.png"}]}}
         )
 
 
@@ -87,7 +87,7 @@ def create_run(client: TestClient, *, user_id: str, thread_id: str | None, text:
         thread_id = created.json()["thread"]["id"]
     body = {
         "threadId": thread_id,
-        "input": {"parts": [{"type": "text", "text": text}]},
+        "input": {"content": [{"type": "text", "text": text}]},
         "metadata": {},
     }
     response = client.post("/agent/runs", headers={"X-User-Id": user_id}, json=body)
