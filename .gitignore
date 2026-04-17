@@ -2,6 +2,7 @@
 .worktrees/
 agents/.venv/
 agents/.pytest_cache/
+agents/app/rpc/generated/
 agents/uv.lock
 __pycache__/
 .env

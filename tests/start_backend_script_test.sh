@@ -14,6 +14,14 @@ assert_contains() {
   grep -F -- "${pattern}" "${SCRIPT_PATH}" >/dev/null || fail "missing pattern: ${pattern}"
 }
 
+assert_not_contains() {
+  local pattern="$1"
+
+  if grep -F -- "${pattern}" "${SCRIPT_PATH}" >/dev/null; then
+    fail "unexpected pattern: ${pattern}"
+  fi
+}
+
 [[ -f "${SCRIPT_PATH}" ]] || fail "script not found: ${SCRIPT_PATH}"
 
 bash -n "${SCRIPT_PATH}"
@@ -45,7 +53,8 @@ assert_contains 'services/order-api/order.go'
 assert_contains 'services/pay-api/pay.go'
 assert_contains 'services/order-rpc/cmd/order_mcp_server'
 assert_contains 'services/program-rpc/cmd/program_mcp_server'
-assert_contains 'cd agents && bash scripts/generate_proto_stubs.sh'
+assert_not_contains 'generate_proto_stubs'
+assert_not_contains 'agents-generate-proto-stubs'
 assert_contains 'services/gateway-api/gateway.go'
 assert_contains 'uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload'
 assert_contains ":(8080|8081|8082|8083|8084|8888|8889|8890|8891|8892|9082|9083) "

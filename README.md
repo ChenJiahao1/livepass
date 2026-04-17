@@ -92,7 +92,7 @@ bash scripts/deploy/start_backend.sh
 - 检测业务库是否为空；若为空则自动导入 schema 与 seed
 - 启动全部 Go RPC / API / Job
 - 启动 `order-mcp`、`program-mcp`
-- 生成 `agents` proto stub 并启动 `agents`
+- 启动 `agents`
 - 最后启动 `gateway-api`
 
 常用变体：

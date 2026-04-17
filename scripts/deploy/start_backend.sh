@@ -468,7 +468,6 @@ start_optional_services() {
 
   start_service "order-mcp" 9082 "order_mcp_server" "go run ./services/order-rpc/cmd/order_mcp_server -f services/order-rpc/etc/order-mcp.yaml"
   start_service "program-mcp" 9083 "program_mcp_server" "go run ./services/program-rpc/cmd/program_mcp_server -f services/program-rpc/etc/program-mcp.yaml"
-  run_logged_command "agents-generate-proto-stubs" "cd agents && bash scripts/generate_proto_stubs.sh"
   start_service "agents" 8891 "uvicorn app.main:app" "cd agents && uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload"
 }
 
