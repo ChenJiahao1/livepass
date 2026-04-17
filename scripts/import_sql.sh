@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-docker-compose-mysql-1}"
 MYSQL_USER="${MYSQL_USER:-root}"
 MYSQL_PASSWORD="${MYSQL_PASSWORD:-${MYSQL_ROOT_PASSWORD:-123456}}"
-IMPORT_DOMAINS="${IMPORT_DOMAINS:-user,program,order,pay}"
+IMPORT_DOMAINS="${IMPORT_DOMAINS:-user,program,order,pay,agents}"
 
 MYSQL_DB_USER="${MYSQL_DB_USER:-damai_user}"
 MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-damai_program}"

@@ -93,6 +93,66 @@ func TestImportSQLScriptPreservesUTF8ProgramSeed(t *testing.T) {
 	}
 }
 
+func TestImportSQLScriptCreatesAgentsSchemaWithRequiredColumns(t *testing.T) {
+	adminDB := openAcceptanceMySQL(t, xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/?parseTime=true"))
+	defer adminDB.Close()
+
+	dbName := fmt.Sprintf("damai_agents_import_schema_%d", time.Now().UnixNano())
+	dropAcceptanceDatabase(t, adminDB, dbName)
+	defer dropAcceptanceDatabase(t, adminDB, dbName)
+
+	cmd := exec.Command("bash", filepath.Join(acceptanceProjectRoot(t), "scripts", "import_sql.sh"))
+	cmd.Dir = acceptanceProjectRoot(t)
+	cmd.Env = append(
+		os.Environ(),
+		"IMPORT_DOMAINS=agents",
+		"MYSQL_CONTAINER=docker-compose-mysql-1",
+		"MYSQL_PASSWORD=123456",
+		"MYSQL_DB_AGENTS="+dbName,
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("run import_sql.sh error: %v\noutput:\n%s", err, output)
+	}
+
+	agentsDB := openAcceptanceMySQL(
+		t,
+		xmysql.WithLocalTime(fmt.Sprintf("root:123456@tcp(127.0.0.1:3306)/%s?parseTime=true", dbName)),
+	)
+	defer agentsDB.Close()
+
+	var messageUpdatedAtColumn string
+	if err := agentsDB.QueryRow("SHOW COLUMNS FROM agent_messages LIKE 'updated_at'").Scan(
+		&messageUpdatedAtColumn,
+		new(string),
+		new(string),
+		new(string),
+		new(sql.NullString),
+		new(string),
+	); err != nil {
+		t.Fatalf("query agent_messages.updated_at error: %v", err)
+	}
+	if messageUpdatedAtColumn != "updated_at" {
+		t.Fatalf("unexpected agent_messages column: %q", messageUpdatedAtColumn)
+	}
+
+	var assistantMessageIDColumn string
+	if err := agentsDB.QueryRow("SHOW COLUMNS FROM agent_runs LIKE 'assistant_message_id'").Scan(
+		&assistantMessageIDColumn,
+		new(string),
+		new(string),
+		new(string),
+		new(sql.NullString),
+		new(string),
+	); err != nil {
+		t.Fatalf("query agent_runs.assistant_message_id error: %v", err)
+	}
+	if assistantMessageIDColumn != "assistant_message_id" {
+		t.Fatalf("unexpected agent_runs column: %q", assistantMessageIDColumn)
+	}
+}
+
 func openAcceptanceMySQL(t *testing.T, dataSource string) *sql.DB {
 	t.Helper()
 

@@ -180,7 +180,7 @@ class MySQLMessageRepository:
                 cursor.execute(sql, tuple(args))
                 rows = cursor.fetchall()
             has_more = len(rows) > limit
-            page_rows = rows[:limit]
+            page_rows = list(rows[:limit])
             page_rows.reverse()
             messages = [self._map_row(row) for row in page_rows]
             next_cursor = _build_message_cursor(messages[0]) if has_more and messages else None

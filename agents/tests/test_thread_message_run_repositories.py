@@ -63,6 +63,68 @@ def test_in_memory_message_repository_returns_recent_messages_ascending():
     assert next_cursor is None
 
 
+def test_mysql_message_repository_accepts_tuple_rows_from_cursor():
+    from app.messages.repository import MySQLMessageRepository
+
+    rows = (
+        {
+            "id": "msg_2",
+            "thread_id": "thr_01",
+            "user_id": 3001,
+            "role": "assistant",
+            "parts_json": '[{"type":"text","text":"二"}]',
+            "status": MESSAGE_STATUS_COMPLETED,
+            "run_id": "run_01",
+            "created_at": NOW2,
+            "updated_at": NOW2,
+            "metadata_json": "{}",
+        },
+        {
+            "id": "msg_1",
+            "thread_id": "thr_01",
+            "user_id": 3001,
+            "role": "user",
+            "parts_json": '[{"type":"text","text":"一"}]',
+            "status": MESSAGE_STATUS_COMPLETED,
+            "run_id": "run_01",
+            "created_at": NOW1,
+            "updated_at": NOW1,
+            "metadata_json": "{}",
+        },
+    )
+
+    class FakeCursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, sql, args):
+            return None
+
+        def fetchall(self):
+            return rows
+
+    class FakeConnection:
+        def cursor(self):
+            return FakeCursor()
+
+        def close(self):
+            return None
+
+    class FakeConnectionFactory:
+        def connect(self):
+            return FakeConnection()
+
+    repo = MySQLMessageRepository(connection_factory=FakeConnectionFactory())
+
+    messages, next_cursor = repo.list_by_thread(thread_id="thr_01", user_id=3001, limit=50, before=None)
+
+    assert [message.id for message in messages] == ["msg_1", "msg_2"]
+    assert next_cursor is None
+
+
 def test_resource_models_expose_explicit_persistent_fields():
     from app.messages.models import MessageRecord
     from app.runs.event_models import RunEventRecord
