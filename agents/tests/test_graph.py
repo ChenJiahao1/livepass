@@ -1,10 +1,11 @@
 import asyncio
+from pathlib import Path
 
 from langgraph.checkpoint.base import empty_checkpoint
 
-from app.graph import build_graph_app
+from app.graph.builder import build_graph_app
 from app.session.checkpointer import RedisCheckpointSaver
-from app.state import ConversationState
+from app.graph.state import ConversationState
 from tests.fakes import FakeRedis, ScriptedChatModel, StubRegistry
 
 
@@ -33,6 +34,18 @@ def test_conversation_state_accepts_cross_turn_fields():
 
     assert state["selected_order_id"] == "ORD-10001"
     assert state["current_user_id"] == 3001
+
+
+def test_graph_orchestration_is_split_into_stable_modules():
+    graph_dir = Path("app/graph")
+
+    assert (graph_dir / "builder.py").is_file()
+    assert (graph_dir / "routing.py").is_file()
+    assert (graph_dir / "nodes.py").is_file()
+    assert (graph_dir / "state.py").is_file()
+    assert (graph_dir / "subgraphs" / "refund.py").is_file()
+    assert not Path("app/graph.py").exists()
+    assert not Path("app/state.py").exists()
 
 
 def test_graph_can_finish_after_coordinator_and_supervisor():

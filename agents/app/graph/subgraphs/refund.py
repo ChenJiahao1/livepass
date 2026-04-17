@@ -7,8 +7,8 @@ from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
 from app.agent_runtime.human_tools import build_human_approval_interrupt
-from app.agents.refund import RefundAgent
-from app.state import ConversationState, GraphContext
+from app.agents.specialists.refund_specialist import RefundAgent
+from app.graph.state import ConversationState, GraphContext
 
 
 async def prepare_refund(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:

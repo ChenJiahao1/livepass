@@ -6,8 +6,8 @@ from typing import Any
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage
 
-from app.prompts import PromptRenderer
-from app.state import ConversationState
+from app.shared.prompt_loader import PromptLoader
+from app.graph.state import ConversationState
 
 ORDER_ID_PATTERN = re.compile(r"(ORD-\d{1,}|\d{4,})", re.IGNORECASE)
 
@@ -17,10 +17,10 @@ class ToolCallingAgent:
     toolset = ""
     prompt_template = ""
 
-    def __init__(self, *, registry, llm, prompt_renderer: PromptRenderer | None = None) -> None:
+    def __init__(self, *, registry, llm, prompt_loader: PromptLoader | None = None) -> None:
         self.registry = registry
         self.llm = llm
-        self.prompt_renderer = prompt_renderer or PromptRenderer()
+        self.prompt_loader = prompt_loader or PromptLoader()
 
     async def get_tools(self) -> list:
         if self.registry is None:
@@ -29,7 +29,7 @@ class ToolCallingAgent:
 
     async def run_tool_agent(self, state: ConversationState) -> dict[str, Any]:
         tools = await self.get_tools()
-        system_prompt = self.prompt_renderer.render(self.prompt_template, **self.prompt_context(state))
+        system_prompt = self.prompt_loader.render(self.prompt_template, **self.prompt_context(state))
         agent = create_agent(
             model=self.llm,
             tools=tools,

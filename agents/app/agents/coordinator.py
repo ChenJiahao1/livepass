@@ -5,7 +5,7 @@ from langchain_core.messages.utils import convert_to_messages
 
 from app.llm.schemas import CoordinatorDecision
 from app.shared.prompt_loader import PromptLoader
-from app.state import ConversationState
+from app.graph.state import ConversationState
 
 
 class CoordinatorAgent:

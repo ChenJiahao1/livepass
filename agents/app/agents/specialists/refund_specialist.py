@@ -1,13 +1,13 @@
 """Refund specialist agent."""
 
 from app.agents.base import ToolCallingAgent
-from app.state import ConversationState
+from app.graph.state import ConversationState
 
 
 class RefundAgent(ToolCallingAgent):
     agent_name = "refund"
     toolset = "refund"
-    prompt_template = "refund/system.md"
+    prompt_template = "refund_specialist"
 
     async def handle(self, state: ConversationState) -> dict[str, object]:
         order_id = self.extract_order_id(state)

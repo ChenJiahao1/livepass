@@ -2,7 +2,7 @@ import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
-from app.graph import build_graph_app
+from app.graph.builder import build_graph_app
 from tests.fakes import ScriptedChatModel, StubRegistry, build_async_tool
 
 

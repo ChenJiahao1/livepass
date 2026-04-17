@@ -3,12 +3,12 @@
 from langchain_core.messages import AIMessage
 
 from app.agents.base import ToolCallingAgent
-from app.state import ConversationState
+from app.graph.state import ConversationState
 
 
 class HandoffAgent(ToolCallingAgent):
     agent_name = "handoff"
-    prompt_template = "handoff/system.md"
+    prompt_template = "handoff_specialist"
 
     async def handle(self, state: ConversationState) -> dict[str, object]:
         reason = self.latest_user_message(state)

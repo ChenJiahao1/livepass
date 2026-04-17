@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.knowledge.service import KnowledgeService
-from app.state import ConversationState
+from app.graph.state import ConversationState
 
 
 class KnowledgeAgent:

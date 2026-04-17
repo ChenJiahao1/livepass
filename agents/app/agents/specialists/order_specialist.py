@@ -1,13 +1,13 @@
 """Order specialist agent."""
 
 from app.agents.base import ToolCallingAgent
-from app.state import ConversationState
+from app.graph.state import ConversationState
 
 
 class OrderAgent(ToolCallingAgent):
     agent_name = "order"
     toolset = "order"
-    prompt_template = "order/system.md"
+    prompt_template = "order_specialist"
 
     async def handle(self, state: ConversationState) -> dict[str, object]:
         tools = await self.get_tools()

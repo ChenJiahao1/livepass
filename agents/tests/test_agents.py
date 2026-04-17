@@ -1,8 +1,8 @@
 import pytest
 from langchain_core.messages import HumanMessage
 
-from app.agents.order import OrderAgent
-from app.agents.refund import RefundAgent
+from app.agents.specialists.order_specialist import OrderAgent
+from app.agents.specialists.refund_specialist import RefundAgent
 from tests.fakes import StubRegistry, build_async_tool
 
 

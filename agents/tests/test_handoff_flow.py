@@ -1,6 +1,6 @@
 import pytest
 
-from app.agents.handoff import HandoffAgent
+from app.agents.specialists.handoff_specialist import HandoffAgent
 from tests.fakes import StubRegistry
 
 

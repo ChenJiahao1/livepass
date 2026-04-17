@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 from langchain_core.messages import HumanMessage
 
-from app.agents.knowledge import KnowledgeAgent
+from app.agents.specialists.knowledge_specialist import KnowledgeAgent
 from app.config import get_settings
 from app.knowledge.service import KnowledgeService
 
