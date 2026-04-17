@@ -94,26 +94,10 @@ async def test_registry_invoke_routes_through_bound_execution_context():
         "tool_name": "preview_refund_order",
         "payload": {
             "order_id": "ORD-10001",
-            "_meta": {
-                "userId": "3001",
-                "threadId": "thr_001",
-                "runId": "run_001",
-                "toolCallId": "tool_001",
-            },
         },
     }
     preview_tool = next(tool for tool in client.tools if tool.name == "preview_refund_order")
-    assert preview_tool.calls == [
-        {
-            "order_id": "ORD-10001",
-            "_meta": {
-                "userId": "3001",
-                "threadId": "thr_001",
-                "runId": "run_001",
-                "toolCallId": "tool_001",
-            },
-        }
-    ]
+    assert preview_tool.calls == [{"order_id": "ORD-10001"}]
 
 
 @pytest.mark.anyio
@@ -142,11 +126,5 @@ async def test_bound_registry_wraps_tools_with_runtime_context():
         "tool_name": "preview_refund_order",
         "payload": {
             "order_id": "ORD-10001",
-            "_meta": {
-                "userId": "3001",
-                "threadId": "thr_001",
-                "runId": "run_001",
-                "toolCallId": "tool_generated_001",
-            },
         },
     }

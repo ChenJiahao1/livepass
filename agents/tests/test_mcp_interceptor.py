@@ -55,7 +55,7 @@ def _context() -> ToolExecutionContext:
 
 
 @pytest.mark.anyio
-async def test_interceptor_injects_runtime_meta_into_payload():
+async def test_interceptor_passes_payload_without_injecting_runtime_meta():
     tool = _SuccessTool()
     interceptor = MCPToolInterceptor()
 
@@ -71,12 +71,6 @@ async def test_interceptor_injects_runtime_meta_into_payload():
         "ok": True,
         "payload": {
             "order_id": "ORD-10001",
-            "_meta": {
-                "userId": "3001",
-                "threadId": "thr_001",
-                "runId": "run_001",
-                "toolCallId": "tool_001",
-            },
         },
     }
     assert tool.calls == [result["payload"]]

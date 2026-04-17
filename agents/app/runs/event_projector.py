@@ -399,7 +399,7 @@ class RunEventProjector:
             now=now,
         )
 
-    async def fail_run(self, *, run: RunRecord, message: str) -> None:
+    async def fail_run(self, *, run: RunRecord, message: str, details: dict | None = None) -> None:
         output_message_id = run.output_message_id
         now = datetime.now(timezone.utc)
         if output_message_id:
@@ -418,7 +418,8 @@ class RunEventProjector:
                 payload={"message": {"id": output_message_id, "status": "failed", "content": [{"type": "text", "text": message}]}},
                 now=now,
             )
-        self.run_service.mark_failed(run_id=run.id, message=message)
+        error = {"code": ApiErrorCode.LANGGRAPH_RUNTIME_ERROR, "message": message, "details": dict(details or {})}
+        self.run_service.mark_failed(run_id=run.id, message=message, details=details)
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_RUN_FAILED,
@@ -426,7 +427,7 @@ class RunEventProjector:
                 "run": {
                     "id": run.id,
                     "status": "failed",
-                    "error": {"code": ApiErrorCode.LANGGRAPH_RUNTIME_ERROR, "message": message},
+                    "error": error,
                 },
             },
             now=now,

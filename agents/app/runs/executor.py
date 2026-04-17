@@ -59,7 +59,11 @@ class RunExecutor:
                 return
             await projector.finalize_run(run=run, output_message_ids=[run.output_message_id])
         except Exception as exc:
-            await projector.fail_run(run=run, message=str(exc) or "运行失败")
+            await projector.fail_run(
+                run=run,
+                message=str(exc) or "运行失败",
+                details=self._extract_error_details(exc),
+            )
 
     async def resume(self, run_id: str, tool_call_id: str, action_payload: dict) -> None:
         run = self._get_run(run_id)
@@ -192,3 +196,8 @@ class RunExecutor:
     def _should_stop(self, run_id: str) -> bool:
         run = self.run_repository.find_by_id(run_id=run_id)
         return run is not None and run.status == RUN_STATUS_CANCELLED
+
+    def _extract_error_details(self, exc: Exception) -> dict:
+        if isinstance(exc, ApiError):
+            return dict(exc.details)
+        return {}

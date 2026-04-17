@@ -8,7 +8,10 @@ from tests.fakes import StubRegistry, build_async_tool
 
 @pytest.mark.anyio
 async def test_order_agent_lists_user_orders_before_detail_lookup():
-    async def _list_user_orders(identifier: str):
+    received_payloads: list[dict] = []
+
+    async def _list_user_orders(*, user_id: int):
+        received_payloads.append({"user_id": user_id})
         return {"orders": [{"order_id": "ORD-1", "status": "PAID"}]}
 
     registry = StubRegistry(
@@ -27,11 +30,12 @@ async def test_order_agent_lists_user_orders_before_detail_lookup():
     )
 
     assert "订单" in result["reply"]
+    assert received_payloads == [{"user_id": 1001}]
 
 
 @pytest.mark.anyio
 async def test_refund_agent_previews_order_before_submit():
-    async def _preview_refund_order(order_id: str, user_id: str | None = None):
+    async def _preview_refund_order(order_id: str, user_id: int | None = None):
         return {"order_id": order_id, "allow_refund": True, "refund_amount": "100", "refund_percent": 100}
 
     registry = StubRegistry(

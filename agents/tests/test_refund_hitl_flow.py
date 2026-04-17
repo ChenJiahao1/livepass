@@ -7,11 +7,11 @@ from tests.fakes import ScriptedChatModel, StubRegistry, build_async_tool
 
 
 def _build_refund_context(*, calls: list[str]):
-    async def _preview_refund_order(order_id: str, user_id: str | None = None):
+    async def _preview_refund_order(order_id: str, user_id: int | None = None):
         calls.append("preview_refund_order")
         return {"order_id": order_id, "allow_refund": True, "refund_amount": "100", "refund_percent": 100}
 
-    async def _refund_order(order_id: str, reason: str | None = None, user_id: str | None = None):
+    async def _refund_order(order_id: str, reason: str | None = None, user_id: int | None = None):
         calls.append("refund_order")
         return {"order_id": order_id, "accepted": True, "refund_amount": "100"}
 

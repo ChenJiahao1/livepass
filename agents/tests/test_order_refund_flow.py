@@ -21,9 +21,11 @@ async def run_graph_turns(*, messages: list[str], registry, llm) -> dict:
 @pytest.mark.anyio
 async def test_graph_lists_orders_before_refund_submit():
     calls: list[str] = []
+    payloads: list[dict] = []
 
-    async def _list_user_orders(identifier: str):
+    async def _list_user_orders(*, user_id: int):
         calls.append("list_user_orders")
+        payloads.append({"user_id": user_id})
         return {"orders": [{"order_id": "ORD-1", "status": "PAID"}]}
 
     registry = StubRegistry(
@@ -48,13 +50,14 @@ async def test_graph_lists_orders_before_refund_submit():
 
     assert "订单" in result["final_reply"]
     assert calls == ["list_user_orders"]
+    assert payloads == [{"user_id": 1001}]
 
 
 @pytest.mark.anyio
 async def test_refund_flow_emits_human_approval_interrupt_instead_of_pending_confirmation():
     calls: list[str] = []
 
-    async def _preview_refund_order(order_id: str, user_id: str | None = None):
+    async def _preview_refund_order(order_id: str, user_id: int | None = None):
         calls.append("preview_refund_order")
         return {"order_id": order_id, "allow_refund": True, "refund_amount": "100", "refund_percent": 100}
 

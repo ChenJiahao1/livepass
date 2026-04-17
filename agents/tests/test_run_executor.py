@@ -61,6 +61,19 @@ class FailingRuntime:
         raise RuntimeError("runtime exploded")
 
 
+class FailingApiRuntime:
+    async def ainvoke(self, state_payload, config, context):
+        del state_payload
+        del config
+        del context
+        raise ApiError(
+            code=ApiErrorCode.MCP_EXECUTION_ERROR,
+            message="MCP 工具执行失败",
+            http_status=502,
+            details={"serverName": "order", "toolName": "list_user_orders", "reason": "invalid params"},
+        )
+
+
 class PauseRuntime:
     async def ainvoke(self, state_payload, config, context):
         del config
@@ -249,6 +262,27 @@ async def test_executor_runtime_failure_persists_failed_message_snapshot():
     assert events[-2].payload["message"]["status"] == "failed"
     assert events[-1].event_type == RUN_EVENT_TYPE_RUN_FAILED
     assert events[-1].payload["run"]["status"] == "failed"
+
+
+@pytest.mark.anyio
+async def test_executor_runtime_failure_preserves_error_details():
+    executor, run_service, _thread_service, _message_service, event_store, _tool_call_repo, _thread_id, run_id = build_executor(
+        runtime=FailingApiRuntime()
+    )
+
+    await executor.start(run_id)
+
+    saved_run = run_service.get_run(user_id=3001, run_id=run_id)
+    events = event_store.list_after(run_id=run_id, after_sequence_no=0)
+
+    assert saved_run.status == "failed"
+    assert saved_run.error == {
+        "code": ApiErrorCode.LANGGRAPH_RUNTIME_ERROR,
+        "message": "MCP 工具执行失败",
+        "details": {"serverName": "order", "toolName": "list_user_orders", "reason": "invalid params"},
+    }
+    assert events[-1].event_type == RUN_EVENT_TYPE_RUN_FAILED
+    assert events[-1].payload["run"]["error"] == saved_run.error
 
 
 @pytest.mark.anyio

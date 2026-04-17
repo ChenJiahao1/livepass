@@ -65,12 +65,8 @@ class MCPToolInterceptor:
         return self._normalize_result(result=result, server_name=server_name, tool_name=tool_name)
 
     def _inject_context(self, *, payload: dict[str, Any], context: ToolExecutionContext) -> dict[str, Any]:
-        next_payload = dict(payload)
-        raw_meta = next_payload.get("_meta")
-        meta = dict(raw_meta) if isinstance(raw_meta, dict) else {}
-        meta.update(context.to_meta())
-        next_payload["_meta"] = meta
-        return next_payload
+        del context
+        return dict(payload)
 
     def _normalize_result(self, *, result: Any, server_name: str, tool_name: str) -> Any:
         normalized = self._coerce_result(result)

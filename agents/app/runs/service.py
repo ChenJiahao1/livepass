@@ -121,7 +121,7 @@ class RunService:
             )
         return completed
 
-    def mark_failed(self, *, run_id: str, message: str) -> RunRecord:
+    def mark_failed(self, *, run_id: str, message: str, details: dict | None = None) -> RunRecord:
         run = self.run_repository.find_by_id(run_id=run_id)
         if run is None:
             raise ApiError(
@@ -134,7 +134,11 @@ class RunService:
             thread_id=run.thread_id,
             run_id=run_id,
             completed_at=datetime.now(timezone.utc),
-            error={"code": ApiErrorCode.LANGGRAPH_RUNTIME_ERROR, "message": message},
+            error={
+                "code": ApiErrorCode.LANGGRAPH_RUNTIME_ERROR,
+                "message": message,
+                "details": dict(details or {}),
+            },
         )
         if failed is None:
             raise ApiError(

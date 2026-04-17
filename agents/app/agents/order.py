@@ -12,12 +12,12 @@ class OrderAgent(ToolCallingAgent):
     async def handle(self, state: ConversationState) -> dict[str, object]:
         tools = await self.get_tools()
         order_id = self.extract_order_id(state)
-        current_user_id = state.get("current_user_id")
+        current_user_id = self.normalize_user_id(state.get("current_user_id"))
 
         if not order_id and current_user_id:
             list_orders_tool = self.find_tool(tools, "list_user_orders", "list_orders")
             if list_orders_tool is not None:
-                orders = await list_orders_tool.ainvoke({"identifier": current_user_id})
+                orders = await list_orders_tool.ainvoke({"user_id": current_user_id})
                 items = orders.get("orders") or orders.get("list") or []
                 if not items:
                     return self.result(state, reply="当前账号下没有可查询订单。", result_summary="当前账号下没有可查询订单")
