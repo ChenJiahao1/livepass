@@ -89,7 +89,7 @@ def test_post_agent_runs_uses_thread_input_and_returns_nested_resources():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "input": {"content": [{"type": "text", "text": "帮我查订单"}]},
             "metadata": {},
         },
     )
@@ -98,11 +98,15 @@ def test_post_agent_runs_uses_thread_input_and_returns_nested_resources():
     body = response.json()
     assert body["thread"]["id"] == thread_id
     assert body["run"]["threadId"] == thread_id
-    assert body["run"]["assistantMessageId"].startswith("msg_")
-    assert body["acceptedMessage"]["metadata"] == {}
-    assert body["assistantMessage"]["role"] == "assistant"
-    assert body["assistantMessage"]["status"] == "in_progress"
-    assert body["assistantMessage"]["parts"] == []
+    assert body["run"]["outputMessageId"].startswith("msg_")
+    assert body["inputMessage"]["metadata"] == {}
+    assert body["inputMessage"]["content"] == [{"type": "text", "text": "帮我查订单"}]
+    assert body["inputMessage"]["updatedAt"]
+    assert body["outputMessage"]["role"] == "assistant"
+    assert body["outputMessage"]["status"] == "streaming"
+    assert body["outputMessage"]["content"] == []
+    assert body["outputMessage"]["updatedAt"]
+    assert "parts" not in str(body)
 
 
 def test_create_run_request_schema_does_not_expose_client_message_id():
@@ -113,6 +117,16 @@ def test_create_run_request_schema_does_not_expose_client_message_id():
     assert response.status_code == 200
     run_input_schema = response.json()["components"]["schemas"]["RunInputDTO"]
     assert "clientMessageId" not in run_input_schema["properties"]
+    assert "content" in run_input_schema["properties"]
+    assert "parts" not in response.text
+    assert "ImageContentDTO" not in response.json()["components"]["schemas"]
+    assert "FileContentDTO" not in response.json()["components"]["schemas"]
+
+    message_schema = response.json()["components"]["schemas"]["MessageDTO"]
+    assert "content" in message_schema["properties"]
+
+    run_schema = response.json()["components"]["schemas"]["RunDTO"]
+    assert "outputMessageId" in run_schema["properties"]
 
 
 def test_get_agent_runs_by_run_id_returns_new_run_resource_shape():
@@ -123,7 +137,7 @@ def test_get_agent_runs_by_run_id_returns_new_run_resource_shape():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "input": {"content": [{"type": "text", "text": "帮我查订单"}]},
             "metadata": {},
         },
     ).json()
@@ -133,7 +147,8 @@ def test_get_agent_runs_by_run_id_returns_new_run_resource_shape():
     assert response.status_code == 200
     assert response.json()["run"]["id"] == created["run"]["id"]
     assert response.json()["run"]["threadId"] == thread_id
-    assert response.json()["run"]["assistantMessageId"] == created["assistantMessage"]["id"]
+    assert response.json()["run"]["outputMessageId"] == created["outputMessage"]["id"]
+    assert response.json()["outputMessage"]["id"] == created["outputMessage"]["id"]
 
 
 def test_get_agent_run_events_uses_new_sse_envelope_and_after_cursor():
@@ -144,7 +159,7 @@ def test_get_agent_run_events_uses_new_sse_envelope_and_after_cursor():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "帮我退款"}]},
+            "input": {"content": [{"type": "text", "text": "帮我退款"}]},
             "metadata": {},
         },
     ).json()
@@ -159,9 +174,12 @@ def test_get_agent_run_events_uses_new_sse_envelope_and_after_cursor():
 
     assert response.status_code == 200
     assert "event: agent.run.event" in body
-    assert "schemaVersion" in body
+    assert "schemaVersion" not in body
+    assert "timestamp" in body
     assert "message.delta" in body
-    assert "tool_call.updated" in body
+    assert '"type": "text"' in body
+    assert "tool_call.waiting_human" in body
+    assert '"toolCall"' in body
     assert "run.updated" in body
 
 
@@ -173,7 +191,7 @@ def test_get_agent_run_events_after_cursor_is_strictly_greater_than_after():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "input": {"content": [{"type": "text", "text": "帮我查订单"}]},
             "metadata": {},
         },
     ).json()
@@ -199,7 +217,7 @@ def test_get_agent_run_returns_failed_after_runtime_error():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread_id,
-            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "input": {"content": [{"type": "text", "text": "帮我查订单"}]},
             "metadata": {},
         },
     ).json()

@@ -45,14 +45,14 @@ def build_services() -> ServiceBundle:
     return ServiceBundle(threads=thread_service, messages=message_service, runs=run_service)
 
 
-def test_create_run_persists_user_message_assistant_message_and_assistant_message_id():
+def test_create_run_persists_user_message_output_message_and_output_message_id():
     services = build_services()
     thread = services.threads.create_thread(user_id=3001, title=None)
 
-    run, accepted_message, assistant_message = services.runs.create_run(
+    run, accepted_message, output_message = services.runs.create_run(
         user_id=3001,
         thread_id=thread.id,
-        parts=[{"type": "text", "text": "帮我查订单"}],
+        content=[{"type": "text", "text": "帮我查订单"}],
     )
 
     messages, next_cursor = services.messages.list_messages(
@@ -63,16 +63,36 @@ def test_create_run_persists_user_message_assistant_message_and_assistant_messag
     )
 
     assert run.status == RUN_STATUS_QUEUED
-    assert run.assistant_message_id == assistant_message.id
-    assert run.metadata.get("assistantMessageId") is None
+    assert run.output_message_id == output_message.id
+    assert run.metadata.get("outputMessageId") is None
     assert accepted_message.id == run.trigger_message_id
     assert getattr(accepted_message, "updated_at", None) == accepted_message.created_at
     assert [message.role for message in messages] == [MESSAGE_ROLE_USER, MESSAGE_ROLE_ASSISTANT]
+    assert messages[0].content == [{"type": "text", "text": "帮我查订单"}]
     assert messages[1].status == MESSAGE_STATUS_IN_PROGRESS
-    assert messages[1].parts == []
+    assert messages[1].content == []
     assert messages[1].run_id == run.id
-    assert getattr(assistant_message, "updated_at", None) == assistant_message.created_at
+    assert getattr(output_message, "updated_at", None) == output_message.created_at
     assert next_cursor is None
+
+
+def test_create_user_message_uses_content_and_extract_text_rejects_non_text():
+    services = build_services()
+    thread = services.threads.create_thread(user_id=3001, title=None)
+
+    message = services.messages.create_user_message(
+        user_id=3001,
+        thread_id=thread.id,
+        content=[{"type": "text", "text": "你好"}],
+    )
+
+    assert message.content == [{"type": "text", "text": "你好"}]
+    assert services.messages.extract_text([{"type": "text", "text": "  A  "}, {"type": "text", "text": "B"}]) == "A\nB"
+
+    with pytest.raises(ApiError) as exc_info:
+        services.messages.extract_text([{"type": "image", "imageUrl": "https://example.com/a.png"}])
+
+    assert exc_info.value.code == ApiErrorCode.UNSUPPORTED_CONTENT_TYPE
 
 
 def test_get_thread_returns_active_run_id_for_running_run():
@@ -81,7 +101,7 @@ def test_get_thread_returns_active_run_id_for_running_run():
     run, _, _ = services.runs.create_run(
         user_id=3001,
         thread_id=thread.id,
-        parts=[{"type": "text", "text": "帮我查订单"}],
+        content=[{"type": "text", "text": "帮我查订单"}],
     )
 
     services.runs.mark_running(run_id=run.id)
@@ -97,7 +117,7 @@ def test_terminal_run_cannot_resume():
     run, _, _ = services.runs.create_run(
         user_id=3001,
         thread_id=thread.id,
-        parts=[{"type": "text", "text": "帮我查订单"}],
+        content=[{"type": "text", "text": "帮我查订单"}],
     )
     services.runs.mark_completed(run_id=run.id, output_message_ids=[])
 
@@ -114,14 +134,14 @@ def test_thread_with_active_run_cannot_create_second_run():
     first_run, _, _ = services.runs.create_run(
         user_id=3001,
         thread_id=thread.id,
-        parts=[{"type": "text", "text": "第一条"}],
+        content=[{"type": "text", "text": "第一条"}],
     )
 
     with pytest.raises(ApiError) as exc_info:
         services.runs.create_run(
             user_id=3001,
             thread_id=thread.id,
-            parts=[{"type": "text", "text": "第二条"}],
+            content=[{"type": "text", "text": "第二条"}],
         )
 
     assert exc_info.value.code == ApiErrorCode.ACTIVE_RUN_EXISTS
@@ -134,7 +154,7 @@ def test_requires_action_run_blocks_second_run_and_terminal_run_clears_active_ru
     run, _, _ = services.runs.create_run(
         user_id=3001,
         thread_id=thread.id,
-        parts=[{"type": "text", "text": "第一条"}],
+        content=[{"type": "text", "text": "第一条"}],
     )
 
     services.runs.mark_requires_action(run_id=run.id)
@@ -146,7 +166,7 @@ def test_requires_action_run_blocks_second_run_and_terminal_run_clears_active_ru
         services.runs.create_run(
             user_id=3001,
             thread_id=thread.id,
-            parts=[{"type": "text", "text": "第二条"}],
+            content=[{"type": "text", "text": "第二条"}],
         )
 
     assert exc_info.value.code == ApiErrorCode.ACTIVE_RUN_EXISTS
@@ -160,7 +180,7 @@ def test_requires_action_run_blocks_second_run_and_terminal_run_clears_active_ru
     next_run, _, _ = services.runs.create_run(
         user_id=3001,
         thread_id=thread.id,
-        parts=[{"type": "text", "text": "第三条"}],
+        content=[{"type": "text", "text": "第三条"}],
     )
     assert next_run.status == RUN_STATUS_QUEUED
 
@@ -181,7 +201,7 @@ def test_list_messages_hides_other_users_thread():
     services.runs.create_run(
         user_id=3001,
         thread_id=thread.id,
-        parts=[{"type": "text", "text": "帮我查订单"}],
+        content=[{"type": "text", "text": "帮我查订单"}],
     )
 
     with pytest.raises(ApiError) as exc_info:

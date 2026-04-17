@@ -12,13 +12,16 @@ class ApiSchemaModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
 
-class TextPartDTO(ApiSchemaModel):
+class TextContentDTO(ApiSchemaModel):
     type: Literal["text"]
     text: str = Field(min_length=1)
 
 
+MessageContentDTO: TypeAlias = TextContentDTO
+
+
 class RunInputDTO(ApiSchemaModel):
-    parts: list[TextPartDTO] = Field(min_length=1)
+    content: list[MessageContentDTO] = Field(min_length=1)
 
 
 class ThreadDTO(ApiSchemaModel):
@@ -36,9 +39,10 @@ class MessageDTO(ApiSchemaModel):
     id: str
     thread_id: str = Field(alias="threadId")
     role: Literal["user", "assistant"]
-    parts: list[TextPartDTO] = Field(default_factory=list)
+    content: list[MessageContentDTO] = Field(default_factory=list)
     status: str
     created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
     run_id: str | None = Field(default=None, alias="runId")
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -54,7 +58,7 @@ class RunDTO(ApiSchemaModel):
     thread_id: str = Field(alias="threadId")
     status: str
     trigger_message_id: str = Field(alias="triggerMessageId")
-    assistant_message_id: str = Field(alias="assistantMessageId")
+    output_message_id: str = Field(alias="outputMessageId")
     started_at: datetime = Field(alias="startedAt")
     completed_at: datetime | None = Field(default=None, alias="completedAt")
     error: RunErrorDTO | None = None
@@ -99,8 +103,8 @@ class CreateRunRequest(ApiSchemaModel):
 class CreateRunResponse(ApiSchemaModel):
     thread: ThreadDTO
     run: RunDTO
-    accepted_message: MessageDTO = Field(alias="acceptedMessage")
-    assistant_message: MessageDTO = Field(alias="assistantMessage")
+    input_message: MessageDTO = Field(alias="inputMessage")
+    output_message: MessageDTO = Field(alias="outputMessage")
 
 
 ResumeToolCallAction: TypeAlias = Literal["approve", "reject", "edit"]
@@ -121,6 +125,8 @@ class HumanRequestDTO(ApiSchemaModel):
 
 class GetRunResponse(ApiSchemaModel):
     run: RunDTO
+    output_message: MessageDTO | None = Field(default=None, alias="outputMessage")
+    active_tool_call: dict[str, Any] | None = Field(default=None, alias="activeToolCall")
 
 
 class UpdateThreadRequest(ApiSchemaModel):

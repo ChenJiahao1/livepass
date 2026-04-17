@@ -25,7 +25,7 @@ from app.api.schemas import (
     ResumeToolCallRequest,
     RunDTO,
     RunErrorDTO,
-    TextPartDTO,
+    TextContentDTO,
     ThreadDTO,
 )
 from app.common.errors import ApiError, to_http_exception
@@ -217,16 +217,22 @@ def to_thread_dto(thread) -> ThreadDTO:
 
 
 def to_message_dto(message) -> MessageDTO:
+    raw_content = message.content
     return MessageDTO(
         id=message.id,
         threadId=message.thread_id,
         role=message.role,
-        parts=[TextPartDTO(**part) for part in message.parts],
+        content=[to_content_dto(part) for part in raw_content],
         status=message.status,
         createdAt=message.created_at,
+        updatedAt=message.updated_at,
         runId=message.run_id,
         metadata=message.metadata,
     )
+
+
+def to_content_dto(part: dict) -> TextContentDTO:
+    return TextContentDTO(**part)
 
 
 def to_run_dto(run) -> RunDTO:
@@ -236,11 +242,45 @@ def to_run_dto(run) -> RunDTO:
         threadId=run.thread_id,
         status=run.status,
         triggerMessageId=run.trigger_message_id,
-        assistantMessageId=run.assistant_message_id,
+        outputMessageId=run.output_message_id,
         startedAt=run.started_at,
         completedAt=run.completed_at,
         error=RunErrorDTO(**error) if error else None,
         metadata=run.metadata,
+    )
+
+
+def to_tool_call_snapshot(tool_call) -> dict[str, Any]:
+    return {
+        "id": tool_call.id,
+        "runId": tool_call.run_id,
+        "threadId": tool_call.thread_id,
+        "messageId": tool_call.message_id,
+        "name": tool_call.name,
+        "status": tool_call.status,
+        "input": tool_call.input,
+        "output": tool_call.output,
+        "error": tool_call.error,
+        "humanRequest": tool_call.human_request,
+        "metadata": tool_call.metadata,
+        "createdAt": tool_call.created_at,
+        "updatedAt": tool_call.updated_at,
+        "completedAt": tool_call.completed_at,
+    }
+
+
+def build_run_snapshot_response(
+    *,
+    run,
+    message_repository: MessageRepository,
+    tool_call_repository: ToolCallRepository,
+) -> GetRunResponse:
+    output_message = message_repository.find_by_id(message_id=run.output_message_id)
+    active_tool_call = tool_call_repository.find_waiting_by_run(run_id=run.id)
+    return GetRunResponse(
+        run=to_run_dto(run),
+        outputMessage=to_message_dto(output_message) if output_message else None,
+        activeToolCall=to_tool_call_snapshot(active_tool_call) if active_tool_call else None,
     )
 
 
@@ -349,15 +389,15 @@ async def create_run(
         run, user_message, assistant_message = run_service.create_run(
             user_id=user_id,
             thread_id=request.thread_id,
-            parts=[part.model_dump() for part in request.input.parts],
+            content=[part.model_dump(by_alias=True, exclude_none=True) for part in request.input.content],
         )
         background_tasks.add_task(run_executor.start, run.id)
         thread = thread_service.get_thread(user_id=user_id, thread_id=request.thread_id)
         return CreateRunResponse(
             thread=to_thread_dto(thread),
             run=to_run_dto(run),
-            acceptedMessage=to_message_dto(user_message),
-            assistantMessage=to_message_dto(assistant_message),
+            inputMessage=to_message_dto(user_message),
+            outputMessage=to_message_dto(assistant_message),
         )
     except ApiError as exc:
         raise to_http_exception(exc) from exc
@@ -368,10 +408,16 @@ async def get_run(
     run_id: str,
     user_id: int = Depends(get_current_user_id),
     run_service: RunService = Depends(get_run_service_with_messages),
+    message_repository: MessageRepository = Depends(get_message_repository),
+    tool_call_repository: ToolCallRepository = Depends(get_tool_call_repository),
 ) -> GetRunResponse:
     try:
         run = run_service.get_run(user_id=user_id, run_id=run_id)
-        return GetRunResponse(run=to_run_dto(run))
+        return build_run_snapshot_response(
+            run=run,
+            message_repository=message_repository,
+            tool_call_repository=tool_call_repository,
+        )
     except ApiError as exc:
         raise to_http_exception(exc) from exc
 
@@ -409,11 +455,17 @@ async def resume_tool_call(
     user_id: int = Depends(get_current_user_id),
     run_service: RunService = Depends(get_run_service_with_messages),
     run_executor: RunExecutor = Depends(get_run_executor),
+    message_repository: MessageRepository = Depends(get_message_repository),
+    tool_call_repository: ToolCallRepository = Depends(get_tool_call_repository),
 ) -> GetRunResponse:
     try:
         run = run_service.get_run(user_id=user_id, run_id=run_id)
         await run_executor.resume(run_id=run.id, tool_call_id=tool_call_id, action_payload=request.model_dump())
-        return GetRunResponse(run=to_run_dto(run_service.get_run(user_id=user_id, run_id=run.id)))
+        return build_run_snapshot_response(
+            run=run_service.get_run(user_id=user_id, run_id=run.id),
+            message_repository=message_repository,
+            tool_call_repository=tool_call_repository,
+        )
     except ApiError as exc:
         raise to_http_exception(exc) from exc
 
@@ -424,10 +476,16 @@ async def cancel_run(
     user_id: int = Depends(get_current_user_id),
     run_service: RunService = Depends(get_run_service_with_messages),
     run_executor: RunExecutor = Depends(get_run_executor),
+    message_repository: MessageRepository = Depends(get_message_repository),
+    tool_call_repository: ToolCallRepository = Depends(get_tool_call_repository),
 ) -> GetRunResponse:
     try:
         run = run_service.get_run(user_id=user_id, run_id=run_id)
         await run_executor.cancel(run.id)
-        return GetRunResponse(run=to_run_dto(run_service.get_run(user_id=user_id, run_id=run.id)))
+        return build_run_snapshot_response(
+            run=run_service.get_run(user_id=user_id, run_id=run.id),
+            message_repository=message_repository,
+            tool_call_repository=tool_call_repository,
+        )
     except ApiError as exc:
         raise to_http_exception(exc) from exc

@@ -7,7 +7,7 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_RUN_CANCELLED,
     RUN_EVENT_TYPE_RUN_COMPLETED,
     RUN_EVENT_TYPE_RUN_FAILED,
-    RUN_EVENT_TYPE_RUN_UPDATED,
+    RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
     RunEventRecord,
 )
 from app.runs.event_store import RunEventStore
@@ -33,16 +33,15 @@ class RunStreamService:
 
     def serialize_event(self, event: RunEventRecord, *, debug: dict | None = None) -> dict:
         payload = {
-            "schemaVersion": "2026-04-16",
-            "sequenceNo": event.sequence_no,
             "type": event.event_type,
-            "runId": event.run_id,
+            "sequenceNo": event.sequence_no,
             "threadId": event.thread_id,
-            "messageId": event.message_id,
-            "toolCallId": event.tool_call_id,
-            "createdAt": event.created_at.isoformat().replace("+00:00", "Z") if event.created_at else None,
-            "payload": dict(event.payload),
+            "runId": event.run_id,
+            "timestamp": event.created_at.isoformat().replace("+00:00", "Z") if event.created_at else None,
         }
+        payload.update(dict(event.payload))
+        if event.event_type == "message.delta" and event.message_id is not None:
+            payload["messageId"] = event.message_id
         if debug:
             payload["debug"] = dict(debug)
         return payload
@@ -73,4 +72,4 @@ class RunStreamService:
     def _should_close_stream(self, event: RunEventRecord) -> bool:
         if event.event_type in TERMINAL_EVENT_TYPES:
             return True
-        return event.event_type == RUN_EVENT_TYPE_RUN_UPDATED and event.payload.get("status") == "requires_action"
+        return event.event_type == RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN

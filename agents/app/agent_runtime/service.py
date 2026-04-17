@@ -180,7 +180,7 @@ class AgentRuntimeService:
             if delta:
                 await callbacks.on_message_delta(
                     run=run,
-                    message_id=run.assistant_message_id,
+                    message_id=run.output_message_id,
                     delta=delta,
                     metadata=None,
                 )
@@ -218,7 +218,7 @@ class AgentRuntimeService:
             if message_payload and str(message_payload.get("status") or ""):
                 await callbacks.on_message_updated(
                     run=run,
-                    message_id=run.assistant_message_id,
+                    message_id=run.output_message_id,
                     status=str(message_payload.get("status")),
                     payload=message_payload,
                     metadata=None,
@@ -252,7 +252,7 @@ class AgentRuntimeService:
         if reply:
             await callbacks.on_message_delta(
                 run=run,
-                message_id=run.assistant_message_id,
+                message_id=run.output_message_id,
                 delta=reply,
                 metadata={
                     "routeSource": result.get("route_source", "rule"),

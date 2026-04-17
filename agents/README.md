@@ -27,7 +27,14 @@ uv run uvicorn app.main:app --reload
 - `POST /agent/runs/{runId}/tool-calls/{toolCallId}/resume`
 - `POST /agent/runs/{runId}/cancel`
 
-`POST /agent/runs` 仅接收当前线程下本轮输入，核心请求体字段为 `threadId`、`input.parts` 与 `metadata`。
+`POST /agent/runs` 仅接收当前线程下本轮输入，核心请求体字段为 `threadId`、`input.content` 与 `metadata`。
+
+当前 `Run` 资源关键字段：
+
+- `run.outputMessageId`
+- `inputMessage`
+- `outputMessage`
+- `activeToolCall`
 
 ## 关键环境变量
 
@@ -55,9 +62,12 @@ ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
 - LangGraph checkpoint 仍写入 Redis，但只作为内部运行状态，不对外暴露。
 - 退款 HITL 中断走图内 `interrupt()` / `Command(resume=...)` 恢复链路，不再额外维护 executor 手写退款分支。
 - 线程、消息、运行读模型写入 MySQL `damai_agents`。
+- 当前消息内容块仅支持 `text`；`image/file` 仅保留协议扩展位，暂不接受实际输入。
 - Redis ownership 已切换为 `threadId -> userId`。
 - 已移除旧 chat demo 接口，不再提供兼容层。
 - 历史消息通过 `GET /agent/threads/{threadId}/messages` 查询；活动态可通过 `GET /agent/runs/{runId}/events?after=<sequenceNo>` 的 `after 游标回放历史事件` 并续接增量事件。
+- SSE 增量事件中的 `message.delta` 负载为 `{ "type": "text", "text": "..." }`。
+- 人工等待态主事件为 `tool_call.waiting_human`；消息终态事件为 `message.completed`、`message.failed`、`message.cancelled`。
 - `POST /agent/runs/{runId}/tool-calls/{toolCallId}/resume` 与 `POST /agent/runs/{runId}/cancel` 在同一请求重复提交时保持安全，`resume / cancel 接口按同一请求做幂等处理`。
 
 ## 本地联调

@@ -25,7 +25,7 @@ class RunRecord:
     thread_id: str
     user_id: int
     trigger_message_id: str
-    assistant_message_id: str
+    output_message_id: str
     status: str
     started_at: datetime
     completed_at: datetime | None = None

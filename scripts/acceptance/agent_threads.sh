@@ -124,8 +124,8 @@ main() {
   [[ "$(printf '%s' "${messages_body}" | jq '.messages | length')" == "0" ]] || fail "expected empty initial messages"
   log "initial_messages=${messages_body}"
 
-  run_create_body="$(gateway_curl POST /agent/runs "$(jq -nc --arg thread_id "${thread_id}" --arg message "$(agent_case_order)" '{threadId:$thread_id,input:{parts:[{type:"text",text:$message}]},metadata:{}}')")"
-  printf '%s' "${run_create_body}" | jq -e '.thread.id != "" and .run.id != "" and .assistantMessage.id != ""' >/dev/null \
+  run_create_body="$(gateway_curl POST /agent/runs "$(jq -nc --arg thread_id "${thread_id}" --arg message "$(agent_case_order)" '{threadId:$thread_id,input:{content:[{type:"text",text:$message}]},metadata:{}}')")"
+  printf '%s' "${run_create_body}" | jq -e '.thread.id != "" and .run.id != "" and .outputMessage.id != "" and .inputMessage.id != ""' >/dev/null \
     || fail "invalid create run response: ${run_create_body}"
   run_id="$(printf '%s' "${run_create_body}" | jq -r '.run.id')"
   log "create_run=${run_create_body}"

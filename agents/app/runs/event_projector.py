@@ -10,8 +10,11 @@ from app.messages.models import MESSAGE_STATUS_CANCELLED, MESSAGE_STATUS_COMPLET
 from app.messages.service import MessageService
 from app.runs.event_bus import RunEventBus
 from app.runs.event_models import (
+    RUN_EVENT_TYPE_MESSAGE_CANCELLED,
+    RUN_EVENT_TYPE_MESSAGE_COMPLETED,
     RUN_EVENT_TYPE_MESSAGE_CREATED,
     RUN_EVENT_TYPE_MESSAGE_DELTA,
+    RUN_EVENT_TYPE_MESSAGE_FAILED,
     RUN_EVENT_TYPE_MESSAGE_UPDATED,
     RUN_EVENT_TYPE_RUN_CANCELLED,
     RUN_EVENT_TYPE_RUN_COMPLETED,
@@ -24,6 +27,7 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_TOOL_CALL_FAILED,
     RUN_EVENT_TYPE_TOOL_CALL_PROGRESS,
     RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
+    RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
 )
 from app.runs.event_store import RunEventStore
 from app.runs.interrupt_bridge import InterruptBridge
@@ -58,14 +62,14 @@ class RunEventProjector:
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_RUN_CREATED,
-            payload={"status": run.status},
+            payload={"run": {"id": run.id, "status": run.status}},
             now=run.started_at,
         )
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_MESSAGE_CREATED,
-            message_id=run.assistant_message_id,
-            payload={"status": "in_progress"},
+            message_id=run.output_message_id,
+            payload={"message": {"id": run.output_message_id, "role": "assistant", "status": "streaming", "content": []}},
             now=run.started_at,
         )
 
@@ -74,7 +78,7 @@ class RunEventProjector:
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_RUN_UPDATED,
-            payload={"status": "running"},
+            payload={"run": {"id": run.id, "status": "running"}},
             now=run.started_at,
         )
 
@@ -86,8 +90,9 @@ class RunEventProjector:
         payload: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        event_payload = dict(payload or {})
-        event_payload["status"] = status
+        event_payload = {"run": {"id": run.id, "status": status}}
+        if payload:
+            event_payload["run"].update(dict(payload))
         if metadata:
             event_payload["metadata"] = dict(metadata)
         self._append_event(
@@ -110,7 +115,7 @@ class RunEventProjector:
             run=run,
             event_type=RUN_EVENT_TYPE_MESSAGE_DELTA,
             message_id=message_id,
-            payload={"delta": delta, "metadata": metadata or {}},
+            payload={"delta": {"type": "text", "text": delta}, **({"metadata": metadata} if metadata else {})},
             now=run.started_at,
         )
 
@@ -123,8 +128,9 @@ class RunEventProjector:
         payload: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        event_payload = dict(payload or {})
-        event_payload["status"] = status
+        event_payload = {"message": {"id": message_id, "status": status}}
+        if payload:
+            event_payload["message"].update(dict(payload))
         if metadata:
             event_payload["metadata"] = dict(metadata)
         self._append_event(
@@ -149,18 +155,18 @@ class RunEventProjector:
             run_id=run.id,
         )
         tool_call_id = new_tool_call_id()
-        message_id = str(run.metadata.get("assistantMessageId", "")) or None
+        message_id = str(run.metadata.get("outputMessageId", "")) or None
         record = ToolCallRecord(
             id=tool_call_id,
             run_id=run.id,
             thread_id=run.thread_id,
             user_id=run.user_id,
-            message_id=message_id or run.assistant_message_id,
-            tool_name=tool_name,
+            message_id=message_id or run.output_message_id,
+            name=tool_name,
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
-            arguments=dict(args),
+            input=dict(args),
             human_request=dict(request),
-            result=None,
+            output=None,
             error=None,
             created_at=run.started_at,
             updated_at=run.started_at,
@@ -181,7 +187,15 @@ class RunEventProjector:
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_CREATED,
-            payload=projected_payload,
+            payload={
+                "toolCall": {
+                    "id": tool_call_id,
+                    "messageId": record.message_id,
+                    "name": tool_name,
+                    "status": "running",
+                    "input": dict(args),
+                }
+            },
             message_id=record.message_id,
             tool_call_id=tool_call_id,
             now=run.started_at,
@@ -209,16 +223,26 @@ class RunEventProjector:
         )
         self._append_event(
             run=run,
-            event_type=RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
-            payload={**projected_payload, "metadata": metadata or {}, "status": "waiting_human"},
-            message_id=self._message_id_for_tool_call(tool_call_id) or run.assistant_message_id,
+            event_type=RUN_EVENT_TYPE_RUN_UPDATED,
+            payload={"run": {"id": run.id, "status": "requires_action"}},
             tool_call_id=tool_call_id,
             now=run.started_at,
         )
         self._append_event(
             run=run,
-            event_type=RUN_EVENT_TYPE_RUN_UPDATED,
-            payload={"status": "requires_action"},
+            event_type=RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
+            payload={
+                "toolCall": {
+                    "id": tool_call_id,
+                    "messageId": self._message_id_for_tool_call(tool_call_id) or run.output_message_id,
+                    "name": tool_name,
+                    "status": "waiting_human",
+                    "input": dict(args),
+                    "humanRequest": projected_payload["humanRequest"],
+                },
+                **({"metadata": metadata} if metadata else {}),
+            },
+            message_id=self._message_id_for_tool_call(tool_call_id) or run.output_message_id,
             tool_call_id=tool_call_id,
             now=run.started_at,
         )
@@ -235,16 +259,23 @@ class RunEventProjector:
         self.tool_call_repository.update_status(
             tool_call_id=tool_call_id,
             status="completed",
-            result=output,
             error=None,
             now=now,
+            output=output,
         )
         tool_call = self.tool_call_repository.find_by_id(tool_call_id=tool_call_id)
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_COMPLETED,
-            payload={"output": output, "metadata": metadata or {}},
-            message_id=tool_call.message_id if tool_call else run.assistant_message_id,
+            payload={
+                "toolCall": {
+                    "id": tool_call_id,
+                    "status": "completed",
+                    "output": output,
+                },
+                **({"metadata": metadata} if metadata else {}),
+            },
+            message_id=tool_call.message_id if tool_call else run.output_message_id,
             tool_call_id=tool_call_id,
             now=now,
         )
@@ -262,13 +293,13 @@ class RunEventProjector:
         if tool_call_id is None:
             tool_call_id = new_tool_call_id()
             self._progress_tool_call_ids[progress_key] = tool_call_id
-        event_payload = {"toolName": tool_name, **dict(payload)}
+        event_payload = {"toolCall": {"id": tool_call_id, "name": tool_name, **dict(payload)}}
         if metadata:
             event_payload["metadata"] = dict(metadata)
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_PROGRESS,
-            message_id=run.assistant_message_id,
+            message_id=run.output_message_id,
             tool_call_id=tool_call_id,
             payload=event_payload,
             now=datetime.now(timezone.utc),
@@ -286,16 +317,23 @@ class RunEventProjector:
         self.tool_call_repository.update_status(
             tool_call_id=tool_call_id,
             status="failed",
-            result=None,
             error=error,
             now=now,
+            output=None,
         )
         tool_call = self.tool_call_repository.find_by_id(tool_call_id=tool_call_id)
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_TOOL_CALL_FAILED,
-            payload={"error": error, "metadata": metadata or {}},
-            message_id=tool_call.message_id if tool_call else run.assistant_message_id,
+            payload={
+                "toolCall": {
+                    "id": tool_call_id,
+                    "status": "failed",
+                    "error": error,
+                },
+                **({"metadata": metadata} if metadata else {}),
+            },
+            message_id=tool_call.message_id if tool_call else run.output_message_id,
             tool_call_id=tool_call_id,
             now=now,
         )
@@ -307,7 +345,7 @@ class RunEventProjector:
         payload: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        event_payload = dict(payload)
+        event_payload = {"progress": dict(payload)}
         if metadata:
             event_payload["metadata"] = dict(metadata)
         self._append_event(
@@ -319,71 +357,62 @@ class RunEventProjector:
 
     async def finalize_run(self, *, run: RunRecord, output_message_ids: list[str]) -> None:
         del output_message_ids
-        assistant_message_id = run.assistant_message_id
+        output_message_id = run.output_message_id
         reply = self._message_buffers.get(run.id, "")
-        if assistant_message_id:
+        if output_message_id:
             self.message_service.update_message_status(
                 user_id=run.user_id,
                 thread_id=run.thread_id,
-                message_id=assistant_message_id,
+                message_id=output_message_id,
                 status=MESSAGE_STATUS_COMPLETED,
-                parts=[{"type": "text", "text": reply}],
+                content=[{"type": "text", "text": reply}],
                 metadata={},
             )
             self._append_event(
                 run=run,
-                event_type=RUN_EVENT_TYPE_MESSAGE_UPDATED,
-                message_id=assistant_message_id,
-                payload={"status": "completed"},
+                event_type=RUN_EVENT_TYPE_MESSAGE_COMPLETED,
+                message_id=output_message_id,
+                payload={"message": {"id": output_message_id, "status": "completed", "content": [{"type": "text", "text": reply}]}},
                 now=datetime.now(timezone.utc),
             )
         self.run_service.mark_completed(run_id=run.id, output_message_ids=[])
         now = datetime.now(timezone.utc)
         self._append_event(
             run=run,
-            event_type=RUN_EVENT_TYPE_RUN_UPDATED,
-            payload={"status": "completed"},
-            now=now,
-        )
-        self._append_event(
-            run=run,
             event_type=RUN_EVENT_TYPE_RUN_COMPLETED,
-            payload={"status": "completed"},
+            payload={"run": {"id": run.id, "status": "completed"}},
             now=now,
         )
 
     async def fail_run(self, *, run: RunRecord, message: str) -> None:
-        assistant_message_id = run.assistant_message_id
+        output_message_id = run.output_message_id
         now = datetime.now(timezone.utc)
-        if assistant_message_id:
+        if output_message_id:
             self.message_service.update_message_status(
                 user_id=run.user_id,
                 thread_id=run.thread_id,
-                message_id=assistant_message_id,
+                message_id=output_message_id,
                 status=MESSAGE_STATUS_ERROR,
-                parts=[{"type": "text", "text": message}],
+                content=[{"type": "text", "text": message}],
                 metadata={},
             )
             self._append_event(
                 run=run,
-                event_type=RUN_EVENT_TYPE_MESSAGE_UPDATED,
-                message_id=assistant_message_id,
-                payload={"status": "failed"},
+                event_type=RUN_EVENT_TYPE_MESSAGE_FAILED,
+                message_id=output_message_id,
+                payload={"message": {"id": output_message_id, "status": "failed", "content": [{"type": "text", "text": message}]}},
                 now=now,
             )
         self.run_service.mark_failed(run_id=run.id, message=message)
         self._append_event(
             run=run,
-            event_type=RUN_EVENT_TYPE_RUN_UPDATED,
-            payload={"status": "failed"},
-            now=now,
-        )
-        self._append_event(
-            run=run,
             event_type=RUN_EVENT_TYPE_RUN_FAILED,
             payload={
-                "status": "failed",
-                "error": {"code": ApiErrorCode.LANGGRAPH_RUNTIME_ERROR, "message": message},
+                "run": {
+                    "id": run.id,
+                    "status": "failed",
+                    "error": {"code": ApiErrorCode.LANGGRAPH_RUNTIME_ERROR, "message": message},
+                },
             },
             now=now,
         )
@@ -398,35 +427,29 @@ class RunEventProjector:
                 event_type=RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
                 message_id=waiting_tool_call.message_id,
                 tool_call_id=waiting_tool_call.id,
-                payload={"status": "cancelled"},
+                payload={"toolCall": {"id": waiting_tool_call.id, "status": "cancelled"}},
                 now=now,
             )
         self.run_service.mark_cancelled(run_id=run.id)
         self.message_service.update_message_status(
             user_id=run.user_id,
             thread_id=run.thread_id,
-            message_id=run.assistant_message_id,
+            message_id=run.output_message_id,
             status=MESSAGE_STATUS_CANCELLED,
-            parts=None,
+            content=None,
             metadata=None,
         )
         self._append_event(
             run=run,
-            event_type=RUN_EVENT_TYPE_MESSAGE_UPDATED,
-            message_id=run.assistant_message_id,
-            payload={"status": "cancelled"},
-            now=now,
-        )
-        self._append_event(
-            run=run,
-            event_type=RUN_EVENT_TYPE_RUN_UPDATED,
-            payload={"status": "cancelled"},
+            event_type=RUN_EVENT_TYPE_MESSAGE_CANCELLED,
+            message_id=run.output_message_id,
+            payload={"message": {"id": run.output_message_id, "status": "cancelled"}},
             now=now,
         )
         self._append_event(
             run=run,
             event_type=RUN_EVENT_TYPE_RUN_CANCELLED,
-            payload={"status": "cancelled"},
+            payload={"run": {"id": run.id, "status": "cancelled"}},
             now=now,
         )
 

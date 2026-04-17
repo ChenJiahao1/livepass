@@ -137,19 +137,19 @@ func TestImportSQLScriptCreatesAgentsSchemaWithRequiredColumns(t *testing.T) {
 		t.Fatalf("unexpected agent_messages column: %q", messageUpdatedAtColumn)
 	}
 
-	var assistantMessageIDColumn string
-	if err := agentsDB.QueryRow("SHOW COLUMNS FROM agent_runs LIKE 'assistant_message_id'").Scan(
-		&assistantMessageIDColumn,
+	var outputMessageIDColumn string
+	if err := agentsDB.QueryRow("SHOW COLUMNS FROM agent_runs LIKE 'output_message_id'").Scan(
+		&outputMessageIDColumn,
 		new(string),
 		new(string),
 		new(string),
 		new(sql.NullString),
 		new(string),
 	); err != nil {
-		t.Fatalf("query agent_runs.assistant_message_id error: %v", err)
+		t.Fatalf("query agent_runs.output_message_id error: %v", err)
 	}
-	if assistantMessageIDColumn != "assistant_message_id" {
-		t.Fatalf("unexpected agent_runs column: %q", assistantMessageIDColumn)
+	if outputMessageIDColumn != "output_message_id" {
+		t.Fatalf("unexpected agent_runs column: %q", outputMessageIDColumn)
 	}
 }
 

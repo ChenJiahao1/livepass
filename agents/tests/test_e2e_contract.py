@@ -68,15 +68,16 @@ def test_create_thread_run_fetch_history_and_run_resource():
         headers={"X-User-Id": "3001"},
         json={
             "threadId": thread["id"],
-            "input": {"parts": [{"type": "text", "text": "帮我查订单"}]},
+            "input": {"content": [{"type": "text", "text": "帮我查订单"}]},
             "metadata": {},
         },
     )
 
     body = response.json()
     assert response.status_code == 200
-    assert set(body.keys()) == {"thread", "run", "acceptedMessage", "assistantMessage"}
-    run = client.get(f"/agent/runs/{body['run']['id']}", headers={"X-User-Id": "3001"}).json()["run"]
+    assert set(body.keys()) == {"thread", "run", "inputMessage", "outputMessage"}
+    run_body = client.get(f"/agent/runs/{body['run']['id']}", headers={"X-User-Id": "3001"}).json()
+    run = run_body["run"]
     messages = client.get(
         f"/agent/threads/{thread['id']}/messages",
         headers={"X-User-Id": "3001"},
@@ -84,8 +85,10 @@ def test_create_thread_run_fetch_history_and_run_resource():
     thread_view = client.get(f"/agent/threads/{thread['id']}", headers={"X-User-Id": "3001"}).json()["thread"]
 
     assert run["threadId"] == thread["id"]
-    assert run["assistantMessageId"] == body["assistantMessage"]["id"]
+    assert run["outputMessageId"] == body["outputMessage"]["id"]
+    assert run_body["outputMessage"]["id"] == body["outputMessage"]["id"]
     assert [message["role"] for message in messages] == ["user", "assistant"]
+    assert messages[0]["content"] == [{"type": "text", "text": "帮我查订单"}]
     assert thread_view["activeRunId"] is None
     assert runtime.calls[0]["config"]["configurable"]["thread_id"] == thread["id"]
 
@@ -98,6 +101,6 @@ def test_old_chat_routes_are_removed():
     legacy_status = client.post(
         "/agent/threads/thr_01/messages",
         headers={"X-User-Id": "3001"},
-        json={"message": {"role": "user", "parts": [{"type": "text", "text": "hi"}]}},
+        json={"message": {"role": "user", "content": [{"type": "text", "text": "hi"}]}},
     ).status_code
     assert legacy_status in {404, 405}

@@ -55,10 +55,10 @@ def test_bridge_rejects_second_waiting_human_tool_call_in_same_run():
             message_id="msg_01",
             thread_id="thr_01",
             user_id=3001,
-            tool_name="human_approval",
+            name="human_approval",
             status=TOOL_CALL_STATUS_WAITING_HUMAN,
-            arguments={"action": "refund_order"},
-            request={"title": "退款前确认"},
+            input={"action": "refund_order"},
+            human_request={"title": "退款前确认"},
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )
@@ -80,13 +80,13 @@ def test_bridge_maps_approve_to_langgraph_decision_payload():
         message_id="msg_01",
         thread_id="thr_01",
         user_id=3001,
-        tool_name="human_approval",
+        name="human_approval",
         status=TOOL_CALL_STATUS_WAITING_HUMAN,
-        arguments={
+        input={
             "action": "refund_order",
             "values": {"order_id": "ORD-1", "reason": "用户发起退款", "user_id": "3001"},
         },
-        request={"title": "退款前确认", "allowedActions": ["approve", "reject", "edit"]},
+        human_request={"title": "退款前确认", "allowedActions": ["approve", "reject", "edit"]},
     )
 
     payload = InterruptBridge().build_command_resume_payload(
@@ -106,13 +106,13 @@ def test_bridge_maps_edit_to_edited_action_payload():
         message_id="msg_01",
         thread_id="thr_01",
         user_id=3001,
-        tool_name="human_approval",
+        name="human_approval",
         status=TOOL_CALL_STATUS_WAITING_HUMAN,
-        arguments={
+        input={
             "action": "refund_order",
             "values": {"order_id": "ORD-1", "reason": "用户发起退款", "user_id": "3001"},
         },
-        request={"title": "退款前确认", "allowedActions": ["approve", "reject", "edit"]},
+        human_request={"title": "退款前确认", "allowedActions": ["approve", "reject", "edit"]},
     )
 
     payload = InterruptBridge().build_command_resume_payload(
@@ -144,10 +144,10 @@ def test_bridge_rejects_action_outside_allowed_actions():
         message_id="msg_01",
         thread_id="thr_01",
         user_id=3001,
-        tool_name="human_approval",
+        name="human_approval",
         status=TOOL_CALL_STATUS_WAITING_HUMAN,
-        arguments={"action": "refund_order", "values": {"order_id": "ORD-1"}},
-        request={"title": "退款前确认", "allowedActions": ["approve", "reject"]},
+        input={"action": "refund_order", "values": {"order_id": "ORD-1"}},
+        human_request={"title": "退款前确认", "allowedActions": ["approve", "reject"]},
     )
 
     with pytest.raises(ApiError) as exc_info:

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS agent_messages (
   thread_id varchar(64) NOT NULL,
   user_id bigint NOT NULL,
   role varchar(32) NOT NULL,
-  parts_json json NOT NULL,
+  content_json json NOT NULL,
   status varchar(32) NOT NULL,
   run_id varchar(64) NULL,
   created_at datetime(3) NOT NULL,

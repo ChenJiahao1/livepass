@@ -19,5 +19,7 @@ def test_agents_readme_documents_thread_api():
     assert "Python 3.12" in readme
     assert "LangGraph 1.1.6" in readme
     assert "after 游标回放历史事件" in readme
-    assert "input.parts" in readme
+    assert "input.content" in readme
+    assert "outputMessageId" in readme
+    assert "tool_call.waiting_human" in readme
     assert "resume / cancel 接口按同一请求做幂等处理" in readme

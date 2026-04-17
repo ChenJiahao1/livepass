@@ -51,11 +51,11 @@ class MessageService:
         *,
         user_id: int,
         thread_id: str,
-        parts: list[dict],
+        content: list[dict],
         run_id: str | None = None,
     ) -> MessageRecord:
         thread = self._ensure_thread_access(user_id=user_id, thread_id=thread_id)
-        user_text = self.extract_text(parts)
+        user_text = self.extract_text(content)
         now = datetime.now(timezone.utc)
 
         user_message = self.message_repository.create(
@@ -64,7 +64,7 @@ class MessageService:
                 thread_id=thread_id,
                 user_id=user_id,
                 role=MESSAGE_ROLE_USER,
-                parts=parts,
+                content=content,
                 status=MESSAGE_STATUS_COMPLETED,
                 run_id=run_id,
                 created_at=now,
@@ -89,7 +89,7 @@ class MessageService:
         user_id: int,
         thread_id: str,
         run_id: str,
-        parts: list[dict] | None = None,
+        content: list[dict] | None = None,
         status: str = MESSAGE_STATUS_IN_PROGRESS,
         metadata: dict | None = None,
     ) -> MessageRecord:
@@ -101,7 +101,7 @@ class MessageService:
                 thread_id=thread_id,
                 user_id=user_id,
                 role=MESSAGE_ROLE_ASSISTANT,
-                parts=list(parts or []),
+                content=list(content or []),
                 status=status,
                 run_id=run_id,
                 created_at=now,
@@ -117,14 +117,14 @@ class MessageService:
         thread_id: str,
         message_id: str,
         status: str,
-        parts: list[dict] | None = None,
+        content: list[dict] | None = None,
         metadata: dict | None = None,
     ) -> MessageRecord:
         self._ensure_thread_access(user_id=user_id, thread_id=thread_id)
         message = self.message_repository.update_status(
             message_id=message_id,
             status=status,
-            parts=parts,
+            content=content,
             metadata=metadata,
         )
         if message is None:
@@ -154,14 +154,22 @@ class MessageService:
             )
         return thread
 
-    def extract_text(self, parts: list[dict]) -> str:
-        if not parts:
+    def extract_text(self, content: list[dict]) -> str:
+        if not content:
             raise ApiError(
                 code=ApiErrorCode.VALIDATION_ERROR,
                 message="消息内容不能为空",
                 http_status=400,
             )
-        texts = [str(part.get("text", "")).strip() for part in parts if part.get("type") == "text"]
+        unsupported_types = [str(part.get("type", "")) for part in content if part.get("type") != "text"]
+        if unsupported_types:
+            raise ApiError(
+                code=ApiErrorCode.UNSUPPORTED_CONTENT_TYPE,
+                message="当前仅支持文本消息内容",
+                http_status=400,
+                details={"types": unsupported_types},
+            )
+        texts = [str(part.get("text", "")).strip() for part in content]
         text = "\n".join([value for value in texts if value])
         if not text:
             raise ApiError(
