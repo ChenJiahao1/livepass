@@ -16,6 +16,7 @@ set -euo pipefail
 #   --skip-agents     跳过 MCP 与 agents
 #   --only-agents     只启动 agents 相关链路
 #   --force-restart   先停止脚本管理的服务，再重新启动
+#   --detach          启动完成后立即退出，不保活父脚本
 #   --skip-infra-check 跳过基础设施拉起与检查
 #   -h, --help        查看完整帮助
 #
@@ -23,6 +24,7 @@ set -euo pipefail
 #   bash scripts/deploy/start_backend.sh
 #   bash scripts/deploy/start_backend.sh --force-restart
 #   bash scripts/deploy/start_backend.sh --only-agents --force-restart
+#   bash scripts/deploy/start_backend.sh --detach
 #
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
@@ -33,6 +35,14 @@ START_AGENTS="${START_AGENTS:-1}"
 CHECK_INFRA="${CHECK_INFRA:-1}"
 ONLY_AGENTS="${ONLY_AGENTS:-0}"
 FORCE_RESTART="${FORCE_RESTART:-0}"
+DETACH="${DETACH:-0}"
+
+STARTED_SERVICE_NAMES=()
+STARTED_SERVICE_PORTS=()
+STARTED_SERVICE_PATTERNS=()
+STARTED_SERVICE_LOG_FILES=()
+STARTUP_FINISHED=0
+CLEANUP_DONE=0
 
 INFRA_COMPOSE_FILE="${REPO_ROOT}/deploy/docker-compose/docker-compose.infrastructure.yml"
 
@@ -82,6 +92,9 @@ parse_args() {
       --force-restart)
         FORCE_RESTART=1
         ;;
+      --detach)
+        DETACH=1
+        ;;
       -h|--help)
         cat <<'EOF'
 Usage: bash scripts/deploy/start_backend.sh [options]
@@ -92,6 +105,7 @@ Options:
   --skip-infra-check  skip docker infrastructure bootstrap and checks
   --only-agents       only start agents-related services and dependencies
   --force-restart     stop managed services first, then start again
+  --detach            exit after startup, do not keep supervisor alive
   -h, --help          show this help message
 
 Environment:
@@ -100,6 +114,7 @@ Environment:
   CHECK_INFRA=0|1
   ONLY_AGENTS=0|1
   FORCE_RESTART=0|1
+  DETACH=0|1
   LOG_DIR=/abs/path
   PID_DIR=/abs/path
 EOF
@@ -115,6 +130,18 @@ EOF
 
 ensure_dirs() {
   mkdir -p "${LOG_DIR}" "${PID_DIR}"
+}
+
+register_started_service() {
+  local name="$1"
+  local port="$2"
+  local process_pattern="$3"
+  local log_file="$4"
+
+  STARTED_SERVICE_NAMES+=("${name}")
+  STARTED_SERVICE_PORTS+=("${port}")
+  STARTED_SERVICE_PATTERNS+=("${process_pattern}")
+  STARTED_SERVICE_LOG_FILES+=("${log_file}")
 }
 
 is_port_listening() {
@@ -361,6 +388,37 @@ stop_service() {
   rm -f "${pid_file}"
 }
 
+cleanup_started_services() {
+  local exit_code="${1:-0}"
+  local idx
+
+  if [[ "${CLEANUP_DONE}" == "1" ]]; then
+    return
+  fi
+  CLEANUP_DONE=1
+
+  if [[ "${DETACH}" == "1" && "${STARTUP_FINISHED}" == "1" && "${exit_code}" == "0" ]]; then
+    return
+  fi
+
+  if [[ "${#STARTED_SERVICE_NAMES[@]}" -eq 0 ]]; then
+    return
+  fi
+
+  if [[ "${exit_code}" == "0" ]]; then
+    log "stopping managed services"
+  else
+    log "stopping managed services after exit code ${exit_code}"
+  fi
+
+  for ((idx = ${#STARTED_SERVICE_NAMES[@]} - 1; idx >= 0; idx--)); do
+    stop_service \
+      "${STARTED_SERVICE_NAMES[${idx}]}" \
+      "${STARTED_SERVICE_PORTS[${idx}]}" \
+      "${STARTED_SERVICE_PATTERNS[${idx}]}"
+  done
+}
+
 force_restart_requested_services() {
   if [[ "${FORCE_RESTART}" != "1" ]]; then
     return
@@ -425,6 +483,7 @@ start_service() {
       tail -n 40 "${log_file}" >&2 || true
       fail "${name} failed to listen on :${port}"
     fi
+    register_started_service "${name}" "${port}" "${process_pattern}" "${log_file}"
     return
   fi
 
@@ -432,6 +491,52 @@ start_service() {
     tail -n 40 "${log_file}" >&2 || true
     fail "${name} failed to stay alive"
   fi
+
+  register_started_service "${name}" "${port}" "${process_pattern}" "${log_file}"
+}
+
+service_is_healthy() {
+  local port="$1"
+  local process_pattern="$2"
+
+  if [[ "${port}" != "0" ]]; then
+    is_port_listening "${port}"
+    return
+  fi
+
+  is_process_running "${process_pattern}"
+}
+
+monitor_services() {
+  local idx
+  local name
+  local port
+  local process_pattern
+  local log_file
+
+  if [[ "${DETACH}" == "1" ]]; then
+    log "detach mode enabled, skip supervisor keepalive"
+    return
+  fi
+
+  log "services are running under foreground supervisor, press Ctrl-C to stop"
+
+  while true; do
+    for idx in "${!STARTED_SERVICE_NAMES[@]}"; do
+      name="${STARTED_SERVICE_NAMES[${idx}]}"
+      port="${STARTED_SERVICE_PORTS[${idx}]}"
+      process_pattern="${STARTED_SERVICE_PATTERNS[${idx}]}"
+      log_file="${STARTED_SERVICE_LOG_FILES[${idx}]}"
+
+      if service_is_healthy "${port}" "${process_pattern}"; then
+        continue
+      fi
+
+      tail -n 40 "${log_file}" >&2 || true
+      fail "${name} stopped unexpectedly"
+    done
+    sleep 2
+  done
 }
 
 start_core_services() {
@@ -486,6 +591,7 @@ print_summary() {
 [start-backend] startup finished
 [start-backend] logs: ${LOG_DIR}
 [start-backend] pids: ${PID_DIR}
+[start-backend] mode: $(if [[ "${DETACH}" == "1" ]]; then echo detach; else echo foreground-supervisor; fi)
 [start-backend] check ports with:
 ss -ltnp | grep -E '${port_pattern}'
 EOF
@@ -501,6 +607,9 @@ main() {
   require_cmd pkill
   require_cmd docker
 
+  trap 'cleanup_started_services $?' EXIT
+  trap 'exit 0' INT TERM
+
   parse_args "$@"
   if [[ "${ONLY_AGENTS}" == "1" && "${START_AGENTS}" != "1" ]]; then
     fail "--only-agents cannot be combined with --skip-agents"
@@ -511,13 +620,17 @@ main() {
   maybe_import_sql
   if [[ "${ONLY_AGENTS}" == "1" ]]; then
     start_agents_related_services
+    STARTUP_FINISHED=1
     print_summary
+    monitor_services
     return
   fi
   start_core_services
   start_optional_services
   start_gateway
+  STARTUP_FINISHED=1
   print_summary
+  monitor_services
 }
 
 main "$@"

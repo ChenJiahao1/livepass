@@ -94,6 +94,7 @@ bash scripts/deploy/start_backend.sh
 - 启动 `order-mcp`、`program-mcp`
 - 启动 `agents`
 - 最后启动 `gateway-api`
+- 默认以前台 supervisor 模式保活；若直接在受控执行环境中启动，脚本不退出时可避免其子进程被宿主清理
 
 常用变体：
 
@@ -109,6 +110,9 @@ bash scripts/deploy/start_backend.sh --skip-agents
 
 # 只启动 agents 相关链路（user/program/order-rpc + MCP + agents）
 bash scripts/deploy/start_backend.sh --only-agents
+
+# 启动完成后立即退出，保留旧的“只拉起进程不保活脚本”行为
+bash scripts/deploy/start_backend.sh --detach
 ```
 
 如需重建运行数据，请使用独立脚本：
