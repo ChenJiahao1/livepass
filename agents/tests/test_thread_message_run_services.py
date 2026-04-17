@@ -13,7 +13,7 @@ from app.runs.models import (
     RUN_STATUS_RUNNING,
 )
 from app.runs.repository import InMemoryRunRepository
-from app.runs.service import RunService
+from app.runs.execution.runtime import RunService
 from app.conversations.threads.repository import InMemoryThreadRepository
 from app.conversations.threads.service import ThreadService
 

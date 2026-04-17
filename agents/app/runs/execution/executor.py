@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from app.agent_runtime.service import AgentRuntimeService
+from app.runs.execution.runtime import AgentRuntimeService
 from app.common.errors import ApiError, ApiErrorCode
 from app.conversations.messages.service import MessageService
-from app.runs.event_bus import RunEventBus
+from app.runs.execution.event_bus import RunEventBus
 from app.runs.event_models import RUN_EVENT_TYPE_RUN_UPDATED
-from app.runs.event_projector import RunEventProjector
+from app.runs.execution.projector import RunEventProjector
 from app.runs.event_store import RunEventStore
 from app.runs.models import RUN_STATUS_CANCELLED, RUN_STATUS_QUEUED, RUN_STATUS_REQUIRES_ACTION, RUN_STATUS_RUNNING
 from app.runs.repository import RunRepository
-from app.runs.resume_command_executor import ResumeCommandExecutor
-from app.runs.service import RunService
+from app.runs.execution.resume import ResumeCommandExecutor
+from app.runs.execution.runtime import RunService
 from app.runs.tool_call_models import TOOL_CALL_STATUS_COMPLETED, TOOL_CALL_STATUS_WAITING_HUMAN
 from app.runs.tool_call_repository import ToolCallRepository
 

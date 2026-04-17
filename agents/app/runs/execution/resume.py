@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, Mapping
 
-from app.agent_runtime.service import AgentRuntimeRunResult, AgentRuntimeService
-from app.runs.interrupt_bridge import InterruptBridge
+from app.runs.execution.runtime import AgentRuntimeRunResult, AgentRuntimeService
+from app.runs.execution.interrupt_bridge import InterruptBridge
 from app.runs.models import RunRecord
 from app.runs.tool_call_models import ToolCallRecord
 

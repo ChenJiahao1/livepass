@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from app.runs.event_bus import RunEventBus
+from app.runs.execution.event_bus import RunEventBus
 from app.runs.event_models import (
     RUN_EVENT_TYPE_RUN_CANCELLED,
     RUN_EVENT_TYPE_RUN_COMPLETED,

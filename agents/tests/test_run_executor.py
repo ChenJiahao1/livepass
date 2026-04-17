@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 import pytest
 from langgraph.types import Command
 
-from app.agent_runtime.service import AgentRuntimeService
+from app.runs.execution.runtime import AgentRuntimeService
 from app.common.errors import ApiError, ApiErrorCode
 from app.conversations.messages.models import MESSAGE_STATUS_ERROR
 from app.conversations.messages.repository import InMemoryMessageRepository
 from app.conversations.messages.service import MessageService
-from app.runs.event_bus import RunEventBus
+from app.runs.execution.event_bus import RunEventBus
 from app.runs.event_models import (
     RUN_EVENT_TYPE_MESSAGE_CREATED,
     RUN_EVENT_TYPE_MESSAGE_COMPLETED,
@@ -31,9 +31,9 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
 )
 from app.runs.event_store import InMemoryRunEventStore
-from app.runs.executor import RunExecutor
+from app.runs.execution.executor import RunExecutor
 from app.runs.repository import InMemoryRunRepository
-from app.runs.service import RunService
+from app.runs.execution.runtime import RunService
 from app.runs.tool_call_repository import InMemoryToolCallRepository
 from app.conversations.threads.repository import InMemoryThreadRepository
 from app.conversations.threads.service import ThreadService

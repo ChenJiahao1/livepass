@@ -4,12 +4,12 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from app.agent_runtime.interrupt_models import HumanInterruptPayload
+from app.runs.interrupt_models import HumanInterruptPayload
 from app.common.errors import ApiErrorCode
 from app.common.ids import new_tool_call_id
 from app.conversations.messages.models import MESSAGE_STATUS_CANCELLED, MESSAGE_STATUS_COMPLETED, MESSAGE_STATUS_ERROR
 from app.conversations.messages.service import MessageService
-from app.runs.event_bus import RunEventBus
+from app.runs.execution.event_bus import RunEventBus
 from app.runs.event_models import (
     RUN_EVENT_TYPE_MESSAGE_CANCELLED,
     RUN_EVENT_TYPE_MESSAGE_COMPLETED,
@@ -31,9 +31,9 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
 )
 from app.runs.event_store import RunEventStore
-from app.runs.interrupt_bridge import InterruptBridge
+from app.runs.execution.interrupt_bridge import InterruptBridge
 from app.runs.models import RunRecord
-from app.runs.service import RunService
+from app.runs.execution.runtime import RunService
 from app.runs.tool_call_contract import serialize_tool_call_event
 from app.runs.tool_call_models import TOOL_CALL_STATUS_WAITING_HUMAN, ToolCallRecord
 from app.runs.tool_call_repository import ToolCallRepository

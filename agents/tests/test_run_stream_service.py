@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from app.runs.event_bus import RunEventBus
+from app.runs.execution.event_bus import RunEventBus
 from app.runs.event_models import (
     RUN_EVENT_TYPE_MESSAGE_DELTA,
     RUN_EVENT_TYPE_RUN_COMPLETED,
@@ -14,7 +14,7 @@ from app.runs.event_models import (
     RUN_EVENT_TYPE_TOOL_CALL_WAITING_HUMAN,
 )
 from app.runs.event_store import InMemoryRunEventStore
-from app.runs.stream_service import RunStreamService
+from app.runs.execution.stream import RunStreamService
 
 
 def test_serialize_event_uses_spec_envelope_without_debug_by_default():

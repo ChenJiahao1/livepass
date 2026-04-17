@@ -9,7 +9,7 @@ import redis
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
-from app.agent_runtime.service import AgentRuntimeService
+from app.runs.execution.runtime import AgentRuntimeService
 from app.api.schemas import (
     CreateRunRequest,
     CreateRunResponse,
@@ -36,12 +36,12 @@ from app.llm.client import build_chat_model
 from app.mcp_client.registry import MCPToolRegistry
 from app.conversations.messages.repository import MessageRepository, MySQLMessageRepository
 from app.conversations.messages.service import MessageService
-from app.runs.event_bus import RunEventBus
+from app.runs.execution.event_bus import RunEventBus
 from app.runs.event_store import MySQLRunEventStore, RunEventStore
-from app.runs.executor import RunExecutor
+from app.runs.execution.executor import RunExecutor
 from app.runs.repository import MySQLRunRepository, RunRepository
-from app.runs.service import RunService
-from app.runs.stream_service import RunStreamService
+from app.runs.execution.runtime import RunService
+from app.runs.execution.stream import RunStreamService
 from app.runs.tool_call_contract import serialize_tool_call
 from app.runs.tool_call_repository import MySQLToolCallRepository, ToolCallRepository
 from app.session.checkpointer import RedisCheckpointSaver

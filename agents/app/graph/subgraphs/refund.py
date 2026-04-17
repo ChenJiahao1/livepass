@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage
 from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
-from app.agent_runtime.human_tools import build_human_approval_interrupt
+from app.agents.tools.human_tools import build_human_approval_interrupt
 from app.agents.specialists.refund_specialist import RefundAgent
 from app.graph.state import ConversationState, GraphContext
 

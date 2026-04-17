@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.agent_runtime.interrupt_models import HumanInterruptPayload
+from app.runs.interrupt_models import HumanInterruptPayload
 
 
 def build_human_approval_interrupt(

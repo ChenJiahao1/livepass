@@ -1,11 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
-from app.agent_runtime.service import AgentRuntimeService
+from app.runs.execution.runtime import AgentRuntimeService
 from app.runs.models import RunRecord
+
+
+def test_run_execution_modules_live_under_runs_execution():
+    assert Path("app/runs/execution/runtime.py").is_file()
+    assert Path("app/runs/execution/callbacks.py").is_file()
+    assert Path("app/runs/execution/executor.py").is_file()
+    assert Path("app/runs/execution/stream.py").is_file()
+    assert Path("app/runs/execution/projector.py").is_file()
+    assert Path("app/runs/execution/resume.py").is_file()
+    assert Path("app/runs/execution/interrupt_bridge.py").is_file()
+    assert Path("app/runs/execution/event_bus.py").is_file()
+    assert Path("app/runs/interrupt_models.py").is_file()
+    assert Path("app/agents/tools/human_tools.py").is_file()
+    assert not Path("app/agent_runtime").exists()
+    assert not Path("app/runs/service.py").exists()
 
 
 class _CapturingRuntime:
