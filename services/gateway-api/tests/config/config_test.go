@@ -86,6 +86,9 @@ func TestLoadGatewayRuntimeConfigIncludesPrometheus(t *testing.T) {
 	if c.Prometheus.Host == "" || c.Prometheus.Port == 0 {
 		t.Fatalf("expected prometheus config to load, got host=%q port=%d", c.Prometheus.Host, c.Prometheus.Port)
 	}
+	if c.Timeout != 300000 {
+		t.Fatalf("expected gateway timeout 300000, got %d", c.Timeout)
+	}
 
 	orderAPIUpstream := findGatewayUpstream(t, c.Upstreams, "order-api")
 	if orderAPIUpstream.Http == nil {
@@ -113,6 +116,18 @@ func TestLoadGatewayRuntimeConfigIncludesPrometheus(t *testing.T) {
 
 	programAPIUpstream := findGatewayUpstream(t, c.Upstreams, "program-api")
 	assertGatewayMappingMissing(t, programAPIUpstream, "/program/seat/freeze")
+
+	agentsAPIUpstream := findGatewayUpstream(t, c.Upstreams, "agents-api")
+	assertGatewayMappingMissing(t, agentsAPIUpstream, "/agent/runs/:runId/events")
+
+	agentsEventsAPIUpstream := findGatewayUpstream(t, c.Upstreams, "agents-events-api")
+	if agentsEventsAPIUpstream.Http == nil {
+		t.Fatalf("expected agents-events-api http upstream to be configured")
+	}
+	if agentsEventsAPIUpstream.Http.Timeout != 300000 {
+		t.Fatalf("expected agents-events-api timeout 300000, got %d", agentsEventsAPIUpstream.Http.Timeout)
+	}
+	assertGatewayMappingExists(t, agentsEventsAPIUpstream, "/agent/runs/:runId/events")
 }
 
 func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
@@ -126,6 +141,9 @@ func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
 
 	if c.Prometheus.Host == "" || c.Prometheus.Port == 0 {
 		t.Fatalf("expected prometheus config to load, got host=%q port=%d", c.Prometheus.Host, c.Prometheus.Port)
+	}
+	if c.Timeout != 300000 {
+		t.Fatalf("expected gateway timeout 300000, got %d", c.Timeout)
 	}
 
 	orderAPIUpstream := findGatewayUpstream(t, c.Upstreams, "order-api")
@@ -154,6 +172,18 @@ func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
 
 	programAPIUpstream := findGatewayUpstream(t, c.Upstreams, "program-api")
 	assertGatewayMappingMissing(t, programAPIUpstream, "/program/seat/freeze")
+
+	agentsAPIUpstream := findGatewayUpstream(t, c.Upstreams, "agents-api")
+	assertGatewayMappingMissing(t, agentsAPIUpstream, "/agent/runs/:runId/events")
+
+	agentsEventsAPIUpstream := findGatewayUpstream(t, c.Upstreams, "agents-events-api")
+	if agentsEventsAPIUpstream.Http == nil {
+		t.Fatalf("expected agents-events-api http upstream to be configured")
+	}
+	if agentsEventsAPIUpstream.Http.Timeout != 300000 {
+		t.Fatalf("expected agents-events-api timeout 300000, got %d", agentsEventsAPIUpstream.Http.Timeout)
+	}
+	assertGatewayMappingExists(t, agentsEventsAPIUpstream, "/agent/runs/:runId/events")
 }
 
 func findGatewayUpstream(t *testing.T, upstreams []gateway.Upstream, name string) gateway.Upstream {

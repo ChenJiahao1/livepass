@@ -21,6 +21,8 @@ import (
 
 var gatewayStartMu sync.Mutex
 
+const agentsEventsTimeoutMillis int64 = 300000
+
 func MustCreateToken(t *testing.T, userID int64, secret string) string {
 	t.Helper()
 
@@ -44,6 +46,9 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 	c.Host = "127.0.0.1"
 	c.Auth.AccessSecret = "secret-0001"
 	c.InternalAuth.Secret = "gateway-internal-secret"
+	if c.Timeout < agentsEventsTimeoutMillis {
+		c.Timeout = agentsEventsTimeoutMillis
+	}
 	c.Upstreams = []gateway.Upstream{
 		{
 			Name: "user-api",
@@ -106,25 +111,38 @@ func NewTestConfig(t *testing.T, userTarget, programTarget, orderTarget, payTarg
 		},
 	}
 	if len(agentsTarget) > 0 && agentsTarget[0] != "" {
-		c.Upstreams = append(c.Upstreams, gateway.Upstream{
-			Name: "agents-api",
-			Http: &gateway.HttpClientConf{
-				Target:  mustHostFromURL(t, agentsTarget[0]),
-				Timeout: timeout,
+		agentsHost := mustHostFromURL(t, agentsTarget[0])
+		c.Upstreams = append(
+			c.Upstreams,
+			gateway.Upstream{
+				Name: "agents-api",
+				Http: &gateway.HttpClientConf{
+					Target:  agentsHost,
+					Timeout: timeout,
+				},
+				Mappings: []gateway.RouteMapping{
+					{Method: http.MethodPost, Path: "/agent/threads"},
+					{Method: http.MethodGet, Path: "/agent/threads"},
+					{Method: http.MethodGet, Path: "/agent/threads/:threadId"},
+					{Method: http.MethodPatch, Path: "/agent/threads/:threadId"},
+					{Method: http.MethodGet, Path: "/agent/threads/:threadId/messages"},
+					{Method: http.MethodPost, Path: "/agent/runs"},
+					{Method: http.MethodGet, Path: "/agent/runs/:runId"},
+					{Method: http.MethodPost, Path: "/agent/runs/:runId/tool-calls/:toolCallId/resume"},
+					{Method: http.MethodPost, Path: "/agent/runs/:runId/cancel"},
+				},
 			},
-			Mappings: []gateway.RouteMapping{
-				{Method: http.MethodPost, Path: "/agent/threads"},
-				{Method: http.MethodGet, Path: "/agent/threads"},
-				{Method: http.MethodGet, Path: "/agent/threads/:threadId"},
-				{Method: http.MethodPatch, Path: "/agent/threads/:threadId"},
-				{Method: http.MethodGet, Path: "/agent/threads/:threadId/messages"},
-				{Method: http.MethodPost, Path: "/agent/runs"},
-				{Method: http.MethodGet, Path: "/agent/runs/:runId"},
-				{Method: http.MethodGet, Path: "/agent/runs/:runId/events"},
-				{Method: http.MethodPost, Path: "/agent/runs/:runId/tool-calls/:toolCallId/resume"},
-				{Method: http.MethodPost, Path: "/agent/runs/:runId/cancel"},
+			gateway.Upstream{
+				Name: "agents-events-api",
+				Http: &gateway.HttpClientConf{
+					Target:  agentsHost,
+					Timeout: agentsEventsTimeoutMillis,
+				},
+				Mappings: []gateway.RouteMapping{
+					{Method: http.MethodGet, Path: "/agent/runs/:runId/events"},
+				},
 			},
-		})
+		)
 	}
 
 	return c

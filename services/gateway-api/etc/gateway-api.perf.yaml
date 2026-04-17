@@ -1,7 +1,7 @@
 Name: gateway-api
 Host: 0.0.0.0
 Port: 8081
-Timeout: 11000
+Timeout: 300000
 Telemetry:
   Name: gateway-api
   Batcher: otlphttp
@@ -129,9 +129,14 @@ Upstreams:
         Path: /agent/runs/:runId
       - Method: post
         Path: /agent/runs
-      - Method: get
-        Path: /agent/runs/:runId/events
       - Method: post
         Path: /agent/runs/:runId/tool-calls/:toolCallId/resume
       - Method: post
         Path: /agent/runs/:runId/cancel
+  - Name: agents-events-api
+    Http:
+      Target: 127.0.0.1:8891
+      Timeout: 300000
+    Mappings:
+      - Method: get
+        Path: /agent/runs/:runId/events
