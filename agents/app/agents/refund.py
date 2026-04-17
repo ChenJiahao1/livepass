@@ -15,7 +15,7 @@ class RefundAgent(ToolCallingAgent):
             return self.result(state, reply="请先提供需要处理的订单号。", completed=True, result_summary="缺少订单号")
 
         tools = await self.get_tools()
-        current_user_id = self.normalize_user_id(state.get("current_user_id"))
+        current_user_id = state.get("current_user_id")
         preview = state.get("last_refund_preview") or {}
         if not preview:
             preview_tool = self.find_tool(tools, "preview_refund_order")

@@ -8,7 +8,7 @@ def test_prompt_renderer_loads_coordinator_template():
         "coordinator/system.md",
         selected_order_id=None,
         last_intent="unknown",
-        current_user_id="1001",
+        current_user_id=1001,
     )
     assert "coordinator" in prompt.lower()
 

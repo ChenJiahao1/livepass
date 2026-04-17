@@ -1,7 +1,5 @@
 """Shared helpers for customer specialist agents."""
 
-from __future__ import annotations
-
 import re
 from typing import Any
 
@@ -133,16 +131,3 @@ class ToolCallingAgent:
         if reply:
             return [AIMessage(content=reply)]
         return []
-
-    def normalize_user_id(self, user_id: Any) -> int | Any | None:
-        if user_id is None:
-            return None
-        if isinstance(user_id, bool):
-            return user_id
-        if isinstance(user_id, int):
-            return user_id
-        if isinstance(user_id, str):
-            normalized = user_id.strip()
-            if normalized.isdigit():
-                return int(normalized)
-        return user_id

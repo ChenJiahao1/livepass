@@ -81,7 +81,7 @@ class MCPToolRegistry:
     def bind_context(
         self,
         *,
-        user_id: str,
+        user_id: int,
         thread_id: str,
         run_id: str,
         channel_code: str | None = None,
@@ -138,7 +138,7 @@ class BoundMCPToolRegistry:
         self,
         *,
         registry: MCPToolRegistry,
-        user_id: str,
+        user_id: int,
         thread_id: str,
         run_id: str,
         channel_code: str | None,

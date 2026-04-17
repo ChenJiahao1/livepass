@@ -26,7 +26,7 @@ async def test_order_agent_lists_user_orders_before_detail_lookup():
         }
     )
     result = await OrderAgent(registry=registry, llm=object()).handle(
-        {"messages": [HumanMessage(content="帮我查订单")], "current_user_id": "1001"}
+        {"messages": [HumanMessage(content="帮我查订单")], "current_user_id": 1001}
     )
 
     assert "订单" in result["reply"]

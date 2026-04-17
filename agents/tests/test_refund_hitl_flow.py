@@ -38,7 +38,7 @@ def _build_refund_context(*, calls: list[str]):
             {"next_agent": "finish", "selected_order_id": "ORD-1", "need_handoff": False, "reason": "old pseudo pause"},
         ]
     )
-    return {"llm": llm, "registry": registry, "current_user_id": "1001"}
+    return {"llm": llm, "registry": registry, "current_user_id": 1001}
 
 
 async def _start_refund_flow(*, calls: list[str], thread_id: str = "conv-refund-hitl"):

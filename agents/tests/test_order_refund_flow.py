@@ -13,7 +13,7 @@ async def run_graph_turns(*, messages: list[str], registry, llm) -> dict:
         result = await app.ainvoke(
             {"messages": [{"role": "user", "content": message}]},
             config=config,
-            context={"llm": llm, "registry": registry, "current_user_id": "1001"},
+            context={"llm": llm, "registry": registry, "current_user_id": 1001},
         )
     return result
 

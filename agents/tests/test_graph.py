@@ -27,11 +27,12 @@ def test_conversation_state_accepts_cross_turn_fields():
         "messages": [],
         "last_intent": "unknown",
         "selected_order_id": "ORD-10001",
-        "current_user_id": "3001",
+        "current_user_id": 3001,
         "need_handoff": False,
     }
 
     assert state["selected_order_id"] == "ORD-10001"
+    assert state["current_user_id"] == 3001
 
 
 def test_graph_can_finish_after_coordinator_and_supervisor():
@@ -58,7 +59,7 @@ def test_graph_can_finish_after_coordinator_and_supervisor():
         app.ainvoke(
             {"messages": [{"role": "user", "content": "帮我查订单"}]},
             config={"configurable": {"thread_id": "conv-finish"}},
-            context={"llm": llm, "registry": StubRegistry(), "current_user_id": "3001"},
+            context={"llm": llm, "registry": StubRegistry(), "current_user_id": 3001},
         )
     )
 

@@ -46,7 +46,7 @@ class AgentRuntimeService:
                 "registry": self.registry,
                 "llm": self.llm,
                 "knowledge_service": self.knowledge_service,
-                "current_user_id": str(user_id),
+                "current_user_id": user_id,
             },
         )
         reply = result.get("final_reply") or result.get("reply") or ""
@@ -111,7 +111,7 @@ class AgentRuntimeService:
         registry = self.registry
         if run_id and hasattr(registry, "bind_context"):
             registry = registry.bind_context(
-                user_id=str(user_id),
+                user_id=user_id,
                 thread_id=thread_id,
                 run_id=run_id,
             )
@@ -119,7 +119,7 @@ class AgentRuntimeService:
             "registry": registry,
             "llm": self.llm,
             "knowledge_service": self.knowledge_service,
-            "current_user_id": str(user_id),
+            "current_user_id": user_id,
         }
         if hasattr(self.agent_runtime, "invoke"):
             import asyncio
@@ -146,7 +146,7 @@ class AgentRuntimeService:
             registry = self.registry
             if hasattr(registry, "bind_context"):
                 registry = registry.bind_context(
-                    user_id=str(run.user_id),
+                    user_id=run.user_id,
                     thread_id=run.thread_id,
                     run_id=run.id,
                 )
@@ -154,7 +154,7 @@ class AgentRuntimeService:
                 "registry": registry,
                 "llm": self.llm,
                 "knowledge_service": self.knowledge_service,
-                "current_user_id": str(run.user_id),
+                "current_user_id": run.user_id,
             }
             async for mode, chunk in self.agent_runtime.astream(
                 payload,

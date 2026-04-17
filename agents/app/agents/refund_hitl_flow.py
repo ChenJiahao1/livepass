@@ -43,9 +43,7 @@ async def preview_refund(state: ConversationState, runtime: Runtime[GraphContext
         return _finish_payload(state=state, reply=reply, result_summary="缺少退款预览工具")
 
     payload = {"order_id": str(order_id)}
-    current_user_id = _refund_agent(runtime).normalize_user_id(
-        state.get("current_user_id") or runtime.context.get("current_user_id")
-    )
+    current_user_id = state.get("current_user_id") or runtime.context.get("current_user_id")
     if current_user_id is not None:
         payload["user_id"] = current_user_id
     preview = await preview_tool.ainvoke(payload)
@@ -166,7 +164,7 @@ def _build_pending_refund_action(
     *,
     order_id: str,
     preview: Mapping[str, Any],
-    current_user_id: int | str | None,
+    current_user_id: int | None,
 ) -> dict[str, Any]:
     values = {
         "order_id": order_id,

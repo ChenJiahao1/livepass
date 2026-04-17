@@ -12,7 +12,7 @@ class ConversationState(MessagesState):
     last_intent: NotRequired[Intent]
     selected_program_id: NotRequired[str | None]
     selected_order_id: NotRequired[str | None]
-    current_user_id: NotRequired[str | None]
+    current_user_id: NotRequired[int | None]
     last_refund_preview: NotRequired[dict[str, Any] | None]
     refund_preview: NotRequired[dict[str, Any] | None]
     pending_human_action: NotRequired[dict[str, Any] | None]
@@ -37,4 +37,4 @@ class ConversationState(MessagesState):
 class GraphContext(TypedDict, total=False):
     llm: Any
     registry: Any
-    current_user_id: str
+    current_user_id: int

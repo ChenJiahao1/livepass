@@ -47,7 +47,7 @@ class _SuccessTool:
 
 def _context() -> ToolExecutionContext:
     return ToolExecutionContext(
-        user_id="3001",
+        user_id=3001,
         thread_id="thr_001",
         run_id="run_001",
         tool_call_id="tool_001",
