@@ -1,17 +1,17 @@
 package svc
 
 import (
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/mq"
-	"damai-go/services/order-rpc/internal/repeatguard"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/repository"
-	"damai-go/services/order-rpc/sharding"
-	payrpc "damai-go/services/pay-rpc/payrpc"
-	programrpc "damai-go/services/program-rpc/programrpc"
-	userrpc "damai-go/services/user-rpc/userrpc"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/mq"
+	"livepass/services/order-rpc/internal/repeatguard"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/repository"
+	"livepass/services/order-rpc/sharding"
+	payrpc "livepass/services/pay-rpc/payrpc"
+	programrpc "livepass/services/program-rpc/programrpc"
+	userrpc "livepass/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"

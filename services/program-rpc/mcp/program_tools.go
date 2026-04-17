@@ -3,8 +3,8 @@ package programmcp
 import (
 	"context"
 
-	"damai-go/services/program-rpc/internal/logic"
-	"damai-go/services/program-rpc/pb"
+	"livepass/services/program-rpc/internal/logic"
+	"livepass/services/program-rpc/pb"
 
 	gomcp "github.com/zeromicro/go-zero/mcp"
 )

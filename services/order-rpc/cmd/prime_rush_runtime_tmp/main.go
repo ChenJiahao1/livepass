@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/svc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/svc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 )

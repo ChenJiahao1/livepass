@@ -1,4 +1,4 @@
-module damai-go
+module livepass
 
 go 1.26.1
 

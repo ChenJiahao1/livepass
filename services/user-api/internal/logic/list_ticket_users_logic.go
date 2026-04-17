@@ -6,9 +6,9 @@ package logic
 import (
 	"context"
 
-	"damai-go/services/user-api/internal/svc"
-	"damai-go/services/user-api/internal/types"
-	"damai-go/services/user-rpc/userrpc"
+	"livepass/services/user-api/internal/svc"
+	"livepass/services/user-api/internal/types"
+	"livepass/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

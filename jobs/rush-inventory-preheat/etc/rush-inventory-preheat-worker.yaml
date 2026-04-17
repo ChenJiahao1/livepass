@@ -6,7 +6,7 @@ Asynq:
     Host: 127.0.0.1:6379
     Type: node
 MySQL:
-  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true
+  DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_program?parseTime=true
   MaxOpenConns: 14
   MaxIdleConns: 4
   ConnMaxLifetime: 3m

@@ -7,7 +7,7 @@ package payrpc
 import (
 	"context"
 
-	"damai-go/services/pay-rpc/pb"
+	"livepass/services/pay-rpc/pb"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"

@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
+	"livepass/pkg/xerr"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"

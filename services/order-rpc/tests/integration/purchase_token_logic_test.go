@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/pb"
-	userrpc "damai-go/services/user-rpc/userrpc"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/pb"
+	userrpc "livepass/services/user-rpc/userrpc"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

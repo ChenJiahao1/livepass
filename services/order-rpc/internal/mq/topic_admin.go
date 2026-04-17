@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/config"
 
 	"github.com/segmentio/kafka-go"
 )

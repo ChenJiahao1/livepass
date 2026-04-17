@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xid"
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/config"
-	"damai-go/services/program-rpc/internal/model"
-	"damai-go/services/program-rpc/internal/programcache"
-	"damai-go/services/program-rpc/internal/seatcache"
-	"damai-go/services/program-rpc/internal/svc"
+	"livepass/pkg/xid"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/config"
+	"livepass/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/programcache"
+	"livepass/services/program-rpc/internal/seatcache"
+	"livepass/services/program-rpc/internal/svc"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
@@ -766,19 +766,19 @@ func ensureProgramTestDatabase(t *testing.T, dataSource string) {
 }
 
 func newProgramTestMySQLDataSource() string {
-	baseDataSource := xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true")
+	baseDataSource := xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/livepass_program?parseTime=true")
 	cfg, err := mysqlDriver.ParseDSN(baseDataSource)
 	if err != nil {
 		return baseDataSource
 	}
 
-	cfg.DBName = fmt.Sprintf("damai_program_test_%d_%d", os.Getpid(), time.Now().UnixNano())
+	cfg.DBName = fmt.Sprintf("livepass_program_test_%d_%d", os.Getpid(), time.Now().UnixNano())
 
 	return cfg.FormatDSN()
 }
 
 func newProgramTestIsolationNamespace() string {
-	return fmt.Sprintf("damai-go:test:program:%d:%d", os.Getpid(), time.Now().UnixNano())
+	return fmt.Sprintf("livepass:test:program:%d:%d", os.Getpid(), time.Now().UnixNano())
 }
 
 func withProgramFixtureDefaults(fixture programFixture) programFixture {

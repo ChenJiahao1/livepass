@@ -6,19 +6,19 @@ import (
 	"testing"
 	"time"
 
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/internal/server"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/server"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
+	programrpc "livepass/services/program-rpc/programrpc"
 )
 
 func TestPrimeRushRuntimeClearsTransientKeysAndRebuildsProjection(t *testing.T) {
 	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	svcCtx.AttemptStore = rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
 		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,

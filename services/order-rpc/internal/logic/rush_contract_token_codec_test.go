@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

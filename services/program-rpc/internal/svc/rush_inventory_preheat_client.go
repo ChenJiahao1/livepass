@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat/taskdef"
-	"damai-go/pkg/xid"
-	"damai-go/services/program-rpc/internal/config"
+	"livepass/jobs/rush-inventory-preheat/taskdef"
+	"livepass/pkg/xid"
+	"livepass/services/program-rpc/internal/config"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )

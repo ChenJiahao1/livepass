@@ -3,8 +3,8 @@ package config
 import (
 	"path/filepath"
 
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	gomcp "github.com/zeromicro/go-zero/mcp"

@@ -7,9 +7,9 @@ package server
 import (
 	"context"
 
-	"damai-go/services/pay-rpc/internal/logic"
-	"damai-go/services/pay-rpc/internal/svc"
-	"damai-go/services/pay-rpc/pb"
+	"livepass/services/pay-rpc/internal/logic"
+	"livepass/services/pay-rpc/internal/svc"
+	"livepass/services/pay-rpc/pb"
 )
 
 type PayRpcServer struct {

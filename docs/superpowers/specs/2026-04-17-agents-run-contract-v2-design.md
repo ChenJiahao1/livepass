@@ -4,7 +4,7 @@
 
 ## 目标
 
-为 `/home/chenjiahao/code/project/damai-go/agents` 设计一套面向开发阶段最终态的后端契约与存储模型。
+为 `/home/chenjiahao/code/project/livepass/agents` 设计一套面向开发阶段最终态的后端契约与存储模型。
 
 本设计明确采用“最佳重构、无兼容层”原则：
 

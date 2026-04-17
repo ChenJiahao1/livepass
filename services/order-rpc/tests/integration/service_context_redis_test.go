@@ -7,11 +7,11 @@ import (
 	"time"
 	_ "unsafe"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/svc"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -19,7 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-//go:linkname mapOrderError damai-go/services/order-rpc/internal/logic.mapOrderError
+//go:linkname mapOrderError livepass/services/order-rpc/internal/logic.mapOrderError
 func mapOrderError(err error) error
 
 func TestOrderServiceContextRedis(t *testing.T) {
@@ -42,7 +42,7 @@ func TestOrderServiceContextRedis(t *testing.T) {
 			CloseAfter: 15 * time.Minute,
 		},
 		RepeatGuard: config.RepeatGuardConfig{
-			Prefix:             "/damai-go/tests/repeat-guard/order-create/",
+			Prefix:             "/livepass/tests/repeat-guard/order-create/",
 			SessionTTL:         10,
 			LockAcquireTimeout: 200 * time.Millisecond,
 		},

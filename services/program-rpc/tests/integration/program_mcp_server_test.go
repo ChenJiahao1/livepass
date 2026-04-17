@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	programmcp "damai-go/services/program-rpc/mcp"
+	programmcp "livepass/services/program-rpc/mcp"
 
 	gomcp "github.com/zeromicro/go-zero/mcp"
 )

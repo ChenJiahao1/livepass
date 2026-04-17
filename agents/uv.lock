@@ -256,7 +256,7 @@ wheels = [
 ]
 
 [[package]]
-name = "damai-agents"
+name = "livepass-agents"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

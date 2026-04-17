@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/program-rpc/pb"
+	"livepass/services/program-rpc/pb"
 )
 
 func TestProgramDetailCacheCachesLoadedDetail(t *testing.T) {

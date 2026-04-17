@@ -3,7 +3,7 @@ package integration_test
 import (
 	"context"
 
-	"damai-go/services/user-rpc/userrpc"
+	"livepass/services/user-rpc/userrpc"
 
 	"google.golang.org/grpc"
 )

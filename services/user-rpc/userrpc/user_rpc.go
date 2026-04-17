@@ -7,7 +7,7 @@ package userrpc
 import (
 	"context"
 
-	"damai-go/services/user-rpc/pb"
+	"livepass/services/user-rpc/pb"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"

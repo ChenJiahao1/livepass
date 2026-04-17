@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"damai-go/services/order-rpc/internal/mq"
-	"damai-go/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/internal/mq"
+	"livepass/services/order-rpc/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

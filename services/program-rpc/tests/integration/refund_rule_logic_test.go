@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	logicpkg "damai-go/services/program-rpc/internal/logic"
-	"damai-go/services/program-rpc/pb"
+	logicpkg "livepass/services/program-rpc/internal/logic"
+	"livepass/services/program-rpc/pb"
 )
 
 const refundRuleTestDateTimeLayout = "2006-01-02 15:04:05"

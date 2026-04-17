@@ -1,6 +1,6 @@
 # agents
 
-`agents` 是 `damai-go` 的 Python 智能客服组件，当前提供面向 assistant-ui external-store 的 `Thread / Message / Run` API。
+`agents` 是 `livepass` 的 Python 智能客服组件，当前提供面向 assistant-ui external-store 的 `Thread / Message / Run` API。
 
 当前运行时基线：
 
@@ -49,7 +49,7 @@ AGENTS_MYSQL_HOST=127.0.0.1
 AGENTS_MYSQL_PORT=3306
 AGENTS_MYSQL_USER=root
 AGENTS_MYSQL_PASSWORD=123456
-AGENTS_MYSQL_DATABASE=damai_agents
+AGENTS_MYSQL_DATABASE=livepass_agents
 AGENTS_MYSQL_CHARSET=utf8mb4
 ACTIVITY_MCP_ENDPOINT=http://127.0.0.1:9083/message
 ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
@@ -61,7 +61,7 @@ ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
 - `handoff` 当前不再通过 MCP 执行，仅在编排层保留 TODO 占位。
 - LangGraph checkpoint 仍写入 Redis，但只作为内部运行状态，不对外暴露。
 - 退款 HITL 中断走图内 `interrupt()` / `Command(resume=...)` 恢复链路，不再额外维护 executor 手写退款分支。
-- 线程、消息、运行读模型写入 MySQL `damai_agents`。
+- 线程、消息、运行读模型写入 MySQL `livepass_agents`。
 - 当前消息内容块仅支持 `text`；`image/file` 仅保留协议扩展位，暂不接受实际输入。
 - Redis ownership 已切换为 `threadId -> userId`。
 - 已移除旧 chat demo 接口，不再提供兼容层。

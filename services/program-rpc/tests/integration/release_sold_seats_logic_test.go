@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	logicpkg "damai-go/services/program-rpc/internal/logic"
-	"damai-go/services/program-rpc/pb"
+	logicpkg "livepass/services/program-rpc/internal/logic"
+	"livepass/services/program-rpc/pb"
 )
 
 func TestReleaseSoldSeats(t *testing.T) {

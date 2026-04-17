@@ -6,7 +6,7 @@ package handler
 import (
 	"net/http"
 
-	"damai-go/services/program-api/internal/svc"
+	"livepass/services/program-api/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
 )

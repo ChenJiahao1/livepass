@@ -3,8 +3,8 @@ package svc
 import (
 	"context"
 
-	"damai-go/jobs/order-close/internal/config"
-	orderrpc "damai-go/services/order-rpc/orderrpc"
+	"livepass/jobs/order-close/internal/config"
+	orderrpc "livepass/services/order-rpc/orderrpc"
 
 	"github.com/hibiken/asynq"
 	"github.com/zeromicro/go-zero/zrpc"

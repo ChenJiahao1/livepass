@@ -3,7 +3,7 @@ package integration_test
 import (
 	"testing"
 
-	"damai-go/services/user-rpc/pb"
+	"livepass/services/user-rpc/pb"
 
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"

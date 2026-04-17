@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "damai-agents"
+    app_name: str = "livepass-agents"
     openai_api_key: str | None = None
     openai_base_url: str | None = None
     openai_model: str = "gpt-4.1-mini"
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     agents_mysql_port: int = 3306
     agents_mysql_user: str = "root"
     agents_mysql_password: str = "123456"
-    agents_mysql_database: str = "damai_agents"
+    agents_mysql_database: str = "livepass_agents"
     agents_mysql_charset: str = "utf8mb4"
     agents_thread_default_title: str = "新会话"
     agents_thread_title_max_length: int = 128

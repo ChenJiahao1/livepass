@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"damai-go/jobs/rush-inventory-preheat/internal/config"
-	"damai-go/jobs/rush-inventory-preheat/internal/svc"
-	"damai-go/jobs/rush-inventory-preheat/internal/worker"
+	"livepass/jobs/rush-inventory-preheat/internal/config"
+	"livepass/jobs/rush-inventory-preheat/internal/svc"
+	"livepass/jobs/rush-inventory-preheat/internal/worker"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"

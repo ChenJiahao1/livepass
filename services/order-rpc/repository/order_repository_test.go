@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xmysql"
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/sharding"
+	"livepass/pkg/xmysql"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/sharding"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-var testRepositoryMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order_repository?parseTime=true"
-var testRepositoryMySQLShard1DataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order_repository_shard1?parseTime=true"
+var testRepositoryMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/livepass_order_repository?parseTime=true"
+var testRepositoryMySQLShard1DataSource = "root:123456@tcp(127.0.0.1:3306)/livepass_order_repository_shard1?parseTime=true"
 
 func TestOrderRepositoryWritesAndQueriesShardTables(t *testing.T) {
 	deps := newTestOrderRepositoryDeps(t, buildFullRouteEntries("00", "01"))

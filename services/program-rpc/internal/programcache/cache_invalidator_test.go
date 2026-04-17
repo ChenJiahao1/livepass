@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/model"
 )
 
 func TestProgramCacheInvalidatorClearsRedisBeforePublishing(t *testing.T) {

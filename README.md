@@ -1,17 +1,6 @@
-# damai-go
+# livepass
 
 基于 Go 与 go-zero 的票务业务总线项目，当前采用 `Gateway -> API -> RPC` 分层，面向高并发下单、自动分座、模拟支付与智能客服联调场景。
-
-## 文档职责
-
-- `README.md` 面向项目开发者，说明项目定位、架构分层、目录结构、启动方式、测试方式与联调入口。
-- `AGENTS.md` 面向仓库内使用的 AI agent，约束代码生成、命名、目录组织与工作方式。
-
-## 关联前端仓库
-
-- 当前配套前端项目路径：`/home/chenjiahao/code/project/damai-web`
-- 当前后端项目路径：`/home/chenjiahao/code/project/damai-go`
-- 前后端联调、接口契约确认与 `agents` LocalRuntime 对接时，默认以上两个目录是一组对应工程
 
 ## 当前架构
 
@@ -44,7 +33,7 @@ client -> gateway-api -> xxx-api -> xxx-rpc
 ## 仓库结构
 
 ```text
-damai-go/
+livepass/
 ├── README.md
 ├── AGENTS.md
 ├── docs/
@@ -171,11 +160,11 @@ MYSQL_CONTAINER=docker-compose-mysql-1 MYSQL_PASSWORD=123456 bash scripts/import
 如需覆盖数据库名：
 
 ```bash
-MYSQL_DB_USER=damai_user \
-MYSQL_DB_PROGRAM=damai_program \
-MYSQL_DB_ORDER=damai_order \
-MYSQL_DB_PAY=damai_pay \
-MYSQL_DB_AGENTS=damai_agents \
+MYSQL_DB_USER=livepass_user \
+MYSQL_DB_PROGRAM=livepass_program \
+MYSQL_DB_ORDER=livepass_order \
+MYSQL_DB_PAY=livepass_pay \
+MYSQL_DB_AGENTS=livepass_agents \
 bash scripts/import_sql.sh
 ```
 

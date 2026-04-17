@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	logicpkg "damai-go/services/order-rpc/internal/logic"
+	logicpkg "livepass/services/order-rpc/internal/logic"
 )
 
 func TestKafkaConsumerStartAndClose(t *testing.T) {

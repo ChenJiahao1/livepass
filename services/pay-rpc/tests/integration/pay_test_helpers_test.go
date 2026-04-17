@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xid"
-	"damai-go/pkg/xmysql"
-	"damai-go/services/pay-rpc/internal/config"
-	"damai-go/services/pay-rpc/internal/model"
-	"damai-go/services/pay-rpc/internal/svc"
+	"livepass/pkg/xid"
+	"livepass/pkg/xmysql"
+	"livepass/services/pay-rpc/internal/config"
+	"livepass/services/pay-rpc/internal/model"
+	"livepass/services/pay-rpc/internal/svc"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -21,7 +21,7 @@ import (
 
 const payDateTimeLayout = "2006-01-02 15:04:05"
 
-var testPayMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_pay?parseTime=true")
+var testPayMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/livepass_pay?parseTime=true")
 var testPayMySQLAdminDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/?parseTime=true")
 
 type payBillFixture struct {
@@ -251,7 +251,7 @@ func ensurePayTestDatabase(t *testing.T) {
 	if err := db.Ping(); err != nil {
 		t.Fatalf("db.Ping admin error: %v", err)
 	}
-	if _, err := db.Exec("CREATE DATABASE IF NOT EXISTS damai_pay DEFAULT CHARACTER SET utf8mb4"); err != nil {
+	if _, err := db.Exec("CREATE DATABASE IF NOT EXISTS livepass_pay DEFAULT CHARACTER SET utf8mb4"); err != nil {
 		t.Fatalf("create database error: %v", err)
 	}
 }

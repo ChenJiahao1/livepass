@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"damai-go/services/program-rpc/pb"
+	"livepass/services/program-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/collection"
 	"google.golang.org/protobuf/proto"

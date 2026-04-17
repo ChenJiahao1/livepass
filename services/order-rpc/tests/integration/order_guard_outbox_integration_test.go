@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	orderevent "damai-go/services/order-rpc/internal/event"
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/pb"
-	"damai-go/services/order-rpc/sharding"
-	programrpc "damai-go/services/program-rpc/programrpc"
-	userrpc "damai-go/services/user-rpc/userrpc"
+	orderevent "livepass/services/order-rpc/internal/event"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/pb"
+	"livepass/services/order-rpc/sharding"
+	programrpc "livepass/services/program-rpc/programrpc"
+	userrpc "livepass/services/user-rpc/userrpc"
 )
 
 func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {

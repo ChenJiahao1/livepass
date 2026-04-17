@@ -9,7 +9,7 @@ Etcd:
     - 127.0.0.1:2379
   Key: order.rpc
 MySQL:
-  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true
   MaxOpenConns: 24
   MaxIdleConns: 8
   ConnMaxLifetime: 3m
@@ -18,13 +18,13 @@ Sharding:
   Mode: shard_only
   Shards:
     order-db-0:
-      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+      DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true
       MaxOpenConns: 24
       MaxIdleConns: 8
       ConnMaxLifetime: 3m
       ConnMaxIdleTime: 1m
     order-db-1:
-      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+      DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true
       MaxOpenConns: 24
       MaxIdleConns: 8
       ConnMaxLifetime: 3m
@@ -61,14 +61,14 @@ RushOrder:
   InFlightTTL: 30s
   FinalStateTTL: 30m
 RepeatGuard:
-  Prefix: /damai-go/repeat-guard/order-create/
+  Prefix: /livepass/repeat-guard/order-create/
   SessionTTL: 10
   LockAcquireTimeout: 200ms
 Kafka:
   Brokers:
     - 127.0.0.1:9094
   TopicOrderCreate: ticketing.attempt.command.v1
-  ConsumerGroup: damai-go-ticketing-attempt
+  ConsumerGroup: livepass-ticketing-attempt
   TopicPartitions: 5
   ConsumerWorkers: 1
   ProducerTimeout: 3s

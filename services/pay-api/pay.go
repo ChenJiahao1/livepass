@@ -7,9 +7,9 @@ import (
 	"flag"
 	"fmt"
 
-	"damai-go/services/pay-api/internal/config"
-	"damai-go/services/pay-api/internal/handler"
-	"damai-go/services/pay-api/internal/svc"
+	"livepass/services/pay-api/internal/config"
+	"livepass/services/pay-api/internal/handler"
+	"livepass/services/pay-api/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/rest"

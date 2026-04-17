@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"damai-go/jobs/order-close/internal/svc"
-	workerpkg "damai-go/jobs/order-close/internal/worker"
-	"damai-go/jobs/order-close/taskdef"
-	orderrpc "damai-go/services/order-rpc/orderrpc"
+	"livepass/jobs/order-close/internal/svc"
+	workerpkg "livepass/jobs/order-close/internal/worker"
+	"livepass/jobs/order-close/taskdef"
+	orderrpc "livepass/services/order-rpc/orderrpc"
 
 	"github.com/hibiken/asynq"
 	"google.golang.org/grpc"

@@ -3,7 +3,7 @@ package integration_test
 import (
 	"context"
 
-	payrpc "damai-go/services/pay-rpc/payrpc"
+	payrpc "livepass/services/pay-rpc/payrpc"
 
 	"google.golang.org/grpc"
 )

@@ -1,10 +1,10 @@
 package svc
 
 import (
-	"damai-go/jobs/order-close/internal/config"
-	"damai-go/jobs/order-close/internal/dispatch"
-	"damai-go/pkg/delaytask"
-	"damai-go/pkg/xmysql"
+	"livepass/jobs/order-close/internal/config"
+	"livepass/jobs/order-close/internal/dispatch"
+	"livepass/pkg/delaytask"
+	"livepass/pkg/xmysql"
 
 	"github.com/hibiken/asynq"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"

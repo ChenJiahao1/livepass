@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"damai-go/services/order-rpc/internal/svc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	"livepass/services/order-rpc/internal/svc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"google.golang.org/grpc"
 )

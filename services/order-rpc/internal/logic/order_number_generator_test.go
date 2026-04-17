@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/order-rpc/sharding"
+	"livepass/services/order-rpc/sharding"
 )
 
 func TestOrderNumberGeneratorAllocatesUniqueSequenceWithinSameSecond(t *testing.T) {

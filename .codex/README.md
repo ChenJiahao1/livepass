@@ -1,6 +1,6 @@
-# damai-go Codex Context
+# livepass Codex Context
 
-本目录为当前 `damai-go` 项目提供 Codex 本地上下文补充。
+本目录为当前 `livepass` 项目提供 Codex 本地上下文补充。
 
 优先级：
 

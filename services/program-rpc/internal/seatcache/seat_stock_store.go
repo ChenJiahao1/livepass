@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/model"
 )
 
 const (

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"damai-go/services/program-rpc/internal/model"
-	"damai-go/services/program-rpc/internal/svc"
-	"damai-go/services/program-rpc/pb"
+	"livepass/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

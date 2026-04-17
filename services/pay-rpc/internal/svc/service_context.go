@@ -1,9 +1,9 @@
 package svc
 
 import (
-	"damai-go/pkg/xmysql"
-	"damai-go/services/pay-rpc/internal/config"
-	"damai-go/services/pay-rpc/internal/model"
+	"livepass/pkg/xmysql"
+	"livepass/services/pay-rpc/internal/config"
+	"livepass/services/pay-rpc/internal/model"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )

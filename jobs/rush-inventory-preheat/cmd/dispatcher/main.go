@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat/internal/config"
-	"damai-go/jobs/rush-inventory-preheat/internal/dispatch"
-	"damai-go/jobs/rush-inventory-preheat/internal/svc"
-	"damai-go/jobs/rush-inventory-preheat/taskdef"
+	"livepass/jobs/rush-inventory-preheat/internal/config"
+	"livepass/jobs/rush-inventory-preheat/internal/dispatch"
+	"livepass/jobs/rush-inventory-preheat/internal/svc"
+	"livepass/jobs/rush-inventory-preheat/taskdef"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/pb"
-	"damai-go/services/order-rpc/sharding"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/pb"
+	"livepass/services/order-rpc/sharding"
 )
 
 func TestCloseExpiredOrdersClosesOnlyExpiredUnpaidRows(t *testing.T) {

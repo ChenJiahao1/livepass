@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/internal/svc"
-	ordermcp "damai-go/services/order-rpc/mcp"
-	"damai-go/services/order-rpc/repository"
-	"damai-go/services/order-rpc/sharding"
-	payrpc "damai-go/services/pay-rpc/payrpc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/internal/svc"
+	ordermcp "livepass/services/order-rpc/mcp"
+	"livepass/services/order-rpc/repository"
+	"livepass/services/order-rpc/sharding"
+	payrpc "livepass/services/pay-rpc/payrpc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	gomcp "github.com/zeromicro/go-zero/mcp"
 )

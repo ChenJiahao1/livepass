@@ -6,10 +6,10 @@ package logic
 import (
 	"context"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/program-api/internal/svc"
-	"damai-go/services/program-api/internal/types"
-	"damai-go/services/program-rpc/programrpc"
+	"livepass/pkg/xerr"
+	"livepass/services/program-api/internal/svc"
+	"livepass/services/program-api/internal/types"
+	"livepass/services/program-rpc/programrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"

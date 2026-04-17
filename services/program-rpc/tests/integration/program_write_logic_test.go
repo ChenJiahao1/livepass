@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat/taskdef"
-	"damai-go/pkg/xid"
-	logicpkg "damai-go/services/program-rpc/internal/logic"
-	"damai-go/services/program-rpc/internal/programcache"
-	"damai-go/services/program-rpc/internal/svc"
-	"damai-go/services/program-rpc/pb"
+	"livepass/jobs/rush-inventory-preheat/taskdef"
+	"livepass/pkg/xid"
+	logicpkg "livepass/services/program-rpc/internal/logic"
+	"livepass/services/program-rpc/internal/programcache"
+	"livepass/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

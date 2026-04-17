@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xmiddleware"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xmiddleware"
 )
 
 func TestAttachGatewayIdentityHeadersAndAuthenticateGatewayIdentity(t *testing.T) {

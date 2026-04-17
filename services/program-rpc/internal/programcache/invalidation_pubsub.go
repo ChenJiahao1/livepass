@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"damai-go/pkg/xredis"
+	"livepass/pkg/xredis"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"

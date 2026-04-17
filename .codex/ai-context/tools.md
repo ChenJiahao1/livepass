@@ -7,7 +7,7 @@ which goctl && goctl --version
 go install github.com/zeromicro/go-zero/tools/goctl@latest
 ```
 
-For `damai-go`, all `goctl` generation must use `--style go_zero`. Do not follow legacy mixed naming in existing directories.
+For `livepass`, all `goctl` generation must use `--style go_zero`. Do not follow legacy mixed naming in existing directories.
 
 ## create_api_service
 

@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"damai-go/services/pay-rpc/internal/config"
+	"livepass/services/pay-rpc/internal/config"
 
 	"github.com/zeromicro/go-zero/core/conf"
 )

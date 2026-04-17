@@ -4,9 +4,9 @@
 package svc
 
 import (
-	"damai-go/services/user-api/internal/config"
-	"damai-go/services/user-api/internal/middleware"
-	"damai-go/services/user-rpc/userrpc"
+	"livepass/services/user-api/internal/config"
+	"livepass/services/user-api/internal/middleware"
+	"livepass/services/user-rpc/userrpc"
 	"time"
 
 	"github.com/zeromicro/go-zero/rest"

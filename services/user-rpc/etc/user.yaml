@@ -6,7 +6,7 @@ Etcd:
     - 127.0.0.1:2379
   Key: user.rpc
 MySQL:
-  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_user?parseTime=true
+  DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_user?parseTime=true
   MaxOpenConns: 10
   MaxIdleConns: 4
   ConnMaxLifetime: 3m

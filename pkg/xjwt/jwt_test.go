@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xjwt"
+	"livepass/pkg/xjwt"
 
 	"github.com/golang-jwt/jwt/v5"
 )

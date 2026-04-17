@@ -3,8 +3,8 @@ package config
 import (
 	"time"
 
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
 
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -36,14 +36,14 @@ func (c LocalCacheConfig) Normalize() LocalCacheConfig {
 
 type CacheInvalidationConfig struct {
 	Enabled          bool          `json:",default=true"`
-	Channel          string        `json:",default=damai-go:program:cache:invalidate"`
+	Channel          string        `json:",default=livepass:program:cache:invalidate"`
 	PublishTimeout   time.Duration `json:",default=200ms"`
 	ReconnectBackoff time.Duration `json:",default=1s"`
 }
 
 func (c CacheInvalidationConfig) Normalize() CacheInvalidationConfig {
 	if c.Channel == "" {
-		c.Channel = "damai-go:program:cache:invalidate"
+		c.Channel = "livepass:program:cache:invalidate"
 	}
 	if c.PublishTimeout <= 0 {
 		c.PublishTimeout = 200 * time.Millisecond

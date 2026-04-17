@@ -9,11 +9,11 @@ MYSQL_USER="${MYSQL_USER:-root}"
 MYSQL_PASSWORD="${MYSQL_PASSWORD:-${MYSQL_ROOT_PASSWORD:-123456}}"
 IMPORT_DOMAINS="${IMPORT_DOMAINS:-user,program,order,pay,agents}"
 
-MYSQL_DB_USER="${MYSQL_DB_USER:-damai_user}"
-MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-damai_program}"
-MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-damai_order}"
-MYSQL_DB_PAY="${MYSQL_DB_PAY:-damai_pay}"
-MYSQL_DB_AGENTS="${MYSQL_DB_AGENTS:-damai_agents}"
+MYSQL_DB_USER="${MYSQL_DB_USER:-livepass_user}"
+MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-livepass_program}"
+MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-livepass_order}"
+MYSQL_DB_PAY="${MYSQL_DB_PAY:-livepass_pay}"
+MYSQL_DB_AGENTS="${MYSQL_DB_AGENTS:-livepass_agents}"
 
 USER_SQL_FILES=(
   "sql/user/d_user.sql"

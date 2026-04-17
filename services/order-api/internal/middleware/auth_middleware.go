@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"damai-go/pkg/xmiddleware"
+	"livepass/pkg/xmiddleware"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 	"google.golang.org/grpc/codes"

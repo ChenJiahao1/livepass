@@ -5,11 +5,11 @@ import (
 	"sort"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	"livepass/pkg/xerr"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

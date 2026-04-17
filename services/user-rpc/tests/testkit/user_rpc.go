@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -13,14 +14,15 @@ import (
 	"testing"
 	"time"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	red "github.com/redis/go-redis/v9"
 
-	"damai-go/pkg/xid"
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
-	"damai-go/services/user-rpc/internal/config"
-	"damai-go/services/user-rpc/internal/model"
-	"damai-go/services/user-rpc/internal/svc"
+	"livepass/pkg/xid"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
+	"livepass/services/user-rpc/internal/config"
+	"livepass/services/user-rpc/internal/model"
+	"livepass/services/user-rpc/internal/svc"
 )
 
 const (
@@ -28,7 +30,7 @@ const (
 	TestAccessSecret = "local-user-secret-0001"
 )
 
-var TestMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_user?parseTime=true")
+var TestMySQLDataSource = xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/livepass_user?parseTime=true")
 
 type UserSeed struct {
 	Name        string
@@ -43,6 +45,7 @@ type UserSeed struct {
 
 func NewServiceContext(t *testing.T) *svc.ServiceContext {
 	t.Helper()
+	ensureUserTestDatabase(t)
 
 	_ = xid.Close()
 	if err := xid.Init(xid.Config{
@@ -73,6 +76,7 @@ func NewServiceContext(t *testing.T) *svc.ServiceContext {
 
 func ResetDomainState(t *testing.T) {
 	t.Helper()
+	ensureUserTestDatabase(t)
 
 	db, err := sql.Open("mysql", xmysql.WithLocalTime(TestMySQLDataSource))
 	if err != nil {
@@ -92,6 +96,32 @@ func ResetDomainState(t *testing.T) {
 	rdb := NewRedisClient(t)
 	defer rdb.Close()
 	clearUserRedisState(t, rdb)
+}
+
+func ensureUserTestDatabase(t *testing.T) {
+	t.Helper()
+
+	cfg, err := mysqlDriver.ParseDSN(TestMySQLDataSource)
+	if err != nil {
+		t.Fatalf("ParseDSN error: %v", err)
+	}
+
+	dbName := cfg.DBName
+	cfg.DBName = ""
+
+	adminDB, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		t.Fatalf("sql.Open admin error: %v", err)
+	}
+	defer adminDB.Close()
+
+	stmt := fmt.Sprintf(
+		"CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+		strings.ReplaceAll(dbName, "`", "``"),
+	)
+	if _, err := adminDB.Exec(stmt); err != nil {
+		t.Fatalf("create database error: %v", err)
+	}
 }
 
 func MustSeedUser(t *testing.T, svcCtx *svc.ServiceContext, seed UserSeed) *model.DUser {

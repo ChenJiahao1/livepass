@@ -3,9 +3,9 @@ package svc
 import (
 	"time"
 
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/config"
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/config"
+	"livepass/services/program-rpc/internal/model"
 
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # 用途：
-#   一键启动 damai-go 后端运行环境。
+#   一键启动 livepass 后端运行环境。
 #
 # 默认行为：
 #   - 拉起 MySQL / Redis / etcd / Kafka
@@ -49,11 +49,11 @@ INFRA_COMPOSE_FILE="${REPO_ROOT}/deploy/docker-compose/docker-compose.infrastruc
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-docker-compose-mysql-1}"
 MYSQL_USER="${MYSQL_USER:-root}"
 MYSQL_PASSWORD="${MYSQL_PASSWORD:-${MYSQL_ROOT_PASSWORD:-123456}}"
-MYSQL_DB_USER="${MYSQL_DB_USER:-damai_user}"
-MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-damai_program}"
-MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-damai_order}"
-MYSQL_DB_PAY="${MYSQL_DB_PAY:-damai_pay}"
-MYSQL_DB_AGENTS="${MYSQL_DB_AGENTS:-damai_agents}"
+MYSQL_DB_USER="${MYSQL_DB_USER:-livepass_user}"
+MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-livepass_program}"
+MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-livepass_order}"
+MYSQL_DB_PAY="${MYSQL_DB_PAY:-livepass_pay}"
+MYSQL_DB_AGENTS="${MYSQL_DB_AGENTS:-livepass_agents}"
 
 REDIS_CONTAINER="${REDIS_CONTAINER:-docker-compose-redis-1}"
 ETCD_CONTAINER="${ETCD_CONTAINER:-docker-compose-etcd-1}"

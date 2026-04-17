@@ -1,7 +1,7 @@
 package config
 
 import (
-	"damai-go/pkg/xmysql"
+	"livepass/pkg/xmysql"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )

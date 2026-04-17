@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	logicpkg "damai-go/services/pay-api/internal/logic"
-	"damai-go/services/pay-api/internal/svc"
-	"damai-go/services/pay-api/internal/types"
-	payrpc "damai-go/services/pay-rpc/payrpc"
+	logicpkg "livepass/services/pay-api/internal/logic"
+	"livepass/services/pay-api/internal/svc"
+	"livepass/services/pay-api/internal/types"
+	payrpc "livepass/services/pay-rpc/payrpc"
 )
 
 func newPayAPIServiceContext(fakeRPC *fakePayRPC) *svc.ServiceContext {

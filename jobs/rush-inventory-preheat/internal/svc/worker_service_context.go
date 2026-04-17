@@ -6,11 +6,11 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat/internal/config"
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xmysql"
-	orderrpc "damai-go/services/order-rpc/orderrpc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	"livepass/jobs/rush-inventory-preheat/internal/config"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xmysql"
+	orderrpc "livepass/services/order-rpc/orderrpc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"github.com/hibiken/asynq"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"

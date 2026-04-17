@@ -1,9 +1,9 @@
 package svc
 
 import (
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/config"
-	"damai-go/services/program-rpc/internal/programcache"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/config"
+	"livepass/services/program-rpc/internal/programcache"
 )
 
 type ProgramQueryCaches struct {

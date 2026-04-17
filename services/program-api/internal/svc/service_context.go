@@ -4,8 +4,8 @@
 package svc
 
 import (
-	"damai-go/services/program-api/internal/config"
-	"damai-go/services/program-rpc/programrpc"
+	"livepass/services/program-api/internal/config"
+	"livepass/services/program-rpc/programrpc"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )

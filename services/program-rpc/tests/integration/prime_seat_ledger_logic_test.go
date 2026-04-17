@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"damai-go/services/program-rpc/internal/server"
-	"damai-go/services/program-rpc/pb"
+	"livepass/services/program-rpc/internal/server"
+	"livepass/services/program-rpc/pb"
 )
 
 func TestPrimeSeatLedgerRPCPrimesAllTicketCategoriesByShowTime(t *testing.T) {

@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"damai-go/jobs/order-close/internal/config"
-	"damai-go/jobs/order-close/internal/dispatch"
-	"damai-go/jobs/order-close/internal/svc"
-	"damai-go/jobs/order-close/taskdef"
+	"livepass/jobs/order-close/internal/config"
+	"livepass/jobs/order-close/internal/dispatch"
+	"livepass/jobs/order-close/internal/svc"
+	"livepass/jobs/order-close/taskdef"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"

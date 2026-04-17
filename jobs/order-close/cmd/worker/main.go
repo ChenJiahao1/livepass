@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"damai-go/jobs/order-close/internal/config"
-	"damai-go/jobs/order-close/internal/svc"
-	"damai-go/jobs/order-close/internal/worker"
+	"livepass/jobs/order-close/internal/config"
+	"livepass/jobs/order-close/internal/svc"
+	"livepass/jobs/order-close/internal/worker"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"

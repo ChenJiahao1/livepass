@@ -1,10 +1,10 @@
 package svc
 
 import (
-	"damai-go/jobs/rush-inventory-preheat/internal/config"
-	"damai-go/jobs/rush-inventory-preheat/internal/dispatch"
-	"damai-go/pkg/delaytask"
-	"damai-go/pkg/xmysql"
+	"livepass/jobs/rush-inventory-preheat/internal/config"
+	"livepass/jobs/rush-inventory-preheat/internal/dispatch"
+	"livepass/pkg/delaytask"
+	"livepass/pkg/xmysql"
 
 	"github.com/hibiken/asynq"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"

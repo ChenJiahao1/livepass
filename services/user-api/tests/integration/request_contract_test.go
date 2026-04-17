@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"damai-go/services/user-api/internal/types"
+	"livepass/services/user-api/internal/types"
 )
 
 func TestProtectedRequestTypesDoNotExposeIdentityFields(t *testing.T) {

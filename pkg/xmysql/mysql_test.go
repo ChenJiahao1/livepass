@@ -19,7 +19,7 @@ func TestWithLocalTimeSetsDSNLocationToLocal(t *testing.T) {
 		time.Local = originalLocal
 	}()
 
-	dsn := WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true")
+	dsn := WithLocalTime("root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true")
 
 	cfg, err := mysql.ParseDSN(dsn)
 	if err != nil {
@@ -36,7 +36,7 @@ func TestWithLocalTimeSetsDSNLocationToLocal(t *testing.T) {
 func TestConfigNormalizeAppliesPoolDefaults(t *testing.T) {
 	t.Parallel()
 
-	cfg := NewConfig("root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true").Normalize()
+	cfg := NewConfig("root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true").Normalize()
 
 	if cfg.MaxOpenConns != DefaultMaxOpenConns {
 		t.Fatalf("expected default max open conns %d, got %d", DefaultMaxOpenConns, cfg.MaxOpenConns)
@@ -55,7 +55,7 @@ func TestConfigNormalizeAppliesPoolDefaults(t *testing.T) {
 func TestApplyPoolSetsMaxOpenConnections(t *testing.T) {
 	t.Parallel()
 
-	db, err := sql.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true")
+	db, err := sql.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true")
 	if err != nil {
 		t.Fatalf("sql.Open returned error: %v", err)
 	}

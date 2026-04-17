@@ -6,7 +6,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/conf"
 
-	"damai-go/services/order-api/internal/config"
+	"livepass/services/order-api/internal/config"
 )
 
 func TestLoadOrderAPIRuntimeConfigIncludesPrometheus(t *testing.T) {

@@ -1,8 +1,8 @@
 package logic
 
 import (
-	"damai-go/services/order-api/internal/types"
-	"damai-go/services/order-rpc/orderrpc"
+	"livepass/services/order-api/internal/types"
+	"livepass/services/order-rpc/orderrpc"
 )
 
 func mapCreatePurchaseTokenResp(resp *orderrpc.CreatePurchaseTokenResp) *types.CreatePurchaseTokenResp {

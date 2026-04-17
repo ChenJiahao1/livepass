@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/server"
-	"damai-go/services/order-rpc/pb"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/server"
+	"livepass/services/order-rpc/pb"
+	programrpc "livepass/services/program-rpc/programrpc"
 )
 
 func TestPrimeAdmissionQuotaUsesInternalAdmissionQuota(t *testing.T) {

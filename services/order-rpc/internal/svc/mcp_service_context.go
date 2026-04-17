@@ -1,9 +1,9 @@
 package svc
 
 import (
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/repository"
-	"damai-go/services/order-rpc/sharding"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/repository"
+	"livepass/services/order-rpc/sharding"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )

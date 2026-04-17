@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/config"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
@@ -33,7 +33,7 @@ func NewEtcdGuard(client *clientv3.Client, cfg config.RepeatGuardConfig) *EtcdGu
 
 	prefix := cfg.Prefix
 	if prefix == "" {
-		prefix = "/damai-go/repeat-guard/order-create/"
+		prefix = "/livepass/repeat-guard/order-create/"
 	}
 
 	return &EtcdGuard{

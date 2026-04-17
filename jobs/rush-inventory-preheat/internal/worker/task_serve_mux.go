@@ -1,8 +1,8 @@
 package worker
 
 import (
-	"damai-go/jobs/rush-inventory-preheat/internal/svc"
-	"damai-go/jobs/rush-inventory-preheat/taskdef"
+	"livepass/jobs/rush-inventory-preheat/internal/svc"
+	"livepass/jobs/rush-inventory-preheat/taskdef"
 
 	"github.com/hibiken/asynq"
 )

@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
-	programrpc "damai-go/services/program-rpc/programrpc"
-	userrpc "damai-go/services/user-rpc/userrpc"
+	"livepass/pkg/xerr"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
+	programrpc "livepass/services/program-rpc/programrpc"
+	userrpc "livepass/services/user-rpc/userrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"

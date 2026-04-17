@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"damai-go/services/user-rpc/internal/logic"
-	"damai-go/services/user-rpc/pb"
-	"damai-go/services/user-rpc/tests/testkit"
+	"livepass/services/user-rpc/internal/logic"
+	"livepass/services/user-rpc/pb"
+	"livepass/services/user-rpc/tests/testkit"
 )
 
 func TestGetUserByIdReturnsUser(t *testing.T) {

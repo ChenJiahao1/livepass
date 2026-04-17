@@ -5,11 +5,11 @@ import (
 	"flag"
 	"fmt"
 
-	"damai-go/pkg/xid"
-	"damai-go/services/program-rpc/internal/config"
-	"damai-go/services/program-rpc/internal/server"
-	"damai-go/services/program-rpc/internal/svc"
-	"damai-go/services/program-rpc/pb"
+	"livepass/pkg/xid"
+	"livepass/services/program-rpc/internal/config"
+	"livepass/services/program-rpc/internal/server"
+	"livepass/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/service"

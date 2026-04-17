@@ -1,10 +1,10 @@
 package svc
 
 import (
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
-	"damai-go/services/user-rpc/internal/config"
-	"damai-go/services/user-rpc/internal/model"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
+	"livepass/services/user-rpc/internal/config"
+	"livepass/services/user-rpc/internal/model"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )

@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"damai-go/services/user-rpc/internal/logic"
-	"damai-go/services/user-rpc/pb"
-	"damai-go/services/user-rpc/tests/testkit"
+	"livepass/services/user-rpc/internal/logic"
+	"livepass/services/user-rpc/pb"
+	"livepass/services/user-rpc/tests/testkit"
 )
 
 func TestRegisterInsertsUser(t *testing.T) {

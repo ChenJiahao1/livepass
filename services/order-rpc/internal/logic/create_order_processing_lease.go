@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"damai-go/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/rush"
 )
 
 type processingLease struct {

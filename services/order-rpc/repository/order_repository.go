@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/sharding"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/sharding"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )

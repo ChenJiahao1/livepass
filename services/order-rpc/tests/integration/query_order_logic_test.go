@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xid"
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/pb"
-	"damai-go/services/order-rpc/sharding"
+	"livepass/pkg/xid"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/pb"
+	"livepass/services/order-rpc/sharding"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

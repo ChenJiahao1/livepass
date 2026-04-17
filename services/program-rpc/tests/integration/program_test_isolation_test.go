@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/model"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 )
@@ -15,11 +15,11 @@ func TestProgramIntegrationUsesIsolatedDatabaseDSN(t *testing.T) {
 		t.Fatalf("ParseDSN returned error: %v", err)
 	}
 
-	if cfg.DBName == "damai_program" {
-		t.Fatalf("expected integration tests to avoid shared database damai_program")
+	if cfg.DBName == "livepass_program" {
+		t.Fatalf("expected integration tests to avoid shared database livepass_program")
 	}
-	if !strings.HasPrefix(cfg.DBName, "damai_program_test_") {
-		t.Fatalf("expected isolated database name prefix damai_program_test_, got %q", cfg.DBName)
+	if !strings.HasPrefix(cfg.DBName, "livepass_program_test_") {
+		t.Fatalf("expected isolated database name prefix livepass_program_test_, got %q", cfg.DBName)
 	}
 }
 
@@ -35,7 +35,7 @@ func TestProgramIntegrationUsesIsolationNamespaceForRedisArtifacts(t *testing.T)
 	}
 
 	channel := programCachePubSubChannel(t, "detail")
-	if channel == "damai-go:test:program:cache:invalidate:TestProgramIntegrationUsesIsolationNamespaceForRedisArtifacts:detail" {
+	if channel == "livepass:test:program:cache:invalidate:TestProgramIntegrationUsesIsolationNamespaceForRedisArtifacts:detail" {
 		t.Fatalf("expected cache invalidation pubsub channel to avoid shared redis namespace, got %q", channel)
 	}
 }

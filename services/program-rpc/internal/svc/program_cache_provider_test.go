@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/config"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/config"
 
 	"github.com/redis/go-redis/v9"
 )

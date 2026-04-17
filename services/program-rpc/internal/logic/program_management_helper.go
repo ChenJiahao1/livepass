@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strconv"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/program-rpc/internal/model"
-	"damai-go/services/program-rpc/internal/svc"
-	"damai-go/services/program-rpc/pb"
+	"livepass/pkg/xerr"
+	"livepass/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/pb"
 )
 
 func buildProgramCategoryListResp(categories []*model.DProgramCategory) *pb.ProgramCategoryListResp {

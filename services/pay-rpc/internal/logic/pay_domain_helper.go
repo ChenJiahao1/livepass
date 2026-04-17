@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/pay-rpc/internal/model"
-	"damai-go/services/pay-rpc/pb"
+	"livepass/pkg/xerr"
+	"livepass/services/pay-rpc/internal/model"
+	"livepass/services/pay-rpc/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

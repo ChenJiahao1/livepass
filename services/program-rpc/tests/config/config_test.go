@@ -8,7 +8,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/conf"
 
-	"damai-go/services/program-rpc/internal/config"
+	"livepass/services/program-rpc/internal/config"
 )
 
 func TestLoadProgramRPCConfigUsesDedicatedListenPort(t *testing.T) {
@@ -72,8 +72,8 @@ func TestLoadProgramRPCConfigExposesCacheInvalidationDefaults(t *testing.T) {
 	}
 
 	assertBoolField(t, cacheInvalidationField, "Enabled", true)
-	if channel := requireStringField(t, cacheInvalidationField, "Channel"); channel != "damai-go:program:cache:invalidate" {
-		t.Fatalf("expected cache invalidation channel damai-go:program:cache:invalidate, got %q", channel)
+	if channel := requireStringField(t, cacheInvalidationField, "Channel"); channel != "livepass:program:cache:invalidate" {
+		t.Fatalf("expected cache invalidation channel livepass:program:cache:invalidate, got %q", channel)
 	}
 	assertDurationField(t, cacheInvalidationField, "PublishTimeout", 200*time.Millisecond)
 	assertDurationField(t, cacheInvalidationField, "ReconnectBackoff", time.Second)

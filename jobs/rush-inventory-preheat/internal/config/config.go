@@ -3,8 +3,8 @@ package config
 import (
 	"time"
 
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )

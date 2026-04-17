@@ -18,11 +18,11 @@ assert_contains() {
 
 bash -n "${SCRIPT_PATH}"
 
-assert_contains 'MYSQL_DB_USER="${MYSQL_DB_USER:-damai_user}"'
-assert_contains 'MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-damai_program}"'
-assert_contains 'MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-damai_order}"'
-assert_contains 'MYSQL_DB_PAY="${MYSQL_DB_PAY:-damai_pay}"'
-assert_contains 'MYSQL_DB_AGENTS="${MYSQL_DB_AGENTS:-damai_agents}"'
+assert_contains 'MYSQL_DB_USER="${MYSQL_DB_USER:-livepass_user}"'
+assert_contains 'MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-livepass_program}"'
+assert_contains 'MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-livepass_order}"'
+assert_contains 'MYSQL_DB_PAY="${MYSQL_DB_PAY:-livepass_pay}"'
+assert_contains 'MYSQL_DB_AGENTS="${MYSQL_DB_AGENTS:-livepass_agents}"'
 assert_contains 'docker-compose-mysql-1'
 assert_contains 'docker-compose-redis-1'
 assert_contains 'docker-compose-kafka-1'

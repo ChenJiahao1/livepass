@@ -3,7 +3,7 @@ package seatcache
 import "fmt"
 
 const (
-	defaultSeatLedgerPrefix = "damai-go:program:seat-ledger"
+	defaultSeatLedgerPrefix = "livepass:program:seat-ledger"
 )
 
 func stockKey(prefix string, showTimeID, ticketCategoryID int64) string {

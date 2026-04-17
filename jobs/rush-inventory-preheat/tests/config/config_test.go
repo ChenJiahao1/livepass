@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat/internal/config"
+	"livepass/jobs/rush-inventory-preheat/internal/config"
 
 	"github.com/zeromicro/go-zero/core/conf"
 )

@@ -41,14 +41,14 @@ pay_order_logic.go:31。
 Redis / Kafka / MySQL 对照
 order-rush Redis key：
 
-damai-go:order:rush:{st:<show_time_id>:g:<generation>}:attempt:<order_number>
-damai-go:order:rush:{st:<show_time_id>:g:<generation>}:user_inflight:<user_id>
-damai-go:order:rush:{st:<show_time_id>:g:<generation>}:viewer_inflight:<viewer_id>
-damai-go:order:rush:{st:<show_time_id>:g:<generation>}:user_active:<user_id>
-damai-go:order:rush:{st:<show_time_id>:g:<generation>}:viewer_active:<viewer_id>
-damai-go:order:rush:{st:<show_time_id>:g:<generation>}:quota:<ticket_category_id>
-damai-go:order:rush:{st:<show_time_id>:g:<generation>}:fingerprint:<user_id>
-damai-go:order:rush:{st:<show_time_id>:g:<generation>}:seat_occupied:<order_number>
+livepass:order:rush:{st:<show_time_id>:g:<generation>}:attempt:<order_number>
+livepass:order:rush:{st:<show_time_id>:g:<generation>}:user_inflight:<user_id>
+livepass:order:rush:{st:<show_time_id>:g:<generation>}:viewer_inflight:<viewer_id>
+livepass:order:rush:{st:<show_time_id>:g:<generation>}:user_active:<user_id>
+livepass:order:rush:{st:<show_time_id>:g:<generation>}:viewer_active:<viewer_id>
+livepass:order:rush:{st:<show_time_id>:g:<generation>}:quota:<ticket_category_id>
+livepass:order:rush:{st:<show_time_id>:g:<generation>}:fingerprint:<user_id>
+livepass:order:rush:{st:<show_time_id>:g:<generation>}:seat_occupied:<order_number>
 
 - attempt:<orderNo> 是 Hash，value 不是一个整体 JSON，而是一组 field -> string 值。
   示例：
@@ -106,14 +106,14 @@ program seat-ledger Redis key：
 
 其中 `<scope_tag>` 的实际值是 `{st:<show_time_id>:g:g-<show_time_id>}`。
 
-damai-go:program:seat-ledger:stock:<scope_tag>:<ticket_category_id>
-damai-go:program:seat-ledger:available:<scope_tag>:<ticket_category_id>
-damai-go:program:seat-ledger:sold:<scope_tag>:<ticket_category_id>
-damai-go:program:seat-ledger:frozen:<scope_tag>:<ticket_category_id>:<freeze_token>
-damai-go:program:seat-ledger:loading:<scope_tag>:<ticket_category_id>
-damai-go:program:seat-ledger:freeze:meta:<freeze_token>
-damai-go:program:seat-ledger:freeze:req:<request_no>
-damai-go:program:seat-ledger:freeze:index:<scope_tag>:<ticket_category_id>
+livepass:program:seat-ledger:stock:<scope_tag>:<ticket_category_id>
+livepass:program:seat-ledger:available:<scope_tag>:<ticket_category_id>
+livepass:program:seat-ledger:sold:<scope_tag>:<ticket_category_id>
+livepass:program:seat-ledger:frozen:<scope_tag>:<ticket_category_id>:<freeze_token>
+livepass:program:seat-ledger:loading:<scope_tag>:<ticket_category_id>
+livepass:program:seat-ledger:freeze:meta:<freeze_token>
+livepass:program:seat-ledger:freeze:req:<request_no>
+livepass:program:seat-ledger:freeze:index:<scope_tag>:<ticket_category_id>
 
 - stock 是 String。
   示例 value：`128`
@@ -134,7 +134,7 @@ damai-go:program:seat-ledger:freeze:index:<scope_tag>:<ticket_category_id>
 - frozen:<freezeToken> 是 ZSET。
   value 结构和 available 一样。
   示例 key：
-  damai-go:program:seat-ledger:frozen:{st:30001:g:g-30001}:40001:freeze-90001
+  livepass:program:seat-ledger:frozen:{st:30001:g:g-30001}:40001:freeze-90001
   示例 members：
   `88001|40001|12|8|380`
   `88002|40001|12|9|380`
@@ -165,7 +165,7 @@ damai-go:program:seat-ledger:freeze:index:<scope_tag>:<ticket_category_id>
 
 Kafka：
 
-- 当前抢票主链路只看到一个 topic：ticketing.attempt.command.v1，consumer group 是 damai-go-ticketing-attempt。services/order-rpc/internal/mq/topics.go:5
+- 当前抢票主链路只看到一个 topic：ticketing.attempt.command.v1，consumer group 是 livepass-ticketing-attempt。services/order-rpc/internal/mq/topics.go:5
 - 分区 key 是 <showTimeId>#<ticketCategoryId>。services/order-rpc/internal/event/order_create_event.go:68
 - 消息体字段定义在 OrderCreateEvent，但 /order/create 真正发出去的是“最小消息”，只带 orderNumber/userId/programId/showTimeId/ticketCategoryId/ticketUserIds/ticketCount/generation/distributionMode/
   takeTicketMode/saleWindowEndAt/showEndAt/commitCutoffAt/userDeadlineAt/occurredAt，初始不带 freezeToken/programSnapshot/ticketUserSnapshot/seatSnapshot。services/order-rpc/internal/event/

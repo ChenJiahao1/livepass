@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/rush"
 )
 
 func TestAdmitKeepsRejectAndReuseSemantics(t *testing.T) {
@@ -95,7 +95,7 @@ func TestFailBeforeProcessingTransitionsAcceptedToFailedOnce(t *testing.T) {
 		t.Fatalf("expected redis-backed service context")
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
 		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
@@ -248,7 +248,7 @@ func TestFinalizeFailureDoesNotDoubleCompensate(t *testing.T) {
 		t.Fatalf("expected redis-backed service context")
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
 		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
@@ -339,7 +339,7 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 		t.Fatalf("expected redis-backed service context")
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
 		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
@@ -488,7 +488,7 @@ func TestRushAttemptStorePrimeClearsOnlyTargetShowTimeTransientKeys(t *testing.T
 		t.Fatalf("expected redis-backed service context")
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
 		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
@@ -605,7 +605,7 @@ func TestRushAttemptStorePrimeReplacesActiveProjectionByShowTime(t *testing.T) {
 		t.Fatalf("expected redis-backed service context")
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
 		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
@@ -713,7 +713,7 @@ func TestPrepareAttemptForConsumeTransitionsAcceptedToProcessingOnce(t *testing.
 		t.Fatalf("expected redis-backed service context")
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
 		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
@@ -781,7 +781,7 @@ func TestPrepareAttemptForConsumeSkipsTerminalStates(t *testing.T) {
 		t.Fatalf("expected redis-backed service context")
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
 		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,

@@ -4,8 +4,8 @@
 package svc
 
 import (
-	"damai-go/services/pay-api/internal/config"
-	payrpc "damai-go/services/pay-rpc/payrpc"
+	"livepass/services/pay-api/internal/config"
+	payrpc "livepass/services/pay-rpc/payrpc"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )

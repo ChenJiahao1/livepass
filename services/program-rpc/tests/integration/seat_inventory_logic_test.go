@@ -6,9 +6,9 @@ import (
 	"sync"
 	"testing"
 
-	logicpkg "damai-go/services/program-rpc/internal/logic"
-	"damai-go/services/program-rpc/internal/svc"
-	"damai-go/services/program-rpc/pb"
+	logicpkg "livepass/services/program-rpc/internal/logic"
+	"livepass/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"google.golang.org/grpc/codes"

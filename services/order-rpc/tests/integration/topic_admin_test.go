@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/mq"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/mq"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -66,7 +66,7 @@ func buildTopicAdminKafkaConfig(topic string, partitions int) config.KafkaConfig
 	return config.KafkaConfig{
 		Brokers:          []string{testKafkaBroker},
 		TopicOrderCreate: topic,
-		ConsumerGroup:    "damai-go-ticketing-attempt",
+		ConsumerGroup:    "livepass-ticketing-attempt",
 		TopicPartitions:  partitions,
 		ConsumerWorkers:  partitions,
 		ProducerTimeout:  3 * time.Second,

@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"time"
 
-	"damai-go/jobs/order-close/taskdef"
-	"damai-go/pkg/xid"
-	"damai-go/services/order-rpc/internal/model"
+	"livepass/jobs/order-close/taskdef"
+	"livepass/pkg/xid"
+	"livepass/services/order-rpc/internal/model"
 )
 
 func newCloseTimeoutDelayTaskRow(now time.Time, orderNumber int64, executeAt time.Time) (*model.DDelayTaskOutbox, error) {

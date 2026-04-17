@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"damai-go/pkg/xid"
-	"damai-go/services/order-rpc/sharding"
+	"livepass/pkg/xid"
+	"livepass/services/order-rpc/sharding"
 )
 
 var defaultOrderNumberGenerator = newOrderNumberGenerator(func() int64 {

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xjwt"
-	"damai-go/pkg/xmiddleware"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xjwt"
+	"livepass/pkg/xmiddleware"
 )
 
 func TestAuthenticateReturnsUserIDFromBearerToken(t *testing.T) {

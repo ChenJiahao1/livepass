@@ -4,8 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	"damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/pb"
+	"livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/pb"
 
 	gomcp "github.com/zeromicro/go-zero/mcp"
 )

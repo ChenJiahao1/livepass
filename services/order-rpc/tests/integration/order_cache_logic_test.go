@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/pb"
-	"damai-go/services/order-rpc/repository"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/pb"
+	"livepass/services/order-rpc/repository"
 )
 
 func TestGetOrderCacheReturnsOrderNumberWhenAttemptProcessing(t *testing.T) {

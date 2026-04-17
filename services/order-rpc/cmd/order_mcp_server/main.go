@@ -4,9 +4,9 @@ import (
 	"flag"
 	"fmt"
 
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/svc"
-	ordermcp "damai-go/services/order-rpc/mcp"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/svc"
+	ordermcp "livepass/services/order-rpc/mcp"
 )
 
 var configFile = flag.String("f", "services/order-rpc/etc/order-mcp.yaml", "the config file")

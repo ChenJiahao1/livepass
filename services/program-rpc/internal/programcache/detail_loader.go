@@ -7,8 +7,8 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/services/program-rpc/internal/model"
-	"damai-go/services/program-rpc/pb"
+	"livepass/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/pb"
 )
 
 const programDateTimeLayout = "2006-01-02 15:04:05"

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/pb"
-	payrpc "damai-go/services/pay-rpc/payrpc"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/pb"
+	payrpc "livepass/services/pay-rpc/payrpc"
 )
 
 func TestPayCheck(t *testing.T) {

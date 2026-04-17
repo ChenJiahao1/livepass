@@ -1,4 +1,9 @@
-# damai-go Agents Guide
+# livepass Agents Guide
+
+## 关联前端仓库
+
+- 当前配套前端项目路径：`/home/chenjiahao/code/project/livepass-web`
+- 当前后端项目路径：`/home/chenjiahao/code/project/livepass`
 
 ## 作用范围
 

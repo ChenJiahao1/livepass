@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xerr"
-	orderevent "damai-go/services/order-rpc/internal/event"
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/pb"
-	programrpc "damai-go/services/program-rpc/programrpc"
-	userrpc "damai-go/services/user-rpc/userrpc"
+	"livepass/pkg/xerr"
+	orderevent "livepass/services/order-rpc/internal/event"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/pb"
+	programrpc "livepass/services/program-rpc/programrpc"
+	userrpc "livepass/services/user-rpc/userrpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -398,7 +398,7 @@ func TestCreateOrderConsumerRefreshesLeaseDuringSlowProcessing(t *testing.T) {
 		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	svcCtx.Config.RushOrder.InFlightTTL = 300 * time.Millisecond
 	svcCtx.AttemptStore = rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,
@@ -483,7 +483,7 @@ func TestCreateOrderConsumerStopsFinalizeWhenLeaseLost(t *testing.T) {
 		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
 	}
 
-	prefix := fmt.Sprintf("damai-go:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
 	svcCtx.Config.RushOrder.InFlightTTL = 300 * time.Millisecond
 	svcCtx.AttemptStore = rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
 		Prefix:        prefix,

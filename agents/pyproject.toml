@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "damai-agents"
+name = "livepass-agents"
 version = "0.1.0"
-description = "Agents chat service for damai-go"
+description = "Agents chat service for livepass"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

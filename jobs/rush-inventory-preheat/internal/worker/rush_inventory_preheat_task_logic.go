@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat/internal/svc"
-	"damai-go/jobs/rush-inventory-preheat/taskdef"
-	"damai-go/pkg/xerr"
-	orderrpc "damai-go/services/order-rpc/orderrpc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	"livepass/jobs/rush-inventory-preheat/internal/svc"
+	"livepass/jobs/rush-inventory-preheat/taskdef"
+	"livepass/pkg/xerr"
+	orderrpc "livepass/services/order-rpc/orderrpc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"github.com/hibiken/asynq"
 )

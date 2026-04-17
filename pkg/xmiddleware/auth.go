@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xjwt"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xjwt"
 )
 
 type contextKey string

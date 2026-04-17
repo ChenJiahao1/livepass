@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/jobs/order-close/internal/dispatch"
-	"damai-go/pkg/delaytask"
-	"damai-go/pkg/xmysql"
+	"livepass/jobs/order-close/internal/dispatch"
+	"livepass/pkg/delaytask"
+	"livepass/pkg/xmysql"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/hibiken/asynq"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const testOrderCloseMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
+const testOrderCloseMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true"
 
 type fakeDelayTaskPublisher struct {
 	messages []delaytask.Message

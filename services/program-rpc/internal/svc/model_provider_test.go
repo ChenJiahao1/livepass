@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/config"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/config"
 
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	gzredis "github.com/zeromicro/go-zero/core/stores/redis"
@@ -32,7 +32,7 @@ func TestNewProgramModelsKeepsTicketCategoryUncached(t *testing.T) {
 func newProgramModelsForTest(t *testing.T, enableCache bool) ProgramModels {
 	t.Helper()
 
-	conn := sqlx.NewMysql(xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true"))
+	conn := sqlx.NewMysql(xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/livepass_program?parseTime=true"))
 	rawDB, err := conn.RawDB()
 	if err != nil {
 		t.Fatalf("raw db error: %v", err)

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/model"
 )
 
 func TestProgramCachedModelsReturnCachedRowsAfterSourceDelete(t *testing.T) {

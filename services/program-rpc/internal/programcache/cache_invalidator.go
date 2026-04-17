@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/model"
 )
 
 type ProgramCacheInvalidator struct {

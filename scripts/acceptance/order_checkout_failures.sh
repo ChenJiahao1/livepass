@@ -26,7 +26,7 @@ restore_inventory_if_needed() {
     return
   fi
 
-  mysql_exec_db "damai_program" "UPDATE d_seat SET seat_status = 1, freeze_token = NULL, freeze_expire_time = NULL, edit_time = NOW() WHERE id IN (${INVENTORY_MUTATED_SEAT_IDS})"
+  mysql_exec_db "livepass_program" "UPDATE d_seat SET seat_status = 1, freeze_token = NULL, freeze_expire_time = NULL, edit_time = NOW() WHERE id IN (${INVENTORY_MUTATED_SEAT_IDS})"
   INVENTORY_MUTATED_SEAT_IDS=""
   INVENTORY_MUTATED_CATEGORY_ID=""
 }
@@ -64,14 +64,14 @@ force_inventory_insufficient() {
   local ticket_category_id="$1"
   local seat_ids
 
-  seat_ids="$(mysql_exec_db "damai_program" "SELECT COALESCE(GROUP_CONCAT(id ORDER BY id SEPARATOR ','), '') FROM d_seat WHERE status = 1 AND show_time_id = ${SHOW_TIME_ID} AND ticket_category_id = ${ticket_category_id} AND seat_status = 1")"
+  seat_ids="$(mysql_exec_db "livepass_program" "SELECT COALESCE(GROUP_CONCAT(id ORDER BY id SEPARATOR ','), '') FROM d_seat WHERE status = 1 AND show_time_id = ${SHOW_TIME_ID} AND ticket_category_id = ${ticket_category_id} AND seat_status = 1")"
   if [[ -z "${seat_ids}" ]]; then
     fail "no available seats to mutate for ticketCategoryId=${ticket_category_id}"
   fi
 
   INVENTORY_MUTATED_SEAT_IDS="${seat_ids}"
   INVENTORY_MUTATED_CATEGORY_ID="${ticket_category_id}"
-  mysql_exec_db "damai_program" "UPDATE d_seat SET seat_status = 3, freeze_token = NULL, freeze_expire_time = NULL, edit_time = NOW() WHERE id IN (${seat_ids})"
+  mysql_exec_db "livepass_program" "UPDATE d_seat SET seat_status = 3, freeze_token = NULL, freeze_expire_time = NULL, edit_time = NOW() WHERE id IN (${seat_ids})"
 }
 
 run_order_close_once() {
@@ -196,7 +196,7 @@ scenario_close_expired_order() {
   poll_order_until_done
   assert_poll_status "3"
 
-  mysql_exec_db "damai_order" "UPDATE d_order_00 SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}; UPDATE d_order_01 SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}"
+  mysql_exec_db "livepass_order" "UPDATE d_order_00 SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}; UPDATE d_order_01 SET order_expire_time = DATE_SUB(NOW(), INTERVAL 5 MINUTE), edit_time = NOW() WHERE order_number = ${ORDER_NUMBER}"
   run_order_close_once
 
   body="$(fetch_order_snapshot "2" "2")"

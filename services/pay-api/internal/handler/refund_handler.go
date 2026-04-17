@@ -6,9 +6,9 @@ package handler
 import (
 	"net/http"
 
-	"damai-go/services/pay-api/internal/logic"
-	"damai-go/services/pay-api/internal/svc"
-	"damai-go/services/pay-api/internal/types"
+	"livepass/services/pay-api/internal/logic"
+	"livepass/services/pay-api/internal/svc"
+	"livepass/services/pay-api/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 

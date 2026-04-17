@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"damai-go/pkg/xmiddleware"
-	"damai-go/services/gateway-api/internal/middleware"
-	"damai-go/services/gateway-api/tests/testkit"
+	"livepass/pkg/xmiddleware"
+	"livepass/services/gateway-api/internal/middleware"
+	"livepass/services/gateway-api/tests/testkit"
 )
 
 func TestAuthMiddlewareRejectsOrderRequestWithoutAuthorization(t *testing.T) {

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/user-rpc/internal/model"
-	"damai-go/services/user-rpc/internal/svc"
-	"damai-go/services/user-rpc/pb"
+	"livepass/pkg/xerr"
+	"livepass/services/user-rpc/internal/model"
+	"livepass/services/user-rpc/internal/svc"
+	"livepass/services/user-rpc/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

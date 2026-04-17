@@ -3,7 +3,7 @@ package ordermcp
 import (
 	"context"
 
-	"damai-go/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/internal/svc"
 
 	gomcp "github.com/zeromicro/go-zero/mcp"
 )

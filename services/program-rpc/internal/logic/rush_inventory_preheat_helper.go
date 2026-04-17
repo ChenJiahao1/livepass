@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"damai-go/services/program-rpc/internal/model"
-	"damai-go/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )

@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 
-	"damai-go/services/gateway-api/internal/config"
-	"damai-go/services/gateway-api/internal/middleware"
+	"livepass/services/gateway-api/internal/config"
+	"livepass/services/gateway-api/internal/middleware"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/gateway"

@@ -6,7 +6,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/conf"
 
-	"damai-go/services/user-rpc/internal/config"
+	"livepass/services/user-rpc/internal/config"
 )
 
 func TestLoadUserRPCConfig(t *testing.T) {

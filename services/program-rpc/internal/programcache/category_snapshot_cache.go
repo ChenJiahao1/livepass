@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/model"
 
 	"github.com/zeromicro/go-zero/core/collection"
 )

@@ -1,10 +1,10 @@
 package mq
 
-import "damai-go/services/order-rpc/internal/config"
+import "livepass/services/order-rpc/internal/config"
 
 const (
 	DefaultOrderCreateTopic         = "ticketing.attempt.command.v1"
-	DefaultOrderCreateConsumerGroup = "damai-go-ticketing-attempt"
+	DefaultOrderCreateConsumerGroup = "livepass-ticketing-attempt"
 )
 
 func OrderCreateTopic(cfg config.KafkaConfig) string {

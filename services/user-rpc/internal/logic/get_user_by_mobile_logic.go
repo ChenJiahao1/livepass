@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/user-rpc/internal/model"
-	"damai-go/services/user-rpc/internal/svc"
-	"damai-go/services/user-rpc/pb"
+	"livepass/pkg/xerr"
+	"livepass/services/user-rpc/internal/model"
+	"livepass/services/user-rpc/internal/svc"
+	"livepass/services/user-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"

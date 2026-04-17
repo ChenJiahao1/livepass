@@ -6,7 +6,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/conf"
 
-	"damai-go/services/pay-api/internal/config"
+	"livepass/services/pay-api/internal/config"
 )
 
 func TestLoadPayAPIRuntimeConfigIncludesPrometheus(t *testing.T) {

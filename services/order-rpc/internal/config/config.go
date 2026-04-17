@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -24,7 +24,7 @@ type RushOrderConfig struct {
 }
 
 type RepeatGuardConfig struct {
-	Prefix             string        `json:",default=/damai-go/repeat-guard/order-create/"`
+	Prefix             string        `json:",default=/livepass/repeat-guard/order-create/"`
 	SessionTTL         int           `json:",default=10"`
 	LockAcquireTimeout time.Duration `json:",default=200ms"`
 }
@@ -32,7 +32,7 @@ type RepeatGuardConfig struct {
 type KafkaConfig struct {
 	Brokers          []string      `json:",optional"`
 	TopicOrderCreate string        `json:",default=ticketing.attempt.command.v1"`
-	ConsumerGroup    string        `json:",default=damai-go-ticketing-attempt"`
+	ConsumerGroup    string        `json:",default=livepass-ticketing-attempt"`
 	TopicPartitions  int           `json:",default=1"`
 	ConsumerWorkers  int           `json:",default=1"`
 	ProducerTimeout  time.Duration `json:",default=3s"`

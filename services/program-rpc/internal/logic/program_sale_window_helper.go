@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/pkg/xerr"
+	"livepass/services/program-rpc/internal/model"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xmysql"
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/sharding"
+	"livepass/pkg/xmysql"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/sharding"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/zeromicro/go-zero/core/conf"
@@ -106,7 +106,7 @@ Etcd:
     - 127.0.0.1:2379
   Key: order.rpc
 MySQL:
-  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true
 ProgramRpc:
   Etcd:
     Hosts:
@@ -126,14 +126,14 @@ Kafka:
   Brokers:
     - 127.0.0.1:9094
   TopicOrderCreate: ticketing.attempt.command.test
-  ConsumerGroup: damai-go-ticketing-attempt
+  ConsumerGroup: livepass-ticketing-attempt
   TopicPartitions: 5
   ConsumerWorkers: 1
 Sharding:
   Mode: shard_only
   Shards:
     order-db-0:
-      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+      DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true
   RouteMap:
     Version: v1
     Entries:
@@ -183,7 +183,7 @@ Etcd:
     - 127.0.0.1:2379
   Key: order.rpc
 MySQL:
-  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+  DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true
 ProgramRpc:
   Etcd:
     Hosts:
@@ -205,7 +205,7 @@ Kafka:
 Sharding:
   Shards:
     order-db-0:
-      DataSource: root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true
+      DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true
   RouteMap:
     Version: v1
     Entries:
@@ -251,14 +251,14 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 			CloseAfter: 15 * time.Minute,
 		},
 		RepeatGuard: config.RepeatGuardConfig{
-			Prefix:             "/damai-go/tests/repeat-guard/order-create/",
+			Prefix:             "/livepass/tests/repeat-guard/order-create/",
 			SessionTTL:         10,
 			LockAcquireTimeout: 200 * time.Millisecond,
 		},
 		Kafka: config.KafkaConfig{
 			Brokers:          []string{"127.0.0.1:9094"},
 			TopicOrderCreate: topic,
-			ConsumerGroup:    "damai-go-ticketing-attempt",
+			ConsumerGroup:    "livepass-ticketing-attempt",
 			TopicPartitions:  5,
 			ConsumerWorkers:  1,
 			ProducerTimeout:  3 * time.Second,

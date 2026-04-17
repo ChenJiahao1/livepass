@@ -11,17 +11,17 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/jobs/rush-inventory-preheat/internal/dispatch"
-	"damai-go/jobs/rush-inventory-preheat/taskdef"
-	"damai-go/pkg/delaytask"
-	"damai-go/pkg/xmysql"
+	"livepass/jobs/rush-inventory-preheat/internal/dispatch"
+	"livepass/jobs/rush-inventory-preheat/taskdef"
+	"livepass/pkg/delaytask"
+	"livepass/pkg/xmysql"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/hibiken/asynq"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const testRushInventoryPreheatMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true"
+const testRushInventoryPreheatMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/livepass_program?parseTime=true"
 
 type fakeDelayTaskPublisher struct {
 	messages []delaytask.Message

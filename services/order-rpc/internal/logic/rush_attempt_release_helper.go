@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/internal/svc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	"livepass/pkg/xerr"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/svc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

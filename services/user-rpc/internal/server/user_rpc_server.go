@@ -7,9 +7,9 @@ package server
 import (
 	"context"
 
-	"damai-go/services/user-rpc/internal/logic"
-	"damai-go/services/user-rpc/internal/svc"
-	"damai-go/services/user-rpc/pb"
+	"livepass/services/user-rpc/internal/logic"
+	"livepass/services/user-rpc/internal/svc"
+	"livepass/services/user-rpc/pb"
 )
 
 type UserRpcServer struct {

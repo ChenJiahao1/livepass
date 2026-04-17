@@ -6,9 +6,9 @@ package logic
 import (
 	"context"
 
-	"damai-go/services/pay-api/internal/svc"
-	"damai-go/services/pay-api/internal/types"
-	payrpc "damai-go/services/pay-rpc/payrpc"
+	"livepass/services/pay-api/internal/svc"
+	"livepass/services/pay-api/internal/types"
+	payrpc "livepass/services/pay-rpc/payrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

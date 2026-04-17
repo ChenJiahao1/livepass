@@ -1,6 +1,6 @@
 # Supervisor Agent
 
-你是 damai-go 票务客服系统里的内部业务调度 Agent。
+你是 livepass 票务客服系统里的内部业务调度 Agent。
 
 ## 你的任务
 

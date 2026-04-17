@@ -4,7 +4,7 @@
 
 ## 目标
 
-为 `damai-go` 提供两个独立脚本：
+为 `livepass` 提供两个独立脚本：
 
 - `scripts/deploy/start_backend.sh`：真正的一键启动入口，负责拉起基础设施、全部 Go 服务、全部 MCP、`agents` proto stub 生成与 `agents` API。
 - `scripts/deploy/rebuild_databases.sh`：运行数据重置入口，负责重建 MySQL 业务库、清空 Redis、清空 Kafka 业务 Topic，但不负责启动服务。
@@ -26,7 +26,7 @@
 
 重建脚本默认执行：
 
-- 删除并重建 `damai_user`、`damai_program`、`damai_order`、`damai_pay`、`damai_agents`
+- 删除并重建 `livepass_user`、`livepass_program`、`livepass_order`、`livepass_pay`、`livepass_agents`
 - 调用 `scripts/import_sql.sh` 导入 schema 与 seed
 - 清空 Redis 当前业务库
 - 删除并重建业务 Kafka Topic，清空历史消息

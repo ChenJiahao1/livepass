@@ -1,8 +1,8 @@
 package worker
 
 import (
-	"damai-go/jobs/order-close/internal/svc"
-	"damai-go/jobs/order-close/taskdef"
+	"livepass/jobs/order-close/internal/svc"
+	"livepass/jobs/order-close/taskdef"
 
 	"github.com/hibiken/asynq"
 )

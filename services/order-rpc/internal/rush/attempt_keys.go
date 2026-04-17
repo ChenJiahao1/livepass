@@ -3,7 +3,7 @@ package rush
 import "fmt"
 
 const (
-	defaultAttemptPrefix = "damai-go:order:rush"
+	defaultAttemptPrefix = "livepass:order:rush"
 
 	attemptFieldOrderNumber       = "order_number"
 	attemptFieldUserID            = "user_id"

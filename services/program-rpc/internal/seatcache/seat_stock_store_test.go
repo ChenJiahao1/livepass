@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/model"
 )
 
 type fakeSeatLedgerSource struct {
@@ -31,7 +31,7 @@ func TestPrimeFromDBStoresStockAsString(t *testing.T) {
 		showTimeID       int64 = 30001
 		ticketCategoryID int64 = 40001
 	)
-	prefix := fmt.Sprintf("damai-go:test:program:seat-ledger:%s:%d", t.Name(), time.Now().UnixNano())
+	prefix := fmt.Sprintf("livepass:test:program:seat-ledger:%s:%d", t.Name(), time.Now().UnixNano())
 	store := NewSeatStockStore(redisClient, &fakeSeatLedgerSource{
 		seatsByStatus: map[int64][]*model.DSeat{
 			seatStatusAvailable: {

@@ -14,9 +14,9 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/gateway"
 
-	"damai-go/pkg/xjwt"
-	"damai-go/services/gateway-api/internal/config"
-	"damai-go/services/gateway-api/internal/middleware"
+	"livepass/pkg/xjwt"
+	"livepass/services/gateway-api/internal/config"
+	"livepass/services/gateway-api/internal/middleware"
 )
 
 var gatewayStartMu sync.Mutex

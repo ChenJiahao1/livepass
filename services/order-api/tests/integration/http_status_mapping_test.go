@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xmiddleware"
-	"damai-go/services/order-api/internal/handler"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xmiddleware"
+	"livepass/services/order-api/internal/handler"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/gateway-api/tests/testkit"
+	"livepass/services/gateway-api/tests/testkit"
 )
 
 func TestGatewayHandlesCorsPreflightForUserRoute(t *testing.T) {

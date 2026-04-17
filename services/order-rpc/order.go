@@ -5,12 +5,12 @@ import (
 	"flag"
 	"fmt"
 
-	"damai-go/pkg/xid"
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/server"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
+	"livepass/pkg/xid"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/server"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/zrpc"

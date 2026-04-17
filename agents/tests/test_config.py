@@ -34,7 +34,7 @@ def test_agents_mysql_defaults_are_configured(monkeypatch, tmp_path):
 
     assert settings.agents_mysql_host == "127.0.0.1"
     assert settings.agents_mysql_port == 3306
-    assert settings.agents_mysql_database == "damai_agents"
+    assert settings.agents_mysql_database == "livepass_agents"
     assert settings.agents_thread_default_title == "新会话"
 
     get_settings.cache_clear()

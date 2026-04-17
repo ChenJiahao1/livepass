@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"damai-go/services/gateway-api/internal/config"
+	"livepass/services/gateway-api/internal/config"
 )
 
 var (

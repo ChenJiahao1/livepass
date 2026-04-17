@@ -6,11 +6,11 @@ import (
 	"time"
 	_ "unsafe"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
-	"damai-go/services/program-rpc/internal/config"
-	"damai-go/services/program-rpc/internal/svc"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
+	"livepass/services/program-rpc/internal/config"
+	"livepass/services/program-rpc/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	gzredis "github.com/zeromicro/go-zero/core/stores/redis"
@@ -19,13 +19,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-//go:linkname mapAutoAssignSeatError damai-go/services/program-rpc/internal/logic.mapAutoAssignSeatError
+//go:linkname mapAutoAssignSeatError livepass/services/program-rpc/internal/logic.mapAutoAssignSeatError
 func mapAutoAssignSeatError(err error) error
 
-//go:linkname mapConfirmSeatFreezeError damai-go/services/program-rpc/internal/logic.mapConfirmSeatFreezeError
+//go:linkname mapConfirmSeatFreezeError livepass/services/program-rpc/internal/logic.mapConfirmSeatFreezeError
 func mapConfirmSeatFreezeError(err error) error
 
-//go:linkname mapReleaseSeatFreezeError damai-go/services/program-rpc/internal/logic.mapReleaseSeatFreezeError
+//go:linkname mapReleaseSeatFreezeError livepass/services/program-rpc/internal/logic.mapReleaseSeatFreezeError
 func mapReleaseSeatFreezeError(err error) error
 
 func TestProgramServiceContextRedis(t *testing.T) {

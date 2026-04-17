@@ -3,10 +3,10 @@ package logic
 import (
 	"context"
 
-	"damai-go/pkg/xid"
-	"damai-go/services/pay-rpc/internal/model"
-	"damai-go/services/pay-rpc/internal/svc"
-	"damai-go/services/pay-rpc/pb"
+	"livepass/pkg/xid"
+	"livepass/services/pay-rpc/internal/model"
+	"livepass/services/pay-rpc/internal/svc"
+	"livepass/services/pay-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"

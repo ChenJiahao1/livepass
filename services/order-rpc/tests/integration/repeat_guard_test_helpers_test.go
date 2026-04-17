@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/repeatguard"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/repeatguard"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -58,7 +58,7 @@ func newTestEtcdRepeatGuard(t *testing.T, endpoints []string) repeatguard.Guard 
 	return repeatguard.NewEtcdGuard(
 		client,
 		config.RepeatGuardConfig{
-			Prefix:             "/damai-go/tests/repeat-guard/",
+			Prefix:             "/livepass/tests/repeat-guard/",
 			SessionTTL:         10,
 			LockAcquireTimeout: 200 * time.Millisecond,
 		},
@@ -83,7 +83,7 @@ func newClosedTestEtcdRepeatGuard(t *testing.T) repeatguard.Guard {
 	return repeatguard.NewEtcdGuard(
 		client,
 		config.RepeatGuardConfig{
-			Prefix:             "/damai-go/tests/repeat-guard/",
+			Prefix:             "/livepass/tests/repeat-guard/",
 			SessionTTL:         10,
 			LockAcquireTimeout: 200 * time.Millisecond,
 		},

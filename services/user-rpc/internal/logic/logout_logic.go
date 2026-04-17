@@ -3,9 +3,9 @@ package logic
 import (
 	"context"
 
-	"damai-go/pkg/xjwt"
-	"damai-go/services/user-rpc/internal/svc"
-	"damai-go/services/user-rpc/pb"
+	"livepass/pkg/xjwt"
+	"livepass/services/user-rpc/internal/svc"
+	"livepass/services/user-rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

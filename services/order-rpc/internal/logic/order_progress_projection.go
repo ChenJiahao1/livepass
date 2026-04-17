@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/internal/svc"
+	"livepass/pkg/xerr"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/svc"
 )
 
 type orderProgressProjection struct {

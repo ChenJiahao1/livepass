@@ -6,7 +6,7 @@ Etcd:
     - 127.0.0.1:2379
   Key: program.rpc
 MySQL:
-  DataSource: root:123456@tcp(127.0.0.1:3306)/damai_program?parseTime=true
+  DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_program?parseTime=true
   MaxOpenConns: 14
   MaxIdleConns: 4
   ConnMaxLifetime: 3m
@@ -25,7 +25,7 @@ LocalCache:
   CategorySnapshotTTL: 5m
 CacheInvalidation:
   Enabled: true
-  Channel: damai-go:program:cache:invalidate
+  Channel: livepass:program:cache:invalidate
   PublishTimeout: 200ms
   ReconnectBackoff: 1s
 RushInventoryPreheat:

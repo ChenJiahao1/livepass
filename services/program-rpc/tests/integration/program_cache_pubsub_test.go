@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	logicpkg "damai-go/services/program-rpc/internal/logic"
-	"damai-go/services/program-rpc/internal/model"
-	"damai-go/services/program-rpc/internal/svc"
-	"damai-go/services/program-rpc/pb"
+	logicpkg "livepass/services/program-rpc/internal/logic"
+	"livepass/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/pb"
 )
 
 func TestProgramDetailPubSubInvalidatesPeerLocalCache(t *testing.T) {

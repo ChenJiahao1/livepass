@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	workersvc "damai-go/jobs/rush-inventory-preheat/internal/svc"
-	"damai-go/jobs/rush-inventory-preheat/internal/worker"
-	"damai-go/jobs/rush-inventory-preheat/taskdef"
-	orderrpc "damai-go/services/order-rpc/orderrpc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	workersvc "livepass/jobs/rush-inventory-preheat/internal/svc"
+	"livepass/jobs/rush-inventory-preheat/internal/worker"
+	"livepass/jobs/rush-inventory-preheat/taskdef"
+	orderrpc "livepass/services/order-rpc/orderrpc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"github.com/hibiken/asynq"
 )

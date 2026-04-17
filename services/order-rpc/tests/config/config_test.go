@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/sharding"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/sharding"
 )
 
 func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {

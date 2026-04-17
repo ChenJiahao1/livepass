@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xredis"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xredis"
 )
 
 const (

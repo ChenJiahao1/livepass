@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"damai-go/services/program-rpc/internal/model"
+	"livepass/services/program-rpc/internal/model"
 )
 
 type seatLedgerSource interface {

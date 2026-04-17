@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
-	payrpc "damai-go/services/pay-rpc/payrpc"
+	"livepass/pkg/xerr"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
+	payrpc "livepass/services/pay-rpc/payrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"

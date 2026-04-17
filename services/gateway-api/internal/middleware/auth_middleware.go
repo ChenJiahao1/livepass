@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"damai-go/pkg/xmiddleware"
+	"livepass/pkg/xmiddleware"
 )
 
 type AuthMiddleware struct {

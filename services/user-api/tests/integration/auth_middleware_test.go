@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xmiddleware"
-	middlewarepkg "damai-go/services/user-api/internal/middleware"
+	"livepass/pkg/xmiddleware"
+	middlewarepkg "livepass/services/user-api/internal/middleware"
 )
 
 func TestAuthMiddlewareInjectsUserIDIntoContext(t *testing.T) {

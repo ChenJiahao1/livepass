@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"damai-go/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/internal/svc"
 )
 
 type seatFreezeKeyedLocker struct {

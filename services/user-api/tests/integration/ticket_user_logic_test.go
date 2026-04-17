@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xmiddleware"
-	logicpkg "damai-go/services/user-api/internal/logic"
-	"damai-go/services/user-api/internal/svc"
-	"damai-go/services/user-api/internal/types"
-	"damai-go/services/user-rpc/userrpc"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xmiddleware"
+	logicpkg "livepass/services/user-api/internal/logic"
+	"livepass/services/user-api/internal/svc"
+	"livepass/services/user-api/internal/types"
+	"livepass/services/user-rpc/userrpc"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

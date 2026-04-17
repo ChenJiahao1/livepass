@@ -13,21 +13,21 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xid"
-	"damai-go/pkg/xmysql"
-	"damai-go/pkg/xredis"
-	"damai-go/services/order-rpc/internal/config"
-	"damai-go/services/order-rpc/internal/model"
-	"damai-go/services/order-rpc/internal/mq"
-	"damai-go/services/order-rpc/internal/repeatguard"
-	"damai-go/services/order-rpc/internal/rush"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
-	"damai-go/services/order-rpc/repository"
-	"damai-go/services/order-rpc/sharding"
-	payrpc "damai-go/services/pay-rpc/payrpc"
-	programrpc "damai-go/services/program-rpc/programrpc"
-	userrpc "damai-go/services/user-rpc/userrpc"
+	"livepass/pkg/xid"
+	"livepass/pkg/xmysql"
+	"livepass/pkg/xredis"
+	"livepass/services/order-rpc/internal/config"
+	"livepass/services/order-rpc/internal/model"
+	"livepass/services/order-rpc/internal/mq"
+	"livepass/services/order-rpc/internal/repeatguard"
+	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
+	"livepass/services/order-rpc/repository"
+	"livepass/services/order-rpc/sharding"
+	payrpc "livepass/services/pay-rpc/payrpc"
+	programrpc "livepass/services/program-rpc/programrpc"
+	userrpc "livepass/services/user-rpc/userrpc"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/zeromicro/go-zero/core/discov"
@@ -36,7 +36,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/damai_order?parseTime=true"
+var testOrderMySQLDataSource = "root:123456@tcp(127.0.0.1:3306)/livepass_order?parseTime=true"
 
 var (
 	orderDomainStateMu      sync.Mutex
@@ -236,7 +236,7 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 			FinalStateTTL: 30 * time.Minute,
 		},
 		RepeatGuard: config.RepeatGuardConfig{
-			Prefix:             "/damai-go/tests/repeat-guard/order-create/",
+			Prefix:             "/livepass/tests/repeat-guard/order-create/",
 			SessionTTL:         10,
 			LockAcquireTimeout: 200 * time.Millisecond,
 		},
@@ -312,7 +312,7 @@ func rebindOrderTestAttemptStore(t *testing.T, svcCtx *svc.ServiceContext) *rush
 	}
 
 	prefix := fmt.Sprintf(
-		"damai-go:test:order:rush:%s:%d",
+		"livepass:test:order:rush:%s:%d",
 		strings.ReplaceAll(strings.ToLower(t.Name()), "/", "-"),
 		time.Now().UnixNano(),
 	)

@@ -7,10 +7,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"damai-go/pkg/xjwt"
-	"damai-go/services/user-rpc/internal/logic"
-	"damai-go/services/user-rpc/pb"
-	"damai-go/services/user-rpc/tests/testkit"
+	"livepass/pkg/xjwt"
+	"livepass/services/user-rpc/internal/logic"
+	"livepass/services/user-rpc/pb"
+	"livepass/services/user-rpc/tests/testkit"
 )
 
 func TestLoginByMobileReturnsToken(t *testing.T) {

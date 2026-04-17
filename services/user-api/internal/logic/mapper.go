@@ -1,8 +1,8 @@
 package logic
 
 import (
-	"damai-go/services/user-api/internal/types"
-	"damai-go/services/user-rpc/userrpc"
+	"livepass/services/user-api/internal/types"
+	"livepass/services/user-rpc/userrpc"
 )
 
 func mapBoolResp(resp *userrpc.BoolResp) *types.BoolResp {

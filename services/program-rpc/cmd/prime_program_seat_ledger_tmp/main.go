@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"damai-go/services/program-rpc/internal/config"
-	"damai-go/services/program-rpc/internal/svc"
+	"livepass/services/program-rpc/internal/config"
+	"livepass/services/program-rpc/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 )

@@ -37,7 +37,7 @@ restore_rush_sale_window_if_needed() {
     return
   fi
 
-  docker_mysql_query damai_program "UPDATE d_program_show_time SET rush_sale_open_time = '${ORIGINAL_RUSH_SALE_OPEN_TIME}', rush_sale_end_time = '${ORIGINAL_RUSH_SALE_END_TIME}', edit_time = NOW() WHERE id = ${SHOW_TIME_ID};" >/dev/null || true
+  docker_mysql_query livepass_program "UPDATE d_program_show_time SET rush_sale_open_time = '${ORIGINAL_RUSH_SALE_OPEN_TIME}', rush_sale_end_time = '${ORIGINAL_RUSH_SALE_END_TIME}', edit_time = NOW() WHERE id = ${SHOW_TIME_ID};" >/dev/null || true
   redis-cli -h 127.0.0.1 -p 6379 DEL "cache:dProgramShowTime:id:${SHOW_TIME_ID}" >/dev/null || true
 }
 
@@ -51,12 +51,12 @@ force_rush_sale_window_now() {
   local current_window open_at end_at
 
   log "将场次秒杀窗口调整到当前时间"
-  current_window="$(docker_mysql_query damai_program "SELECT DATE_FORMAT(rush_sale_open_time, '%Y-%m-%d %H:%i:%s'), DATE_FORMAT(rush_sale_end_time, '%Y-%m-%d %H:%i:%s') FROM d_program_show_time WHERE id = ${SHOW_TIME_ID};")" || fail "failed to load current rush sale window"
+  current_window="$(docker_mysql_query livepass_program "SELECT DATE_FORMAT(rush_sale_open_time, '%Y-%m-%d %H:%i:%s'), DATE_FORMAT(rush_sale_end_time, '%Y-%m-%d %H:%i:%s') FROM d_program_show_time WHERE id = ${SHOW_TIME_ID};")" || fail "failed to load current rush sale window"
   ORIGINAL_RUSH_SALE_OPEN_TIME="${current_window%%$'\t'*}"
   ORIGINAL_RUSH_SALE_END_TIME="${current_window#*$'\t'}"
   open_at="$(date -d '-5 minutes' '+%F %T')"
   end_at="$(date -d '+30 minutes' '+%F %T')"
-  docker_mysql_query damai_program "UPDATE d_program_show_time SET rush_sale_open_time = '${open_at}', rush_sale_end_time = '${end_at}', edit_time = '${end_at}' WHERE id = ${SHOW_TIME_ID};" >/dev/null || fail "failed to update rush sale window"
+  docker_mysql_query livepass_program "UPDATE d_program_show_time SET rush_sale_open_time = '${open_at}', rush_sale_end_time = '${end_at}', edit_time = '${end_at}' WHERE id = ${SHOW_TIME_ID};" >/dev/null || fail "failed to update rush sale window"
   redis-cli -h 127.0.0.1 -p 6379 DEL "cache:dProgramShowTime:id:${SHOW_TIME_ID}" >/dev/null || fail "failed to clear show time cache"
   RUSH_WINDOW_MUTATED=1
 }
@@ -64,7 +64,7 @@ force_rush_sale_window_now() {
 assert_no_refund_bill() {
   local refund_count
 
-  refund_count="$(docker_mysql_query damai_pay "SELECT COUNT(1) FROM d_refund_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query refund bill"
+  refund_count="$(docker_mysql_query livepass_pay "SELECT COUNT(1) FROM d_refund_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query refund bill"
   [[ "${refund_count}" == "0" ]] || fail "expected no refund bill for blocked refund, got ${refund_count}"
 }
 
@@ -107,7 +107,7 @@ main() {
   assert_json_filter "${body}" '.payStatus == 2' "expected payStatus=2 after blocked refund"
 
   log "12/12 校验支付库与库存未发生退款副作用"
-  pay_status="$(docker_mysql_query damai_pay "SELECT pay_status FROM d_pay_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query pay bill"
+  pay_status="$(docker_mysql_query livepass_pay "SELECT pay_status FROM d_pay_bill WHERE order_number = ${ORDER_NUMBER};")" || fail "failed to query pay bill"
   [[ "${pay_status}" == "2" ]] || fail "expected d_pay_bill.pay_status=2 after blocked refund, got ${pay_status}"
   assert_no_refund_bill
 

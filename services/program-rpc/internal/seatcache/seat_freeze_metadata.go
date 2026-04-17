@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"damai-go/pkg/xerr"
+	"livepass/pkg/xerr"
 )
 
 const (

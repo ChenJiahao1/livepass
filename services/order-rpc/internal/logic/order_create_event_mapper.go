@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"time"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xid"
-	orderevent "damai-go/services/order-rpc/internal/event"
-	"damai-go/services/order-rpc/internal/model"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xid"
+	orderevent "livepass/services/order-rpc/internal/event"
+	"livepass/services/order-rpc/internal/model"
 )
 
 type orderWriteModels struct {

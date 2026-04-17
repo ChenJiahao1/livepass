@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"damai-go/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/rush"
 )
 
 func TestHandleFinalizeFailureOutcomeTransitionedReleasesFreeze(t *testing.T) {

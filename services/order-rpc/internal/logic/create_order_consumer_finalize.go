@@ -3,8 +3,8 @@ package logic
 import (
 	"errors"
 
-	"damai-go/pkg/xerr"
-	"damai-go/services/order-rpc/internal/rush"
+	"livepass/pkg/xerr"
+	"livepass/services/order-rpc/internal/rush"
 )
 
 func handleFinalizeFailureOutcome(outcome rush.AttemptTransitionOutcome, err error) (bool, error) {

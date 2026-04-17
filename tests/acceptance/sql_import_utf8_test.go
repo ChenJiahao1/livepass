@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"damai-go/pkg/xmysql"
+	"livepass/pkg/xmysql"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -19,7 +19,7 @@ func TestImportSQLScriptPreservesUTF8ProgramSeed(t *testing.T) {
 	adminDB := openAcceptanceMySQL(t, xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/?parseTime=true"))
 	defer adminDB.Close()
 
-	dbName := fmt.Sprintf("damai_program_import_utf8_%d", time.Now().UnixNano())
+	dbName := fmt.Sprintf("livepass_program_import_utf8_%d", time.Now().UnixNano())
 	dropAcceptanceDatabase(t, adminDB, dbName)
 	defer dropAcceptanceDatabase(t, adminDB, dbName)
 
@@ -97,7 +97,7 @@ func TestImportSQLScriptCreatesUserDevAccount(t *testing.T) {
 	adminDB := openAcceptanceMySQL(t, xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/?parseTime=true"))
 	defer adminDB.Close()
 
-	dbName := fmt.Sprintf("damai_user_import_seed_%d", time.Now().UnixNano())
+	dbName := fmt.Sprintf("livepass_user_import_seed_%d", time.Now().UnixNano())
 	dropAcceptanceDatabase(t, adminDB, dbName)
 	defer dropAcceptanceDatabase(t, adminDB, dbName)
 
@@ -150,7 +150,7 @@ func TestImportSQLScriptCreatesAgentsSchemaWithRequiredColumns(t *testing.T) {
 	adminDB := openAcceptanceMySQL(t, xmysql.WithLocalTime("root:123456@tcp(127.0.0.1:3306)/?parseTime=true"))
 	defer adminDB.Close()
 
-	dbName := fmt.Sprintf("damai_agents_import_schema_%d", time.Now().UnixNano())
+	dbName := fmt.Sprintf("livepass_agents_import_schema_%d", time.Now().UnixNano())
 	dropAcceptanceDatabase(t, adminDB, dbName)
 	defer dropAcceptanceDatabase(t, adminDB, dbName)
 

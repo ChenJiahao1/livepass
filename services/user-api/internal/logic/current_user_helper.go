@@ -3,8 +3,8 @@ package logic
 import (
 	"context"
 
-	"damai-go/pkg/xerr"
-	"damai-go/pkg/xmiddleware"
+	"livepass/pkg/xerr"
+	"livepass/pkg/xmiddleware"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

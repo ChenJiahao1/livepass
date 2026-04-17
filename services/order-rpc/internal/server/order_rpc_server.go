@@ -7,9 +7,9 @@ package server
 import (
 	"context"
 
-	"damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/internal/svc"
-	"damai-go/services/order-rpc/pb"
+	"livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/svc"
+	"livepass/services/order-rpc/pb"
 )
 
 type OrderRpcServer struct {

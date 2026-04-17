@@ -3,9 +3,9 @@ package worker
 import (
 	"context"
 
-	"damai-go/jobs/order-close/internal/svc"
-	"damai-go/jobs/order-close/taskdef"
-	orderrpc "damai-go/services/order-rpc/orderrpc"
+	"livepass/jobs/order-close/internal/svc"
+	"livepass/jobs/order-close/taskdef"
+	orderrpc "livepass/services/order-rpc/orderrpc"
 
 	"github.com/hibiken/asynq"
 )

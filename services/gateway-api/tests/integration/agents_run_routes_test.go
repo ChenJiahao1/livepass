@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"damai-go/services/gateway-api/tests/testkit"
+	"livepass/services/gateway-api/tests/testkit"
 )
 
 func TestGatewayForwardsAgentRunsWithInjectedUserHeader(t *testing.T) {

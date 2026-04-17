@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"damai-go/pkg/xerr"
+	"livepass/pkg/xerr"
 )
 
 func TestSeatAssignmentPrefersSameRowConsecutiveSeats(t *testing.T) {

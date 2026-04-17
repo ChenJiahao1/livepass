@@ -3,7 +3,7 @@ package logic
 import (
 	"sort"
 
-	"damai-go/pkg/xerr"
+	"livepass/pkg/xerr"
 )
 
 type seatCandidate struct {

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	serverpkg "damai-go/services/order-rpc/internal/server"
-	"damai-go/services/order-rpc/pb"
-	payrpc "damai-go/services/pay-rpc/payrpc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	serverpkg "livepass/services/order-rpc/internal/server"
+	"livepass/services/order-rpc/pb"
+	payrpc "livepass/services/pay-rpc/payrpc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

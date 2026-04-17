@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	logicpkg "damai-go/services/order-rpc/internal/logic"
-	"damai-go/services/order-rpc/pb"
-	"damai-go/services/order-rpc/sharding"
-	payrpc "damai-go/services/pay-rpc/payrpc"
-	programrpc "damai-go/services/program-rpc/programrpc"
+	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/pb"
+	"livepass/services/order-rpc/sharding"
+	payrpc "livepass/services/pay-rpc/payrpc"
+	programrpc "livepass/services/program-rpc/programrpc"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

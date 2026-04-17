@@ -8,7 +8,7 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/gateway"
 
-	"damai-go/services/gateway-api/internal/config"
+	"livepass/services/gateway-api/internal/config"
 )
 
 func TestLoadGatewayConfig(t *testing.T) {
