@@ -1,6 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 用途：
+#   一键启动 damai-go 后端运行环境。
+#
+# 默认行为：
+#   - 拉起 MySQL / Redis / etcd / Kafka
+#   - 检测空库并自动导入 SQL
+#   - 启动全部 Go RPC / API / Job
+#   - 启动 order-mcp / program-mcp / agents
+#   - 最后启动 gateway-api
+#
+# 常用参数：
+#   --import-sql      启动前强制重新导入 SQL
+#   --skip-agents     跳过 MCP 与 agents
+#   --only-agents     只启动 agents 相关链路
+#   --force-restart   先停止脚本管理的服务，再重新启动
+#   --skip-infra-check 跳过基础设施拉起与检查
+#   -h, --help        查看完整帮助
+#
+# 常用示例：
+#   bash scripts/deploy/start_backend.sh
+#   bash scripts/deploy/start_backend.sh --force-restart
+#   bash scripts/deploy/start_backend.sh --only-agents --force-restart
+#
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/.codex/runlogs}"
@@ -9,6 +32,7 @@ IMPORT_SQL="${IMPORT_SQL:-0}"
 START_AGENTS="${START_AGENTS:-1}"
 CHECK_INFRA="${CHECK_INFRA:-1}"
 ONLY_AGENTS="${ONLY_AGENTS:-0}"
+FORCE_RESTART="${FORCE_RESTART:-0}"
 
 INFRA_COMPOSE_FILE="${REPO_ROOT}/deploy/docker-compose/docker-compose.infrastructure.yml"
 
@@ -55,6 +79,9 @@ parse_args() {
       --only-agents)
         ONLY_AGENTS=1
         ;;
+      --force-restart)
+        FORCE_RESTART=1
+        ;;
       -h|--help)
         cat <<'EOF'
 Usage: bash scripts/deploy/start_backend.sh [options]
@@ -64,6 +91,7 @@ Options:
   --skip-agents       do not start order MCP server and agents service
   --skip-infra-check  skip docker infrastructure bootstrap and checks
   --only-agents       only start agents-related services and dependencies
+  --force-restart     stop managed services first, then start again
   -h, --help          show this help message
 
 Environment:
@@ -71,6 +99,7 @@ Environment:
   START_AGENTS=0|1
   CHECK_INFRA=0|1
   ONLY_AGENTS=0|1
+  FORCE_RESTART=0|1
   LOG_DIR=/abs/path
   PID_DIR=/abs/path
 EOF
@@ -153,6 +182,48 @@ wait_for_process() {
   done
 
   return 1
+}
+
+wait_for_process_stopped() {
+  local pattern="$1"
+  local attempts="${2:-20}"
+  local sleep_seconds="${3:-1}"
+  local i
+
+  for ((i = 0; i < attempts; i++)); do
+    if ! is_process_running "${pattern}"; then
+      return 0
+    fi
+    sleep "${sleep_seconds}"
+  done
+
+  return 1
+}
+
+stop_port_listeners() {
+  local port="$1"
+  local pids pid
+
+  [[ "${port}" != "0" ]] || return 0
+
+  pids="$(ss -ltnp "( sport = :${port} )" 2>/dev/null | grep -o 'pid=[0-9]\+' | cut -d= -f2 | sort -u || true)"
+  [[ -n "${pids}" ]] || return 0
+
+  for pid in ${pids}; do
+    if kill -0 "${pid}" >/dev/null 2>&1; then
+      log "stopping port :${port} listener pid ${pid}"
+      kill "${pid}" >/dev/null 2>&1 || true
+    fi
+  done
+
+  sleep 1
+
+  pids="$(ss -ltnp "( sport = :${port} )" 2>/dev/null | grep -o 'pid=[0-9]\+' | cut -d= -f2 | sort -u || true)"
+  for pid in ${pids}; do
+    if kill -0 "${pid}" >/dev/null 2>&1; then
+      kill -9 "${pid}" >/dev/null 2>&1 || true
+    fi
+  done
 }
 
 check_container_running() {
@@ -262,6 +333,69 @@ run_logged_command() {
   fi
 }
 
+stop_service() {
+  local name="$1"
+  local port="$2"
+  local process_pattern="$3"
+  local pid_file="${PID_DIR}/${name}.pid"
+  local pid
+
+  if [[ -f "${pid_file}" ]]; then
+    pid="$(cat "${pid_file}" 2>/dev/null || true)"
+    if [[ -n "${pid}" ]] && kill -0 "${pid}" >/dev/null 2>&1; then
+      log "stopping ${name} by pid ${pid}"
+      kill "${pid}" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  if is_process_running "${process_pattern}"; then
+    log "stopping ${name} by pattern"
+    pkill -f "${process_pattern}" >/dev/null 2>&1 || true
+    if ! wait_for_process_stopped "${process_pattern}" 15 1; then
+      pkill -9 -f "${process_pattern}" >/dev/null 2>&1 || true
+      wait_for_process_stopped "${process_pattern}" 5 1 || fail "failed to stop ${name}"
+    fi
+  fi
+
+  stop_port_listeners "${port}"
+  rm -f "${pid_file}"
+}
+
+force_restart_requested_services() {
+  if [[ "${FORCE_RESTART}" != "1" ]]; then
+    return
+  fi
+
+  log "force restarting requested services"
+
+  if [[ "${ONLY_AGENTS}" == "1" ]]; then
+    stop_service "agents" 8891 "uvicorn app.main:app"
+    stop_service "program-mcp" 9083 "program_mcp_server"
+    stop_service "order-mcp" 9082 "order_mcp_server"
+    stop_service "order-rpc" 8082 "services/order-rpc/order.go"
+    stop_service "program-rpc" 8083 "services/program-rpc/program.go"
+    stop_service "user-rpc" 8080 "services/user-rpc/user.go"
+    return
+  fi
+
+  stop_service "gateway-api" 8081 "services/gateway-api/gateway.go"
+  stop_service "agents" 8891 "uvicorn app.main:app"
+  stop_service "program-mcp" 9083 "program_mcp_server"
+  stop_service "order-mcp" 9082 "order_mcp_server"
+  stop_service "pay-api" 8892 "services/pay-api/pay.go"
+  stop_service "order-api" 8890 "services/order-api/order.go"
+  stop_service "program-api" 8889 "services/program-api/program.go"
+  stop_service "user-api" 8888 "services/user-api/user.go"
+  stop_service "rush-inventory-preheat-dispatcher" 0 "jobs/rush-inventory-preheat/cmd/dispatcher/main.go|rush-inventory-preheat-dispatcher.yaml"
+  stop_service "rush-inventory-preheat-worker" 0 "jobs/rush-inventory-preheat/cmd/worker/main.go|rush-inventory-preheat-worker.yaml"
+  stop_service "order-close-dispatcher" 0 "jobs/order-close/cmd/dispatcher/main.go|order-close-dispatcher.yaml"
+  stop_service "order-close-worker" 0 "jobs/order-close/cmd/worker/main.go|order-close-worker.yaml"
+  stop_service "order-rpc" 8082 "services/order-rpc/order.go"
+  stop_service "pay-rpc" 8084 "services/pay-rpc/pay.go"
+  stop_service "program-rpc" 8083 "services/program-rpc/program.go"
+  stop_service "user-rpc" 8080 "services/user-rpc/user.go"
+}
+
 start_service() {
   local name="$1"
   local port="$2"
@@ -334,7 +468,7 @@ start_optional_services() {
 
   start_service "order-mcp" 9082 "order_mcp_server" "go run ./services/order-rpc/cmd/order_mcp_server -f services/order-rpc/etc/order-mcp.yaml"
   start_service "program-mcp" 9083 "program_mcp_server" "go run ./services/program-rpc/cmd/program_mcp_server -f services/program-rpc/etc/program-mcp.yaml"
-  run_logged_command "agents-generate-proto-stubs" "bash agents/scripts/generate_proto_stubs.sh"
+  run_logged_command "agents-generate-proto-stubs" "cd agents && bash scripts/generate_proto_stubs.sh"
   start_service "agents" 8891 "uvicorn app.main:app" "cd agents && uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload"
 }
 
@@ -365,6 +499,7 @@ main() {
   require_cmd nohup
   require_cmd go
   require_cmd pgrep
+  require_cmd pkill
   require_cmd docker
 
   parse_args "$@"
@@ -372,6 +507,7 @@ main() {
     fail "--only-agents cannot be combined with --skip-agents"
   fi
   ensure_dirs
+  force_restart_requested_services
   ensure_infra
   maybe_import_sql
   if [[ "${ONLY_AGENTS}" == "1" ]]; then

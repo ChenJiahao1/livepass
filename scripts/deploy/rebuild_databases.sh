@@ -1,6 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 用途：
+#   重建运行数据，不负责启动服务。
+#
+# 默认行为：
+#   - 删除并重建 user / program / order / pay / agents MySQL 业务库
+#   - 重新导入 schema 与 seed
+#   - 清空 Redis 指定 DB
+#   - 删除并重建 Kafka 业务 Topic
+#
+# 常用环境变量：
+#   MYSQL_CONTAINER              MySQL 容器名，默认 docker-compose-mysql-1
+#   MYSQL_USER / MYSQL_PASSWORD  MySQL 凭据
+#   MYSQL_DB_USER...             各业务库名覆盖
+#   REDIS_CONTAINER              Redis 容器名，默认 docker-compose-redis-1
+#   REDIS_DB                     要清空的 Redis DB，默认 0
+#   KAFKA_CONTAINER              Kafka 容器名，默认 docker-compose-kafka-1
+#   KAFKA_TOPICS                 需要重建的 Topic，逗号分隔
+#   KAFKA_TOPIC_PARTITIONS       Topic 分区数，默认 5
+#
+# 常用示例：
+#   bash scripts/deploy/rebuild_databases.sh
+#   REDIS_DB=1 bash scripts/deploy/rebuild_databases.sh
+#   KAFKA_TOPICS=ticketing.attempt.command.v1 bash scripts/deploy/rebuild_databases.sh
+#
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 

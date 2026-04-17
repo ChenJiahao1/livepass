@@ -101,6 +101,9 @@ bash scripts/deploy/start_backend.sh
 # 强制重新导入 SQL
 bash scripts/deploy/start_backend.sh --import-sql
 
+# 强制重启已运行服务后再启动
+bash scripts/deploy/start_backend.sh --force-restart
+
 # 只启动后端主链路，跳过 MCP 和 agents
 bash scripts/deploy/start_backend.sh --skip-agents
 
