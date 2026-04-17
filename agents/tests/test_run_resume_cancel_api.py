@@ -3,7 +3,7 @@ import json
 from fastapi.testclient import TestClient
 from langgraph.types import Command
 
-from app.api.routes import (
+from app.api.dependencies import (
     get_agent_runtime,
     get_event_store,
     get_llm,

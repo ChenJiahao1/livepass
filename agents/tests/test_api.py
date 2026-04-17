@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from app.api.schemas import CreateRunRequest, CreateThreadResponse, ThreadDTO
-from app.api.routes import (
+from app.api.dependencies import (
     get_agent_runtime,
     get_event_store,
     get_llm,
@@ -21,6 +22,10 @@ from app.runs.event_store import InMemoryRunEventStore
 from app.runs.repository import InMemoryRunRepository
 from app.runs.tool_call_repository import InMemoryToolCallRepository
 from app.conversations.threads.repository import InMemoryThreadRepository
+
+
+def test_api_dependency_providers_live_in_dedicated_module():
+    assert Path("app/api/dependencies.py").is_file()
 
 
 def test_create_thread_response_uses_thread_resource_shape():

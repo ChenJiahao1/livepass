@@ -1,6 +1,3 @@
-"""LangGraph-facing agent entrypoints."""
+"""Agent role package."""
 
-from app.agents.coordinator import CoordinatorAgent
-from app.agents.supervisor import SupervisorAgent
-
-__all__ = ["CoordinatorAgent", "SupervisorAgent"]
+__all__: list[str] = []
