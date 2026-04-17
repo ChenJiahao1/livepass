@@ -22,7 +22,7 @@ var configFile = flag.String("f", "etc/rush-inventory-preheat-dispatcher.yaml", 
 func main() {
 	flag.Parse()
 
-	var c config.Config
+	var c config.DispatcherConfig
 	conf.MustLoad(*configFile, &c)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

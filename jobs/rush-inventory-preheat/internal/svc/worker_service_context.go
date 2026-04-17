@@ -38,7 +38,7 @@ type ProgramPreheatRPC interface {
 }
 
 type WorkerServiceContext struct {
-	Config        config.Config
+	Config        config.WorkerConfig
 	Server        *asynq.Server
 	ShowTimeStore ShowTimeStore
 	OrderRpc      OrderPreheatRPC
@@ -57,7 +57,7 @@ type programRPCPrimeAdapter struct {
 	client programrpc.ProgramRpc
 }
 
-func NewWorkerServiceContext(c config.Config) *WorkerServiceContext {
+func NewWorkerServiceContext(c config.WorkerConfig) *WorkerServiceContext {
 	c.MySQL = c.MySQL.Normalize()
 	c.MySQL.DataSource = xmysql.WithLocalTime(c.MySQL.DataSource)
 

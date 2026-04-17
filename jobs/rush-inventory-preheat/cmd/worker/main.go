@@ -19,7 +19,7 @@ var configFile = flag.String("f", "etc/rush-inventory-preheat-worker.yaml", "the
 func main() {
 	flag.Parse()
 
-	var c config.Config
+	var c config.WorkerConfig
 	conf.MustLoad(*configFile, &c)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

@@ -11,12 +11,12 @@ import (
 )
 
 type DispatcherServiceContext struct {
-	Config    config.Config
+	Config    config.DispatcherConfig
 	Store     dispatch.Store
 	Publisher delaytask.Publisher
 }
 
-func NewDispatcherServiceContext(c config.Config) *DispatcherServiceContext {
+func NewDispatcherServiceContext(c config.DispatcherConfig) *DispatcherServiceContext {
 	return &DispatcherServiceContext{
 		Config:    c,
 		Store:     dispatch.NewMysqlStore(newShardMysqlConns(c.Shards)),

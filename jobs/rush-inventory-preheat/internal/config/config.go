@@ -19,11 +19,15 @@ type AsynqConfig struct {
 	Redis           xredis.Config `json:"Redis,optional"`
 }
 
-type Config struct {
+type DispatcherConfig struct {
 	Interval   time.Duration `json:",default=5s"`
 	BatchSize  int64         `json:",default=200"`
-	MySQL      xmysql.Config
 	Shards     map[string]xmysql.Config `json:",optional"`
+	Asynq      AsynqConfig
+}
+
+type WorkerConfig struct {
+	MySQL      xmysql.Config
 	Asynq      AsynqConfig
 	OrderRpc   zrpc.RpcClientConf
 	ProgramRpc zrpc.RpcClientConf
