@@ -78,20 +78,68 @@ damai-go/
 - `order` / `pay`：下单、查单、取消、模拟支付、退款、超时关单
 - `gateway` / `agents`：统一 HTTP 入口与 `Thread / Message / Run` 联调
 
-## 本地依赖
+## 快速开始
 
-基础设施通过 Docker Compose 启动：
+推荐直接使用一键启动脚本：
 
 ```bash
-docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
+bash scripts/deploy/start_backend.sh
 ```
 
-当前基础设施包含：
+该脚本会自动完成：
+
+- 拉起 MySQL、Redis、etcd、Kafka 基础设施
+- 检测业务库是否为空；若为空则自动导入 schema 与 seed
+- 启动全部 Go RPC / API / Job
+- 启动 `order-mcp`、`program-mcp`
+- 生成 `agents` proto stub 并启动 `agents`
+- 最后启动 `gateway-api`
+
+常用变体：
+
+```bash
+# 强制重新导入 SQL
+bash scripts/deploy/start_backend.sh --import-sql
+
+# 只启动后端主链路，跳过 MCP 和 agents
+bash scripts/deploy/start_backend.sh --skip-agents
+
+# 只启动 agents 相关链路（user/program/order-rpc + MCP + agents）
+bash scripts/deploy/start_backend.sh --only-agents
+```
+
+如需重建运行数据，请使用独立脚本：
+
+```bash
+bash scripts/deploy/rebuild_databases.sh
+```
+
+该脚本会：
+
+- 删除并重建 `user/program/order/pay/agents` MySQL 业务库
+- 重新导入全部 schema 与 seed
+- 清空 Redis DB `0`
+- 删除并重建 Kafka 业务 Topic（默认 `ticketing.attempt.command.v1`）
+
+本地初始化后会预置一个普通测试用户：
+
+- 手机号：`13800000000`
+- 密码：`123456`
+
+## 基础设施与数据
+
+默认基础设施为：
 
 - MySQL
 - Redis
 - etcd
 - Kafka
+
+如果只想手动拉起基础设施：
+
+```bash
+docker compose -f deploy/docker-compose/docker-compose.infrastructure.yml up -d
+```
 
 如果需要模拟 `order-db-0 + order-db-1` 分片库：
 
@@ -104,22 +152,16 @@ docker compose -f deploy/mysql/docker-compose.sharding.yml up -d
 - `order-db-0`: `127.0.0.1:3317`
 - `order-db-1`: `127.0.0.1:3318`
 
-## 初始化数据
-
-MySQL 容器启动后，执行统一导入脚本初始化 `user/program/order/pay/agents` 域表结构与种子数据：
+如需单独导入 SQL：
 
 ```bash
 bash scripts/import_sql.sh
-```
-
-常用覆盖项：
-
-```bash
 IMPORT_DOMAINS=program bash scripts/import_sql.sh
+IMPORT_DOMAINS=agents bash scripts/import_sql.sh
 MYSQL_CONTAINER=docker-compose-mysql-1 MYSQL_PASSWORD=123456 bash scripts/import_sql.sh
 ```
 
-可选数据库名覆盖：
+如需覆盖数据库名：
 
 ```bash
 MYSQL_DB_USER=damai_user \
@@ -129,17 +171,6 @@ MYSQL_DB_PAY=damai_pay \
 MYSQL_DB_AGENTS=damai_agents \
 bash scripts/import_sql.sh
 ```
-
-如果只导入 agents 相关表：
-
-```bash
-IMPORT_DOMAINS=agents bash scripts/import_sql.sh
-```
-
-本地初始化后会预置一个普通测试用户：
-
-- 手机号：`13800000000`
-- 密码：`123456`
 
 ## 运行测试
 
@@ -156,7 +187,9 @@ cd agents
 uv run pytest -v
 ```
 
-## 启动服务
+## 手动启动（调试用）
+
+如需跳过一键脚本、手动排查链路，可按下面方式启动：
 
 ```bash
 go run services/user-rpc/user.go -f services/user-rpc/etc/user.yaml
@@ -169,27 +202,10 @@ go run services/user-api/user.go -f services/user-api/etc/user-api.yaml
 go run services/program-api/program.go -f services/program-api/etc/program-api.yaml
 go run services/order-api/order.go -f services/order-api/etc/order-api.yaml
 go run services/pay-api/pay.go -f services/pay-api/etc/pay-api.yaml
+go run services/order-rpc/cmd/order_mcp_server/main.go -f services/order-rpc/etc/order-mcp.yaml
+go run services/program-rpc/cmd/program_mcp_server/main.go -f services/program-rpc/etc/program-mcp.yaml
 go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.yaml
 ```
-
-`agents` 组件独立启动：
-
-```bash
-cd agents
-bash scripts/generate_proto_stubs.sh
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
-```
-
-建议启动顺序：
-
-1. MySQL、Redis、etcd、Kafka
-2. `user-rpc`、`program-rpc`、`pay-rpc`
-3. `order-rpc`
-4. `jobs/order-close/cmd/worker`
-5. `jobs/order-close/cmd/dispatcher`
-6. `user-api`、`program-api`、`order-api`、`pay-api`
-7. `agents`
-8. `gateway-api`
 
 ## 默认端口
 
@@ -203,6 +219,8 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload
 - `order-api`: `8890`
 - `agents`: `8891`
 - `pay-api`: `8892`
+- `order-mcp`: `9082`
+- `program-mcp`: `9083`
 
 ## 关键运行语义
 
@@ -233,13 +251,6 @@ bash scripts/acceptance/order_refund.sh
 JWT=<user-jwt> bash scripts/acceptance/agent_threads.sh
 ```
 
-`agents` 契约测试：
-
-```bash
-cd agents
-uv run pytest tests/test_e2e_contract.py -v
-```
-
 ## 常用联调配置
 
 `agents` 至少需要确认以下配置：
@@ -248,10 +259,6 @@ uv run pytest tests/test_e2e_contract.py -v
 - `USER_RPC_TARGET=127.0.0.1:8080`
 - `PROGRAM_RPC_TARGET=127.0.0.1:8083`
 - `ORDER_RPC_TARGET=127.0.0.1:8082`
-
-访问统一入口时，订单相关接口通常需要：
-
-- `Authorization: Bearer <jwt>`
 
 ## 开发原则
 

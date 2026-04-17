@@ -8,8 +8,22 @@ PID_DIR="${PID_DIR:-${REPO_ROOT}/.codex/pids}"
 IMPORT_SQL="${IMPORT_SQL:-0}"
 START_AGENTS="${START_AGENTS:-1}"
 CHECK_INFRA="${CHECK_INFRA:-1}"
+ONLY_AGENTS="${ONLY_AGENTS:-0}"
 
 INFRA_COMPOSE_FILE="${REPO_ROOT}/deploy/docker-compose/docker-compose.infrastructure.yml"
+
+MYSQL_CONTAINER="${MYSQL_CONTAINER:-docker-compose-mysql-1}"
+MYSQL_USER="${MYSQL_USER:-root}"
+MYSQL_PASSWORD="${MYSQL_PASSWORD:-${MYSQL_ROOT_PASSWORD:-123456}}"
+MYSQL_DB_USER="${MYSQL_DB_USER:-damai_user}"
+MYSQL_DB_PROGRAM="${MYSQL_DB_PROGRAM:-damai_program}"
+MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-damai_order}"
+MYSQL_DB_PAY="${MYSQL_DB_PAY:-damai_pay}"
+MYSQL_DB_AGENTS="${MYSQL_DB_AGENTS:-damai_agents}"
+
+REDIS_CONTAINER="${REDIS_CONTAINER:-docker-compose-redis-1}"
+ETCD_CONTAINER="${ETCD_CONTAINER:-docker-compose-etcd-1}"
+KAFKA_CONTAINER="${KAFKA_CONTAINER:-docker-compose-kafka-1}"
 
 log() {
   printf '[start-backend] %s\n' "$*"
@@ -38,6 +52,9 @@ parse_args() {
       --skip-infra-check)
         CHECK_INFRA=0
         ;;
+      --only-agents)
+        ONLY_AGENTS=1
+        ;;
       -h|--help)
         cat <<'EOF'
 Usage: bash scripts/deploy/start_backend.sh [options]
@@ -45,13 +62,15 @@ Usage: bash scripts/deploy/start_backend.sh [options]
 Options:
   --import-sql        import mysql schema and seed data before startup
   --skip-agents       do not start order MCP server and agents service
-  --skip-infra-check  skip docker infrastructure running checks
+  --skip-infra-check  skip docker infrastructure bootstrap and checks
+  --only-agents       only start agents-related services and dependencies
   -h, --help          show this help message
 
 Environment:
   IMPORT_SQL=0|1
   START_AGENTS=0|1
   CHECK_INFRA=0|1
+  ONLY_AGENTS=0|1
   LOG_DIR=/abs/path
   PID_DIR=/abs/path
 EOF
@@ -93,6 +112,24 @@ wait_for_port() {
   return 1
 }
 
+wait_for_command() {
+  local name="$1"
+  local attempts="${2:-30}"
+  local sleep_seconds="${3:-1}"
+  shift 3
+  local i
+
+  for ((i = 0; i < attempts; i++)); do
+    if "$@"; then
+      log "${name} check passed"
+      return 0
+    fi
+    sleep "${sleep_seconds}"
+  done
+
+  return 1
+}
+
 is_process_running() {
   local pattern="$1"
 
@@ -124,38 +161,105 @@ check_container_running() {
   docker ps --format '{{.Names}}' | grep -Fx "${container_name}" >/dev/null
 }
 
+mysql_exec() {
+  docker exec "${MYSQL_CONTAINER}" \
+    mysql \
+    --default-character-set=utf8mb4 \
+    -u"${MYSQL_USER}" \
+    "-p${MYSQL_PASSWORD}" \
+    "$@"
+}
+
+mysql_ready() {
+  mysql_exec -e 'SELECT 1' >/dev/null 2>&1
+}
+
+redis_ready() {
+  docker exec "${REDIS_CONTAINER}" redis-cli ping | grep -F 'PONG' >/dev/null
+}
+
+kafka_ready() {
+  docker exec "${KAFKA_CONTAINER}" \
+    /opt/kafka/bin/kafka-topics.sh \
+    --bootstrap-server 127.0.0.1:9092 \
+    --list >/dev/null 2>&1
+}
+
+database_has_tables() {
+  local database="$1"
+  local table_count
+
+  table_count="$(mysql_exec -N -B -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${database}'" 2>/dev/null || echo 0)"
+  [[ "${table_count:-0}" -gt 0 ]]
+}
+
+should_import_sql() {
+  if [[ "${IMPORT_SQL}" == "1" ]]; then
+    return 0
+  fi
+
+  database_has_tables "${MYSQL_DB_USER}" || return 0
+  database_has_tables "${MYSQL_DB_PROGRAM}" || return 0
+  database_has_tables "${MYSQL_DB_ORDER}" || return 0
+  database_has_tables "${MYSQL_DB_PAY}" || return 0
+  database_has_tables "${MYSQL_DB_AGENTS}" || return 0
+  return 1
+}
+
 ensure_infra() {
   local containers=(
-    docker-compose-mysql-1
-    docker-compose-redis-1
-    docker-compose-etcd-1
-    docker-compose-kafka-1
+    "${MYSQL_CONTAINER}"
+    "${REDIS_CONTAINER}"
+    "${ETCD_CONTAINER}"
+    "${KAFKA_CONTAINER}"
   )
   local container_name
 
   [[ -f "${INFRA_COMPOSE_FILE}" ]] || fail "compose file not found: ${INFRA_COMPOSE_FILE}"
 
   if [[ "${CHECK_INFRA}" != "1" ]]; then
-    log "skip infrastructure checks"
+    log "skip infrastructure bootstrap and checks"
     return
   fi
 
-  require_cmd docker
+  log "ensuring infrastructure via docker compose"
+  docker compose -f "${INFRA_COMPOSE_FILE}" up -d
 
   for container_name in "${containers[@]}"; do
     check_container_running "${container_name}" || fail "infrastructure container not running: ${container_name}"
   done
 
+  wait_for_port "mysql" 3306 60 1 || fail "mysql not ready on :3306"
+  wait_for_port "redis" 6379 60 1 || fail "redis not ready on :6379"
+  wait_for_port "etcd" 2379 60 1 || fail "etcd not ready on :2379"
+  wait_for_port "kafka" 9094 90 1 || fail "kafka not ready on :9094"
+  wait_for_command "mysql" 60 1 mysql_ready || fail "mysql readiness check failed"
+  wait_for_command "redis" 60 1 redis_ready || fail "redis readiness check failed"
+  wait_for_command "kafka" 90 1 kafka_ready || fail "kafka readiness check failed"
+
   log "infrastructure containers are running"
 }
 
 maybe_import_sql() {
-  if [[ "${IMPORT_SQL}" != "1" ]]; then
+  if ! should_import_sql; then
+    log "skip sql import, databases already initialized"
     return
   fi
 
   log "importing sql data"
   bash "${REPO_ROOT}/scripts/import_sql.sh"
+}
+
+run_logged_command() {
+  local name="$1"
+  local cmd="$2"
+  local log_file="${LOG_DIR}/${name}.log"
+
+  log "running ${name}"
+  if ! bash -lc "cd '${REPO_ROOT}' && ${cmd}" >"${log_file}" 2>&1; then
+    tail -n 40 "${log_file}" >&2 || true
+    fail "${name} failed"
+  fi
 }
 
 start_service() {
@@ -213,15 +317,24 @@ start_core_services() {
   start_service "pay-api" 8892 "services/pay-api/pay.go" "go run services/pay-api/pay.go -f services/pay-api/etc/pay-api.yaml"
 }
 
+start_agents_related_services() {
+  start_service "user-rpc" 8080 "services/user-rpc/user.go" "go run services/user-rpc/user.go -f services/user-rpc/etc/user.yaml"
+  start_service "program-rpc" 8083 "services/program-rpc/program.go" "go run services/program-rpc/program.go -f services/program-rpc/etc/program.yaml"
+  start_service "order-rpc" 8082 "services/order-rpc/order.go" "go run services/order-rpc/order.go -f services/order-rpc/etc/order.yaml"
+  start_optional_services
+}
+
 start_optional_services() {
   if [[ "${START_AGENTS}" != "1" ]]; then
-    log "skip order-mcp and agents services"
+    log "skip order-mcp, program-mcp and agents services"
     return
   fi
 
   require_cmd uv
 
   start_service "order-mcp" 9082 "order_mcp_server" "go run ./services/order-rpc/cmd/order_mcp_server -f services/order-rpc/etc/order-mcp.yaml"
+  start_service "program-mcp" 9083 "program_mcp_server" "go run ./services/program-rpc/cmd/program_mcp_server -f services/program-rpc/etc/program-mcp.yaml"
+  run_logged_command "agents-generate-proto-stubs" "bash agents/scripts/generate_proto_stubs.sh"
   start_service "agents" 8891 "uvicorn app.main:app" "cd agents && uv run uvicorn app.main:app --host 0.0.0.0 --port 8891 --reload"
 }
 
@@ -230,12 +343,18 @@ start_gateway() {
 }
 
 print_summary() {
+  local port_pattern=':(8080|8081|8082|8083|8084|8888|8889|8890|8891|8892|9082|9083) '
+
+  if [[ "${ONLY_AGENTS}" == "1" ]]; then
+    port_pattern=':(8080|8082|8083|8891|9082|9083) '
+  fi
+
   cat <<EOF
 [start-backend] startup finished
 [start-backend] logs: ${LOG_DIR}
 [start-backend] pids: ${PID_DIR}
 [start-backend] check ports with:
-ss -ltnp | grep -E ':(8080|8081|8082|8083|8084|8888|8889|8890|8891|8892|9082) '
+ss -ltnp | grep -E '${port_pattern}'
 EOF
 }
 
@@ -246,11 +365,20 @@ main() {
   require_cmd nohup
   require_cmd go
   require_cmd pgrep
+  require_cmd docker
 
   parse_args "$@"
+  if [[ "${ONLY_AGENTS}" == "1" && "${START_AGENTS}" != "1" ]]; then
+    fail "--only-agents cannot be combined with --skip-agents"
+  fi
   ensure_dirs
   ensure_infra
   maybe_import_sql
+  if [[ "${ONLY_AGENTS}" == "1" ]]; then
+    start_agents_related_services
+    print_summary
+    return
+  fi
   start_core_services
   start_optional_services
   start_gateway
