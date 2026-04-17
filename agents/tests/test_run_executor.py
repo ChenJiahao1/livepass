@@ -6,7 +6,7 @@ import pytest
 from langgraph.types import Command
 
 from app.runs.execution.runtime import AgentRuntimeService
-from app.common.errors import ApiError, ApiErrorCode
+from app.shared.errors import ApiError, ApiErrorCode
 from app.conversations.messages.models import MESSAGE_STATUS_ERROR
 from app.conversations.messages.repository import InMemoryMessageRepository
 from app.conversations.messages.service import MessageService

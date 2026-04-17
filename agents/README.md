@@ -36,6 +36,23 @@ uv run uvicorn app.api.app:app --reload
 - `outputMessage`
 - `activeToolCall`
 
+## 目录结构
+
+```text
+app/
+  api/             FastAPI app、routes、schemas、dependencies
+  graph/           graph builder / nodes / routing / state / subgraphs
+  agents/          coordinator / supervisor / llm / specialists / tools
+  runs/            run 资源模型、仓储、事件、tool call、execution
+  conversations/   threads / messages
+  integrations/    mcp / knowledge / storage
+  shared/          config / errors / ids / cursor / prompt_loader
+prompts/
+  coordinator.md
+  supervisor.md
+  *_specialist.md
+```
+
 ## 关键环境变量
 
 ```bash

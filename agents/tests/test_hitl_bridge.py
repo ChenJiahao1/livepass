@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from app.runs.interrupt_models import HumanInterruptPayload
-from app.common.errors import ApiError, ApiErrorCode
+from app.shared.errors import ApiError, ApiErrorCode
 from app.runs.execution.interrupt_bridge import InterruptBridge
 from app.runs.tool_call_models import TOOL_CALL_STATUS_WAITING_HUMAN, ToolCallRecord
 from app.runs.tool_call_repository import InMemoryToolCallRepository

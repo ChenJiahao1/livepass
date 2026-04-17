@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.common.errors import ApiError, ApiErrorCode
+from app.shared.errors import ApiError, ApiErrorCode
 from app.conversations.messages.models import MESSAGE_ROLE_ASSISTANT, MESSAGE_ROLE_USER, MESSAGE_STATUS_IN_PROGRESS
 from app.conversations.messages.repository import InMemoryMessageRepository
 from app.conversations.messages.service import MessageService

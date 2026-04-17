@@ -12,7 +12,7 @@ from app.conversations.messages.repository import MessageRepository, MySQLMessag
 from app.conversations.messages.service import MessageService
 from app.conversations.threads.repository import MySQLThreadRepository, ThreadRepository
 from app.conversations.threads.service import ThreadService
-from app.graph import build_graph_app
+from app.graph.builder import build_graph_app
 from app.integrations.mcp.registry import MCPToolRegistry
 from app.integrations.storage.mysql import MySQLConnectionFactory
 from app.integrations.storage.redis import RedisCheckpointSaver
