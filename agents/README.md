@@ -69,6 +69,7 @@ ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
 - SSE 增量事件中的 `message.delta` 负载为 `{ "type": "text", "text": "..." }`。
 - 人工等待态主事件为 `tool_call.waiting_human`；消息终态事件为 `message.completed`、`message.failed`、`message.cancelled`。
 - `POST /agent/runs/{runId}/tool-calls/{toolCallId}/resume` 与 `POST /agent/runs/{runId}/cancel` 在同一请求重复提交时保持安全，`resume / cancel 接口按同一请求做幂等处理`。
+- `POST /agent/runs/{runId}/cancel` 仅支持 `queued / running`；若 run 已进入 `requires_action`，接口返回 `409 RUN_REQUIRES_ACTION_NOT_CANCELLABLE`，并保持 `run.status=requires_action`、`activeToolCall.status=waiting_human` 不变。
 
 ## 本地联调
 

@@ -244,3 +244,31 @@ def test_get_agent_run_returns_failed_after_runtime_error():
 
     assert response.status_code == 200
     assert response.json()["run"]["status"] == "failed"
+
+
+def test_cancel_requires_action_run_returns_409_and_preserves_waiting_human_snapshot():
+    client = build_client(requires_action=True)
+    thread_id = create_thread(client)
+
+    created = client.post(
+        "/agent/runs",
+        headers={"X-User-Id": "3001"},
+        json={
+            "threadId": thread_id,
+            "input": {"content": [{"type": "text", "text": "帮我退款"}]},
+            "metadata": {},
+        },
+    ).json()
+
+    response = client.post(f"/agent/runs/{created['run']['id']}/cancel", headers={"X-User-Id": "3001"})
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["detail"]["error"]["code"] == "RUN_REQUIRES_ACTION_NOT_CANCELLABLE"
+    assert body["detail"]["error"]["details"] == {"runId": created["run"]["id"], "status": "requires_action"}
+
+    reloaded = client.get(f"/agent/runs/{created['run']['id']}", headers={"X-User-Id": "3001"})
+
+    assert reloaded.status_code == 200
+    assert reloaded.json()["run"]["status"] == "requires_action"
+    assert reloaded.json()["activeToolCall"]["status"] == "waiting_human"

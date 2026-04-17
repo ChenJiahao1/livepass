@@ -665,10 +665,11 @@ POST /agent/runs/{runId}/cancel
 
 行为：
 
-- 若当前 run 为 `queued / running / requires_action`，则允许取消
-- 若当前有 `waiting_human` 的 tool call，则一并置为 `cancelled`
-- assistant 输出消息置为 `cancelled`
-- run 终态置为 `cancelled`
+- 若当前 run 为 `queued / running`，则允许取消
+- 若当前 run 为 `requires_action`，返回 `409 RUN_REQUIRES_ACTION_NOT_CANCELLABLE`
+- `requires_action` 场景下不修改 run、tool call、message 的任何状态
+- 仅在 `queued / running` 取消成功时，assistant 输出消息置为 `cancelled`
+- 仅在 `queued / running` 取消成功时，run 终态置为 `cancelled`
 
 ## SSE 契约
 

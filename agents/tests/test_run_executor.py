@@ -6,6 +6,7 @@ import pytest
 from langgraph.types import Command
 
 from app.agent_runtime.service import AgentRuntimeService
+from app.common.errors import ApiError, ApiErrorCode
 from app.messages.models import MESSAGE_STATUS_ERROR
 from app.messages.repository import InMemoryMessageRepository
 from app.messages.service import MessageService
@@ -251,7 +252,7 @@ async def test_executor_runtime_failure_persists_failed_message_snapshot():
 
 
 @pytest.mark.anyio
-async def test_cancel_waiting_human_run_closes_tool_and_message_snapshots():
+async def test_cancel_requires_action_run_is_rejected_and_keeps_waiting_human_state():
     executor, run_service, thread_service, message_service, event_store, tool_call_repo, thread_id, run_id = build_executor(
         runtime=PauseRuntime()
     )
@@ -260,7 +261,8 @@ async def test_cancel_waiting_human_run_closes_tool_and_message_snapshots():
     tool_call_id = next(iter(tool_call_repo._tool_calls.keys()))
     paused_events = event_store.list_after(run_id=run_id, after_sequence_no=0)
 
-    await executor.cancel(run_id)
+    with pytest.raises(ApiError) as exc_info:
+        await executor.cancel(run_id)
 
     saved_run = run_service.get_run(user_id=3001, run_id=run_id)
     thread = thread_service.get_thread(user_id=3001, thread_id=thread_id)
@@ -283,19 +285,16 @@ async def test_cancel_waiting_human_run_closes_tool_and_message_snapshots():
     assert paused_events[5].message_id == saved_run.output_message_id
     assert paused_events[5].tool_call_id == tool_call_id
 
-    assert saved_run.status == "cancelled"
-    assert thread.active_run_id is None
-    assert messages[1].status == "cancelled"
-    assert [event.event_type for event in events[-3:]] == [
-        RUN_EVENT_TYPE_TOOL_CALL_UPDATED,
-        RUN_EVENT_TYPE_MESSAGE_CANCELLED,
-        RUN_EVENT_TYPE_RUN_CANCELLED,
-    ]
-    assert events[-3].payload["toolCall"]["status"] == "cancelled"
-    assert events[-3].payload["toolCall"]["messageId"] == saved_run.output_message_id
-    assert events[-3].payload["toolCall"]["humanRequest"] == paused_events[5].payload["toolCall"]["humanRequest"]
-    assert events[-2].payload["message"]["status"] == "cancelled"
-    assert events[-1].payload["run"]["status"] == "cancelled"
+    assert exc_info.value.code == ApiErrorCode.RUN_REQUIRES_ACTION_NOT_CANCELLABLE
+    assert exc_info.value.http_status == 409
+    assert exc_info.value.details == {"runId": run_id, "status": "requires_action"}
+    assert saved_run.status == "requires_action"
+    assert thread.active_run_id == run_id
+    assert messages[1].status == "streaming"
+    assert [event.event_type for event in events] == [event.event_type for event in paused_events]
+    assert events[-1].payload["toolCall"]["status"] == "waiting_human"
+    assert events[-1].payload["toolCall"]["messageId"] == saved_run.output_message_id
+    assert events[-1].payload["toolCall"]["humanRequest"] == paused_events[5].payload["toolCall"]["humanRequest"]
 
 
 @pytest.mark.anyio

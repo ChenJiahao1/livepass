@@ -133,7 +133,14 @@ class RunExecutor:
         run = self._get_run(run_id)
         if run.status == RUN_STATUS_CANCELLED:
             return
-        if run.status not in {RUN_STATUS_QUEUED, RUN_STATUS_RUNNING, RUN_STATUS_REQUIRES_ACTION}:
+        if run.status == RUN_STATUS_REQUIRES_ACTION:
+            raise ApiError(
+                code=ApiErrorCode.RUN_REQUIRES_ACTION_NOT_CANCELLABLE,
+                message="当前运行正在等待人工处理，不能取消",
+                http_status=409,
+                details={"runId": run.id, "status": run.status},
+            )
+        if run.status not in {RUN_STATUS_QUEUED, RUN_STATUS_RUNNING}:
             raise ApiError(
                 code=ApiErrorCode.RUN_NOT_ACTIVE,
                 message="当前运行状态不可取消",
