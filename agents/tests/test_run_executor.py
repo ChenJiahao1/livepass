@@ -7,9 +7,9 @@ from langgraph.types import Command
 
 from app.agent_runtime.service import AgentRuntimeService
 from app.common.errors import ApiError, ApiErrorCode
-from app.messages.models import MESSAGE_STATUS_ERROR
-from app.messages.repository import InMemoryMessageRepository
-from app.messages.service import MessageService
+from app.conversations.messages.models import MESSAGE_STATUS_ERROR
+from app.conversations.messages.repository import InMemoryMessageRepository
+from app.conversations.messages.service import MessageService
 from app.runs.event_bus import RunEventBus
 from app.runs.event_models import (
     RUN_EVENT_TYPE_MESSAGE_CREATED,
@@ -35,8 +35,8 @@ from app.runs.executor import RunExecutor
 from app.runs.repository import InMemoryRunRepository
 from app.runs.service import RunService
 from app.runs.tool_call_repository import InMemoryToolCallRepository
-from app.threads.repository import InMemoryThreadRepository
-from app.threads.service import ThreadService
+from app.conversations.threads.repository import InMemoryThreadRepository
+from app.conversations.threads.service import ThreadService
 
 
 class FakeRuntime:

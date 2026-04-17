@@ -10,7 +10,7 @@ import pymysql
 from app.common.cursor import decode_cursor, encode_cursor
 from app.common.ids import new_thread_id
 from app.config import Settings, get_settings
-from app.threads.models import THREAD_STATUS_ACTIVE, THREAD_STATUS_ARCHIVED, ThreadRecord
+from app.conversations.threads.models import THREAD_STATUS_ACTIVE, THREAD_STATUS_ARCHIVED, ThreadRecord
 
 
 class ThreadRepository(Protocol):

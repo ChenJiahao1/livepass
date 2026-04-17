@@ -4,14 +4,14 @@ from datetime import datetime, timedelta, timezone
 
 from app.common.errors import ApiError, ApiErrorCode
 from app.common.ids import new_message_id, new_run_id
-from app.messages.models import (
+from app.conversations.messages.models import (
     MESSAGE_ROLE_ASSISTANT,
     MESSAGE_ROLE_USER,
     MESSAGE_STATUS_COMPLETED,
     MESSAGE_STATUS_IN_PROGRESS,
     MessageRecord,
 )
-from app.messages.service import MessageService
+from app.conversations.messages.service import MessageService
 from app.runs.models import (
     RUN_STATUS_CANCELLED,
     RUN_STATUS_COMPLETED,

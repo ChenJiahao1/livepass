@@ -7,7 +7,7 @@ from typing import Protocol
 
 from app.common.ids import new_run_event_id
 from app.runs.event_models import RunEventRecord
-from app.threads.repository import MySQLConnectionFactory
+from app.conversations.threads.repository import MySQLConnectionFactory
 
 
 class RunEventStore(Protocol):

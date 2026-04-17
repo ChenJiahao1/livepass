@@ -1,14 +1,21 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.messages.models import MESSAGE_STATUS_COMPLETED, MessageRecord
-from app.messages.repository import InMemoryMessageRepository
-from app.threads.repository import InMemoryThreadRepository
+from app.conversations.messages.models import MESSAGE_STATUS_COMPLETED, MessageRecord
+from app.conversations.messages.repository import InMemoryMessageRepository
+from app.conversations.threads.repository import InMemoryThreadRepository
 
 NOW = datetime(2026, 4, 16, 10, 0, tzinfo=timezone.utc)
 NOW1 = datetime(2026, 4, 16, 10, 1, tzinfo=timezone.utc)
 NOW2 = datetime(2026, 4, 16, 10, 2, tzinfo=timezone.utc)
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_thread_message_modules_live_under_conversations():
+    assert Path("app/conversations/threads/models.py").is_file()
+    assert Path("app/conversations/messages/models.py").is_file()
+    assert not Path("app/threads/models.py").exists()
+    assert not Path("app/messages/models.py").exists()
 
 
 def test_in_memory_thread_repository_filters_empty_threads_by_default():
@@ -65,7 +72,7 @@ def test_in_memory_message_repository_returns_recent_messages_ascending():
 
 
 def test_mysql_message_repository_accepts_tuple_rows_from_cursor():
-    from app.messages.repository import MySQLMessageRepository
+    from app.conversations.messages.repository import MySQLMessageRepository
 
     rows = (
         {
@@ -128,7 +135,7 @@ def test_mysql_message_repository_accepts_tuple_rows_from_cursor():
 
 
 def test_resource_models_expose_explicit_persistent_fields():
-    from app.messages.models import MessageRecord
+    from app.conversations.messages.models import MessageRecord
     from app.runs.event_models import RunEventRecord
     from app.runs.models import RunRecord
     from app.runs.tool_call_models import ToolCallRecord

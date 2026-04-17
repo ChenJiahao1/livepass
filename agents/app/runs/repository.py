@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import Protocol
 
 from app.common.errors import ApiError, ApiErrorCode
-from app.messages.models import MessageRecord
-from app.messages.repository import MessageRepository
+from app.conversations.messages.models import MessageRecord
+from app.conversations.messages.repository import MessageRepository
 from app.runs.models import (
     RUN_STATUS_CANCELLED,
     RUN_STATUS_COMPLETED,
@@ -17,7 +17,7 @@ from app.runs.models import (
     RUN_STATUS_RUNNING,
     RunRecord,
 )
-from app.threads.repository import MySQLConnectionFactory, ThreadRepository
+from app.conversations.threads.repository import MySQLConnectionFactory, ThreadRepository
 
 ACTIVE_RUN_STATUSES = {RUN_STATUS_QUEUED, RUN_STATUS_RUNNING, RUN_STATUS_REQUIRES_ACTION}
 

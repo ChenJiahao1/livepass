@@ -34,8 +34,8 @@ from app.config import get_settings
 from app.graph import build_graph_app
 from app.llm.client import build_chat_model
 from app.mcp_client.registry import MCPToolRegistry
-from app.messages.repository import MessageRepository, MySQLMessageRepository
-from app.messages.service import MessageService
+from app.conversations.messages.repository import MessageRepository, MySQLMessageRepository
+from app.conversations.messages.service import MessageService
 from app.runs.event_bus import RunEventBus
 from app.runs.event_store import MySQLRunEventStore, RunEventStore
 from app.runs.executor import RunExecutor
@@ -45,8 +45,8 @@ from app.runs.stream_service import RunStreamService
 from app.runs.tool_call_contract import serialize_tool_call
 from app.runs.tool_call_repository import MySQLToolCallRepository, ToolCallRepository
 from app.session.checkpointer import RedisCheckpointSaver
-from app.threads.repository import MySQLConnectionFactory, MySQLThreadRepository, ThreadRepository
-from app.threads.service import ThreadService
+from app.conversations.threads.repository import MySQLConnectionFactory, MySQLThreadRepository, ThreadRepository
+from app.conversations.threads.service import ThreadService
 
 router = APIRouter()
 

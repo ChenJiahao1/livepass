@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from app.common.errors import ApiError, ApiErrorCode
 from app.config import Settings, get_settings
 from app.runs.repository import RunRepository
-from app.threads.models import THREAD_STATUS_ACTIVE, ThreadRecord
-from app.threads.repository import ThreadRepository
+from app.conversations.threads.models import THREAD_STATUS_ACTIVE, ThreadRecord
+from app.conversations.threads.repository import ThreadRepository
 
 
 @dataclass(slots=True)

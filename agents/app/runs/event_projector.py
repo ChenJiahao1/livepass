@@ -7,8 +7,8 @@ from typing import Any, Mapping
 from app.agent_runtime.interrupt_models import HumanInterruptPayload
 from app.common.errors import ApiErrorCode
 from app.common.ids import new_tool_call_id
-from app.messages.models import MESSAGE_STATUS_CANCELLED, MESSAGE_STATUS_COMPLETED, MESSAGE_STATUS_ERROR
-from app.messages.service import MessageService
+from app.conversations.messages.models import MESSAGE_STATUS_CANCELLED, MESSAGE_STATUS_COMPLETED, MESSAGE_STATUS_ERROR
+from app.conversations.messages.service import MessageService
 from app.runs.event_bus import RunEventBus
 from app.runs.event_models import (
     RUN_EVENT_TYPE_MESSAGE_CANCELLED,

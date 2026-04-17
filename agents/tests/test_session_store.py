@@ -2,8 +2,8 @@ import pytest
 
 from app.common.errors import ApiError
 from app.runs.repository import InMemoryRunRepository
-from app.threads.repository import InMemoryThreadRepository
-from app.threads.service import ThreadService
+from app.conversations.threads.repository import InMemoryThreadRepository
+from app.conversations.threads.service import ThreadService
 
 
 def test_thread_ownership_uses_thread_repository_user_id():

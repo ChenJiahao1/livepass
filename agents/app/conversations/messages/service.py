@@ -5,16 +5,16 @@ from datetime import datetime, timezone
 from app.common.errors import ApiError, ApiErrorCode
 from app.common.ids import new_message_id
 from app.config import Settings, get_settings
-from app.messages.models import (
+from app.conversations.messages.models import (
     MESSAGE_ROLE_ASSISTANT,
     MESSAGE_ROLE_USER,
     MESSAGE_STATUS_COMPLETED,
     MESSAGE_STATUS_IN_PROGRESS,
     MessageRecord,
 )
-from app.messages.repository import MessageRepository
-from app.threads.models import ThreadRecord
-from app.threads.repository import ThreadRepository
+from app.conversations.messages.repository import MessageRepository
+from app.conversations.threads.models import ThreadRecord
+from app.conversations.threads.repository import ThreadRepository
 
 
 class MessageService:

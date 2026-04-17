@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from app.common.errors import ApiError, ApiErrorCode
-from app.messages.models import MESSAGE_ROLE_ASSISTANT, MESSAGE_ROLE_USER, MESSAGE_STATUS_IN_PROGRESS
-from app.messages.repository import InMemoryMessageRepository
-from app.messages.service import MessageService
+from app.conversations.messages.models import MESSAGE_ROLE_ASSISTANT, MESSAGE_ROLE_USER, MESSAGE_STATUS_IN_PROGRESS
+from app.conversations.messages.repository import InMemoryMessageRepository
+from app.conversations.messages.service import MessageService
 from app.runs.models import (
     RUN_STATUS_COMPLETED,
     RUN_STATUS_QUEUED,
@@ -14,8 +14,8 @@ from app.runs.models import (
 )
 from app.runs.repository import InMemoryRunRepository
 from app.runs.service import RunService
-from app.threads.repository import InMemoryThreadRepository
-from app.threads.service import ThreadService
+from app.conversations.threads.repository import InMemoryThreadRepository
+from app.conversations.threads.service import ThreadService
 
 
 class ServiceBundle:

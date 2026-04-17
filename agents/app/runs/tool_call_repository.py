@@ -7,7 +7,7 @@ from typing import Protocol
 
 from app.runs.tool_call_models import TOOL_CALL_STATUS_CANCELLED, TOOL_CALL_STATUS_WAITING_HUMAN
 from app.runs.tool_call_models import ToolCallRecord
-from app.threads.repository import MySQLConnectionFactory
+from app.conversations.threads.repository import MySQLConnectionFactory
 
 
 class ToolCallRepository(Protocol):

@@ -12,12 +12,12 @@ from app.api.routes import (
     get_tool_call_repository,
     get_tool_registry,
 )
-from app.main import create_app
-from app.messages.repository import InMemoryMessageRepository
+from app.api.app import create_app
+from app.conversations.messages.repository import InMemoryMessageRepository
 from app.runs.event_store import InMemoryRunEventStore
 from app.runs.repository import InMemoryRunRepository
 from app.runs.tool_call_repository import InMemoryToolCallRepository
-from app.threads.repository import InMemoryThreadRepository
+from app.conversations.threads.repository import InMemoryThreadRepository
 
 
 class FakeAgentRuntime:

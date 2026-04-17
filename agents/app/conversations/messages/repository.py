@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from typing import Protocol
 
 from app.common.cursor import decode_cursor, encode_cursor
-from app.messages.models import MessageRecord
-from app.threads.repository import MySQLConnectionFactory
+from app.conversations.messages.models import MessageRecord
+from app.conversations.threads.repository import MySQLConnectionFactory
 
 
 class MessageRepository(Protocol):
