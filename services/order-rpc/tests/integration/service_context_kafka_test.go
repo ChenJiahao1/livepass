@@ -128,7 +128,7 @@ Kafka:
   TopicOrderCreate: ticketing.attempt.command.test
   ConsumerGroup: livepass-ticketing-attempt
   TopicPartitions: 5
-  ConsumerWorkers: 1
+  ConsumerWorkers: 5
 Sharding:
   Mode: shard_only
   Shards:
@@ -156,8 +156,8 @@ Sharding:
 	if c.Kafka.TopicPartitions != 5 {
 		t.Fatalf("expected topic partitions 5, got %d", c.Kafka.TopicPartitions)
 	}
-	if c.Kafka.ConsumerWorkers != 1 {
-		t.Fatalf("expected consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
+	if c.Kafka.ConsumerWorkers != c.Kafka.TopicPartitions {
+		t.Fatalf("expected consumer workers to match topic partitions, workers=%d partitions=%d", c.Kafka.ConsumerWorkers, c.Kafka.TopicPartitions)
 	}
 	if c.Sharding.Mode != "shard_only" {
 		t.Fatalf("expected sharding mode shard_only, got %s", c.Sharding.Mode)
@@ -260,7 +260,7 @@ func buildKafkaServiceContextConfig(topic string) config.Config {
 			TopicOrderCreate: topic,
 			ConsumerGroup:    "livepass-ticketing-attempt",
 			TopicPartitions:  5,
-			ConsumerWorkers:  1,
+			ConsumerWorkers:  5,
 			ProducerTimeout:  3 * time.Second,
 			RetryBackoff:     time.Second,
 		},

@@ -70,7 +70,7 @@ Kafka:
   TopicOrderCreate: ticketing.attempt.command.v1
   ConsumerGroup: livepass-ticketing-attempt
   TopicPartitions: 5
-  ConsumerWorkers: 1
+  ConsumerWorkers: 5
   ProducerTimeout: 3s
   RetryBackoff: 1s
 Xid:

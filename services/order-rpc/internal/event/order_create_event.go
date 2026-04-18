@@ -67,7 +67,7 @@ func (e *OrderCreateEvent) PartitionKey() string {
 		return ""
 	}
 
-	return fmt.Sprintf("%d#%d", e.ShowTimeID, e.TicketCategoryID)
+	return fmt.Sprintf("%d", e.OrderNumber)
 }
 
 func UnmarshalOrderCreateEvent(body []byte) (*OrderCreateEvent, error) {

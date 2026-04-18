@@ -242,7 +242,7 @@ func newOrderTestServiceContext(t *testing.T) (*svc.ServiceContext, *fakeOrderPr
 		},
 		Kafka: config.KafkaConfig{
 			TopicPartitions: 5,
-			ConsumerWorkers: 1,
+			ConsumerWorkers: 5,
 			RetryBackoff:    10 * time.Millisecond,
 		},
 		Sharding: buildOrderTestShardingConfig(),

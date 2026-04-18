@@ -46,8 +46,8 @@ func TestLoadOrderRPCRuntimeConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T
 	if c.Kafka.TopicPartitions != 5 {
 		t.Fatalf("expected kafka topic partitions 5, got %d", c.Kafka.TopicPartitions)
 	}
-	if c.Kafka.ConsumerWorkers != 1 {
-		t.Fatalf("expected kafka consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
+	if c.Kafka.ConsumerWorkers != c.Kafka.TopicPartitions {
+		t.Fatalf("expected kafka consumer workers to match topic partitions, workers=%d partitions=%d", c.Kafka.ConsumerWorkers, c.Kafka.TopicPartitions)
 	}
 	if !c.RushOrder.Enabled {
 		t.Fatalf("expected rush order to be enabled in runtime config")
@@ -130,8 +130,8 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	if c.Kafka.TopicPartitions != 5 {
 		t.Fatalf("expected kafka topic partitions 5, got %d", c.Kafka.TopicPartitions)
 	}
-	if c.Kafka.ConsumerWorkers != 1 {
-		t.Fatalf("expected kafka consumer workers 1, got %d", c.Kafka.ConsumerWorkers)
+	if c.Kafka.ConsumerWorkers != c.Kafka.TopicPartitions {
+		t.Fatalf("expected kafka consumer workers to match topic partitions, workers=%d partitions=%d", c.Kafka.ConsumerWorkers, c.Kafka.TopicPartitions)
 	}
 	if !c.RushOrder.Enabled {
 		t.Fatalf("expected rush order to be enabled in perf config")

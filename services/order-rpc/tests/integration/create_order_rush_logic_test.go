@@ -59,8 +59,8 @@ func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInlin
 		t.Fatalf("expected order number %d, got %d", claims.OrderNumber, resp.GetOrderNumber())
 	}
 	waitOrderCreateSendCalls(t, producer, 1)
-	if producer.lastKey != fmt.Sprintf("%d#%d", claims.ShowTimeID, claims.TicketCategoryID) {
-		t.Fatalf("expected kafka partition key %d#%d, got %s", claims.ShowTimeID, claims.TicketCategoryID, producer.lastKey)
+	if producer.lastKey != fmt.Sprintf("%d", claims.OrderNumber) {
+		t.Fatalf("expected kafka partition key %d, got %s", claims.OrderNumber, producer.lastKey)
 	}
 	if programRPC.lastAutoAssignAndFreezeSeatsReq != nil {
 		t.Fatalf("expected hot path to skip inline seat freeze, got %+v", programRPC.lastAutoAssignAndFreezeSeatsReq)
