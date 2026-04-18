@@ -26,6 +26,7 @@ type CreateOrderReq struct {
 
 type CreateOrderResp struct {
 	OrderNumber int64 `json:"orderNumber"`
+	ShowTimeID  int64 `json:"showTimeId"`
 }
 
 type CreatePurchaseTokenReq struct {
@@ -59,6 +60,7 @@ type ListOrdersResp struct {
 
 type OrderCacheReq struct {
 	OrderNumber int64 `json:"orderNumber"`
+	ShowTimeID  int64 `json:"showTimeId"`
 }
 
 type OrderCacheResp struct {
@@ -144,6 +146,7 @@ type PayOrderResp struct {
 
 type PollOrderReq struct {
 	OrderNumber int64 `json:"orderNumber"`
+	ShowTimeID  int64 `json:"showTimeId"`
 }
 
 type PollOrderResp struct {

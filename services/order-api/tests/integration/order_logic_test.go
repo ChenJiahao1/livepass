@@ -57,7 +57,7 @@ func TestCreatePurchaseTokenForwardsShowTimeAndTicketUsers(t *testing.T) {
 
 func TestCreateOrderReturnsPreAllocatedOrderNumber(t *testing.T) {
 	fakeRPC := &fakeOrderRPC{
-		createOrderResp: &orderrpc.CreateOrderResp{OrderNumber: 91001},
+		createOrderResp: &orderrpc.CreateOrderResp{OrderNumber: 91001, ShowTimeId: 30001},
 	}
 	ctx := xmiddleware.WithUserID(context.Background(), 3001)
 
@@ -68,8 +68,8 @@ func TestCreateOrderReturnsPreAllocatedOrderNumber(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOrder returned error: %v", err)
 	}
-	if resp.OrderNumber != 91001 {
-		t.Fatalf("unexpected order number: %+v", resp)
+	if resp.OrderNumber != 91001 || resp.ShowTimeID != 30001 {
+		t.Fatalf("unexpected create response: %+v", resp)
 	}
 	if fakeRPC.lastCreateOrderReq == nil || fakeRPC.lastCreateOrderReq.UserId != 3001 || fakeRPC.lastCreateOrderReq.PurchaseToken != "pt_91001" {
 		t.Fatalf("expected user id from context, got %+v", fakeRPC.lastCreateOrderReq)
@@ -117,14 +117,17 @@ func TestPollOrderProgressPassesThroughRpcResult(t *testing.T) {
 	ctx := xmiddleware.WithUserID(context.Background(), 3001)
 
 	l := logicpkg.NewPollOrderLogic(ctx, newOrderAPIServiceContext(fakeRPC))
-	resp, err := l.PollOrder(&types.PollOrderReq{OrderNumber: 91001})
+	resp, err := l.PollOrder(&types.PollOrderReq{OrderNumber: 91001, ShowTimeID: 30001})
 	if err != nil {
 		t.Fatalf("PollOrder returned error: %v", err)
 	}
 	if resp.OrderNumber != 91001 || resp.OrderStatus != 2 || !resp.Done || resp.ReasonCode != "QUEUEING" {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
-	if fakeRPC.lastPollOrderProgressReq == nil || fakeRPC.lastPollOrderProgressReq.UserId != 3001 || fakeRPC.lastPollOrderProgressReq.OrderNumber != 91001 {
+	if fakeRPC.lastPollOrderProgressReq == nil ||
+		fakeRPC.lastPollOrderProgressReq.UserId != 3001 ||
+		fakeRPC.lastPollOrderProgressReq.OrderNumber != 91001 ||
+		fakeRPC.lastPollOrderProgressReq.ShowTimeId != 30001 {
 		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastPollOrderProgressReq)
 	}
 }
@@ -360,20 +363,22 @@ func TestAccountOrderCountForwardsExplicitUserAndProgram(t *testing.T) {
 	}
 }
 
-func TestGetOrderCacheForwardsOrderNumber(t *testing.T) {
+func TestGetOrderCacheForwardsOrderNumberAndShowTime(t *testing.T) {
 	fakeRPC := &fakeOrderRPC{
 		getOrderCacheResp: &orderrpc.GetOrderCacheResp{Cache: "91001"},
 	}
 
 	l := logicpkg.NewGetOrderCacheLogic(context.Background(), newOrderAPIServiceContext(fakeRPC))
-	resp, err := l.GetOrderCache(&types.OrderCacheReq{OrderNumber: 91001})
+	resp, err := l.GetOrderCache(&types.OrderCacheReq{OrderNumber: 91001, ShowTimeID: 30001})
 	if err != nil {
 		t.Fatalf("GetOrderCache returned error: %v", err)
 	}
 	if resp.Cache != "91001" {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
-	if fakeRPC.lastGetOrderCacheReq == nil || fakeRPC.lastGetOrderCacheReq.OrderNumber != 91001 {
+	if fakeRPC.lastGetOrderCacheReq == nil ||
+		fakeRPC.lastGetOrderCacheReq.OrderNumber != 91001 ||
+		fakeRPC.lastGetOrderCacheReq.ShowTimeId != 30001 {
 		t.Fatalf("unexpected rpc request: %+v", fakeRPC.lastGetOrderCacheReq)
 	}
 }
