@@ -59,5 +59,5 @@ func userFingerprintIndexKey(prefix string, showTimeID, userID int64) string {
 }
 
 func rushScopeTag(showTimeID int64) string {
-	return fmt.Sprintf("{st:%d:g:%s}", showTimeID, BuildRushGeneration(showTimeID))
+	return fmt.Sprintf("{st:%d}", showTimeID)
 }

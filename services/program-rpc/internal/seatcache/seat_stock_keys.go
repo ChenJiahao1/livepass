@@ -31,9 +31,5 @@ func loadingKey(prefix string, showTimeID, ticketCategoryID int64) string {
 }
 
 func seatLedgerScopeTag(showTimeID int64) string {
-	return fmt.Sprintf("{st:%d:g:%s}", showTimeID, seatLedgerGeneration(showTimeID))
-}
-
-func seatLedgerGeneration(showTimeID int64) string {
-	return fmt.Sprintf("g-%d", showTimeID)
+	return fmt.Sprintf("{st:%d}", showTimeID)
 }

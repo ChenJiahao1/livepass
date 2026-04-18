@@ -236,7 +236,6 @@ attempt hash 建议仅保留与受理和结果有关的字段，例如：
 - `ticket_category_id`
 - `viewer_ids`
 - `ticket_count`
-- `generation`
 - `token_fingerprint`
 - `state`
 - `reason_code`

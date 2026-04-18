@@ -109,7 +109,6 @@ func TestFailBeforeProcessingTransitionsAcceptedToFailedOnce(t *testing.T) {
 	now := time.Date(2026, 4, 5, 18, 31, 0, 0, time.Local)
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushAttemptStoreTestIDs()
 	showTimeID := programID + 101
-	generation := rush.BuildRushGeneration(showTimeID)
 	viewerIDs = viewerIDs[:2]
 	orderNumber := orderNumbers[0]
 
@@ -169,8 +168,8 @@ func TestFailBeforeProcessingTransitionsAcceptedToFailedOnce(t *testing.T) {
 		t.Fatalf("expected quota restored once to 4, got ok=%t available=%d", ok, available)
 	}
 
-	userInflightRedisKey := fmt.Sprintf("%s:{st:%d:g:%s}:user_inflight:%d", prefix, showTimeID, generation, userID)
-	viewerInflightRedisKey := fmt.Sprintf("%s:{st:%d:g:%s}:viewer_inflight:%d", prefix, showTimeID, generation, viewerIDs[0])
+	userInflightRedisKey := rushTestScopedKey(prefix, showTimeID, "user_inflight", userID)
+	viewerInflightRedisKey := rushTestScopedKey(prefix, showTimeID, "viewer_inflight", viewerIDs[0])
 	userInflightExists, err := svcCtx.Redis.ExistsCtx(ctx, userInflightRedisKey)
 	if err != nil {
 		t.Fatalf("ExistsCtx(user_inflight) error = %v", err)
@@ -353,7 +352,6 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 	now := time.Date(2026, 4, 5, 18, 34, 0, 0, time.Local)
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushAttemptStoreTestIDs()
 	showTimeID := programID + 303
-	generation := rush.BuildRushGeneration(showTimeID)
 	viewerIDs = viewerIDs[:2]
 	orderNumber := orderNumbers[0]
 	seatIDs := []int64{810001, 810002}
@@ -401,9 +399,9 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 		t.Fatalf("expected success state, got %+v", record)
 	}
 
-	userActiveRedisKey := fmt.Sprintf("%s:{st:%d:g:%s}:user_active:%d", prefix, showTimeID, generation, userID)
-	viewerActiveRedisKey := fmt.Sprintf("%s:{st:%d:g:%s}:viewer_active:%d", prefix, showTimeID, generation, viewerIDs[0])
-	seatOccupiedRedisKey := fmt.Sprintf("%s:{st:%d:g:%s}:seat_occupied:%d", prefix, showTimeID, generation, orderNumber)
+	userActiveRedisKey := rushTestScopedKey(prefix, showTimeID, "user_active", userID)
+	viewerActiveRedisKey := rushTestScopedKey(prefix, showTimeID, "viewer_active", viewerIDs[0])
+	seatOccupiedRedisKey := rushTestScopedKey(prefix, showTimeID, "seat_occupied", orderNumber)
 
 	userActiveOrderNo, err := svcCtx.Redis.GetCtx(ctx, userActiveRedisKey)
 	if err != nil {
@@ -504,12 +502,12 @@ func TestRushAttemptStorePrimeClearsOnlyTargetShowTimeTransientKeys(t *testing.T
 	targetShowTimeID := programID + 401
 	otherShowTimeID := programID + 402
 	viewerIDs = viewerIDs[:1]
-	targetUserInflightKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:user_inflight:%d", prefix, targetShowTimeID, targetShowTimeID, userID)
-	targetViewerInflightKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:viewer_inflight:%d", prefix, targetShowTimeID, targetShowTimeID, viewerIDs[0])
-	targetFingerprintKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:fingerprint:%d", prefix, targetShowTimeID, targetShowTimeID, userID)
-	otherUserInflightKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:user_inflight:%d", prefix, otherShowTimeID, otherShowTimeID, userID+1)
-	otherViewerInflightKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:viewer_inflight:%d", prefix, otherShowTimeID, otherShowTimeID, viewerIDs[0]+1)
-	otherFingerprintKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:fingerprint:%d", prefix, otherShowTimeID, otherShowTimeID, userID+1)
+	targetUserInflightKey := rushTestScopedKey(prefix, targetShowTimeID, "user_inflight", userID)
+	targetViewerInflightKey := rushTestScopedKey(prefix, targetShowTimeID, "viewer_inflight", viewerIDs[0])
+	targetFingerprintKey := rushTestScopedKey(prefix, targetShowTimeID, "fingerprint", userID)
+	otherUserInflightKey := rushTestScopedKey(prefix, otherShowTimeID, "user_inflight", userID+1)
+	otherViewerInflightKey := rushTestScopedKey(prefix, otherShowTimeID, "viewer_inflight", viewerIDs[0]+1)
+	otherFingerprintKey := rushTestScopedKey(prefix, otherShowTimeID, "fingerprint", userID+1)
 
 	if err := store.SetQuotaAvailable(ctx, targetShowTimeID, ticketCategoryID, 2); err != nil {
 		t.Fatalf("SetQuotaAvailable(target) error = %v", err)
@@ -618,13 +616,13 @@ func TestRushAttemptStorePrimeReplacesActiveProjectionByShowTime(t *testing.T) {
 	ctx := context.Background()
 	targetShowTimeID := int64(99001)
 	otherShowTimeID := int64(99002)
-	targetUserActiveKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:user_active:%d", prefix, targetShowTimeID, targetShowTimeID, 3001)
-	targetViewerActiveKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:viewer_active:%d", prefix, targetShowTimeID, targetShowTimeID, 4001)
-	staleTargetUserActiveKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:user_active:%d", prefix, targetShowTimeID, targetShowTimeID, 3999)
-	staleTargetViewerActiveKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:viewer_active:%d", prefix, targetShowTimeID, targetShowTimeID, 4999)
-	otherUserActiveKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:user_active:%d", prefix, otherShowTimeID, otherShowTimeID, 3002)
-	otherViewerActiveKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:viewer_active:%d", prefix, otherShowTimeID, otherShowTimeID, 4002)
-	targetQuotaKey := fmt.Sprintf("%s:{st:%d:g:g-%d}:quota:%d", prefix, targetShowTimeID, targetShowTimeID, 5001)
+	targetUserActiveKey := rushTestScopedKey(prefix, targetShowTimeID, "user_active", 3001)
+	targetViewerActiveKey := rushTestScopedKey(prefix, targetShowTimeID, "viewer_active", 4001)
+	staleTargetUserActiveKey := rushTestScopedKey(prefix, targetShowTimeID, "user_active", 3999)
+	staleTargetViewerActiveKey := rushTestScopedKey(prefix, targetShowTimeID, "viewer_active", 4999)
+	otherUserActiveKey := rushTestScopedKey(prefix, otherShowTimeID, "user_active", 3002)
+	otherViewerActiveKey := rushTestScopedKey(prefix, otherShowTimeID, "viewer_active", 4002)
+	targetQuotaKey := rushTestScopedKey(prefix, targetShowTimeID, "quota", 5001)
 
 	if err := svcCtx.Redis.SetCtx(ctx, targetUserActiveKey, "old-order"); err != nil {
 		t.Fatalf("SetCtx(target user_active) error = %v", err)
@@ -860,5 +858,5 @@ func nextRushAttemptStoreTestIDs() (userID, programID, ticketCategoryID int64, v
 }
 
 func rushTestScopedKey(prefix string, showTimeID int64, kind string, entityID int64) string {
-	return fmt.Sprintf("%s:{st:%d:g:%s}:%s:%d", prefix, showTimeID, rush.BuildRushGeneration(showTimeID), kind, entityID)
+	return fmt.Sprintf("%s:{st:%d}:%s:%d", prefix, showTimeID, kind, entityID)
 }

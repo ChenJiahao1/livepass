@@ -202,7 +202,3 @@ func BuildTokenFingerprint(
 
 	return hex.EncodeToString(sum[:])
 }
-
-func BuildRushGeneration(showTimeID int64) string {
-	return fmt.Sprintf("g-%d", showTimeID)
-}

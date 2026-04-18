@@ -511,7 +511,7 @@ func TestCreateOrderConsumerStopsFinalizeWhenLeaseLost(t *testing.T) {
 		userID,
 		&userrpc.TicketUserInfo{Id: viewerIDs[0], UserId: userID, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 	)
-	attemptKey := fmt.Sprintf("%s:{st:%d:g:%s}:attempt:%d", prefix, programID, rush.BuildRushGeneration(programID), orderNumber)
+	attemptKey := fmt.Sprintf("%s:{st:%d}:attempt:%d", prefix, programID, orderNumber)
 	programRPC.autoAssignAndFreezeSeatsFunc = func(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
 		if _, err := svcCtx.Redis.DelCtx(ctx, attemptKey); err != nil {
 			t.Fatalf("DelCtx() error = %v", err)
