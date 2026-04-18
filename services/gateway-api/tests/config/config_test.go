@@ -52,6 +52,14 @@ Auth:
   AccessSecret: secret-0001
 InternalAuth:
   Secret: gateway-internal-secret
+PerfMode:
+  Enabled: true
+  HeaderName: X-LivePass-Perf-Secret
+  HeaderSecret: perf-secret-0001
+  UserIdHeader: X-LivePass-Perf-User-Id
+  AllowedPaths:
+    - /order/create
+    - /order/poll
 `)
 	if err := os.WriteFile(configFile, content, 0o644); err != nil {
 		t.Fatalf("write %s: %v", configFile, err)
@@ -67,6 +75,18 @@ InternalAuth:
 	}
 	if c.InternalAuth.Secret != "gateway-internal-secret" {
 		t.Fatalf("expected internal auth secret to load, got %q", c.InternalAuth.Secret)
+	}
+	if !c.PerfMode.Enabled {
+		t.Fatalf("expected perf mode enabled")
+	}
+	if c.PerfMode.HeaderName != "X-LivePass-Perf-Secret" {
+		t.Fatalf("expected perf header name to load, got %q", c.PerfMode.HeaderName)
+	}
+	if c.PerfMode.UserIDHeader != "X-LivePass-Perf-User-Id" {
+		t.Fatalf("expected perf user id header to load, got %q", c.PerfMode.UserIDHeader)
+	}
+	if len(c.PerfMode.AllowedPaths) != 2 {
+		t.Fatalf("expected 2 perf allowed paths, got %d", len(c.PerfMode.AllowedPaths))
 	}
 
 	if len(c.Upstreams) != 4 {
@@ -155,6 +175,15 @@ func TestLoadGatewayPerfConfigExtendsOrderTimeout(t *testing.T) {
 	}
 	if orderAPIUpstream.Http.Timeout != 10000 {
 		t.Fatalf("expected order-api timeout 10000, got %d", orderAPIUpstream.Http.Timeout)
+	}
+	if !c.PerfMode.Enabled {
+		t.Fatalf("expected perf mode enabled in perf config")
+	}
+	if c.PerfMode.HeaderSecret == "" {
+		t.Fatalf("expected perf mode header secret to load")
+	}
+	if len(c.PerfMode.AllowedPaths) == 0 {
+		t.Fatalf("expected perf mode allowed paths to load")
 	}
 	assertGatewayMappingExists(t, orderAPIUpstream, "/order/account/order/count")
 	assertGatewayMappingExists(t, orderAPIUpstream, "/order/get/cache")

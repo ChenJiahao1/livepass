@@ -9,3 +9,4 @@ __pycache__/
 .tmp*
 /a-my-docs
 .codex/
+tmp/

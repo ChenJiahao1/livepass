@@ -13,7 +13,7 @@ import (
 func TestAuthMiddlewareRejectsOrderRequestWithoutAuthorization(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
 
 	recorder := httptest.NewRecorder()
@@ -35,7 +35,7 @@ func TestAuthMiddlewareRejectsOrderRequestWithoutAuthorization(t *testing.T) {
 func TestAuthMiddlewarePassesOrderRequestWithValidToken(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
 	req.Header.Set("Authorization", "Bearer "+testkit.MustCreateToken(t, 3001, "secret-0001"))
 	req.Header.Set("X-User-Id", "9999")
@@ -90,7 +90,7 @@ func TestAuthMiddlewarePassesOrderRequestWithValidToken(t *testing.T) {
 func TestAuthMiddlewareRejectsAgentRequestWithoutAuthorization(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, "/agent/runs", nil)
 
 	recorder := httptest.NewRecorder()
@@ -112,7 +112,7 @@ func TestAuthMiddlewareRejectsAgentRequestWithoutAuthorization(t *testing.T) {
 func TestAuthMiddlewareRejectsPayRequestWithoutAuthorization(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, "/pay/detail", nil)
 
 	recorder := httptest.NewRecorder()
@@ -134,7 +134,7 @@ func TestAuthMiddlewareRejectsPayRequestWithoutAuthorization(t *testing.T) {
 func TestAuthMiddlewareRejectsProtectedUserRequestWithoutAuthorization(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, "/user/update", nil)
 
 	recorder := httptest.NewRecorder()
@@ -156,7 +156,7 @@ func TestAuthMiddlewareRejectsProtectedUserRequestWithoutAuthorization(t *testin
 func TestAuthMiddlewarePassesPayRequestWithValidToken(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, "/pay/detail", nil)
 	req.Header.Set("Authorization", "Bearer "+testkit.MustCreateToken(t, 3001, "secret-0001"))
 
@@ -203,7 +203,7 @@ func TestAuthMiddlewarePassesPayRequestWithValidToken(t *testing.T) {
 func TestAuthMiddlewarePassesAgentRequestWithValidTokenAndInjectsUserHeader(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, "/agent/runs", nil)
 	req.Header.Set("Authorization", "Bearer "+testkit.MustCreateToken(t, 3001, "secret-0001"))
 
@@ -247,6 +247,90 @@ func TestAuthMiddlewarePassesAgentRequestWithValidTokenAndInjectsUserHeader(t *t
 	}
 }
 
+func TestAuthMiddlewarePassesPerfOrderRequestWithValidPerfHeaders(t *testing.T) {
+	t.Parallel()
+
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{
+		Enabled:      true,
+		HeaderName:   "X-LivePass-Perf-Secret",
+		HeaderSecret: "perf-secret-0001",
+		UserIDHeader: "X-LivePass-Perf-User-Id",
+		AllowedPaths: map[string]struct{}{
+			"/order/create": {},
+			"/order/poll":   {},
+		},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
+	req.Header.Set("X-LivePass-Perf-Secret", "perf-secret-0001")
+	req.Header.Set("X-LivePass-Perf-User-Id", "7788")
+
+	recorder := httptest.NewRecorder()
+	var called bool
+	var gotUserID int64
+	var gotAuthorization string
+	var gotUserHeader string
+
+	m.Handle(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		userID, ok := xmiddleware.UserIDFromContext(r.Context())
+		if !ok {
+			t.Fatal("expected user id in request context")
+		}
+		gotUserID = userID
+		gotAuthorization = r.Header.Get("Authorization")
+		gotUserHeader = r.Header.Get("X-User-Id")
+		w.WriteHeader(http.StatusNoContent)
+	})(recorder, req)
+
+	if !called {
+		t.Fatal("expected downstream handler called")
+	}
+	if gotUserID != 7788 {
+		t.Fatalf("expected user id 7788, got %d", gotUserID)
+	}
+	if gotAuthorization != "" {
+		t.Fatalf("expected Authorization stripped before forwarding, got %q", gotAuthorization)
+	}
+	if gotUserHeader != "7788" {
+		t.Fatalf("expected X-User-Id 7788, got %q", gotUserHeader)
+	}
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", recorder.Code)
+	}
+}
+
+func TestAuthMiddlewareRejectsPerfOrderRequestWithInvalidPerfSecret(t *testing.T) {
+	t.Parallel()
+
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{
+		Enabled:      true,
+		HeaderName:   "X-LivePass-Perf-Secret",
+		HeaderSecret: "perf-secret-0001",
+		UserIDHeader: "X-LivePass-Perf-User-Id",
+		AllowedPaths: map[string]struct{}{
+			"/order/create": {},
+		},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/order/create", nil)
+	req.Header.Set("X-LivePass-Perf-Secret", "perf-secret-invalid")
+	req.Header.Set("X-LivePass-Perf-User-Id", "7788")
+
+	recorder := httptest.NewRecorder()
+	var called bool
+
+	m.Handle(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusNoContent)
+	})(recorder, req)
+
+	if called {
+		t.Fatal("expected downstream handler not called")
+	}
+	if recorder.Code == http.StatusNoContent {
+		t.Fatalf("expected non-204 status for invalid perf secret, got %d", recorder.Code)
+	}
+}
+
 func TestAuthMiddlewareSkipsUserRoute(t *testing.T) {
 	t.Parallel()
 	assertRouteBypassesAuth(t, "/user/login")
@@ -255,7 +339,7 @@ func TestAuthMiddlewareSkipsUserRoute(t *testing.T) {
 func TestAuthMiddlewareProtectsUserProfileQueryRoute(t *testing.T) {
 	t.Parallel()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, "/user/get/id", nil)
 
 	recorder := httptest.NewRecorder()
@@ -282,7 +366,7 @@ func TestAuthMiddlewareSkipsProgramRoute(t *testing.T) {
 func assertRouteBypassesAuth(t *testing.T, path string) {
 	t.Helper()
 
-	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret")
+	m := middleware.NewAuthMiddleware("secret-0001", "gateway-internal-secret", middleware.PerfAuthConfig{})
 	req := httptest.NewRequest(http.MethodPost, path, nil)
 	req.Header.Set("Authorization", "Bearer should-be-stripped")
 	req.Header.Set("X-User-Id", "should-be-stripped")

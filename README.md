@@ -238,6 +238,85 @@ go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.y
 - 退款主路径：`docs/api/order-refund-acceptance.md`
 - 智能客服联调：`scripts/acceptance/agent_threads.sh`
 
+## 抢票核心链路压测
+
+当前仓库已补充“从 `create order` 起压”的压测准备与执行脚本，默认面向：
+
+- 单 `showTimeId`
+- 单 `ticketCategoryId`
+- 每用户随机 `1-3` 张
+- 超卖竞争模型
+
+### 1. 使用压测网关配置启动
+
+压测模式只在 `gateway-api.perf.yaml` 中开启，用于允许压测头部直接注入 `userId`，不影响默认开发配置。
+
+```bash
+go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.perf.yaml
+```
+
+### 2. 准备压测数据集
+
+默认会：
+
+- 重建目标票档座位
+- 批量插入压测用户与观演人
+- 预热 rush runtime 与 seat ledger
+- 批量申请 `purchase token`
+- 导出 `users.json` / `users.csv` / `meta.json`
+
+示例：
+
+```bash
+BASE_URL=http://127.0.0.1:8081 \
+SHOW_TIME_ID=30001 \
+TICKET_CATEGORY_ID=40001 \
+USER_COUNT=5000 \
+SEAT_COUNT=5000 \
+ROW_COUNT=50 \
+COL_COUNT=100 \
+PERF_SECRET=livepass-perf-secret-0001 \
+bash scripts/perf/prepare_rush_perf_dataset.sh
+```
+
+输出目录默认位于：
+
+```bash
+tmp/perf/<dataset-id>/
+```
+
+其中：
+
+- `users.json`：给 k6 直接读取
+- `users.csv`：人工查看
+- `meta.json`：记录参数与生成时间
+
+### 3. 执行 k6 压测
+
+```bash
+k6 run \
+  -e DATASET_PATH=tmp/perf/<dataset-id>/users.json \
+  -e BASE_URL=http://127.0.0.1:8081 \
+  -e PERF_SECRET=livepass-perf-secret-0001 \
+  tests/perf/rush_create_order.js
+```
+
+### 4. 校验压测结果
+
+```bash
+SHOW_TIME_ID=30001 \
+TICKET_CATEGORY_ID=40001 \
+bash scripts/perf/verify_rush_perf_result.sh
+```
+
+校验脚本会输出：
+
+- 票档总库存
+- 票档剩余库存
+- `seat_status = 3` 的已售座位数
+- `d_order_seat_guard*` 聚合数量
+- `d_order_ticket_user*` 聚合数量
+
 可执行脚本：
 
 ```bash

@@ -57,7 +57,7 @@ Order:
 RushOrder:
   Enabled: true
   TokenSecret: rush-order-local-secret
-  TokenTTL: 2m
+  TokenTTL: 24h
   InFlightTTL: 30s
   FinalStateTTL: 30m
 RepeatGuard:

@@ -9,12 +9,22 @@ import (
 type AuthMiddleware struct {
 	accessSecret   string
 	internalSecret string
+	perfCfg        PerfAuthConfig
 }
 
-func NewAuthMiddleware(accessSecret string, internalSecret string) *AuthMiddleware {
+type PerfAuthConfig struct {
+	Enabled      bool
+	HeaderName   string
+	HeaderSecret string
+	UserIDHeader string
+	AllowedPaths map[string]struct{}
+}
+
+func NewAuthMiddleware(accessSecret string, internalSecret string, perfCfg PerfAuthConfig) *AuthMiddleware {
 	return &AuthMiddleware{
 		accessSecret:   accessSecret,
 		internalSecret: internalSecret,
+		perfCfg:        perfCfg,
 	}
 }
 
@@ -33,7 +43,7 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		userID, err := xmiddleware.Authenticate(r, m.accessSecret)
+		userID, err := m.authenticate(r)
 		if err != nil {
 			writeUnauthorized(w, r, err)
 			return
@@ -47,4 +57,14 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 
 		next(w, r.WithContext(xmiddleware.WithUserID(r.Context(), userID)))
 	}
+}
+
+func (m *AuthMiddleware) authenticate(r *http.Request) (int64, error) {
+	if requiresPerfAuth(r.URL.Path, m.perfCfg.AllowedPaths) {
+		if userID, err := authenticatePerfRequest(r, m.perfCfg); err == nil {
+			return userID, nil
+		}
+	}
+
+	return xmiddleware.Authenticate(r, m.accessSecret)
 }

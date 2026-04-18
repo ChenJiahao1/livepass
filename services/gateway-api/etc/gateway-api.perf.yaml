@@ -14,6 +14,16 @@ Auth:
   AccessSecret: local-user-secret-0001
 InternalAuth:
   Secret: local-gateway-internal-secret
+PerfMode:
+  Enabled: true
+  HeaderName: X-LivePass-Perf-Secret
+  HeaderSecret: livepass-perf-secret-0001
+  UserIdHeader: X-LivePass-Perf-User-Id
+  AllowedPaths:
+    - /order/purchase/token
+    - /order/create
+    - /order/poll
+    - /order/get
 Cors:
   AllowOrigins:
     - http://localhost:5173
@@ -86,7 +96,11 @@ Upstreams:
       - Method: post
         Path: /order/cancel
       - Method: post
+        Path: /order/purchase/token
+      - Method: post
         Path: /order/create
+      - Method: post
+        Path: /order/poll
       - Method: post
         Path: /order/get
       - Method: post

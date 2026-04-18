@@ -1,0 +1,23 @@
+Name: user.rpc
+ListenOn: 0.0.0.0:8080
+Timeout: 4500
+Etcd:
+  Hosts:
+    - 127.0.0.1:2379
+  Key: user.rpc
+MySQL:
+  DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_user?parseTime=true
+  MaxOpenConns: 10
+  MaxIdleConns: 4
+  ConnMaxLifetime: 3m
+  ConnMaxIdleTime: 1m
+StoreRedis:
+  Host: 127.0.0.1:6379
+  Type: node
+UserAuth:
+  TokenExpire: 24h
+  LoginFailLimit: 5
+  AccessSecret: local-user-secret-0001
+Xid:
+  Provider: static
+  NodeId: 0

@@ -1,0 +1,42 @@
+Name: program.rpc
+ListenOn: 0.0.0.0:8083
+Timeout: 4500
+Etcd:
+  Hosts:
+    - 127.0.0.1:2379
+  Key: program.rpc
+MySQL:
+  DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_program?parseTime=true
+  MaxOpenConns: 14
+  MaxIdleConns: 4
+  ConnMaxLifetime: 3m
+  ConnMaxIdleTime: 1m
+StoreRedis:
+  Host: 127.0.0.1:6379
+  Type: node
+Cache:
+  - Host: 127.0.0.1:6379
+    Type: node
+    Weight: 100
+LocalCache:
+  DetailTTL: 20s
+  DetailNotFoundTTL: 5s
+  DetailCacheLimit: 5000
+  CategorySnapshotTTL: 5m
+CacheInvalidation:
+  Enabled: true
+  Channel: livepass:program:cache:invalidate
+  PublishTimeout: 200ms
+  ReconnectBackoff: 1s
+RushInventoryPreheat:
+  Enable: true
+  LeadTime: 5m
+  Queue: rush_inventory_preheat
+  MaxRetry: 8
+  UniqueTTL: 30m
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node
+Xid:
+  Provider: static
+  NodeId: 128

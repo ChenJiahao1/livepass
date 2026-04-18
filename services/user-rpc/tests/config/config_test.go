@@ -3,6 +3,7 @@ package config_test
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/conf"
 
@@ -30,6 +31,35 @@ func TestLoadUserRPCConfig(t *testing.T) {
 
 	if c.UserAuth.AccessSecret == "" {
 		t.Fatal("expected user auth access secret to be loaded")
+	}
+	if c.UserAuth.TokenExpire.Hours() != 2 {
+		t.Fatalf("expected user auth token expire 2h, got %s", c.UserAuth.TokenExpire)
+	}
+}
+
+func TestLoadUserRPCPerfConfig(t *testing.T) {
+	t.Parallel()
+
+	var c config.Config
+	configFile := filepath.Join("..", "..", "etc", "user.perf.yaml")
+	if err := conf.Load(configFile, &c); err != nil {
+		t.Fatalf("load %s: %v", configFile, err)
+	}
+
+	if c.MySQL.DataSource == "" {
+		t.Fatal("expected mysql datasource to be loaded")
+	}
+	if c.MySQL.MaxOpenConns != 10 {
+		t.Fatalf("expected mysql max open conns 10, got %d", c.MySQL.MaxOpenConns)
+	}
+	if c.MySQL.MaxIdleConns != 4 {
+		t.Fatalf("expected mysql max idle conns 4, got %d", c.MySQL.MaxIdleConns)
+	}
+	if c.UserAuth.AccessSecret == "" {
+		t.Fatal("expected user auth access secret to be loaded")
+	}
+	if c.UserAuth.TokenExpire != 24*time.Hour {
+		t.Fatalf("expected user auth token expire 24h, got %s", c.UserAuth.TokenExpire)
 	}
 }
 

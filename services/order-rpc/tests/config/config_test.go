@@ -139,8 +139,8 @@ func TestLoadOrderRPCPerfConfigIncludesTimeoutBudgetAndMySQLPool(t *testing.T) {
 	if c.RushOrder.TokenSecret != "rush-order-local-secret" {
 		t.Fatalf("expected rush order token secret rush-order-local-secret, got %q", c.RushOrder.TokenSecret)
 	}
-	if c.RushOrder.TokenTTL != 2*time.Minute {
-		t.Fatalf("expected rush order token ttl 2m, got %s", c.RushOrder.TokenTTL)
+	if c.RushOrder.TokenTTL != 24*time.Hour {
+		t.Fatalf("expected rush order token ttl 24h, got %s", c.RushOrder.TokenTTL)
 	}
 	if c.RushOrder.InFlightTTL != 30*time.Second {
 		t.Fatalf("expected rush order inflight ttl 30s, got %s", c.RushOrder.InFlightTTL)
