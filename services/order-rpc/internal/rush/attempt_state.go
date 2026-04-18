@@ -19,7 +19,6 @@ const (
 
 const (
 	PollOrderStatusProcessing int64 = 1
-	PollOrderStatusVerifying  int64 = 2
 	PollOrderStatusSuccess    int64 = 3
 	PollOrderStatusFailed     int64 = 4
 )

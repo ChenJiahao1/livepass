@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	logicpkg "livepass/services/order-rpc/internal/logic"
 	"livepass/services/order-rpc/internal/model"
 	"livepass/services/order-rpc/internal/rush"
@@ -370,6 +372,30 @@ func TestPollReturnsErrorWhenAttemptMissingAndDBLookupTimeouts(t *testing.T) {
 	}
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+}
+
+func TestPollReturnsInternalWhenAttemptMissingAndRepositoryUnavailable(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	svcCtx.OrderRepository = nil
+
+	ctx := context.Background()
+	userID, _, _, _, orderNumbers := nextRushTestIDs()
+	orderNumber := orderNumbers[0]
+
+	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
+		UserId:      userID,
+		OrderNumber: orderNumber,
+	})
+	if err == nil {
+		t.Fatalf("PollOrderProgress() error = nil, want internal")
+	}
+	if resp != nil {
+		t.Fatalf("expected nil response, got %+v", resp)
+	}
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected internal code, got %v", err)
 	}
 }
 

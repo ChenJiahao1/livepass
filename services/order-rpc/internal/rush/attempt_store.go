@@ -432,7 +432,7 @@ func (s *AttemptStore) PrepareAttemptForConsume(ctx context.Context, showTimeID,
 		if parseErr != nil {
 			return nil, false, parseErr
 		}
-		if statusCode < 0 {
+		if statusCode <= 0 {
 			return nil, false, xerr.ErrOrderNotFound
 		}
 	}

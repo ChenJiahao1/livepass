@@ -58,11 +58,7 @@ func projectOrderProgress(ctx context.Context, svcCtx *svc.ServiceContext, order
 
 func projectOrderProgressFromDB(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) (*orderProgressProjection, error) {
 	if svcCtx == nil || svcCtx.OrderRepository == nil {
-		return &orderProgressProjection{
-			OrderNumber: orderNumber,
-			OrderStatus: rush.PollOrderStatusFailed,
-			Done:        true,
-		}, nil
+		return nil, xerr.ErrInternal
 	}
 
 	order, err := svcCtx.OrderRepository.FindOrderByNumber(ctx, orderNumber)

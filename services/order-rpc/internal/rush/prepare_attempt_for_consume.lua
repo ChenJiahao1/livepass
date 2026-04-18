@@ -5,13 +5,9 @@
 -- 1: now(unix ms)
 -- 2: processing ttl seconds
 
-if redis.call("EXISTS", KEYS[1]) == 0 then
-    return {-1}
-end
-
 local ttl = redis.call("TTL", KEYS[1])
-if ttl == -2 or ttl == 0 then
-    return {-1}
+if ttl <= 0 then
+    return {ttl}
 end
 
 local state = redis.call("HGET", KEYS[1], "state") or ""
