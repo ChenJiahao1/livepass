@@ -71,11 +71,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/program/seat/freeze",
-				Handler: FreezeSeatsHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
 				Path:    "/program/show/time/add",
 				Handler: CreateProgramShowTimeHandler(serverCtx),
 			},

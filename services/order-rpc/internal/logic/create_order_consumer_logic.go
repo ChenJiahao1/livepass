@@ -3,10 +3,10 @@ package logic
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
+	"livepass/pkg/seatfreeze"
 	"livepass/pkg/xerr"
 	orderevent "livepass/services/order-rpc/internal/event"
 	"livepass/services/order-rpc/internal/model"
@@ -222,18 +222,11 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		ShowTimeId:       showTimeID,
 		TicketCategoryId: orderEvent.TicketCategoryID,
 		Count:            orderEvent.TicketCount,
-		RequestNo:        orderEvent.RequestNo,
+		FreezeToken:      buildSeatFreezeToken(showTimeID, orderEvent.TicketCategoryID, orderEvent.OrderNumber, processingEpoch),
 		FreezeSeconds:    durationToFreezeSeconds(l.svcCtx.Config.Order.CloseAfter),
 	}
-	if attempt != nil {
-		freezeReq.OwnerOrderNumber = attempt.OrderNumber
-		freezeReq.OwnerEpoch = processingEpoch
-		if processingEpoch > 0 {
-			freezeReq.RequestNo = fmt.Sprintf("%d-%d", attempt.OrderNumber, processingEpoch)
-		}
-	}
-	if freezeReq.RequestNo == "" {
-		freezeReq.RequestNo = fmt.Sprintf("order-create-%d", orderEvent.OrderNumber)
+	if attempt == nil || processingEpoch <= 0 {
+		freezeReq.FreezeToken = buildSeatFreezeToken(showTimeID, orderEvent.TicketCategoryID, orderEvent.OrderNumber, 1)
 	}
 	freezeResp, err := l.freezeSeatsWithRetry(freezeReq)
 	if err != nil {
@@ -296,6 +289,14 @@ func durationToFreezeSeconds(value time.Duration) int64 {
 	}
 
 	return int64(seconds)
+}
+
+func buildSeatFreezeToken(showTimeID, ticketCategoryID, orderNumber, processingEpoch int64) string {
+	if processingEpoch <= 0 {
+		processingEpoch = 1
+	}
+
+	return seatfreeze.FormatToken(showTimeID, ticketCategoryID, orderNumber, processingEpoch)
 }
 
 func isTerminalSeatFreezeError(err error) bool {
@@ -417,7 +418,7 @@ func (l *CreateOrderConsumerLogic) finalizeFailure(attempt *rush.AttemptRecord, 
 		return outcomeErr
 	}
 	if releaseFreeze && freezeToken != "" {
-		releaseOrderCreateFreezeWithOwner(l.ctx, l.svcCtx, freezeToken, releaseReason, attempt.OrderNumber, processingEpoch)
+		releaseOrderCreateFreeze(l.ctx, l.svcCtx, freezeToken, releaseReason)
 	}
 
 	return nil

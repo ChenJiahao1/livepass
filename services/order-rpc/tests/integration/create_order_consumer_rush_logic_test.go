@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"livepass/pkg/seatfreeze"
 	"livepass/pkg/xerr"
 	orderevent "livepass/services/order-rpc/internal/event"
 	logicpkg "livepass/services/order-rpc/internal/logic"
@@ -95,10 +96,6 @@ func TestCreateOrderConsumerPersistsOrderFromRushEvent(t *testing.T) {
 	if programRPC.lastAutoAssignAndFreezeSeatsReq == nil {
 		t.Fatalf("expected consumer to freeze seats")
 	}
-	if programRPC.lastAutoAssignAndFreezeSeatsReq.GetOwnerOrderNumber() != resp.GetOrderNumber() {
-		t.Fatalf("expected freeze request ownerOrderNumber %d, got %+v", resp.GetOrderNumber(), programRPC.lastAutoAssignAndFreezeSeatsReq)
-	}
-
 	record, err := svcCtx.AttemptStore.Get(ctx, resp.GetOrderNumber())
 	if err != nil {
 		t.Fatalf("AttemptStore.Get() error = %v", err)
@@ -106,12 +103,9 @@ func TestCreateOrderConsumerPersistsOrderFromRushEvent(t *testing.T) {
 	if record.State != rush.AttemptStateSuccess {
 		t.Fatalf("expected attempt state success, got %+v", record)
 	}
-	if programRPC.lastAutoAssignAndFreezeSeatsReq.GetOwnerEpoch() != record.ProcessingEpoch {
-		t.Fatalf("expected freeze request ownerEpoch %d, got %+v", record.ProcessingEpoch, programRPC.lastAutoAssignAndFreezeSeatsReq)
-	}
-	expectedRequestNo := fmt.Sprintf("%d-%d", resp.GetOrderNumber(), record.ProcessingEpoch)
-	if programRPC.lastAutoAssignAndFreezeSeatsReq.GetRequestNo() != expectedRequestNo {
-		t.Fatalf("expected freeze requestNo %s, got %+v", expectedRequestNo, programRPC.lastAutoAssignAndFreezeSeatsReq)
+	expectedFreezeToken := seatfreeze.FormatToken(programID, ticketCategoryID, resp.GetOrderNumber(), record.ProcessingEpoch)
+	if programRPC.lastAutoAssignAndFreezeSeatsReq.GetFreezeToken() != expectedFreezeToken {
+		t.Fatalf("expected freezeToken %s, got %+v", expectedFreezeToken, programRPC.lastAutoAssignAndFreezeSeatsReq)
 	}
 }
 
@@ -314,7 +308,7 @@ func TestCreateOrderConsumerReleasesAttemptWhenSeatFreezeFails(t *testing.T) {
 	}
 }
 
-func TestCreateOrderConsumerRechecksSeatFreezeByRequestNoAfterTimeout(t *testing.T) {
+func TestCreateOrderConsumerRechecksSeatFreezeByFreezeTokenAfterTimeout(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
@@ -343,10 +337,10 @@ func TestCreateOrderConsumerRechecksSeatFreezeByRequestNoAfterTimeout(t *testing
 		&userrpc.TicketUserInfo{Id: viewerIDs[0], UserId: userID, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
 	)
 
-	requestNos := make([]string, 0, 2)
+	freezeTokens := make([]string, 0, 2)
 	programRPC.autoAssignAndFreezeSeatsFunc = func(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
-		requestNos = append(requestNos, in.GetRequestNo())
-		if len(requestNos) == 1 {
+		freezeTokens = append(freezeTokens, in.GetFreezeToken())
+		if len(freezeTokens) == 1 {
 			return nil, status.Error(codes.DeadlineExceeded, "freeze timeout")
 		}
 		return &programrpc.AutoAssignAndFreezeSeatsResp{
@@ -376,8 +370,8 @@ func TestCreateOrderConsumerRechecksSeatFreezeByRequestNoAfterTimeout(t *testing
 	if programRPC.autoAssignAndFreezeSeatsCalls != 2 {
 		t.Fatalf("expected timeout path to recheck freeze once, got %d calls", programRPC.autoAssignAndFreezeSeatsCalls)
 	}
-	if len(requestNos) != 2 || requestNos[0] == "" || requestNos[0] != requestNos[1] {
-		t.Fatalf("expected consumer to reuse requestNo on timeout recheck, got %v", requestNos)
+	if len(freezeTokens) != 2 || freezeTokens[0] == "" || freezeTokens[0] != freezeTokens[1] {
+		t.Fatalf("expected consumer to reuse freezeToken on timeout recheck, got %v", freezeTokens)
 	}
 
 	order, err := svcCtx.OrderRepository.FindOrderByNumber(ctx, resp.GetOrderNumber())

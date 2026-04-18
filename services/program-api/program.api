@@ -65,8 +65,5 @@ service program-api {
 
 	@handler GetSeatRelateInfo
 	post /seat/relate/info (SeatListReq) returns (SeatRelateInfoResp)
-
-	@handler FreezeSeats
-	post /program/seat/freeze (FreezeSeatsReq) returns (FreezeSeatsResp)
 }
 

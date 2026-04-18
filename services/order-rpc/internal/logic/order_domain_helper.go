@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"livepass/pkg/xerr"
-	"livepass/pkg/xid"
 	"livepass/services/order-rpc/internal/model"
 	"livepass/services/order-rpc/internal/repeatguard"
 	"livepass/services/order-rpc/internal/svc"
@@ -394,10 +393,6 @@ func lockOrderStatusGuard(ctx context.Context, svcCtx *svc.ServiceContext, order
 	}
 
 	return unlock, nil
-}
-
-func buildFreezeRequestNo() string {
-	return fmt.Sprintf("order-%d", xid.New())
 }
 
 func generateOrderNumberForUser(userID int64, now time.Time) int64 {

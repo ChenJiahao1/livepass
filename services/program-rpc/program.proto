@@ -374,10 +374,8 @@ message AutoAssignAndFreezeSeatsReq {
   int64 showTimeId = 1;
   int64 ticketCategoryId = 2;
   int64 count = 3;
-  string requestNo = 4;
+  string freezeToken = 4;
   int64 freezeSeconds = 5;
-  int64 ownerOrderNumber = 6;
-  int64 ownerEpoch = 7;
 }
 
 message AutoAssignAndFreezeSeatsResp {
@@ -389,8 +387,6 @@ message AutoAssignAndFreezeSeatsResp {
 message ReleaseSeatFreezeReq {
   string freezeToken = 1;
   string releaseReason = 2;
-  int64 ownerOrderNumber = 3;
-  int64 ownerEpoch = 4;
 }
 
 message ReleaseSeatFreezeResp {
@@ -399,8 +395,6 @@ message ReleaseSeatFreezeResp {
 
 message ConfirmSeatFreezeReq {
   string freezeToken = 1;
-  int64 ownerOrderNumber = 2;
-  int64 ownerEpoch = 3;
 }
 
 message ConfirmSeatFreezeResp {

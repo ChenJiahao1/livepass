@@ -18,10 +18,6 @@ import (
 const (
 	testSeatStatusAvailable = 1
 	testSeatStatusFrozen    = 2
-
-	testFreezeStatusFrozen   = 1
-	testFreezeStatusReleased = 2
-	testFreezeStatusExpired  = 3
 )
 
 func TestAutoAssignAndFreezeSeats(t *testing.T) {
@@ -44,7 +40,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-seat-success",
+			FreezeToken:      "freeze-st51001-tc61001-o91001-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -73,12 +69,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			t.Fatalf("expected 1 seat to remain available in db before payment confirm")
 		}
 
-		freeze := querySeatFreezeByRequestNo(t, svcCtx, "req-seat-success")
-		if freeze.FreezeStatus != testFreezeStatusFrozen {
-			t.Fatalf("expected freeze status frozen, got %+v", freeze)
-		}
-		if freeze.FreezeToken != resp.FreezeToken {
-			t.Fatalf("expected redis freeze token %q, got %+v", resp.FreezeToken, freeze)
+		if resp.FreezeToken != "freeze-st51001-tc61001-o91001-e1" {
+			t.Fatalf("expected explicit freeze token, got %q", resp.FreezeToken)
 		}
 	})
 
@@ -101,7 +93,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-seat-split-fallback",
+			FreezeToken:      "freeze-st51006-tc61006-o91006-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -118,7 +110,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 		}
 	})
 
-	t.Run("repeated requestNo returns same freeze token and seat set", func(t *testing.T) {
+	t.Run("repeated freeze token returns same freeze token and seat set", func(t *testing.T) {
 		svcCtx := newProgramTestServiceContext(t)
 		resetProgramDomainState(t)
 
@@ -137,7 +129,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-seat-idempotent",
+			FreezeToken:      "freeze-st51002-tc61002-o91002-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -148,7 +140,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-seat-idempotent",
+			FreezeToken:      "freeze-st51002-tc61002-o91002-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -161,58 +153,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 		if !sameSeatIDs(first.Seats, second.Seats) {
 			t.Fatalf("expected same seat set, got %+v and %+v", first.Seats, second.Seats)
 		}
-		if countSeatFreezesByRequestNo(t, svcCtx, "req-seat-idempotent") != 1 {
-			t.Fatalf("expected exactly one freeze row for repeated requestNo")
-		}
-	})
-
-	t.Run("expired freeze is recycled before a new freeze request runs", func(t *testing.T) {
-		svcCtx := newProgramTestServiceContext(t)
-		resetProgramDomainState(t)
-
-		const programID int64 = 51003
-		const ticketCategoryID int64 = 61003
-		const expiredToken = "expired-freeze-token"
-		seedSeatInventoryProgram(t, svcCtx, programID, ticketCategoryID)
-		seedSeatFixtures(t, svcCtx,
-			seatFixture{ID: 73001, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
-			seatFixture{ID: 73002, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 2, SeatStatus: testSeatStatusAvailable},
-			seatFixture{ID: 73003, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 2, ColCode: 1, SeatStatus: testSeatStatusAvailable},
-		)
-		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
-		seedRedisSeatFreezeFixture(t, svcCtx, seatFreezeFixture{
-			ID:               83001,
-			FreezeToken:      expiredToken,
-			RequestNo:        "req-expired-old",
-			ProgramID:        programID,
-			TicketCategoryID: ticketCategoryID,
-			SeatCount:        2,
-			FreezeStatus:     testFreezeStatusFrozen,
-			ExpireTime:       "2026-03-01 10:00:00",
-		})
-
-		l := logicpkg.NewAutoAssignAndFreezeSeatsLogic(context.Background(), svcCtx)
-		resp, err := l.AutoAssignAndFreezeSeats(&pb.AutoAssignAndFreezeSeatsReq{
-			ShowTimeId:       programID,
-			TicketCategoryId: ticketCategoryID,
-			Count:            2,
-			RequestNo:        "req-expired-new",
-			FreezeSeconds:    900,
-		})
-		if err != nil {
-			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
-		}
-		if len(resp.Seats) != 2 {
-			t.Fatalf("expected 2 seats, got %d", len(resp.Seats))
-		}
-		if querySeatFreezeByToken(t, svcCtx, expiredToken).FreezeStatus != testFreezeStatusExpired {
-			t.Fatalf("expected expired redis freeze metadata to be marked expired")
-		}
-		if countSeatRowsByFreezeToken(t, svcCtx, expiredToken) != 0 {
-			t.Fatalf("expected expired freeze token not to exist in db seats")
-		}
-		if countSeatRowsByFreezeToken(t, svcCtx, resp.FreezeToken) != 2 {
-			t.Fatalf("expected new freeze token to persist db frozen seats")
+		if countSeatRowsByFreezeToken(t, svcCtx, first.FreezeToken) != 2 {
+			t.Fatalf("expected repeated freeze token to keep the same db frozen seats")
 		}
 	})
 
@@ -233,7 +175,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-insufficient",
+			FreezeToken:      "freeze-st51004-tc61004-o91004-e1",
 			FreezeSeconds:    900,
 		})
 		if status.Code(err) != codes.FailedPrecondition {
@@ -261,7 +203,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-show-time-missing",
+			FreezeToken:      "freeze-st51005-tc61005-o91005-e1",
 			FreezeSeconds:    900,
 		})
 		if status.Code(err) != codes.NotFound {
@@ -426,7 +368,7 @@ func TestReleaseSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-release-success",
+			FreezeToken:      "freeze-st52001-tc62001-o92001-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -451,9 +393,6 @@ func TestReleaseSeatFreeze(t *testing.T) {
 		if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusAvailable) != 3 {
 			t.Fatalf("expected db seats to stay available after release")
 		}
-		if querySeatFreezeByToken(t, svcCtx, freezeResp.FreezeToken).FreezeStatus != testFreezeStatusReleased {
-			t.Fatalf("expected redis freeze metadata to be marked released")
-		}
 	})
 
 	t.Run("repeated release is idempotent", func(t *testing.T) {
@@ -474,7 +413,7 @@ func TestReleaseSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-release-idempotent",
+			FreezeToken:      "freeze-st52002-tc62002-o92002-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -520,8 +459,8 @@ func TestConcurrentSeatFreezeDoesNotOverlap(t *testing.T) {
 	)
 
 	requests := []*pb.AutoAssignAndFreezeSeatsReq{
-		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-1", FreezeSeconds: 900},
-		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, RequestNo: "req-concurrent-2", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, FreezeToken: "freeze-st53001-tc63001-o93011-e1", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, FreezeToken: "freeze-st53001-tc63001-o93012-e1", FreezeSeconds: 900},
 	}
 
 	for _, req := range requests {
@@ -603,8 +542,8 @@ func TestConcurrentSeatFreezeUsesDifferentHotspotKeysPerTicketCategory(t *testin
 		errs []error
 	)
 	requests := []*pb.AutoAssignAndFreezeSeatsReq{
-		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, RequestNo: "req-hotspot-cat-1", FreezeSeconds: 900},
-		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, RequestNo: "req-hotspot-cat-2", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, FreezeToken: "freeze-st53002-tc63011-o93021-e1", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, FreezeToken: "freeze-st53002-tc63012-o93022-e1", FreezeSeconds: 900},
 	}
 
 	for _, req := range requests {
@@ -661,12 +600,6 @@ type seatRow struct {
 	FreezeToken sql.NullString
 }
 
-type seatFreezeRow struct {
-	FreezeToken  string
-	RequestNo    string
-	FreezeStatus int
-}
-
 func querySeatRowsByFreezeToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) []seatRow {
 	t.Helper()
 
@@ -692,38 +625,6 @@ func querySeatRowsByFreezeToken(t *testing.T, svcCtx *svc.ServiceContext, freeze
 	}
 
 	return resp
-}
-
-func querySeatFreezeByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) seatFreezeRow {
-	t.Helper()
-
-	meta := requireSeatFreezeMetadataByRequestNo(t, svcCtx, requestNo)
-	return seatFreezeRow{
-		FreezeToken:  meta.FreezeToken,
-		RequestNo:    meta.RequestNo,
-		FreezeStatus: int(meta.FreezeStatus),
-	}
-}
-
-func querySeatFreezeByToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) seatFreezeRow {
-	t.Helper()
-
-	meta := requireSeatFreezeMetadataByToken(t, svcCtx, freezeToken)
-	return seatFreezeRow{
-		FreezeToken:  meta.FreezeToken,
-		RequestNo:    meta.RequestNo,
-		FreezeStatus: int(meta.FreezeStatus),
-	}
-}
-
-func countSeatFreezesByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) int {
-	t.Helper()
-
-	if _, ok := findSeatFreezeMetadataByRequestNo(t, svcCtx, requestNo); ok {
-		return 1
-	}
-
-	return 0
 }
 
 func countSeatRowsByFreezeToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) int {

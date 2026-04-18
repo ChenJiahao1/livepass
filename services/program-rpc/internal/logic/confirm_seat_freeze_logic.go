@@ -7,7 +7,6 @@ import (
 
 	"livepass/pkg/xerr"
 	"livepass/services/program-rpc/internal/model"
-	"livepass/services/program-rpc/internal/seatcache"
 	"livepass/services/program-rpc/internal/svc"
 	"livepass/services/program-rpc/pb"
 
@@ -45,28 +44,25 @@ func (l *ConfirmSeatFreezeLogic) ConfirmSeatFreeze(in *pb.ConfirmSeatFreezeReq) 
 	unlock := ensureSeatFreezeLocker(l.svcCtx).Lock(seatFreezeTokenLockKey(in.GetFreezeToken()))
 	defer unlock()
 
-	freeze, err := seatStore.GetFreezeMetadataByToken(l.ctx, in.GetFreezeToken())
+	freezeState, err := loadSeatFreezeDBState(l.ctx, l.svcCtx.DSeatModel, in.GetFreezeToken())
 	if err != nil {
 		return nil, mapConfirmSeatFreezeError(err)
 	}
-	if freeze == nil {
+	if len(freezeState.dbSeats) == 0 {
 		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeNotFound)
 	}
-	if freeze.FreezeStatus == seatcache.SeatFreezeStatusConfirmed {
+	if freezeState.allSold {
 		return &pb.ConfirmSeatFreezeResp{Success: true}, nil
 	}
-	if freeze.FreezeStatus != seatcache.SeatFreezeStatusFrozen || !freeze.ExpireTime().After(now) {
-		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
-	}
-	if hasSeatFreezeOwner(in.GetOwnerOrderNumber(), in.GetOwnerEpoch()) && !freeze.MatchesOwner(in.GetOwnerOrderNumber(), in.GetOwnerEpoch()) {
+	if !freezeState.allFrozen {
 		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
 	}
 
-	frozenSeats, err := seatStore.FrozenSeats(l.ctx, freeze.ShowTimeID, freeze.TicketCategoryID, freeze.FreezeToken)
+	frozenSeats, err := seatStore.FrozenSeats(l.ctx, freezeState.token.ShowTimeID, freezeState.token.TicketCategoryID, in.GetFreezeToken())
 	if err != nil {
 		return nil, mapConfirmSeatFreezeError(err)
 	}
-	if len(frozenSeats) == 0 || int64(len(frozenSeats)) != freeze.SeatCount {
+	if len(frozenSeats) == 0 || len(frozenSeats) != len(freezeState.dbSeats) {
 		return nil, mapConfirmSeatFreezeError(xerr.ErrSeatFreezeStatusInvalid)
 	}
 
@@ -77,7 +73,7 @@ func (l *ConfirmSeatFreezeLogic) ConfirmSeatFreeze(in *pb.ConfirmSeatFreezeReq) 
 			seatIDs = append(seatIDs, seat.SeatID)
 		}
 
-		seats, err := seatModel.FindByShowTimeAndIDsForUpdate(ctx, session, freeze.ShowTimeID, seatIDs)
+		seats, err := seatModel.FindByShowTimeAndIDsForUpdate(ctx, session, freezeState.token.ShowTimeID, seatIDs)
 		if err != nil {
 			return err
 		}
@@ -85,11 +81,11 @@ func (l *ConfirmSeatFreezeLogic) ConfirmSeatFreeze(in *pb.ConfirmSeatFreezeReq) 
 			return xerr.ErrSeatFreezeStatusInvalid
 		}
 		for _, seat := range seats {
-			if seat.SeatStatus != 2 || !seat.FreezeToken.Valid || seat.FreezeToken.String != freeze.FreezeToken {
+			if seat.SeatStatus != 2 || !seat.FreezeToken.Valid || seat.FreezeToken.String != in.GetFreezeToken() {
 				return xerr.ErrSeatFreezeStatusInvalid
 			}
 		}
-		if err := seatModel.BatchConfirmByShowTimeAndIDs(ctx, session, freeze.ShowTimeID, seatIDs, freeze.FreezeToken, freeze.ExpireTime()); err != nil {
+		if err := seatModel.BatchConfirmByShowTimeAndIDs(ctx, session, freezeState.token.ShowTimeID, seatIDs, in.GetFreezeToken(), now); err != nil {
 			return err
 		}
 
@@ -99,10 +95,7 @@ func (l *ConfirmSeatFreezeLogic) ConfirmSeatFreeze(in *pb.ConfirmSeatFreezeReq) 
 		return nil, mapConfirmSeatFreezeError(err)
 	}
 
-	if err := seatStore.ConfirmFrozenSeats(l.ctx, freeze.ShowTimeID, freeze.TicketCategoryID, freeze.FreezeToken, in.GetOwnerOrderNumber(), in.GetOwnerEpoch()); err != nil {
-		return nil, mapConfirmSeatFreezeError(err)
-	}
-	if _, err := seatStore.MarkFreezeConfirmed(l.ctx, freeze.FreezeToken, now); err != nil {
+	if err := seatStore.ConfirmFrozenSeats(l.ctx, freezeState.token.ShowTimeID, freezeState.token.TicketCategoryID, in.GetFreezeToken()); err != nil {
 		return nil, mapConfirmSeatFreezeError(err)
 	}
 

@@ -89,14 +89,6 @@ type fakeProgramRPC struct {
 	resetProgramResp    *programrpc.BoolResp
 	resetProgramErr     error
 	lastResetProgramReq *programrpc.ProgramResetReq
-
-	autoAssignAndFreezeSeatsResp    *programrpc.AutoAssignAndFreezeSeatsResp
-	autoAssignAndFreezeSeatsErr     error
-	lastAutoAssignAndFreezeSeatsReq *programrpc.AutoAssignAndFreezeSeatsReq
-
-	releaseSeatFreezeResp    *programrpc.ReleaseSeatFreezeResp
-	releaseSeatFreezeErr     error
-	lastReleaseSeatFreezeReq *programrpc.ReleaseSeatFreezeReq
 }
 
 func (f *fakeProgramRPC) CreateProgram(ctx context.Context, in *programrpc.CreateProgramReq, opts ...grpc.CallOption) (*programrpc.CreateProgramResp, error) {
@@ -208,13 +200,11 @@ func (f *fakeProgramRPC) ResetProgram(ctx context.Context, in *programrpc.Progra
 }
 
 func (f *fakeProgramRPC) AutoAssignAndFreezeSeats(ctx context.Context, in *programrpc.AutoAssignAndFreezeSeatsReq, opts ...grpc.CallOption) (*programrpc.AutoAssignAndFreezeSeatsResp, error) {
-	f.lastAutoAssignAndFreezeSeatsReq = in
-	return f.autoAssignAndFreezeSeatsResp, f.autoAssignAndFreezeSeatsErr
+	return nil, nil
 }
 
 func (f *fakeProgramRPC) ReleaseSeatFreeze(ctx context.Context, in *programrpc.ReleaseSeatFreezeReq, opts ...grpc.CallOption) (*programrpc.ReleaseSeatFreezeResp, error) {
-	f.lastReleaseSeatFreezeReq = in
-	return f.releaseSeatFreezeResp, f.releaseSeatFreezeErr
+	return nil, nil
 }
 
 func (f *fakeProgramRPC) EvaluateRefundRule(ctx context.Context, in *programrpc.EvaluateRefundRuleReq, opts ...grpc.CallOption) (*programrpc.EvaluateRefundRuleResp, error) {

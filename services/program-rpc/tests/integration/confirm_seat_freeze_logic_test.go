@@ -11,10 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	testSeatStatusSold        = 3
-	testFreezeStatusConfirmed = 4
-)
+const testSeatStatusSold = 3
 
 func TestAutoAssignAndFreezeSeatsPersistsFrozenSeatsBeforePaymentConfirm(t *testing.T) {
 	svcCtx := newProgramTestServiceContext(t)
@@ -34,7 +31,7 @@ func TestAutoAssignAndFreezeSeatsPersistsFrozenSeatsBeforePaymentConfirm(t *test
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-confirm-ledger-persist",
+		FreezeToken:      "freeze-st53101-tc63101-o93101-e1",
 		FreezeSeconds:    900,
 	})
 	if err != nil {
@@ -80,7 +77,7 @@ func TestConfirmSeatFreezeMovesSeatsToSoldLedger(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-confirm-ledger-sold",
+		FreezeToken:      "freeze-st53102-tc63102-o93102-e1",
 		FreezeSeconds:    900,
 	})
 	if err != nil {
@@ -105,10 +102,6 @@ func TestConfirmSeatFreezeMovesSeatsToSoldLedger(t *testing.T) {
 	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusSold) != 2 {
 		t.Fatalf("expected 2 sold seats in db")
 	}
-	if querySeatFreezeByToken(t, svcCtx, freezeResp.FreezeToken).FreezeStatus != testFreezeStatusConfirmed {
-		t.Fatalf("expected redis freeze metadata confirmed")
-	}
-
 	snapshot := requireProgramSeatLedgerSnapshot(t, svcCtx, programID, ticketCategoryID)
 	if snapshot.AvailableCount != 1 {
 		t.Fatalf("expected ledger available count to remain 1, got %d", snapshot.AvailableCount)
@@ -141,7 +134,7 @@ func TestConfirmSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-confirm-success",
+			FreezeToken:      "freeze-st53001-tc63001-o93001-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -164,41 +157,6 @@ func TestConfirmSeatFreeze(t *testing.T) {
 		if seats[0].SeatStatus != testSeatStatusSold || seats[1].SeatStatus != testSeatStatusSold {
 			t.Fatalf("expected seats sold, got %+v", seats)
 		}
-		if querySeatFreezeByToken(t, svcCtx, freezeResp.FreezeToken).FreezeStatus != testFreezeStatusConfirmed {
-			t.Fatalf("expected freeze metadata confirmed")
-		}
-	})
-
-	t.Run("expired freeze cannot be confirmed", func(t *testing.T) {
-		svcCtx := newProgramTestServiceContext(t)
-		resetProgramDomainState(t)
-
-		const programID int64 = 53002
-		const ticketCategoryID int64 = 63002
-		seedSeatInventoryProgram(t, svcCtx, programID, ticketCategoryID)
-		seedSeatFixtures(t, svcCtx,
-			seatFixture{ID: 77101, ProgramID: programID, TicketCategoryID: ticketCategoryID, RowCode: 1, ColCode: 1, SeatStatus: testSeatStatusAvailable},
-		)
-		primeProgramSeatLedgerFromDB(t, svcCtx, programID, ticketCategoryID)
-		seedRedisSeatFreezeFixture(t, svcCtx, seatFreezeFixture{
-			ID:               84101,
-			FreezeToken:      "freeze-confirm-expired",
-			RequestNo:        "req-confirm-expired",
-			ProgramID:        programID,
-			TicketCategoryID: ticketCategoryID,
-			SeatCount:        1,
-			FreezeStatus:     testFreezeStatusFrozen,
-			ExpireTime:       "2026-01-01 09:00:00",
-		})
-
-		l := logicpkg.NewConfirmSeatFreezeLogic(context.Background(), svcCtx)
-		_, err := l.ConfirmSeatFreeze(&pb.ConfirmSeatFreezeReq{FreezeToken: "freeze-confirm-expired"})
-		if err == nil {
-			t.Fatalf("expected failed precondition error")
-		}
-		if status.Code(err) != codes.FailedPrecondition {
-			t.Fatalf("expected failed precondition, got %s", status.Code(err))
-		}
 	})
 
 	t.Run("released freeze cannot be confirmed", func(t *testing.T) {
@@ -216,7 +174,7 @@ func TestConfirmSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            1,
-			RequestNo:        "req-confirm-released",
+			FreezeToken:      "freeze-st53003-tc63003-o93003-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -234,8 +192,8 @@ func TestConfirmSeatFreeze(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected failed precondition error")
 		}
-		if status.Code(err) != codes.FailedPrecondition {
-			t.Fatalf("expected failed precondition, got %s", status.Code(err))
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("expected not found, got %s", status.Code(err))
 		}
 	})
 
@@ -255,7 +213,7 @@ func TestConfirmSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			RequestNo:        "req-confirm-idempotent",
+			FreezeToken:      "freeze-st53004-tc63004-o93004-e1",
 			FreezeSeconds:    900,
 		})
 		if err != nil {
@@ -276,9 +234,6 @@ func TestConfirmSeatFreeze(t *testing.T) {
 		}
 		if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusSold) != 2 {
 			t.Fatalf("expected sold seats to remain unchanged after repeated confirm")
-		}
-		if querySeatFreezeByToken(t, svcCtx, freezeResp.FreezeToken).FreezeStatus != testFreezeStatusConfirmed {
-			t.Fatalf("expected freeze metadata to remain confirmed")
 		}
 	})
 }

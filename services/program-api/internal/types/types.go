@@ -10,20 +10,6 @@ type BoolResp struct {
 type EmptyReq struct {
 }
 
-type FreezeSeatsReq struct {
-	ShowTimeID       int64  `json:"showTimeId"`
-	TicketCategoryID int64  `json:"ticketCategoryId"`
-	Count            int64  `json:"count"`
-	RequestNo        string `json:"requestNo"`
-	FreezeSeconds    int64  `json:"freezeSeconds,optional"`
-}
-
-type FreezeSeatsResp struct {
-	FreezeToken string     `json:"freezeToken,optional"`
-	ExpireTime  string     `json:"expireTime,optional"`
-	Seats       []SeatInfo `json:"seats,optional"`
-}
-
 type GetProgramDetailViewReq struct {
 	ID int64 `json:"id"`
 }

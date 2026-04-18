@@ -3490,10 +3490,8 @@ type AutoAssignAndFreezeSeatsReq struct {
 	ShowTimeId       int64                  `protobuf:"varint,1,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	TicketCategoryId int64                  `protobuf:"varint,2,opt,name=ticketCategoryId,proto3" json:"ticketCategoryId,omitempty"`
 	Count            int64                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
-	RequestNo        string                 `protobuf:"bytes,4,opt,name=requestNo,proto3" json:"requestNo,omitempty"`
+	FreezeToken      string                 `protobuf:"bytes,4,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
 	FreezeSeconds    int64                  `protobuf:"varint,5,opt,name=freezeSeconds,proto3" json:"freezeSeconds,omitempty"`
-	OwnerOrderNumber int64                  `protobuf:"varint,6,opt,name=ownerOrderNumber,proto3" json:"ownerOrderNumber,omitempty"`
-	OwnerEpoch       int64                  `protobuf:"varint,7,opt,name=ownerEpoch,proto3" json:"ownerEpoch,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -3549,9 +3547,9 @@ func (x *AutoAssignAndFreezeSeatsReq) GetCount() int64 {
 	return 0
 }
 
-func (x *AutoAssignAndFreezeSeatsReq) GetRequestNo() string {
+func (x *AutoAssignAndFreezeSeatsReq) GetFreezeToken() string {
 	if x != nil {
-		return x.RequestNo
+		return x.FreezeToken
 	}
 	return ""
 }
@@ -3559,20 +3557,6 @@ func (x *AutoAssignAndFreezeSeatsReq) GetRequestNo() string {
 func (x *AutoAssignAndFreezeSeatsReq) GetFreezeSeconds() int64 {
 	if x != nil {
 		return x.FreezeSeconds
-	}
-	return 0
-}
-
-func (x *AutoAssignAndFreezeSeatsReq) GetOwnerOrderNumber() int64 {
-	if x != nil {
-		return x.OwnerOrderNumber
-	}
-	return 0
-}
-
-func (x *AutoAssignAndFreezeSeatsReq) GetOwnerEpoch() int64 {
-	if x != nil {
-		return x.OwnerEpoch
 	}
 	return 0
 }
@@ -3638,13 +3622,11 @@ func (x *AutoAssignAndFreezeSeatsResp) GetSeats() []*SeatInfo {
 }
 
 type ReleaseSeatFreezeReq struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	FreezeToken      string                 `protobuf:"bytes,1,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
-	ReleaseReason    string                 `protobuf:"bytes,2,opt,name=releaseReason,proto3" json:"releaseReason,omitempty"`
-	OwnerOrderNumber int64                  `protobuf:"varint,3,opt,name=ownerOrderNumber,proto3" json:"ownerOrderNumber,omitempty"`
-	OwnerEpoch       int64                  `protobuf:"varint,4,opt,name=ownerEpoch,proto3" json:"ownerEpoch,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FreezeToken   string                 `protobuf:"bytes,1,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
+	ReleaseReason string                 `protobuf:"bytes,2,opt,name=releaseReason,proto3" json:"releaseReason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReleaseSeatFreezeReq) Reset() {
@@ -3689,20 +3671,6 @@ func (x *ReleaseSeatFreezeReq) GetReleaseReason() string {
 		return x.ReleaseReason
 	}
 	return ""
-}
-
-func (x *ReleaseSeatFreezeReq) GetOwnerOrderNumber() int64 {
-	if x != nil {
-		return x.OwnerOrderNumber
-	}
-	return 0
-}
-
-func (x *ReleaseSeatFreezeReq) GetOwnerEpoch() int64 {
-	if x != nil {
-		return x.OwnerEpoch
-	}
-	return 0
 }
 
 type ReleaseSeatFreezeResp struct {
@@ -3750,12 +3718,10 @@ func (x *ReleaseSeatFreezeResp) GetSuccess() bool {
 }
 
 type ConfirmSeatFreezeReq struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	FreezeToken      string                 `protobuf:"bytes,1,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
-	OwnerOrderNumber int64                  `protobuf:"varint,2,opt,name=ownerOrderNumber,proto3" json:"ownerOrderNumber,omitempty"`
-	OwnerEpoch       int64                  `protobuf:"varint,3,opt,name=ownerEpoch,proto3" json:"ownerEpoch,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FreezeToken   string                 `protobuf:"bytes,1,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConfirmSeatFreezeReq) Reset() {
@@ -3793,20 +3759,6 @@ func (x *ConfirmSeatFreezeReq) GetFreezeToken() string {
 		return x.FreezeToken
 	}
 	return ""
-}
-
-func (x *ConfirmSeatFreezeReq) GetOwnerOrderNumber() int64 {
-	if x != nil {
-		return x.OwnerOrderNumber
-	}
-	return 0
-}
-
-func (x *ConfirmSeatFreezeReq) GetOwnerEpoch() int64 {
-	if x != nil {
-		return x.OwnerEpoch
-	}
-	return 0
 }
 
 type ConfirmSeatFreezeResp struct {
@@ -4911,40 +4863,28 @@ const file_program_proto_rawDesc = "" +
 	"\x1cperAccountLimitPurchaseCount\x18\x0e \x01(\x03R\x1cperAccountLimitPurchaseCount\x12*\n" +
 	"\x10permitChooseSeat\x18\x0f \x01(\x03R\x10permitChooseSeat\x12,\n" +
 	"\x11chooseSeatExplain\x18\x10 \x01(\tR\x11chooseSeatExplain\x12^\n" +
-	"\x14ticketCategoryVoList\x18\x11 \x03(\v2*.program.ProgramPreorderTicketCategoryInfoR\x14ticketCategoryVoList\"\x8f\x02\n" +
+	"\x14ticketCategoryVoList\x18\x11 \x03(\v2*.program.ProgramPreorderTicketCategoryInfoR\x14ticketCategoryVoList\"\xc7\x01\n" +
 	"\x1bAutoAssignAndFreezeSeatsReq\x12\x1e\n" +
 	"\n" +
 	"showTimeId\x18\x01 \x01(\x03R\n" +
 	"showTimeId\x12*\n" +
 	"\x10ticketCategoryId\x18\x02 \x01(\x03R\x10ticketCategoryId\x12\x14\n" +
-	"\x05count\x18\x03 \x01(\x03R\x05count\x12\x1c\n" +
-	"\trequestNo\x18\x04 \x01(\tR\trequestNo\x12$\n" +
-	"\rfreezeSeconds\x18\x05 \x01(\x03R\rfreezeSeconds\x12*\n" +
-	"\x10ownerOrderNumber\x18\x06 \x01(\x03R\x10ownerOrderNumber\x12\x1e\n" +
-	"\n" +
-	"ownerEpoch\x18\a \x01(\x03R\n" +
-	"ownerEpoch\"\x89\x01\n" +
+	"\x05count\x18\x03 \x01(\x03R\x05count\x12 \n" +
+	"\vfreezeToken\x18\x04 \x01(\tR\vfreezeToken\x12$\n" +
+	"\rfreezeSeconds\x18\x05 \x01(\x03R\rfreezeSeconds\"\x89\x01\n" +
 	"\x1cAutoAssignAndFreezeSeatsResp\x12 \n" +
 	"\vfreezeToken\x18\x01 \x01(\tR\vfreezeToken\x12\x1e\n" +
 	"\n" +
 	"expireTime\x18\x02 \x01(\tR\n" +
 	"expireTime\x12'\n" +
-	"\x05seats\x18\x03 \x03(\v2\x11.program.SeatInfoR\x05seats\"\xaa\x01\n" +
+	"\x05seats\x18\x03 \x03(\v2\x11.program.SeatInfoR\x05seats\"^\n" +
 	"\x14ReleaseSeatFreezeReq\x12 \n" +
 	"\vfreezeToken\x18\x01 \x01(\tR\vfreezeToken\x12$\n" +
-	"\rreleaseReason\x18\x02 \x01(\tR\rreleaseReason\x12*\n" +
-	"\x10ownerOrderNumber\x18\x03 \x01(\x03R\x10ownerOrderNumber\x12\x1e\n" +
-	"\n" +
-	"ownerEpoch\x18\x04 \x01(\x03R\n" +
-	"ownerEpoch\"1\n" +
+	"\rreleaseReason\x18\x02 \x01(\tR\rreleaseReason\"1\n" +
 	"\x15ReleaseSeatFreezeResp\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x84\x01\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"8\n" +
 	"\x14ConfirmSeatFreezeReq\x12 \n" +
-	"\vfreezeToken\x18\x01 \x01(\tR\vfreezeToken\x12*\n" +
-	"\x10ownerOrderNumber\x18\x02 \x01(\x03R\x10ownerOrderNumber\x12\x1e\n" +
-	"\n" +
-	"ownerEpoch\x18\x03 \x01(\x03R\n" +
-	"ownerEpoch\"1\n" +
+	"\vfreezeToken\x18\x01 \x01(\tR\vfreezeToken\"1\n" +
 	"\x15ConfirmSeatFreezeResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"Y\n" +
 	"\x15EvaluateRefundRuleReq\x12\x1e\n" +

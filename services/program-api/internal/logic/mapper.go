@@ -412,15 +412,3 @@ func mapTicketCategoryDetailInfoList(list []*programrpc.TicketCategoryDetailInfo
 
 	return resp
 }
-
-func mapFreezeSeatsResp(resp *programrpc.AutoAssignAndFreezeSeatsResp) *types.FreezeSeatsResp {
-	if resp == nil {
-		return &types.FreezeSeatsResp{}
-	}
-
-	return &types.FreezeSeatsResp{
-		FreezeToken: resp.FreezeToken,
-		ExpireTime:  resp.ExpireTime,
-		Seats:       mapSeatInfoList(resp.Seats),
-	}
-}

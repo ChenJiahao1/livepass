@@ -1,12 +1,4 @@
 type (
-	FreezeSeatsReq {
-		ShowTimeID int64 `json:"showTimeId"`
-		TicketCategoryID int64 `json:"ticketCategoryId"`
-		Count int64 `json:"count"`
-		RequestNo string `json:"requestNo"`
-		FreezeSeconds int64 `json:"freezeSeconds,optional"`
-	}
-
 	SeatAddReq {
 		ProgramID int64 `json:"programId"`
 		TicketCategoryID int64 `json:"ticketCategoryId"`
@@ -52,11 +44,5 @@ type (
 		ShowWeekTime string `json:"showWeekTime,optional"`
 		PriceList []string `json:"priceList,optional"`
 		PriceSeatGroupList []PriceSeatGroup `json:"priceSeatGroupList,optional"`
-	}
-
-	FreezeSeatsResp {
-		FreezeToken string `json:"freezeToken,optional"`
-		ExpireTime string `json:"expireTime,optional"`
-		Seats []SeatInfo `json:"seats,optional"`
 	}
 )

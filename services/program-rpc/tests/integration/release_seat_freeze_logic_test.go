@@ -29,7 +29,7 @@ func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-seat-ledger-release",
+		FreezeToken:      "freeze-st52101-tc62101-o92101-e1",
 		FreezeSeconds:    900,
 	})
 	if err != nil {
@@ -70,10 +70,6 @@ func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
 	if countSeatRowsByFreezeToken(t, svcCtx, autoResp.FreezeToken) != 0 {
 		t.Fatalf("expected all seats released for freeze token %q", autoResp.FreezeToken)
 	}
-	if querySeatFreezeByToken(t, svcCtx, autoResp.FreezeToken).FreezeStatus != testFreezeStatusReleased {
-		t.Fatalf("expected redis freeze metadata to be marked released")
-	}
-
 	releasedSnapshot := requireProgramSeatLedgerSnapshot(t, svcCtx, programID, ticketCategoryID)
 	if releasedSnapshot.AvailableCount != 3 {
 		t.Fatalf("expected seat ledger available count to be 3 after release, got %d", releasedSnapshot.AvailableCount)
@@ -100,7 +96,7 @@ func TestReleaseSeatFreezeRejectsConfirmedFreeze(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-seat-release-confirmed",
+		FreezeToken:      "freeze-st52102-tc62102-o92102-e1",
 		FreezeSeconds:    900,
 	})
 	if err != nil {
@@ -124,8 +120,5 @@ func TestReleaseSeatFreezeRejectsConfirmedFreeze(t *testing.T) {
 	}
 	if countSeatRowsByStatus(t, svcCtx, programID, ticketCategoryID, testSeatStatusSold) != 2 {
 		t.Fatalf("expected sold seats to remain unchanged after rejected release")
-	}
-	if querySeatFreezeByToken(t, svcCtx, autoResp.FreezeToken).FreezeStatus != testFreezeStatusConfirmed {
-		t.Fatalf("expected freeze metadata to remain confirmed")
 	}
 }

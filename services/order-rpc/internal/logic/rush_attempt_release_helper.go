@@ -45,19 +45,13 @@ func syncClosedRushAttempt(ctx context.Context, svcCtx *svc.ServiceContext, orde
 }
 
 func releaseOrderCreateFreeze(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken, reason string) {
-	releaseOrderCreateFreezeWithOwner(ctx, svcCtx, freezeToken, reason, 0, 0)
-}
-
-func releaseOrderCreateFreezeWithOwner(ctx context.Context, svcCtx *svc.ServiceContext, freezeToken, reason string, ownerOrderNumber, ownerEpoch int64) {
 	if freezeToken == "" || svcCtx == nil || svcCtx.ProgramRpc == nil {
 		return
 	}
 
 	if _, err := svcCtx.ProgramRpc.ReleaseSeatFreeze(ctx, &programrpc.ReleaseSeatFreezeReq{
-		FreezeToken:      freezeToken,
-		ReleaseReason:    reason,
-		OwnerOrderNumber: ownerOrderNumber,
-		OwnerEpoch:       ownerEpoch,
+		FreezeToken:   freezeToken,
+		ReleaseReason: reason,
 	}); err != nil {
 		logx.WithContext(ctx).Errorf("release seat freeze failed, freezeToken=%s err=%v", freezeToken, err)
 	}

@@ -138,7 +138,7 @@ func (s *SeatStockStore) FreezeAutoAssignedSeats(ctx context.Context, showTimeID
 	}
 }
 
-func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, showTimeID, ticketCategoryID int64, freezeToken string, ownerOrderNumber, ownerEpoch int64) error {
+func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, showTimeID, ticketCategoryID int64, freezeToken string) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
@@ -150,12 +150,9 @@ func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, showTimeID, tic
 			stockKey(s.prefix, showTimeID, ticketCategoryID),
 			availableSeatsKey(s.prefix, showTimeID, ticketCategoryID),
 			frozenSeatsKey(s.prefix, showTimeID, ticketCategoryID, freezeToken),
-			freezeMetaKey(s.prefix, freezeToken),
 		},
 		s.stockTTLSeconds,
 		s.seatTTLSeconds,
-		ownerOrderNumber,
-		ownerEpoch,
 	)
 	if err != nil {
 		return err
@@ -171,9 +168,6 @@ func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, showTimeID, tic
 		}
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
-	if code == -2 {
-		return xerr.ErrSeatFreezeStatusInvalid
-	}
 	if code != 1 {
 		return fmt.Errorf("unexpected release frozen seat result: %d", code)
 	}
@@ -181,7 +175,7 @@ func (s *SeatStockStore) ReleaseFrozenSeats(ctx context.Context, showTimeID, tic
 	return nil
 }
 
-func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, showTimeID, ticketCategoryID int64, freezeToken string, ownerOrderNumber, ownerEpoch int64) error {
+func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, showTimeID, ticketCategoryID int64, freezeToken string) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrProgramSeatLedgerNotReady
 	}
@@ -193,12 +187,9 @@ func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, showTimeID, tic
 			stockKey(s.prefix, showTimeID, ticketCategoryID),
 			soldSeatsKey(s.prefix, showTimeID, ticketCategoryID),
 			frozenSeatsKey(s.prefix, showTimeID, ticketCategoryID, freezeToken),
-			freezeMetaKey(s.prefix, freezeToken),
 		},
 		s.stockTTLSeconds,
 		s.seatTTLSeconds,
-		ownerOrderNumber,
-		ownerEpoch,
 	)
 	if err != nil {
 		return err
@@ -213,9 +204,6 @@ func (s *SeatStockStore) ConfirmFrozenSeats(ctx context.Context, showTimeID, tic
 			s.loader.Schedule(showTimeID, ticketCategoryID)
 		}
 		return xerr.ErrProgramSeatLedgerNotReady
-	}
-	if code == -2 {
-		return xerr.ErrSeatFreezeStatusInvalid
 	}
 	if code != 1 {
 		return fmt.Errorf("unexpected confirm frozen seat result: %d", code)

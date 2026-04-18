@@ -30,7 +30,7 @@ func TestAutoAssignAndFreezeSeatsPrefersAdjacentSeats(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-seat-ledger-adjacent",
+		FreezeToken:      "freeze-st51101-tc61101-o91101-e1",
 		FreezeSeconds:    900,
 	})
 	if err != nil {
@@ -83,7 +83,7 @@ func TestAutoAssignAndFreezeSeatsFallsBackToSortedFirstN(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-seat-ledger-fallback",
+		FreezeToken:      "freeze-st51102-tc61102-o91102-e1",
 		FreezeSeconds:    900,
 	})
 	if err != nil {
@@ -127,7 +127,7 @@ func TestAutoAssignAndFreezeSeatsRejectsWhenSeatLedgerMissing(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-seat-ledger-missing",
+		FreezeToken:      "freeze-st51103-tc61103-o91103-e1",
 		FreezeSeconds:    900,
 	})
 	if status.Code(err) != codes.FailedPrecondition {
@@ -162,7 +162,7 @@ func TestAutoAssignAndFreezeSeatsRejectsExistingRequestWhenDBFreezeStateMissing(
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-seat-db-freeze-missing",
+		FreezeToken:      "freeze-st51104-tc61104-o91104-e1",
 		FreezeSeconds:    900,
 	})
 	if err != nil {
@@ -182,7 +182,7 @@ func TestAutoAssignAndFreezeSeatsRejectsExistingRequestWhenDBFreezeStateMissing(
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		RequestNo:        "req-seat-db-freeze-missing",
+		FreezeToken:      "freeze-st51104-tc61104-o91104-e1",
 		FreezeSeconds:    900,
 	})
 	if status.Code(err) != codes.FailedPrecondition {

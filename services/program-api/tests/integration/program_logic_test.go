@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"livepass/pkg/xerr"
 	logicpkg "livepass/services/program-api/internal/logic"
 	"livepass/services/program-api/internal/svc"
 	"livepass/services/program-api/internal/types"
@@ -571,86 +570,5 @@ func TestResetProgramMapsRequestAndResponse(t *testing.T) {
 	}
 	if fake.lastResetProgramReq == nil || fake.lastResetProgramReq.ProgramId != 10001 {
 		t.Fatalf("unexpected request: %+v", fake.lastResetProgramReq)
-	}
-}
-
-func TestFreezeSeatsMapsRequestAndResponse(t *testing.T) {
-	fake := &fakeProgramRPC{
-		autoAssignAndFreezeSeatsResp: &programrpc.AutoAssignAndFreezeSeatsResp{
-			FreezeToken: "freeze-demo-001",
-			ExpireTime:  "2026-12-31 18:45:00",
-			Seats: []*programrpc.SeatInfo{
-				{SeatId: 70001, TicketCategoryId: 40001, RowCode: 3, ColCode: 5, Price: 299},
-				{SeatId: 70002, TicketCategoryId: 40001, RowCode: 3, ColCode: 6, Price: 299},
-			},
-		},
-	}
-	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
-
-	resp, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ShowTimeID:       30001,
-		TicketCategoryID: 40001,
-		Count:            2,
-		RequestNo:        "preorder-demo-001",
-		FreezeSeconds:    900,
-	})
-	if err != nil {
-		t.Fatalf("FreezeSeats returned error: %v", err)
-	}
-	if resp.FreezeToken != "freeze-demo-001" || resp.ExpireTime != "2026-12-31 18:45:00" {
-		t.Fatalf("unexpected freeze response: %+v", resp)
-	}
-	if len(resp.Seats) != 2 || resp.Seats[0].SeatID != 70001 || resp.Seats[1].ColCode != 6 {
-		t.Fatalf("unexpected seat mapping: %+v", resp.Seats)
-	}
-	if fake.lastAutoAssignAndFreezeSeatsReq == nil {
-		t.Fatalf("expected rpc request")
-	}
-	if fake.lastAutoAssignAndFreezeSeatsReq.ShowTimeId != 30001 ||
-		fake.lastAutoAssignAndFreezeSeatsReq.TicketCategoryId != 40001 ||
-		fake.lastAutoAssignAndFreezeSeatsReq.Count != 2 ||
-		fake.lastAutoAssignAndFreezeSeatsReq.RequestNo != "preorder-demo-001" ||
-		fake.lastAutoAssignAndFreezeSeatsReq.FreezeSeconds != 900 {
-		t.Fatalf("unexpected freeze request: %+v", fake.lastAutoAssignAndFreezeSeatsReq)
-	}
-}
-
-func TestFreezeSeatsRejectsInvalidPayload(t *testing.T) {
-	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: &fakeProgramRPC{}})
-
-	_, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ShowTimeID:       0,
-		TicketCategoryID: 40001,
-		Count:            2,
-		RequestNo:        "",
-	})
-	if err == nil {
-		t.Fatalf("expected invalid argument error")
-	}
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected invalid argument code, got %s", status.Code(err))
-	}
-	if status.Convert(err).Message() != xerr.ErrInvalidParam.Error() {
-		t.Fatalf("unexpected error message: %v", err)
-	}
-}
-
-func TestFreezeSeatsPropagatesInventoryConflict(t *testing.T) {
-	fake := &fakeProgramRPC{
-		autoAssignAndFreezeSeatsErr: status.Error(codes.FailedPrecondition, "seat inventory insufficient"),
-	}
-	logic := logicpkg.NewFreezeSeatsLogic(context.Background(), &svc.ServiceContext{ProgramRpc: fake})
-
-	_, err := logic.FreezeSeats(&types.FreezeSeatsReq{
-		ShowTimeID:       30001,
-		TicketCategoryID: 40001,
-		Count:            2,
-		RequestNo:        "preorder-demo-conflict",
-	})
-	if err == nil {
-		t.Fatalf("expected failed precondition error")
-	}
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("expected failed precondition code, got %s", status.Code(err))
 	}
 }

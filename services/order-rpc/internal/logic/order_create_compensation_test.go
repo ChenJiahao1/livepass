@@ -22,12 +22,12 @@ func (f *noopOrderCreateProgramRPC) ReleaseSeatFreeze(ctx context.Context, in *p
 	return &programrpc.ReleaseSeatFreezeResp{Success: true}, nil
 }
 
-func TestReleaseOrderCreateFreezeWithOwnerCarriesFencingFields(t *testing.T) {
+func TestReleaseOrderCreateFreezeSendsFreezeTokenAndReason(t *testing.T) {
 	programRPC := &noopOrderCreateProgramRPC{}
 
-	releaseOrderCreateFreezeWithOwner(context.Background(), &svc.ServiceContext{
+	releaseOrderCreateFreeze(context.Background(), &svc.ServiceContext{
 		ProgramRpc: programRPC,
-	}, "freeze-owner-release", "worker_release", 91001, 3)
+	}, "freeze-owner-release", "worker_release")
 
 	if programRPC.releaseSeatFreezeCalls != 1 {
 		t.Fatalf("expected one release request, got %d", programRPC.releaseSeatFreezeCalls)
@@ -35,10 +35,7 @@ func TestReleaseOrderCreateFreezeWithOwnerCarriesFencingFields(t *testing.T) {
 	if programRPC.lastReleaseReq == nil {
 		t.Fatalf("expected release request to be captured")
 	}
-	if programRPC.lastReleaseReq.GetOwnerOrderNumber() != 91001 {
-		t.Fatalf("expected ownerOrderNumber 91001, got %+v", programRPC.lastReleaseReq)
-	}
-	if programRPC.lastReleaseReq.GetOwnerEpoch() != 3 {
-		t.Fatalf("expected ownerEpoch 3, got %+v", programRPC.lastReleaseReq)
+	if programRPC.lastReleaseReq.GetFreezeToken() != "freeze-owner-release" || programRPC.lastReleaseReq.GetReleaseReason() != "worker_release" {
+		t.Fatalf("unexpected release request %+v", programRPC.lastReleaseReq)
 	}
 }

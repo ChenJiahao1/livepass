@@ -66,22 +66,6 @@ type seatFixture struct {
 	FreezeExpireTime string
 }
 
-type seatFreezeFixture struct {
-	ID               int64
-	FreezeToken      string
-	RequestNo        string
-	ProgramID        int64
-	ShowTimeID       int64
-	TicketCategoryID int64
-	OwnerOrderNumber int64
-	OwnerEpoch       int64
-	SeatCount        int
-	FreezeStatus     int
-	ExpireTime       string
-	ReleaseReason    string
-	ReleaseTime      string
-}
-
 type programFixture struct {
 	ProgramID                 int64
 	ProgramGroupID            int64
@@ -538,47 +522,6 @@ func seedSeatFixtures(t *testing.T, svcCtx *svc.ServiceContext, fixtures ...seat
 	}
 }
 
-func seedRedisSeatFreezeFixture(t *testing.T, svcCtx *svc.ServiceContext, fixture seatFreezeFixture) {
-	t.Helper()
-
-	if svcCtx.SeatStockStore == nil {
-		t.Fatalf("expected seat stock store to be configured")
-	}
-
-	fixture = withSeatFreezeFixtureDefaults(fixture)
-	expireTime, err := time.ParseInLocation(testProgramDateTimeLayout, fixture.ExpireTime, time.Local)
-	if err != nil {
-		t.Fatalf("parse seat freeze expire time error: %v", err)
-	}
-
-	if _, err := svcCtx.SeatStockStore.FreezeAutoAssignedSeats(
-		context.Background(),
-		fixture.ShowTimeID,
-		fixture.TicketCategoryID,
-		fixture.FreezeToken,
-		int64(fixture.SeatCount),
-	); err != nil {
-		t.Fatalf("freeze seats in redis error: %v", err)
-	}
-
-	meta := &seatcache.SeatFreezeMetadata{
-		FreezeToken:      fixture.FreezeToken,
-		RequestNo:        fixture.RequestNo,
-		ProgramID:        fixture.ProgramID,
-		ShowTimeID:       fixture.ShowTimeID,
-		TicketCategoryID: fixture.TicketCategoryID,
-		OwnerOrderNumber: fixture.OwnerOrderNumber,
-		OwnerEpoch:       fixture.OwnerEpoch,
-		SeatCount:        int64(fixture.SeatCount),
-		FreezeStatus:     int64(fixture.FreezeStatus),
-		ExpireAt:         expireTime.Unix(),
-		UpdatedAt:        expireTime.Unix(),
-	}
-	if err := svcCtx.SeatStockStore.SaveFreezeMetadata(context.Background(), meta); err != nil {
-		t.Fatalf("save redis seat freeze metadata error: %v", err)
-	}
-}
-
 func seedSeatInventoryProgram(t *testing.T, svcCtx *svc.ServiceContext, programID, ticketCategoryID int64) {
 	t.Helper()
 
@@ -627,58 +570,6 @@ func updateTicketCategoryRemainNumber(t *testing.T, svcCtx *svc.ServiceContext, 
 		time.Now().Format(testProgramDateTimeLayout),
 		ticketCategoryID,
 	)
-}
-
-func requireSeatFreezeMetadataByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) *seatcache.SeatFreezeMetadata {
-	t.Helper()
-
-	meta, ok := findSeatFreezeMetadataByRequestNo(t, svcCtx, requestNo)
-	if !ok {
-		t.Fatalf("seat freeze metadata not found by requestNo=%s", requestNo)
-	}
-
-	return meta
-}
-
-func requireSeatFreezeMetadataByToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) *seatcache.SeatFreezeMetadata {
-	t.Helper()
-
-	meta, ok := findSeatFreezeMetadataByToken(t, svcCtx, freezeToken)
-	if !ok {
-		t.Fatalf("seat freeze metadata not found by freezeToken=%s", freezeToken)
-	}
-
-	return meta
-}
-
-func findSeatFreezeMetadataByRequestNo(t *testing.T, svcCtx *svc.ServiceContext, requestNo string) (*seatcache.SeatFreezeMetadata, bool) {
-	t.Helper()
-
-	if svcCtx.SeatStockStore == nil {
-		t.Fatalf("expected seat stock store to be configured")
-	}
-
-	meta, err := svcCtx.SeatStockStore.GetFreezeMetadataByRequestNo(context.Background(), requestNo)
-	if err != nil {
-		t.Fatalf("get seat freeze metadata by request no error: %v", err)
-	}
-
-	return meta, meta != nil
-}
-
-func findSeatFreezeMetadataByToken(t *testing.T, svcCtx *svc.ServiceContext, freezeToken string) (*seatcache.SeatFreezeMetadata, bool) {
-	t.Helper()
-
-	if svcCtx.SeatStockStore == nil {
-		t.Fatalf("expected seat stock store to be configured")
-	}
-
-	meta, err := svcCtx.SeatStockStore.GetFreezeMetadataByToken(context.Background(), freezeToken)
-	if err != nil {
-		t.Fatalf("get seat freeze metadata by token error: %v", err)
-	}
-
-	return meta, meta != nil
 }
 
 func openProgramTestDB(t *testing.T, dataSource string) *sql.DB {
@@ -864,23 +755,6 @@ func withSeatFixtureDefaults(fixture seatFixture) seatFixture {
 	}
 	if fixture.SeatStatus == 0 {
 		fixture.SeatStatus = 1
-	}
-
-	return fixture
-}
-
-func withSeatFreezeFixtureDefaults(fixture seatFreezeFixture) seatFreezeFixture {
-	if fixture.SeatCount == 0 {
-		fixture.SeatCount = 1
-	}
-	if fixture.ShowTimeID == 0 {
-		fixture.ShowTimeID = fixture.ProgramID
-	}
-	if fixture.FreezeStatus == 0 {
-		fixture.FreezeStatus = 1
-	}
-	if fixture.ExpireTime == "" {
-		fixture.ExpireTime = "2026-12-31 20:00:00"
 	}
 
 	return fixture
