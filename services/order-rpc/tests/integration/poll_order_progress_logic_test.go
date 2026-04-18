@@ -47,7 +47,6 @@ func TestPollKeepsProcessingWhenAttemptIsPendingOrProcessingAndDBIsMissing(t *te
 				TicketCategoryID: ticketCategoryID,
 				ViewerIDs:        viewerIDs,
 				TicketCount:      1,
-				TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 				Now:              now,
 			}); err != nil {
 				t.Fatalf("Admit() error = %v", err)
@@ -67,6 +66,7 @@ func TestPollKeepsProcessingWhenAttemptIsPendingOrProcessingAndDBIsMissing(t *te
 			resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
 				UserId:      userID,
 				OrderNumber: orderNumber,
+				ShowTimeId:  programID,
 			})
 			if err != nil {
 				t.Fatalf("PollOrderProgress() error = %v", err)
@@ -104,7 +104,6 @@ func TestPollPrefersAttemptProjectionWhileAttemptExistsEvenIfDBOrderAlreadyExist
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
@@ -142,6 +141,7 @@ func TestPollPrefersAttemptProjectionWhileAttemptExistsEvenIfDBOrderAlreadyExist
 	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      userID,
 		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
 	})
 	if err != nil {
 		t.Fatalf("PollOrderProgress() error = %v", err)
@@ -180,7 +180,6 @@ func TestPollReturnsSuccessWhenAttemptSucceeded(t *testing.T) {
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
@@ -201,6 +200,7 @@ func TestPollReturnsSuccessWhenAttemptSucceeded(t *testing.T) {
 	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      userID,
 		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
 	})
 	if err != nil {
 		t.Fatalf("PollOrderProgress() error = %v", err)
@@ -239,7 +239,6 @@ func TestPollOrderProgressReturnsReasonCodeWhenAttemptFailed(t *testing.T) {
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
@@ -262,6 +261,7 @@ func TestPollOrderProgressReturnsReasonCodeWhenAttemptFailed(t *testing.T) {
 	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      userID,
 		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
 	})
 	if err != nil {
 		t.Fatalf("PollOrderProgress() error = %v", err)
@@ -314,6 +314,7 @@ func TestPollReturnsSuccessWhenAttemptMissingButDBOrderExists(t *testing.T) {
 	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      userID,
 		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
 	})
 	if err != nil {
 		t.Fatalf("PollOrderProgress() error = %v", err)
@@ -328,12 +329,13 @@ func TestPollReturnsFailedWhenAttemptMissingAndDBOrderMissing(t *testing.T) {
 	resetOrderDomainState(t)
 
 	ctx := context.Background()
-	userID, _, _, _, orderNumbers := nextRushTestIDs()
+	userID, programID, _, _, orderNumbers := nextRushTestIDs()
 	orderNumber := orderNumbers[0]
 
 	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      userID,
 		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
 	})
 	if err != nil {
 		t.Fatalf("PollOrderProgress() error = %v", err)
@@ -357,12 +359,13 @@ func TestPollReturnsErrorWhenAttemptMissingAndDBLookupTimeouts(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	userID, _, _, _, orderNumbers := nextRushTestIDs()
+	userID, programID, _, _, orderNumbers := nextRushTestIDs()
 	orderNumber := orderNumbers[0]
 
 	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      userID,
 		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
 	})
 	if err == nil {
 		t.Fatalf("PollOrderProgress() error = nil, want timeout")
@@ -381,12 +384,13 @@ func TestPollReturnsInternalWhenAttemptMissingAndRepositoryUnavailable(t *testin
 	svcCtx.OrderRepository = nil
 
 	ctx := context.Background()
-	userID, _, _, _, orderNumbers := nextRushTestIDs()
+	userID, programID, _, _, orderNumbers := nextRushTestIDs()
 	orderNumber := orderNumbers[0]
 
 	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      userID,
 		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
 	})
 	if err == nil {
 		t.Fatalf("PollOrderProgress() error = nil, want internal")

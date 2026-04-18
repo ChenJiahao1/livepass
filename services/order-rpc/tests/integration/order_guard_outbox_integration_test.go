@@ -339,16 +339,7 @@ func admitTestOrderCreateEvent(t *testing.T, svcCtx *svc.ServiceContext, event *
 		TicketCategoryID: event.TicketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      ticketCount,
-		TokenFingerprint: rush.BuildTokenFingerprint(
-			event.OrderNumber,
-			event.UserID,
-			showTimeID,
-			event.TicketCategoryID,
-			viewerIDs,
-			event.DistributionMode,
-			event.TakeTicketMode,
-		),
-		Now: time.Now(),
+		Now:              time.Now(),
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
 	}

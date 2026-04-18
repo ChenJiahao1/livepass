@@ -72,10 +72,10 @@ func TestCloseExpiredOrderFinalizesCommittedAttemptAsClosedReleased(t *testing.T
 		OrderNumber:      orderNumber,
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       programID,
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)

@@ -60,70 +60,62 @@ func TestPrimeRushRuntimeClearsTransientKeysAndRebuildsProjection(t *testing.T) 
 		}(),
 	}
 
-	if err := svcCtx.Redis.SetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "user_inflight", userID), "1"); err != nil {
-		t.Fatalf("SetCtx(user_inflight) error = %v", err)
+	if err := svcCtx.Redis.HsetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "user_inflight", userID), rushTestHashField(userID), "1"); err != nil {
+		t.Fatalf("HsetCtx(user_inflight) error = %v", err)
 	}
-	if err := svcCtx.Redis.SetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "viewer_inflight", 93002), "1"); err != nil {
-		t.Fatalf("SetCtx(viewer_inflight) error = %v", err)
+	if err := svcCtx.Redis.HsetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "viewer_inflight", 93002), rushTestHashField(93002), "1"); err != nil {
+		t.Fatalf("HsetCtx(viewer_inflight) error = %v", err)
 	}
-	if err := svcCtx.Redis.SetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "fingerprint", userID), "old"); err != nil {
-		t.Fatalf("SetCtx(fingerprint) error = %v", err)
+	if err := svcCtx.Redis.HsetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "user_active", userID), rushTestHashField(userID), "stale"); err != nil {
+		t.Fatalf("HsetCtx(stale user_active) error = %v", err)
 	}
-	if err := svcCtx.Redis.SetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "user_active", userID), "stale"); err != nil {
-		t.Fatalf("SetCtx(stale user_active) error = %v", err)
+	if err := svcCtx.Redis.HsetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "quota", staleTicketCategoryID), rushTestHashField(staleTicketCategoryID), "99"); err != nil {
+		t.Fatalf("HsetCtx(stale quota) error = %v", err)
 	}
-	if err := svcCtx.Redis.SetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "quota", staleTicketCategoryID), "99"); err != nil {
-		t.Fatalf("SetCtx(stale quota) error = %v", err)
+	if err := svcCtx.Redis.HsetCtx(ctx, rushTestScopedKey(prefix, otherShowTimeID, "quota", staleTicketCategoryID), rushTestHashField(staleTicketCategoryID), "77"); err != nil {
+		t.Fatalf("HsetCtx(other quota) error = %v", err)
 	}
-	if err := svcCtx.Redis.SetCtx(ctx, rushTestScopedKey(prefix, otherShowTimeID, "quota", staleTicketCategoryID), "77"); err != nil {
-		t.Fatalf("SetCtx(other quota) error = %v", err)
-	}
-	if err := svcCtx.Redis.SetCtx(ctx, rushTestScopedKey(prefix, otherShowTimeID, "user_inflight", userID), "keep"); err != nil {
-		t.Fatalf("SetCtx(other user_inflight) error = %v", err)
+	if err := svcCtx.Redis.HsetCtx(ctx, rushTestScopedKey(prefix, otherShowTimeID, "user_inflight", userID), rushTestHashField(userID), "keep"); err != nil {
+		t.Fatalf("HsetCtx(other user_inflight) error = %v", err)
 	}
 
 	if err := logicpkg.PrimeRushRuntime(ctx, svcCtx, programID); err != nil {
 		t.Fatalf("PrimeRushRuntime() error = %v", err)
 	}
 
-	if exists, err := svcCtx.Redis.ExistsCtx(ctx, rushTestScopedKey(prefix, showTimeID, "user_inflight", userID)); err != nil {
-		t.Fatalf("ExistsCtx(user_inflight) error = %v", err)
-	} else if exists {
-		t.Fatalf("expected showTime user_inflight removed")
+	if fields, err := svcCtx.Redis.HgetallCtx(ctx, rushTestScopedKey(prefix, showTimeID, "user_inflight", userID)); err != nil {
+		t.Fatalf("HgetallCtx(user_inflight) error = %v", err)
+	} else if _, ok := fields[rushTestHashField(userID)]; ok {
+		t.Fatalf("expected showTime user_inflight removed, got %+v", fields)
 	}
-	if exists, err := svcCtx.Redis.ExistsCtx(ctx, rushTestScopedKey(prefix, showTimeID, "viewer_inflight", 93002)); err != nil {
-		t.Fatalf("ExistsCtx(viewer_inflight) error = %v", err)
-	} else if exists {
-		t.Fatalf("expected showTime viewer_inflight removed")
+	if fields, err := svcCtx.Redis.HgetallCtx(ctx, rushTestScopedKey(prefix, showTimeID, "viewer_inflight", 93002)); err != nil {
+		t.Fatalf("HgetallCtx(viewer_inflight) error = %v", err)
+	} else if _, ok := fields[rushTestHashField(93002)]; ok {
+		t.Fatalf("expected showTime viewer_inflight removed, got %+v", fields)
 	}
-	if exists, err := svcCtx.Redis.ExistsCtx(ctx, rushTestScopedKey(prefix, showTimeID, "fingerprint", userID)); err != nil {
-		t.Fatalf("ExistsCtx(fingerprint) error = %v", err)
-	} else if exists {
-		t.Fatalf("expected showTime fingerprint removed")
-	}
-	if exists, err := svcCtx.Redis.ExistsCtx(ctx, rushTestScopedKey(prefix, otherShowTimeID, "user_inflight", userID)); err != nil {
-		t.Fatalf("ExistsCtx(other user_inflight) error = %v", err)
-	} else if !exists {
-		t.Fatalf("expected other showTime transient key preserved")
+	if got, err := svcCtx.Redis.HgetCtx(ctx, rushTestScopedKey(prefix, otherShowTimeID, "user_inflight", userID), rushTestHashField(userID)); err != nil {
+		t.Fatalf("HgetCtx(other user_inflight) error = %v", err)
+	} else if got != "keep" {
+		t.Fatalf("expected other showTime transient field preserved, got %s", got)
 	}
 
-	if got, err := svcCtx.Redis.GetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "user_active", userID)); err != nil {
-		t.Fatalf("GetCtx(user_active) error = %v", err)
+	if got, err := svcCtx.Redis.HgetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "user_active", userID), rushTestHashField(userID)); err != nil {
+		t.Fatalf("HgetCtx(user_active) error = %v", err)
 	} else if got != fmt.Sprintf("%d", 910001+showTimeID) {
 		t.Fatalf("user_active value = %s, want %d", got, 910001+showTimeID)
 	}
-	if got, err := svcCtx.Redis.GetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "viewer_active", viewerID)); err != nil {
-		t.Fatalf("GetCtx(viewer_active) error = %v", err)
+	if got, err := svcCtx.Redis.HgetCtx(ctx, rushTestScopedKey(prefix, showTimeID, "viewer_active", viewerID), rushTestHashField(viewerID)); err != nil {
+		t.Fatalf("HgetCtx(viewer_active) error = %v", err)
 	} else if got != fmt.Sprintf("%d", 910001+showTimeID) {
 		t.Fatalf("viewer_active value = %s, want %d", got, 910001+showTimeID)
 	}
-	if exists, err := svcCtx.Redis.ExistsCtx(ctx, rushTestScopedKey(prefix, showTimeID, "quota", staleTicketCategoryID)); err != nil {
-		t.Fatalf("ExistsCtx(stale quota) error = %v", err)
-	} else if exists {
-		t.Fatalf("expected stale showTime quota removed")
+	if fields, err := svcCtx.Redis.HgetallCtx(ctx, rushTestScopedKey(prefix, showTimeID, "quota", staleTicketCategoryID)); err != nil {
+		t.Fatalf("HgetallCtx(stale quota) error = %v", err)
+	} else if _, ok := fields[rushTestHashField(staleTicketCategoryID)]; ok {
+		t.Fatalf("expected stale showTime quota removed, got %+v", fields)
 	}
-	if got, err := svcCtx.Redis.GetCtx(ctx, rushTestScopedKey(prefix, otherShowTimeID, "quota", staleTicketCategoryID)); err != nil {
-		t.Fatalf("GetCtx(other quota) error = %v", err)
+	if got, err := svcCtx.Redis.HgetCtx(ctx, rushTestScopedKey(prefix, otherShowTimeID, "quota", staleTicketCategoryID), rushTestHashField(staleTicketCategoryID)); err != nil {
+		t.Fatalf("HgetCtx(other quota) error = %v", err)
 	} else if got != "77" {
 		t.Fatalf("other quota value = %s, want 77", got)
 	}

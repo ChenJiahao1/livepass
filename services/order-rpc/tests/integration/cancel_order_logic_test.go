@@ -214,7 +214,6 @@ func TestCancelOrderDoesNotDoubleReleaseClosedAttempt(t *testing.T) {
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)

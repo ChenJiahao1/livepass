@@ -138,7 +138,7 @@ func TestCreateOrderRushDoesNotEnqueueVerifyTaskAfterAdmission(t *testing.T) {
 	}
 }
 
-func TestCreateOrderRushReturnsExistingOrderNumberForSameTokenFingerprint(t *testing.T) {
+func TestCreateOrderRushReturnsExistingOrderNumberForSamePurchaseToken(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 
@@ -195,10 +195,10 @@ func TestCreateOrderRushReturnsExistingOrderNumberForSameTokenFingerprint(t *tes
 	}
 	waitOrderCreateSendCalls(t, producer, 1)
 	if producer.SendCalls() != 1 {
-		t.Fatalf("expected kafka publish once for same fingerprint, got %d", producer.SendCalls())
+		t.Fatalf("expected kafka publish once for same purchase token, got %d", producer.SendCalls())
 	}
 	if _, err := svcCtx.AttemptStore.Get(ctx, secondClaims.OrderNumber); err == nil {
-		t.Fatalf("expected no second attempt record for reused fingerprint")
+		t.Fatalf("expected no second attempt record for reused purchase token")
 	}
 }
 
