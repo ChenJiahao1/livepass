@@ -467,12 +467,19 @@ func TestCreateOrderDoesNotDoubleCompensateWhenFailBeforeProcessingRepeats(t *te
 			preCompensateErr = err
 			return errors.New("publish handoff failed")
 		}
-		preCompensateErr = svcCtx.AttemptStore.Release(
+		outcome, err := svcCtx.AttemptStore.FailBeforeProcessing(
 			context.Background(),
 			record,
 			"KAFKA_HANDOFF_ERROR",
 			time.Now(),
 		)
+		if err != nil {
+			preCompensateErr = err
+			return errors.New("publish handoff failed")
+		}
+		if outcome != rush.AttemptTransitioned {
+			preCompensateErr = fmt.Errorf("unexpected pre-compensate outcome: %s", outcome)
+		}
 		return errors.New("publish handoff failed")
 	}
 

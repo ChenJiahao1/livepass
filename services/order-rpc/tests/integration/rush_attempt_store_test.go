@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -524,7 +523,6 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 	showTimeID := programID + 303
 	viewerIDs = viewerIDs[:2]
 	orderNumber := orderNumbers[0]
-	seatIDs := []int64{810001, 810002}
 
 	if err := store.SetQuotaAvailable(ctx, showTimeID, ticketCategoryID, 4); err != nil {
 		t.Fatalf("SetQuotaAvailable() error = %v", err)
@@ -552,7 +550,7 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 	if !shouldProcess || record == nil {
 		t.Fatalf("expected claim success, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := store.FinalizeSuccess(ctx, record, seatIDs, now.Add(time.Second)); err != nil {
+	if err := store.FinalizeSuccess(ctx, record, []int64(nil), now.Add(time.Second)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 
@@ -566,7 +564,6 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 
 	userActiveRedisKey := rushTestScopedKey(prefix, showTimeID, "user_active", userID)
 	viewerActiveRedisKey := rushTestScopedKey(prefix, showTimeID, "viewer_active", viewerIDs[0])
-	seatOccupiedRedisKey := rushTestScopedKey(prefix, showTimeID, "seat_occupied", orderNumber)
 
 	userActiveOrderNo, err := svcCtx.Redis.GetCtx(ctx, userActiveRedisKey)
 	if err != nil {
@@ -574,20 +571,6 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 	}
 	if userActiveOrderNo != strconv.FormatInt(orderNumber, 10) {
 		t.Fatalf("expected user_active order %d, got %s", orderNumber, userActiveOrderNo)
-	}
-	occupiedSeats, err := svcCtx.Redis.SmembersCtx(ctx, seatOccupiedRedisKey)
-	if err != nil {
-		t.Fatalf("SmembersCtx(seat_occupied) error = %v", err)
-	}
-	sort.Strings(occupiedSeats)
-	expectedOccupiedSeats := []string{strconv.FormatInt(seatIDs[0], 10), strconv.FormatInt(seatIDs[1], 10)}
-	if len(occupiedSeats) != len(expectedOccupiedSeats) {
-		t.Fatalf("unexpected occupied seat count: %+v", occupiedSeats)
-	}
-	for idx := range expectedOccupiedSeats {
-		if occupiedSeats[idx] != expectedOccupiedSeats[idx] {
-			t.Fatalf("unexpected occupied seats: %+v", occupiedSeats)
-		}
 	}
 
 	outcome, err := store.FinalizeClosedOrder(ctx, record, now.Add(2*time.Second))
@@ -627,13 +610,6 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 	}
 	if viewerActiveExists {
 		t.Fatalf("expected viewer_active key to be removed")
-	}
-	seatOccupiedExists, err := svcCtx.Redis.ExistsCtx(ctx, seatOccupiedRedisKey)
-	if err != nil {
-		t.Fatalf("ExistsCtx(seat_occupied) error = %v", err)
-	}
-	if seatOccupiedExists {
-		t.Fatalf("expected seat_occupied key to be removed")
 	}
 
 	available, ok, err := store.GetQuotaAvailable(ctx, showTimeID, ticketCategoryID)

@@ -162,18 +162,19 @@ func TestPollOrderProgressReturnsReasonCodeWhenAttemptFailed(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
 	}
-	if err := store.MarkQueued(ctx, orderNumber, now); err != nil {
-		t.Fatalf("MarkQueued() error = %v", err)
-	}
-	if _, _, err := store.PrepareAttemptForConsume(ctx, programID, orderNumber, now.Add(time.Millisecond)); err != nil {
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, programID, orderNumber, now.Add(time.Millisecond))
+	if err != nil {
 		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
-	record, err := store.Get(ctx, orderNumber)
-	if err != nil {
-		t.Fatalf("Get() error = %v", err)
+	if !shouldProcess || record == nil {
+		t.Fatalf("PrepareAttemptForConsume() shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := store.Release(ctx, record, rush.AttemptReasonAlreadyHasActiveOrder, now.Add(2*time.Millisecond)); err != nil {
-		t.Fatalf("Release() error = %v", err)
+	outcome, err := store.FinalizeFailure(ctx, record, rush.AttemptReasonAlreadyHasActiveOrder, now.Add(2*time.Millisecond))
+	if err != nil {
+		t.Fatalf("FinalizeFailure() error = %v", err)
+	}
+	if outcome != rush.AttemptTransitioned {
+		t.Fatalf("FinalizeFailure() outcome = %s", outcome)
 	}
 
 	resp, err := logicpkg.NewPollOrderProgressLogic(ctx, svcCtx).PollOrderProgress(&pb.PollOrderProgressReq{

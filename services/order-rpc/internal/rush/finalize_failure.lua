@@ -3,9 +3,7 @@
 -- 2: user active key(string)
 -- 3: user inflight key(string)
 -- 4: quota available key(string)
--- 5: seat occupied key(set)
--- 6: user fingerprint index key(hash)
--- 7..(6+viewer_count): viewer active keys(string)
+-- 5..(4+viewer_count): viewer active keys(string)
 -- remaining: viewer inflight keys(string)
 --
 -- ARGV:
@@ -13,8 +11,7 @@
 -- 2: ticket_count
 -- 3: now(unix ms)
 -- 4: final attempt ttl seconds
--- 5: token_fingerprint
--- 6: viewer_count
+-- 5: viewer_count
 
 if redis.call("EXISTS", KEYS[1]) == 0 then
     return "state_missing"
@@ -31,8 +28,8 @@ if state ~= "PROCESSING" then
     return "lost_ownership"
 end
 
-local viewerCount = tonumber(ARGV[6]) or 0
-local viewerActiveStart = 7
+local viewerCount = tonumber(ARGV[5]) or 0
+local viewerActiveStart = 5
 local viewerActiveEnd = viewerActiveStart + viewerCount - 1
 local viewerInflightStart = viewerActiveEnd + 1
 
@@ -50,7 +47,6 @@ end
 
 redis.call("DEL", KEYS[2])
 redis.call("DEL", KEYS[3])
-redis.call("DEL", KEYS[5])
 for idx = viewerActiveStart, viewerActiveEnd do
     redis.call("DEL", KEYS[idx])
 end

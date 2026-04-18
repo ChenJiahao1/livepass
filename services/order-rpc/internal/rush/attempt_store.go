@@ -401,43 +401,6 @@ func (s *AttemptStore) ReplaceViewerActiveByShowTime(ctx context.Context, showTi
 	return nil
 }
 
-func (s *AttemptStore) MarkQueued(ctx context.Context, orderNumber int64, now time.Time) error {
-	if s == nil || s.redis == nil {
-		return xerr.ErrInternal
-	}
-	if orderNumber <= 0 {
-		return xerr.ErrInvalidParam
-	}
-	if now.IsZero() {
-		now = time.Now()
-	}
-
-	attemptKey, err := s.resolveAttemptRecordKey(ctx, orderNumber)
-	if err != nil {
-		return err
-	}
-
-	result, err := s.redis.EvalCtx(
-		ctx,
-		markAttemptQueuedScript,
-		[]string{attemptKey},
-		now.UnixMilli(),
-	)
-	if err != nil {
-		return err
-	}
-
-	statusCode, err := parseEvalInt64(result)
-	if err != nil {
-		return err
-	}
-	if statusCode < 0 {
-		return xerr.ErrOrderNotFound
-	}
-
-	return nil
-}
-
 func (s *AttemptStore) PrepareAttemptForConsume(ctx context.Context, showTimeID, orderNumber int64, now time.Time) (*AttemptRecord, bool, error) {
 	if s == nil || s.redis == nil {
 		return nil, false, xerr.ErrInternal
@@ -600,6 +563,7 @@ func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecor
 	if now.IsZero() {
 		now = time.Now()
 	}
+	_ = seatIDs
 
 	activeTTLSeconds := computeActiveProjectionTTLSeconds(now, record.ShowEndAt)
 	viewerIDs := normalizedInt64s(record.ViewerIDs)
@@ -607,7 +571,6 @@ func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecor
 		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
 		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
 		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
 	}
 	for _, viewerID := range viewerIDs {
 		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
@@ -623,7 +586,6 @@ func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecor
 		now.UnixMilli(),
 		activeTTLSeconds,
 		s.finalStateTTLSeconds,
-		formatInt64CSV(seatIDs),
 		len(viewerIDs),
 		record.OrderNumber,
 	)
@@ -662,8 +624,6 @@ func (s *AttemptStore) FinalizeFailure(ctx context.Context, record *AttemptRecor
 		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
 		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
 		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
-		userFingerprintIndexKey(s.prefix, record.ShowTimeID, record.UserID),
 	}
 	for _, viewerID := range viewerIDs {
 		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
@@ -680,7 +640,6 @@ func (s *AttemptStore) FinalizeFailure(ctx context.Context, record *AttemptRecor
 		record.TicketCount,
 		now.UnixMilli(),
 		s.finalStateTTLSeconds,
-		record.TokenFingerprint,
 		len(viewerIDs),
 	)
 	if err != nil {
@@ -707,8 +666,6 @@ func (s *AttemptStore) FinalizeClosedOrder(ctx context.Context, record *AttemptR
 		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
 		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
 		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
-		userFingerprintIndexKey(s.prefix, record.ShowTimeID, record.UserID),
 	}
 	for _, viewerID := range viewerIDs {
 		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
@@ -724,7 +681,6 @@ func (s *AttemptStore) FinalizeClosedOrder(ctx context.Context, record *AttemptR
 		now.UnixMilli(),
 		record.TicketCount,
 		s.finalStateTTLSeconds,
-		record.TokenFingerprint,
 		len(viewerIDs),
 	)
 	if err != nil {
@@ -732,163 +688,6 @@ func (s *AttemptStore) FinalizeClosedOrder(ctx context.Context, record *AttemptR
 	}
 
 	return parseAttemptTransitionOutcome(result)
-}
-
-func (s *AttemptStore) CommitProjection(ctx context.Context, record *AttemptRecord, seatIDs []int64, now time.Time) error {
-	if s == nil || s.redis == nil {
-		return xerr.ErrInternal
-	}
-	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 || record.ShowTimeID <= 0 {
-		return xerr.ErrInvalidParam
-	}
-	if now.IsZero() {
-		now = time.Now()
-	}
-	activeTTLSeconds := computeActiveProjectionTTLSeconds(now, record.ShowEndAt)
-
-	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
-	}
-	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
-	}
-	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
-	}
-
-	result, err := s.redis.EvalCtx(
-		ctx,
-		commitAttemptProjectionScript,
-		keys,
-		now.UnixMilli(),
-		activeTTLSeconds,
-		s.finalStateTTLSeconds,
-		formatInt64CSV(seatIDs),
-		len(record.ViewerIDs),
-		record.OrderNumber,
-	)
-	if err != nil {
-		return err
-	}
-
-	statusCode, err := parseEvalInt64(result)
-	if err != nil {
-		return err
-	}
-	if statusCode < 0 {
-		return xerr.ErrOrderNotFound
-	}
-
-	return nil
-}
-
-func (s *AttemptStore) Release(ctx context.Context, record *AttemptRecord, reason string, now time.Time) error {
-	if s == nil || s.redis == nil {
-		return xerr.ErrInternal
-	}
-	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 || record.ShowTimeID <= 0 || record.TicketCategoryID <= 0 {
-		return xerr.ErrInvalidParam
-	}
-	if reason == "" {
-		return xerr.ErrInvalidParam
-	}
-	if now.IsZero() {
-		now = time.Now()
-	}
-
-	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
-		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
-		userFingerprintIndexKey(s.prefix, record.ShowTimeID, record.UserID),
-	}
-	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
-	}
-	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
-	}
-
-	result, err := s.redis.EvalCtx(
-		ctx,
-		releaseAttemptScript,
-		keys,
-		reason,
-		record.TicketCount,
-		now.UnixMilli(),
-		s.finalStateTTLSeconds,
-		record.TokenFingerprint,
-		len(record.ViewerIDs),
-	)
-	if err != nil {
-		return err
-	}
-
-	statusCode, err := parseEvalInt64(result)
-	if err != nil {
-		return err
-	}
-	if statusCode < 0 {
-		return xerr.ErrOrderNotFound
-	}
-
-	return nil
-}
-
-func (s *AttemptStore) ReleaseClosedOrderProjection(ctx context.Context, record *AttemptRecord, now time.Time) error {
-	if s == nil || s.redis == nil {
-		return xerr.ErrInternal
-	}
-	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 || record.ShowTimeID <= 0 || record.TicketCategoryID <= 0 {
-		return xerr.ErrInvalidParam
-	}
-	if now.IsZero() {
-		now = time.Now()
-	}
-
-	keys := []string{
-		attemptRecordKey(s.prefix, record.ShowTimeID, record.OrderNumber),
-		userActiveKey(s.prefix, record.ShowTimeID, record.UserID),
-		userInflightKey(s.prefix, record.ShowTimeID, record.UserID),
-		quotaAvailableKey(s.prefix, record.ShowTimeID, record.TicketCategoryID),
-		seatOccupiedKey(s.prefix, record.ShowTimeID, record.OrderNumber),
-		userFingerprintIndexKey(s.prefix, record.ShowTimeID, record.UserID),
-	}
-	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerActiveKey(s.prefix, record.ShowTimeID, viewerID))
-	}
-	for _, viewerID := range normalizedInt64s(record.ViewerIDs) {
-		keys = append(keys, viewerInflightKey(s.prefix, record.ShowTimeID, viewerID))
-	}
-
-	result, err := s.redis.EvalCtx(
-		ctx,
-		releaseClosedOrderProjectionScript,
-		keys,
-		now.UnixMilli(),
-		record.TicketCount,
-		s.finalStateTTLSeconds,
-		record.TokenFingerprint,
-		len(record.ViewerIDs),
-	)
-	if err != nil {
-		return err
-	}
-
-	statusCode, err := parseEvalInt64(result)
-	if err != nil {
-		return err
-	}
-	if statusCode < 0 {
-		return xerr.ErrOrderNotFound
-	}
-
-	return nil
 }
 
 func (s *AttemptStore) ScanOrderNumbers(ctx context.Context, limit int64) ([]int64, error) {

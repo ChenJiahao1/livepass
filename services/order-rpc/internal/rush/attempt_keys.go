@@ -48,10 +48,6 @@ func quotaAvailableKey(prefix string, showTimeID, ticketCategoryID int64) string
 	return fmt.Sprintf("%s:%s:quota:%d", prefix, rushScopeTag(showTimeID), ticketCategoryID)
 }
 
-func seatOccupiedKey(prefix string, showTimeID, orderNumber int64) string {
-	return fmt.Sprintf("%s:%s:seat_occupied:%d", prefix, rushScopeTag(showTimeID), orderNumber)
-}
-
 func userFingerprintIndexKey(prefix string, showTimeID, userID int64) string {
 	return fmt.Sprintf("%s:%s:fingerprint:%d", prefix, rushScopeTag(showTimeID), userID)
 }

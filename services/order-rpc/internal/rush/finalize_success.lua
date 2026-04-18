@@ -2,17 +2,15 @@
 -- 1: attempt record key(hash)
 -- 2: user active key(string)
 -- 3: user inflight key(string)
--- 4: seat occupied key(set)
--- 5..(4+viewer_count): viewer active keys(string)
+-- 4..(3+viewer_count): viewer active keys(string)
 -- remaining: viewer inflight keys(string)
 --
 -- ARGV:
 -- 1: now(unix ms)
 -- 2: active ttl seconds
 -- 3: final attempt ttl seconds
--- 4: seat ids csv
--- 5: viewer_count
--- 6: order_number
+-- 4: viewer_count
+-- 5: order_number
 
 if redis.call("EXISTS", KEYS[1]) == 0 then
     return "state_missing"
@@ -32,10 +30,9 @@ end
 local nowUnixMs = ARGV[1]
 local activeTTL = tonumber(ARGV[2]) or 0
 local finalAttemptTTL = tonumber(ARGV[3]) or 0
-local seatIDsCSV = ARGV[4] or ""
-local viewerCount = tonumber(ARGV[5]) or 0
-local orderNo = ARGV[6]
-local viewerActiveStart = 5
+local viewerCount = tonumber(ARGV[4]) or 0
+local orderNo = ARGV[5]
+local viewerActiveStart = 4
 local viewerActiveEnd = viewerActiveStart + viewerCount - 1
 local viewerInflightStart = viewerActiveEnd + 1
 
@@ -56,17 +53,6 @@ for idx = viewerActiveStart, viewerActiveEnd do
         redis.call("SETEX", KEYS[idx], activeTTL, orderNo)
     else
         redis.call("SET", KEYS[idx], orderNo)
-    end
-end
-
-if seatIDsCSV ~= "" then
-    for member in string.gmatch(seatIDsCSV, "([^,]+)") do
-        if member ~= "" then
-            redis.call("SADD", KEYS[4], member)
-        end
-    end
-    if activeTTL > 0 then
-        redis.call("EXPIRE", KEYS[4], activeTTL)
     end
 end
 
