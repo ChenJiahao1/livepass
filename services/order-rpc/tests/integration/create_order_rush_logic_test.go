@@ -89,7 +89,7 @@ func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInlin
 		t.Fatalf("AttemptStore.Get() error = %v", err)
 	}
 	if record.State != rush.AttemptStatePending {
-		t.Fatalf("expected accepted attempt state, got %+v", record)
+		t.Fatalf("expected pending attempt state, got %+v", record)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestCreateOrderRushDoesNotEnqueueVerifyTaskAfterAdmission(t *testing.T) {
 		t.Fatalf("AttemptStore.Get() error = %v", err)
 	}
 	if record.State != rush.AttemptStatePending {
-		t.Fatalf("expected accepted attempt state, got %+v", record)
+		t.Fatalf("expected pending attempt state, got %+v", record)
 	}
 }
 
@@ -253,7 +253,7 @@ func TestCreateOrderRushCreatesNewOrderNumberAfterClosedOrderReleaseWithNewToken
 	if !shouldProcess || record == nil {
 		t.Fatalf("expected claim success, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := svcCtx.AttemptStore.FinalizeSuccess(ctx, record, []int64{70101}, time.Now().Add(2*time.Millisecond)); err != nil {
+	if err := svcCtx.AttemptStore.FinalizeSuccess(ctx, record, time.Now().Add(2*time.Millisecond)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 

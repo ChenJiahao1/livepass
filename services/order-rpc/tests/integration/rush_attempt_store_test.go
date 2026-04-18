@@ -15,7 +15,16 @@ import (
 
 func TestAdmitKeepsRejectAndReuseSemantics(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
-	store := svcCtx.AttemptStore
+	if svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
 	if store == nil {
 		t.Fatalf("expected attempt store to be configured")
 	}
@@ -23,10 +32,11 @@ func TestAdmitKeepsRejectAndReuseSemantics(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2026, 4, 5, 18, 30, 0, 0, time.Local)
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushAttemptStoreTestIDs()
+	showTimeID := programID + 99
 	viewerIDs = viewerIDs[:2]
-	fingerprint := rush.BuildTokenFingerprint(orderNumbers[0], userID, programID, ticketCategoryID, viewerIDs, "express", "paper")
+	fingerprint := rush.BuildTokenFingerprint(orderNumbers[0], userID, showTimeID, ticketCategoryID, viewerIDs, "express", "paper")
 
-	if err := store.SetQuotaAvailable(ctx, programID, ticketCategoryID, 6); err != nil {
+	if err := store.SetQuotaAvailable(ctx, showTimeID, ticketCategoryID, 6); err != nil {
 		t.Fatalf("SetQuotaAvailable() error = %v", err)
 	}
 
@@ -34,6 +44,7 @@ func TestAdmitKeepsRejectAndReuseSemantics(t *testing.T) {
 		OrderNumber:      orderNumbers[0],
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      int64(len(viewerIDs)),
@@ -51,6 +62,7 @@ func TestAdmitKeepsRejectAndReuseSemantics(t *testing.T) {
 		OrderNumber:      orderNumbers[1],
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      int64(len(viewerIDs)),
@@ -68,6 +80,7 @@ func TestAdmitKeepsRejectAndReuseSemantics(t *testing.T) {
 		OrderNumber:      orderNumbers[1] + 1,
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      int64(len(viewerIDs)),
@@ -81,7 +94,7 @@ func TestAdmitKeepsRejectAndReuseSemantics(t *testing.T) {
 		t.Fatalf("unexpected rejected admission result: %+v", rejected)
 	}
 
-	available, ok, err := store.GetQuotaAvailable(ctx, programID, ticketCategoryID)
+	available, ok, err := store.GetQuotaAvailable(ctx, showTimeID, ticketCategoryID)
 	if err != nil {
 		t.Fatalf("GetQuotaAvailable() error = %v", err)
 	}
@@ -241,7 +254,16 @@ func TestFailBeforeProcessingTransitionsAcceptedToFailedOnce(t *testing.T) {
 
 func TestRefreshProcessingLeaseRequiresProcessingState(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
-	store := svcCtx.AttemptStore
+	if svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
 	if store == nil {
 		t.Fatalf("expected attempt store to be configured")
 	}
@@ -249,9 +271,10 @@ func TestRefreshProcessingLeaseRequiresProcessingState(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2026, 4, 5, 18, 32, 0, 0, time.Local)
 	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushAttemptStoreTestIDs()
+	showTimeID := programID + 102
 	viewerIDs = viewerIDs[:1]
 
-	if err := store.SetQuotaAvailable(ctx, programID, ticketCategoryID, 2); err != nil {
+	if err := store.SetQuotaAvailable(ctx, showTimeID, ticketCategoryID, 2); err != nil {
 		t.Fatalf("SetQuotaAvailable() error = %v", err)
 	}
 
@@ -260,16 +283,17 @@ func TestRefreshProcessingLeaseRequiresProcessingState(t *testing.T) {
 		OrderNumber:      orderNumber,
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
+		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, showTimeID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
 	}
 
-	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, programID, orderNumber, now.Add(500*time.Millisecond))
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(500*time.Millisecond))
 	if err != nil {
 		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
@@ -285,7 +309,7 @@ func TestRefreshProcessingLeaseRequiresProcessingState(t *testing.T) {
 		t.Fatalf("expected lease refresh while processing to succeed")
 	}
 
-	if err := store.FinalizeSuccess(ctx, record, []int64{920001}, now.Add(2*time.Second)); err != nil {
+	if err := store.FinalizeSuccess(ctx, record, now.Add(2*time.Second)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 
@@ -606,7 +630,7 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 	if !shouldProcess || record == nil {
 		t.Fatalf("expected claim success, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := store.FinalizeSuccess(ctx, record, []int64(nil), now.Add(time.Second)); err != nil {
+	if err := store.FinalizeSuccess(ctx, record, now.Add(time.Second)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 
@@ -1019,7 +1043,7 @@ func TestPrepareAttemptForConsumeSkipsTerminalStates(t *testing.T) {
 	if !shouldProcess || record == nil {
 		t.Fatalf("expected first prepare to claim, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := store.FinalizeSuccess(ctx, record, []int64{880001}, now.Add(2*time.Second)); err != nil {
+	if err := store.FinalizeSuccess(ctx, record, now.Add(2*time.Second)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 

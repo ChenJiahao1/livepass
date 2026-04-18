@@ -613,7 +613,9 @@ func TestCreateOrderConsumerStopsFinalizeWhenLeaseLost(t *testing.T) {
 	}
 	waitOrderCreateSendCalls(t, producer, 1)
 
-	_ = logicpkg.NewCreateOrderConsumerLogic(ctx, svcCtx).Consume(producer.lastBody)
+	if err := logicpkg.NewCreateOrderConsumerLogic(ctx, svcCtx).Consume(producer.lastBody); err != nil {
+		t.Fatalf("Consume() error = %v", err)
+	}
 
 	if countShardOrderRows(t, svcCtx.Config.MySQL.DataSource) != 0 {
 		t.Fatalf("expected lease-lost consumer to stop before persisting order")

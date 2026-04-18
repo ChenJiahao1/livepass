@@ -534,36 +534,16 @@ func (s *AttemptStore) RefreshProcessingLease(ctx context.Context, orderNumber i
 	return statusCode == 1, nil
 }
 
-func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecord, args ...any) error {
+func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecord, now time.Time) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrInternal
 	}
 	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 || record.ShowTimeID <= 0 {
 		return xerr.ErrInvalidParam
 	}
-
-	var (
-		seatIDs []int64
-		now     time.Time
-	)
-	switch len(args) {
-	case 2:
-		var ok bool
-		seatIDs, ok = args[0].([]int64)
-		if !ok {
-			return xerr.ErrInvalidParam
-		}
-		now, ok = args[1].(time.Time)
-		if !ok {
-			return xerr.ErrInvalidParam
-		}
-	default:
-		return xerr.ErrInvalidParam
-	}
 	if now.IsZero() {
 		now = time.Now()
 	}
-	_ = seatIDs
 
 	activeTTLSeconds := computeActiveProjectionTTLSeconds(now, record.ShowEndAt)
 	viewerIDs := normalizedInt64s(record.ViewerIDs)
