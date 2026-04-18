@@ -90,7 +90,7 @@ func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInlin
 	if err != nil {
 		t.Fatalf("AttemptStore.Get() error = %v", err)
 	}
-	if record.State != rush.AttemptStateAccepted {
+	if record.State != rush.AttemptStatePending {
 		t.Fatalf("expected accepted attempt state, got %+v", record)
 	}
 }
@@ -135,7 +135,7 @@ func TestCreateOrderRushDoesNotEnqueueVerifyTaskAfterAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AttemptStore.Get() error = %v", err)
 	}
-	if record.State != rush.AttemptStateAccepted {
+	if record.State != rush.AttemptStatePending {
 		t.Fatalf("expected accepted attempt state, got %+v", record)
 	}
 }

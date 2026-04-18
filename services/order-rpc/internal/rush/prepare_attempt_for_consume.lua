@@ -9,10 +9,15 @@ if redis.call("EXISTS", KEYS[1]) == 0 then
     return {-1}
 end
 
+local ttl = redis.call("TTL", KEYS[1])
+if ttl == -2 or ttl == 0 then
+    return {-1}
+end
+
 local state = redis.call("HGET", KEYS[1], "state") or ""
 local shouldProcess = 0
 
-if state == "ACCEPTED" then
+if state == "PENDING" then
     state = "PROCESSING"
     redis.call("HSET", KEYS[1],
         "state", state,

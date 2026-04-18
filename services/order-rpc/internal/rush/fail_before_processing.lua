@@ -21,7 +21,7 @@ end
 if state == "SUCCESS" or state == "PROCESSING" then
     return "lost_ownership"
 end
-if state ~= "ACCEPTED" then
+if state ~= "PENDING" then
     return "state_missing"
 end
 

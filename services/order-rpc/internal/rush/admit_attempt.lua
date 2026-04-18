@@ -19,7 +19,7 @@
 -- 9: show_end_at(unix ms)
 -- 10: now(unix ms)
 -- 11: inflight ttl seconds
--- 12: accepted attempt ttl seconds
+-- 12: pending attempt ttl seconds
 -- 13: viewer ids csv
 -- 14: viewer_count
 
@@ -34,7 +34,7 @@ local saleWindowEndAt = ARGV[8]
 local showEndAt = ARGV[9]
 local nowUnixMs = ARGV[10]
 local inFlightTTL = tonumber(ARGV[11]) or 0
-local acceptedAttemptTTL = tonumber(ARGV[12]) or 0
+local pendingAttemptTTL = tonumber(ARGV[12]) or 0
 local viewerIDsCSV = ARGV[13] or ""
 local viewerCount = tonumber(ARGV[14]) or 0
 local viewerActiveStart = 6
@@ -89,17 +89,16 @@ redis.call("HSET", KEYS[1],
     "ticket_count", ticketCount,
     "sale_window_end_at", saleWindowEndAt,
     "token_fingerprint", tokenFingerprint,
-    "state", "ACCEPTED",
+    "state", "PENDING",
     "reason_code", "",
     "accepted_at", nowUnixMs,
     "finished_at", 0,
-    "publish_attempts", 0,
     "show_end_at", showEndAt,
     "created_at", nowUnixMs,
     "last_transition_at", nowUnixMs
 )
-if acceptedAttemptTTL > 0 then
-    redis.call("EXPIRE", KEYS[1], acceptedAttemptTTL)
+if pendingAttemptTTL > 0 then
+    redis.call("EXPIRE", KEYS[1], pendingAttemptTTL)
 end
 
 if inFlightTTL > 0 then
@@ -111,8 +110,8 @@ end
 
 if tokenFingerprint ~= "" then
     redis.call("HSET", KEYS[5], tokenFingerprint, orderNo)
-    if acceptedAttemptTTL > 0 then
-        redis.call("EXPIRE", KEYS[5], acceptedAttemptTTL)
+    if pendingAttemptTTL > 0 then
+        redis.call("EXPIRE", KEYS[5], pendingAttemptTTL)
     end
 end
 

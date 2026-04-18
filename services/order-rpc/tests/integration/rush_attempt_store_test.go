@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"livepass/pkg/xerr"
 	"livepass/services/order-rpc/internal/rush"
 )
 
@@ -86,6 +88,58 @@ func TestAdmitKeepsRejectAndReuseSemantics(t *testing.T) {
 	}
 	if !ok || available != 4 {
 		t.Fatalf("unexpected quota snapshot: ok=%t available=%d", ok, available)
+	}
+}
+
+func TestAdmitCreatesPendingAttempt(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	if svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
+	if store == nil {
+		t.Fatalf("expected attempt store to be configured")
+	}
+
+	ctx := context.Background()
+	now := time.Date(2026, 4, 18, 10, 0, 0, 0, time.Local)
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushAttemptStoreTestIDs()
+	showTimeID := programID + 100
+	viewerIDs = viewerIDs[:2]
+	orderNumber := orderNumbers[0]
+
+	if err := store.SetQuotaAvailable(ctx, showTimeID, ticketCategoryID, 4); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+
+	if _, err := store.Admit(ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      orderNumber,
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
+		TicketCategoryID: ticketCategoryID,
+		ViewerIDs:        viewerIDs,
+		TicketCount:      int64(len(viewerIDs)),
+		SaleWindowEndAt:  now.Add(30 * time.Minute),
+		ShowEndAt:        now.Add(2 * time.Hour),
+		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, showTimeID, ticketCategoryID, viewerIDs, "express", "paper"),
+		Now:              now,
+	}); err != nil {
+		t.Fatalf("Admit() error = %v", err)
+	}
+
+	record, err := store.Get(ctx, orderNumber)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if record.State != rush.AttemptStatePending {
+		t.Fatalf("expected pending attempt, got %+v", record)
 	}
 }
 
@@ -242,6 +296,123 @@ func TestRefreshProcessingLeaseRequiresProcessingState(t *testing.T) {
 	}
 	if ok {
 		t.Fatalf("expected lease refresh after terminal state to fail")
+	}
+}
+
+func TestPrepareAttemptForConsumeOnlyClaimsPendingAndRefreshesTTL(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	if svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
+	if store == nil {
+		t.Fatalf("expected attempt store to be configured")
+	}
+
+	ctx := context.Background()
+	now := time.Date(2026, 4, 18, 10, 5, 0, 0, time.Local)
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushAttemptStoreTestIDs()
+	showTimeID := programID + 200
+	viewerIDs = viewerIDs[:1]
+	orderNumber := orderNumbers[0]
+
+	if err := store.SetQuotaAvailable(ctx, showTimeID, ticketCategoryID, 4); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+	if _, err := store.Admit(ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      orderNumber,
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
+		TicketCategoryID: ticketCategoryID,
+		ViewerIDs:        viewerIDs,
+		TicketCount:      1,
+		SaleWindowEndAt:  now.Add(30 * time.Minute),
+		ShowEndAt:        now.Add(2 * time.Hour),
+		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, showTimeID, ticketCategoryID, viewerIDs, "express", "paper"),
+		Now:              now,
+	}); err != nil {
+		t.Fatalf("Admit() error = %v", err)
+	}
+
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(time.Millisecond))
+	if err != nil {
+		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
+	}
+	if !shouldProcess || record == nil || record.State != rush.AttemptStateProcessing {
+		t.Fatalf("expected first claim to processing, got shouldProcess=%t record=%+v", shouldProcess, record)
+	}
+
+	second, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(2*time.Millisecond))
+	if err != nil {
+		t.Fatalf("PrepareAttemptForConsume(second) error = %v", err)
+	}
+	if shouldProcess || second == nil || second.State != rush.AttemptStateProcessing {
+		t.Fatalf("expected second claim to lose ownership, got shouldProcess=%t record=%+v", shouldProcess, second)
+	}
+}
+
+func TestExpiredAttemptCannotBeClaimedOrRevived(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	if svcCtx.Redis == nil {
+		t.Fatalf("expected redis-backed service context")
+	}
+
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	store := rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   time.Second,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
+	if store == nil {
+		t.Fatalf("expected attempt store to be configured")
+	}
+
+	ctx := context.Background()
+	now := time.Date(2026, 4, 18, 10, 10, 0, 0, time.Local)
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushAttemptStoreTestIDs()
+	showTimeID := programID + 300
+	viewerIDs = viewerIDs[:1]
+	orderNumber := orderNumbers[0]
+
+	if err := store.SetQuotaAvailable(ctx, showTimeID, ticketCategoryID, 2); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+	if _, err := store.Admit(ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      orderNumber,
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
+		TicketCategoryID: ticketCategoryID,
+		ViewerIDs:        viewerIDs,
+		TicketCount:      1,
+		SaleWindowEndAt:  now.Add(30 * time.Minute),
+		ShowEndAt:        now.Add(2 * time.Hour),
+		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, showTimeID, ticketCategoryID, viewerIDs, "express", "paper"),
+		Now:              now,
+	}); err != nil {
+		t.Fatalf("Admit() error = %v", err)
+	}
+
+	time.Sleep(1200 * time.Millisecond)
+
+	_, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, time.Now())
+	if !errors.Is(err, xerr.ErrOrderNotFound) && shouldProcess {
+		t.Fatalf("expired attempt must not be claimed, shouldProcess=%t err=%v", shouldProcess, err)
+	}
+
+	ok, err := store.RefreshProcessingLease(ctx, orderNumber, time.Now())
+	if err != nil {
+		t.Fatalf("RefreshProcessingLease(expired) error = %v", err)
+	}
+	if ok {
+		t.Fatalf("expired attempt must not be revived")
 	}
 }
 
@@ -699,7 +870,7 @@ func TestRushAttemptStorePrimeReplacesActiveProjectionByShowTime(t *testing.T) {
 	}
 }
 
-func TestPrepareAttemptForConsumeTransitionsAcceptedToProcessingOnce(t *testing.T) {
+func TestPrepareAttemptForConsumeTransitionsPendingToProcessingOnce(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	if svcCtx.Redis == nil {
 		t.Fatalf("expected redis-backed service context")

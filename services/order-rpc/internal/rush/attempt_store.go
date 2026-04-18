@@ -267,6 +267,36 @@ func (s *AttemptStore) Get(ctx context.Context, orderNumber int64) (*AttemptReco
 	return record, nil
 }
 
+func (s *AttemptStore) GetByShowTime(ctx context.Context, showTimeID, orderNumber int64) (*AttemptRecord, error) {
+	if s == nil || s.redis == nil {
+		return nil, xerr.ErrInternal
+	}
+	if showTimeID <= 0 || orderNumber <= 0 {
+		return nil, xerr.ErrInvalidParam
+	}
+
+	fields, err := s.redis.HgetallCtx(ctx, attemptRecordKey(s.prefix, showTimeID, orderNumber))
+	if err != nil {
+		return nil, err
+	}
+	if len(fields) == 0 {
+		return nil, xerr.ErrOrderNotFound
+	}
+
+	record, err := mapAttemptRecord(fields)
+	if err != nil {
+		return nil, err
+	}
+	if record.OrderNumber == 0 {
+		record.OrderNumber = orderNumber
+	}
+	if record.ShowTimeID == 0 {
+		record.ShowTimeID = showTimeID
+	}
+
+	return record, nil
+}
+
 func (s *AttemptStore) ClearUserInflightByShowTime(ctx context.Context, showTimeID int64) error {
 	if s == nil || s.redis == nil {
 		return xerr.ErrInternal
@@ -945,10 +975,6 @@ func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 		return nil, err
 	}
 	record.TicketCount, err = parseFieldInt64(fields, attemptFieldTicketCount)
-	if err != nil {
-		return nil, err
-	}
-	record.PublishAttempts, err = parseFieldInt64(fields, attemptFieldPublishAttempts)
 	if err != nil {
 		return nil, err
 	}

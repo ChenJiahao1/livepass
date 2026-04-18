@@ -1,7 +1,7 @@
 package rush
 
 const (
-	AttemptStateAccepted   = "ACCEPTED"
+	AttemptStatePending    = "PENDING"
 	AttemptStateProcessing = "PROCESSING"
 	AttemptStateSuccess    = "SUCCESS"
 	AttemptStateFailed     = "FAILED"
