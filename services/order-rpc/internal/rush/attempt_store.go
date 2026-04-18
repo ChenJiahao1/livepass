@@ -2,6 +2,7 @@ package rush
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -10,6 +11,8 @@ import (
 
 	"livepass/pkg/xerr"
 	"livepass/pkg/xredis"
+
+	goredis "github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 const (
@@ -116,6 +119,9 @@ func (s *AttemptStore) GetQuotaAvailable(ctx context.Context, showTimeID, ticket
 		strconv.FormatInt(ticketCategoryID, 10),
 	)
 	if err != nil {
+		if errors.Is(err, goredis.Nil) {
+			return 0, false, nil
+		}
 		return 0, false, err
 	}
 	if raw == "" {
@@ -310,10 +316,6 @@ func (s *AttemptStore) ClearViewerInflightByShowTime(ctx context.Context, showTi
 
 	_, err := s.redis.DelCtx(ctx, viewerInflightKey(s.prefix, showTimeID))
 	return err
-}
-
-func (s *AttemptStore) ClearFingerprintByShowTime(ctx context.Context, showTimeID int64) error {
-	return nil
 }
 
 func (s *AttemptStore) ClearQuotaByShowTime(ctx context.Context, showTimeID int64) error {
@@ -663,7 +665,7 @@ func (s *AttemptStore) ScanOrderNumbers(ctx context.Context, limit int64) ([]int
 		limit = 100
 	}
 
-	pattern := fmt.Sprintf("%s:*:attempt:*", s.prefix)
+	pattern := fmt.Sprintf("%s:attempt:*", s.prefix)
 	var (
 		cursor uint64
 		keys   []string
@@ -887,7 +889,7 @@ func parsePreparedTime(value any) (time.Time, error) {
 }
 
 func (s *AttemptStore) resolveAttemptRecordKey(ctx context.Context, orderNumber int64) (string, error) {
-	pattern := fmt.Sprintf("%s:*:attempt:%d", s.prefix, orderNumber)
+	pattern := fmt.Sprintf("%s:attempt:*:%d", s.prefix, orderNumber)
 	var cursor uint64
 	for {
 		batch, nextCursor, err := s.redis.ScanCtx(ctx, cursor, pattern, 16)
