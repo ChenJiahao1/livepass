@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
+	"net"
 	"strings"
 	"time"
 
@@ -85,7 +86,7 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	if err != nil {
 		var freezeErr *seatFreezeError
 		if errors.As(err, &freezeErr) && isTerminalSeatFreezeError(freezeErr.err) {
-			return l.finalizeFailure(attempt, rush.AttemptReasonSeatExhausted, "", "")
+			return l.finalizeFailure(attempt, rush.AttemptReasonSeatExhausted, "", "", lease)
 		}
 		return err
 	}
@@ -124,7 +125,7 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	})
 	if err != nil {
 		if isGuardConflictErr(err) {
-			return l.finalizeFailure(attempt, rush.AttemptReasonAlreadyHasActiveOrder, writeModels.order.FreezeToken, orderCreateGuardConflictReleaseReason)
+			return l.finalizeFailure(attempt, rush.AttemptReasonAlreadyHasActiveOrder, writeModels.order.FreezeToken, orderCreateGuardConflictReleaseReason, lease)
 		}
 		return l.resolveOrderPersistFailure(orderEvent.OrderNumber, attempt, extractSeatIDs(enrichedEvent.SeatSnapshot), freezeResp, err, now, lease)
 	}
@@ -388,8 +389,11 @@ func (l *CreateOrderConsumerLogic) finalizeSuccess(attempt *rush.AttemptRecord, 
 	}
 }
 
-func (l *CreateOrderConsumerLogic) finalizeFailure(attempt *rush.AttemptRecord, reason, freezeToken, releaseReason string) error {
+func (l *CreateOrderConsumerLogic) finalizeFailure(attempt *rush.AttemptRecord, reason, freezeToken, releaseReason string, lease *processingLease) error {
 	if attempt == nil || l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
+		return nil
+	}
+	if lease != nil && lease.lost.Load() {
 		return nil
 	}
 
@@ -429,20 +433,47 @@ func (l *CreateOrderConsumerLogic) resolveOrderPersistFailure(
 		return nil
 	}
 
+	if isUnknownPersistResult(persistErr) {
+		if lease != nil {
+			lease.stop()
+		}
+		return persistErr
+	}
+
 	if order, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, orderNumber); err == nil && order != nil {
 		l.finalizeSuccess(attempt, seatIDs, now, lease)
 		return nil
-	} else if err != nil && !errors.Is(err, model.ErrNotFound) {
-		return persistErr
+	} else if err != nil {
+		if isUnknownPersistResult(err) {
+			if lease != nil {
+				lease.stop()
+			}
+			return err
+		}
+		if !errors.Is(err, model.ErrNotFound) {
+			return persistErr
+		}
 	}
 
 	freezeToken := ""
 	if freezeResp != nil {
 		freezeToken = freezeResp.GetFreezeToken()
 	}
-	if err := l.finalizeFailure(attempt, orderCreatePersistFailureReason, freezeToken, orderCreatePersistFailureReason); err != nil {
+	if err := l.finalizeFailure(attempt, orderCreatePersistFailureReason, freezeToken, orderCreatePersistFailureReason, lease); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func isUnknownPersistResult(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return true
+	}
+
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
 }

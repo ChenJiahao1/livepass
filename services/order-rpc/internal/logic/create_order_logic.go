@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
+	"net"
 	"time"
 
 	"livepass/pkg/xerr"
@@ -16,8 +17,8 @@ import (
 )
 
 const (
-	kafkaHandoffReasonTimeout = "KAFKA_HANDOFF_TIMEOUT"
-	kafkaHandoffReasonError   = "KAFKA_HANDOFF_ERROR"
+	asyncKafkaSendReasonTimeout = "KAFKA_ASYNC_SEND_TIMEOUT"
+	asyncKafkaSendReasonError   = "KAFKA_ASYNC_SEND_ERROR"
 )
 
 type CreateOrderLogic struct {
@@ -69,6 +70,10 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		Now:              now,
 	})
 	if err != nil {
+		if isUnknownAdmissionResult(err) {
+			l.Errorf("admit attempt unknown result, orderNumber=%d err=%v", claims.OrderNumber, err)
+			return &pb.CreateOrderResp{OrderNumber: claims.OrderNumber}, nil
+		}
 		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 	if admission.Decision == rush.AdmitDecisionRejected {
@@ -90,12 +95,13 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	if err != nil {
 		return nil, mapOrderError(err)
 	}
-	sendCtx, cancel := l.buildKafkaSendContext()
-	defer cancel()
-	if err := l.svcCtx.OrderCreateProducer.Send(sendCtx, event.PartitionKey(), body); err != nil {
-		l.Errorf("handoff order create event failed, orderNumber=%d err=%v", admission.OrderNumber, err)
-		return l.handleKafkaHandoffFailure(admission.OrderNumber, err, now)
-	}
+	dispatchOrderCreateEventAsync(l.svcCtx, l.Logger, asyncOrderCreateEvent{
+		orderNumber: admission.OrderNumber,
+		showTimeID:  claims.ShowTimeID,
+		key:         event.PartitionKey(),
+		body:        body,
+		reasonAt:    now,
+	})
 
 	return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber}, nil
 }
@@ -111,53 +117,21 @@ func mapAdmissionRejectCode(code int64) error {
 	}
 }
 
-func (l *CreateOrderLogic) buildKafkaSendContext() (context.Context, context.CancelFunc) {
-	baseCtx := l.ctx
-	if baseCtx == nil {
-		baseCtx = context.Background()
-	}
-	if l == nil || l.svcCtx == nil || l.svcCtx.Config.Kafka.ProducerTimeout <= 0 {
-		return baseCtx, func() {}
-	}
-	if _, hasDeadline := baseCtx.Deadline(); hasDeadline {
-		return baseCtx, func() {}
-	}
-
-	return context.WithTimeout(baseCtx, l.svcCtx.Config.Kafka.ProducerTimeout)
-}
-
-func (l *CreateOrderLogic) handleKafkaHandoffFailure(orderNumber int64, sendErr error, now time.Time) (*pb.CreateOrderResp, error) {
-	record, err := l.svcCtx.AttemptStore.Get(l.ctx, orderNumber)
-	if err != nil {
-		l.Errorf("load rush attempt before fast fail failed, orderNumber=%d err=%v", orderNumber, err)
-		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
-	}
-	outcome, err := l.svcCtx.AttemptStore.FailBeforeProcessing(l.ctx, record, mapKafkaHandoffReason(sendErr), now)
-	if err != nil {
-		l.Errorf("fail before processing for order create failed, orderNumber=%d err=%v", orderNumber, err)
-		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
-	}
-
-	switch outcome {
-	case rush.AttemptTransitioned, rush.AttemptAlreadyFailed:
-		return nil, mapOrderError(mapKafkaHandoffErr(sendErr))
-	case rush.AttemptLostOwnership, rush.AttemptAlreadySucceeded:
-		return &pb.CreateOrderResp{OrderNumber: orderNumber}, nil
-	default:
-		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
-	}
-}
-
-func mapKafkaHandoffReason(err error) string {
+func mapAsyncKafkaSendReason(err error) string {
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-		return kafkaHandoffReasonTimeout
+		return asyncKafkaSendReasonTimeout
 	}
-	return kafkaHandoffReasonError
+	return asyncKafkaSendReasonError
 }
 
-func mapKafkaHandoffErr(err error) error {
-	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-		return xerr.ErrOrderSubmitTooFrequent
+func isUnknownAdmissionResult(err error) bool {
+	if err == nil {
+		return false
 	}
-	return xerr.ErrOrderOperateTooFrequent
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return true
+	}
+
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
 }

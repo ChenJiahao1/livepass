@@ -2,18 +2,22 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"livepass/pkg/seatfreeze"
 	"livepass/pkg/xerr"
 	orderevent "livepass/services/order-rpc/internal/event"
 	logicpkg "livepass/services/order-rpc/internal/logic"
+	"livepass/services/order-rpc/internal/model"
 	"livepass/services/order-rpc/internal/rush"
 	"livepass/services/order-rpc/pb"
+	"livepass/services/order-rpc/repository"
 	programrpc "livepass/services/program-rpc/programrpc"
 	userrpc "livepass/services/user-rpc/userrpc"
 )
@@ -383,6 +387,84 @@ func TestCreateOrderConsumerRechecksSeatFreezeByFreezeTokenAfterTimeout(t *testi
 	}
 }
 
+func TestCreateOrderConsumerLeavesProcessingWhenPersistResultUnknown(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
+
+	ctx := context.Background()
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	claims := rush.PurchaseTokenClaims{
+		OrderNumber:      orderNumbers[0],
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       programID,
+		TicketCategoryID: ticketCategoryID,
+		TicketUserIDs:    viewerIDs[:1],
+		TicketCount:      1,
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+		ExpireAt:         time.Now().Add(2 * time.Minute).Unix(),
+	}
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(programID, ticketCategoryID, 2, 4, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		userID,
+		&userrpc.TicketUserInfo{Id: viewerIDs[0], UserId: userID, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-consumer-persist-unknown",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 700000 + viewerIDs[0], TicketCategoryId: ticketCategoryID, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}
+	const initialQuota = int64(4)
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, programID, ticketCategoryID, initialQuota); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+
+	if _, err := logicpkg.NewCreateOrderLogic(ctx, svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:        userID,
+		PurchaseToken: mustIssueRushPurchaseToken(t, svcCtx, claims),
+	}); err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	waitOrderCreateSendCalls(t, producer, 1)
+
+	repo := &consumerPersistFailureRepository{
+		OrderRepository: svcCtx.OrderRepository,
+		transactErr:     context.DeadlineExceeded,
+		findErrs:        []error{model.ErrNotFound, context.DeadlineExceeded},
+	}
+	svcCtx.OrderRepository = repo
+
+	err := logicpkg.NewCreateOrderConsumerLogic(ctx, svcCtx).Consume(producer.lastBody)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected unknown db error to bubble, got %v", err)
+	}
+	if repo.findCalls != 1 {
+		t.Fatalf("unknown persist result must not query DB fallback after initial idempotency check, got %d calls", repo.findCalls)
+	}
+	record, err := svcCtx.AttemptStore.Get(ctx, claims.OrderNumber)
+	if err != nil {
+		t.Fatalf("AttemptStore.Get() error = %v", err)
+	}
+	if record.State != rush.AttemptStateProcessing {
+		t.Fatalf("unknown DB result must remain PROCESSING, got %+v", record)
+	}
+	quota, ok, err := svcCtx.AttemptStore.GetQuotaAvailable(ctx, programID, ticketCategoryID)
+	if err != nil {
+		t.Fatalf("GetQuotaAvailable() error = %v", err)
+	}
+	if !ok || quota != initialQuota-claims.TicketCount {
+		t.Fatalf("unknown DB result must not compensate quota, got ok=%t quota=%d", ok, quota)
+	}
+}
+
 func TestCreateOrderConsumerRefreshesLeaseDuringSlowProcessing(t *testing.T) {
 	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
@@ -539,4 +621,125 @@ func TestCreateOrderConsumerStopsFinalizeWhenLeaseLost(t *testing.T) {
 	if programRPC.releaseSeatFreezeCalls != 0 {
 		t.Fatalf("expected lease-lost consumer not to release freeze on its own, got %d", programRPC.releaseSeatFreezeCalls)
 	}
+}
+
+func TestCreateOrderConsumerSkipsFailureFinalizeWhenLeaseLost(t *testing.T) {
+	svcCtx, programRPC, userRPC, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
+
+	prefix := fmt.Sprintf("livepass:test:order:rush:%s:%d", t.Name(), time.Now().UnixNano())
+	svcCtx.Config.RushOrder.InFlightTTL = 300 * time.Millisecond
+	svcCtx.AttemptStore = rush.NewAttemptStore(svcCtx.Redis, rush.AttemptStoreConfig{
+		Prefix:        prefix,
+		InFlightTTL:   svcCtx.Config.RushOrder.InFlightTTL,
+		FinalStateTTL: svcCtx.Config.RushOrder.FinalStateTTL,
+	})
+
+	ctx := context.Background()
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	orderNumber := orderNumbers[0]
+	claims := rush.PurchaseTokenClaims{
+		OrderNumber:      orderNumber,
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       programID,
+		TicketCategoryID: ticketCategoryID,
+		TicketUserIDs:    viewerIDs[:1],
+		TicketCount:      1,
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+		ExpireAt:         time.Now().Add(2 * time.Minute).Unix(),
+	}
+	programRPC.getProgramPreorderResp = buildTestProgramPreorder(programID, ticketCategoryID, 2, 4, 299)
+	userRPC.getUserAndTicketUserListResp = buildTestUserAndTicketUsers(
+		userID,
+		&userrpc.TicketUserInfo{Id: viewerIDs[0], UserId: userID, RelName: "张三", IdType: 1, IdNumber: "110101199001011234"},
+	)
+	programRPC.autoAssignAndFreezeSeatsResp = &programrpc.AutoAssignAndFreezeSeatsResp{
+		FreezeToken: "freeze-create-consumer-lease-lost-failure",
+		ExpireTime:  "2026-12-31 19:45:00",
+		Seats: []*programrpc.SeatInfo{
+			{SeatId: 700000 + viewerIDs[0], TicketCategoryId: ticketCategoryID, RowCode: 1, ColCode: 1, Price: 299},
+		},
+	}
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, programID, ticketCategoryID, 4); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+	if _, err := logicpkg.NewCreateOrderLogic(ctx, svcCtx).CreateOrder(&pb.CreateOrderReq{
+		UserId:        userID,
+		PurchaseToken: mustIssueRushPurchaseToken(t, svcCtx, claims),
+	}); err != nil {
+		t.Fatalf("CreateOrder() error = %v", err)
+	}
+	waitOrderCreateSendCalls(t, producer, 1)
+
+	attemptKey := fmt.Sprintf("%s:{st:%d}:attempt:%d", prefix, programID, orderNumber)
+	repo := &consumerPersistFailureRepository{
+		OrderRepository: svcCtx.OrderRepository,
+		transactFunc: func(ctx context.Context, orderNumber int64, fn func(context.Context, repository.OrderTx) error) error {
+			if _, err := svcCtx.Redis.DelCtx(ctx, attemptKey); err != nil {
+				t.Fatalf("DelCtx() error = %v", err)
+			}
+			time.Sleep(150 * time.Millisecond)
+			return &mysqlDriver.MySQLError{Number: 1062, Message: "Duplicate entry for key 'uk_show_time_user'"}
+		},
+	}
+	svcCtx.OrderRepository = repo
+
+	if err := logicpkg.NewCreateOrderConsumerLogic(ctx, svcCtx).Consume(producer.lastBody); err != nil {
+		t.Fatalf("Consume() must ignore failure finalize after lease lost, err=%v", err)
+	}
+	record, err := svcCtx.AttemptStore.Get(ctx, orderNumber)
+	if err == nil && record.State == rush.AttemptStateFailed {
+		t.Fatalf("lease-lost consumer must not write FAILED, got %+v", record)
+	}
+	if err != nil && !errors.Is(err, xerr.ErrOrderNotFound) {
+		t.Fatalf("AttemptStore.Get() error = %v", err)
+	}
+	if programRPC.releaseSeatFreezeCalls != 0 {
+		t.Fatalf("lease-lost consumer must not release freeze, got %d", programRPC.releaseSeatFreezeCalls)
+	}
+}
+
+type consumerPersistFailureRepository struct {
+	repository.OrderRepository
+	transactErr  error
+	findErr      error
+	findErrs     []error
+	transactFunc func(context.Context, int64, func(context.Context, repository.OrderTx) error) error
+	findCalls    int
+}
+
+func (r *consumerPersistFailureRepository) TransactByOrderNumber(
+	ctx context.Context,
+	orderNumber int64,
+	fn func(context.Context, repository.OrderTx) error,
+) error {
+	if r.transactFunc != nil {
+		return r.transactFunc(ctx, orderNumber, fn)
+	}
+	if r.transactErr != nil {
+		return r.transactErr
+	}
+	return r.OrderRepository.TransactByOrderNumber(ctx, orderNumber, fn)
+}
+
+func (r *consumerPersistFailureRepository) FindOrderByNumber(ctx context.Context, orderNumber int64) (*model.DOrder, error) {
+	r.findCalls++
+	if len(r.findErrs) > 0 {
+		err := r.findErrs[0]
+		r.findErrs = r.findErrs[1:]
+		if err != nil {
+			return nil, err
+		}
+	}
+	if r.findErr != nil {
+		return nil, r.findErr
+	}
+	return r.OrderRepository.FindOrderByNumber(ctx, orderNumber)
 }

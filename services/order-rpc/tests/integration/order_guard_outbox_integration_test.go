@@ -13,6 +13,7 @@ import (
 	logicpkg "livepass/services/order-rpc/internal/logic"
 	"livepass/services/order-rpc/internal/model"
 	"livepass/services/order-rpc/internal/rush"
+	"livepass/services/order-rpc/internal/svc"
 	"livepass/services/order-rpc/pb"
 	"livepass/services/order-rpc/sharding"
 	programrpc "livepass/services/program-rpc/programrpc"
@@ -22,6 +23,7 @@ import (
 func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	rebindOrderTestAttemptStore(t, svcCtx)
 
 	orderNumber := sharding.BuildOrderNumber(3001, time.Date(2026, time.April, 5, 11, 0, 0, 0, time.UTC), 1, 1)
 	event := testOrderCreateEvent(orderNumber, "2026-04-05 11:00:00", "2026-04-05 11:15:00")
@@ -30,6 +32,7 @@ func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {
 		t.Fatalf("event.Marshal returned error: %v", err)
 	}
 
+	admitTestOrderCreateEvent(t, svcCtx, event)
 	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(body); err != nil {
 		t.Fatalf("Consume returned error: %v", err)
 	}
@@ -54,6 +57,7 @@ func TestCreateOrderTransactionPersistsOrderAndGuards(t *testing.T) {
 func TestCloseExpiredOrderDeletesGuards(t *testing.T) {
 	svcCtx, programRPC, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	rebindOrderTestAttemptStore(t, svcCtx)
 
 	orderNumber := sharding.BuildOrderNumber(3001, time.Date(2026, time.April, 5, 11, 5, 0, 0, time.UTC), 1, 2)
 	event := testOrderCreateEvent(orderNumber, "2026-04-05 11:05:00", "2026-01-01 00:00:00")
@@ -61,6 +65,7 @@ func TestCloseExpiredOrderDeletesGuards(t *testing.T) {
 	if err != nil {
 		t.Fatalf("event.Marshal returned error: %v", err)
 	}
+	admitTestOrderCreateEvent(t, svcCtx, event)
 	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(body); err != nil {
 		t.Fatalf("Consume returned error: %v", err)
 	}
@@ -98,6 +103,7 @@ func TestCloseExpiredOrderDeletesGuards(t *testing.T) {
 func TestCreateOrderWritesDelayTaskOutbox(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
+	rebindOrderTestAttemptStore(t, svcCtx)
 
 	orderNumber := sharding.BuildOrderNumber(3001, time.Date(2026, time.April, 5, 11, 10, 0, 0, time.UTC), 1, 3)
 	event := testOrderCreateEvent(orderNumber, "2026-04-05 11:10:00", "2026-04-05 11:25:00")
@@ -106,6 +112,7 @@ func TestCreateOrderWritesDelayTaskOutbox(t *testing.T) {
 		t.Fatalf("event.Marshal returned error: %v", err)
 	}
 
+	admitTestOrderCreateEvent(t, svcCtx, event)
 	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(body); err != nil {
 		t.Fatalf("Consume returned error: %v", err)
 	}
@@ -132,6 +139,7 @@ func TestCreateOrderGuardsRejectDuplicateSeatAcrossOrderSuffixes(t *testing.T) {
 	ticketCategoryID := int64(40001)
 
 	firstEvent := buildTestOrderCreateEvent(firstOrderNumber, firstUserID, []int64{701}, []int64{601})
+	admitTestOrderCreateEvent(t, svcCtx, firstEvent)
 	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(mustMarshalOrderCreateEvent(t, firstEvent)); err != nil {
 		t.Fatalf("first Consume returned error: %v", err)
 	}
@@ -296,6 +304,54 @@ func mustMarshalOrderCreateEvent(t *testing.T, event *orderevent.OrderCreateEven
 	}
 
 	return body
+}
+
+func admitTestOrderCreateEvent(t *testing.T, svcCtx *svc.ServiceContext, event *orderevent.OrderCreateEvent) {
+	t.Helper()
+	if svcCtx == nil || svcCtx.AttemptStore == nil || event == nil {
+		t.Fatalf("expected service context, attempt store and event")
+	}
+
+	showTimeID := event.ShowTimeID
+	if showTimeID <= 0 {
+		showTimeID = event.ProgramID
+	}
+	viewerIDs := append([]int64(nil), event.TicketUserIDs...)
+	if len(viewerIDs) == 0 {
+		for _, snapshot := range event.TicketUserSnapshot {
+			viewerIDs = append(viewerIDs, snapshot.TicketUserID)
+		}
+	}
+	ticketCount := event.TicketCount
+	if ticketCount <= 0 {
+		ticketCount = int64(len(viewerIDs))
+	}
+
+	ctx := context.Background()
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, showTimeID, event.TicketCategoryID, ticketCount); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+	if _, err := svcCtx.AttemptStore.Admit(ctx, rush.AdmitAttemptRequest{
+		OrderNumber:      event.OrderNumber,
+		UserID:           event.UserID,
+		ProgramID:        event.ProgramID,
+		ShowTimeID:       showTimeID,
+		TicketCategoryID: event.TicketCategoryID,
+		ViewerIDs:        viewerIDs,
+		TicketCount:      ticketCount,
+		TokenFingerprint: rush.BuildTokenFingerprint(
+			event.OrderNumber,
+			event.UserID,
+			showTimeID,
+			event.TicketCategoryID,
+			viewerIDs,
+			event.DistributionMode,
+			event.TakeTicketMode,
+		),
+		Now: time.Now(),
+	}); err != nil {
+		t.Fatalf("Admit() error = %v", err)
+	}
 }
 
 func requireOrderCoreFields(t *testing.T, dataSource, table string, orderNumber, programID, showTimeID, userID int64) {
