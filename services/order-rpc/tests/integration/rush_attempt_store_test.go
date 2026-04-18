@@ -186,7 +186,7 @@ func TestFailBeforeProcessingTransitionsAcceptedToFailedOnce(t *testing.T) {
 	}
 }
 
-func TestRefreshProcessingLeaseRejectsOtherEpoch(t *testing.T) {
+func TestRefreshProcessingLeaseRequiresProcessingState(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	store := svcCtx.AttemptStore
 	if store == nil {
@@ -216,28 +216,32 @@ func TestRefreshProcessingLeaseRejectsOtherEpoch(t *testing.T) {
 		t.Fatalf("Admit() error = %v", err)
 	}
 
-	claimed, epoch, err := store.ClaimProcessing(ctx, orderNumber, now.Add(500*time.Millisecond))
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, programID, orderNumber, now.Add(500*time.Millisecond))
 	if err != nil {
-		t.Fatalf("ClaimProcessing() error = %v", err)
+		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
-	if !claimed || epoch <= 0 {
-		t.Fatalf("expected claim success with epoch, got claimed=%t epoch=%d", claimed, epoch)
+	if !shouldProcess || record == nil || record.State != rush.AttemptStateProcessing {
+		t.Fatalf("expected processing claim, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
 
-	ok, err := store.RefreshProcessingLease(ctx, orderNumber, epoch, now.Add(time.Second))
+	ok, err := store.RefreshProcessingLease(ctx, orderNumber, now.Add(time.Second))
 	if err != nil {
-		t.Fatalf("RefreshProcessingLease(valid) error = %v", err)
+		t.Fatalf("RefreshProcessingLease(processing) error = %v", err)
 	}
 	if !ok {
-		t.Fatalf("expected lease refresh with current epoch to succeed")
+		t.Fatalf("expected lease refresh while processing to succeed")
 	}
 
-	ok, err = store.RefreshProcessingLease(ctx, orderNumber, epoch+1, now.Add(2*time.Second))
+	if err := store.FinalizeSuccess(ctx, record, []int64{920001}, now.Add(2*time.Second)); err != nil {
+		t.Fatalf("FinalizeSuccess() error = %v", err)
+	}
+
+	ok, err = store.RefreshProcessingLease(ctx, orderNumber, now.Add(3*time.Second))
 	if err != nil {
-		t.Fatalf("RefreshProcessingLease(other epoch) error = %v", err)
+		t.Fatalf("RefreshProcessingLease(success) error = %v", err)
 	}
 	if ok {
-		t.Fatalf("expected lease refresh with other epoch to fail")
+		t.Fatalf("expected lease refresh after terminal state to fail")
 	}
 }
 
@@ -283,19 +287,14 @@ func TestFinalizeFailureDoesNotDoubleCompensate(t *testing.T) {
 		t.Fatalf("Admit() error = %v", err)
 	}
 
-	claimed, epoch, err := store.ClaimProcessing(ctx, orderNumber, now.Add(100*time.Millisecond))
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(100*time.Millisecond))
 	if err != nil {
-		t.Fatalf("ClaimProcessing() error = %v", err)
+		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
-	if !claimed || epoch <= 0 {
-		t.Fatalf("expected claim success with epoch, got claimed=%t epoch=%d", claimed, epoch)
+	if !shouldProcess || record == nil || record.State != rush.AttemptStateProcessing {
+		t.Fatalf("expected processing claim, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-
-	record, err := store.Get(ctx, orderNumber)
-	if err != nil {
-		t.Fatalf("Get() error = %v", err)
-	}
-	outcome, err := store.FinalizeFailure(ctx, record, epoch, rush.AttemptReasonSeatExhausted, now.Add(time.Second))
+	outcome, err := store.FinalizeFailure(ctx, record, rush.AttemptReasonSeatExhausted, now.Add(time.Second))
 	if err != nil {
 		t.Fatalf("FinalizeFailure() error = %v", err)
 	}
@@ -307,7 +306,7 @@ func TestFinalizeFailureDoesNotDoubleCompensate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get() after finalize failure error = %v", err)
 	}
-	outcome, err = store.FinalizeFailure(ctx, record, epoch, rush.AttemptReasonSeatExhausted, now.Add(2*time.Second))
+	outcome, err = store.FinalizeFailure(ctx, record, rush.AttemptReasonSeatExhausted, now.Add(2*time.Second))
 	if err != nil {
 		t.Fatalf("FinalizeFailure(second) error = %v", err)
 	}
@@ -375,17 +374,12 @@ func TestFinalizeClosedOrderReleasesActiveProjectionOnce(t *testing.T) {
 		t.Fatalf("Admit() error = %v", err)
 	}
 
-	claimed, epoch, err := store.ClaimProcessing(ctx, orderNumber, now.Add(100*time.Millisecond))
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(100*time.Millisecond))
 	if err != nil {
-		t.Fatalf("ClaimProcessing() error = %v", err)
+		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
-	if !claimed || epoch <= 0 {
-		t.Fatalf("expected claim success with epoch, got claimed=%t epoch=%d", claimed, epoch)
-	}
-
-	record, err := store.Get(ctx, orderNumber)
-	if err != nil {
-		t.Fatalf("Get() before finalize success error = %v", err)
+	if !shouldProcess || record == nil {
+		t.Fatalf("expected claim success, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
 	if err := store.FinalizeSuccess(ctx, record, seatIDs, now.Add(time.Second)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
@@ -747,12 +741,12 @@ func TestPrepareAttemptForConsumeTransitionsAcceptedToProcessingOnce(t *testing.
 		t.Fatalf("Admit() error = %v", err)
 	}
 
-	record, epoch, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(time.Second))
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(time.Second))
 	if err != nil {
 		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
-	if !shouldProcess || epoch <= 0 {
-		t.Fatalf("expected shouldProcess=true with epoch, got shouldProcess=%t epoch=%d", shouldProcess, epoch)
+	if !shouldProcess {
+		t.Fatalf("expected shouldProcess=true, got shouldProcess=%t", shouldProcess)
 	}
 	if record == nil || record.State != rush.AttemptStateProcessing {
 		t.Fatalf("expected processing record, got %+v", record)
@@ -761,12 +755,12 @@ func TestPrepareAttemptForConsumeTransitionsAcceptedToProcessingOnce(t *testing.
 		t.Fatalf("unexpected returned record: %+v", record)
 	}
 
-	record, epoch, shouldProcess, err = store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(2*time.Second))
+	record, shouldProcess, err = store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(2*time.Second))
 	if err != nil {
 		t.Fatalf("PrepareAttemptForConsume(second) error = %v", err)
 	}
 	if shouldProcess {
-		t.Fatalf("expected second prepare to skip processing, got shouldProcess=true epoch=%d record=%+v", epoch, record)
+		t.Fatalf("expected second prepare to skip processing, got shouldProcess=true record=%+v", record)
 	}
 	if record == nil || record.State != rush.AttemptStateProcessing {
 		t.Fatalf("expected processing record on second prepare, got %+v", record)
@@ -815,23 +809,23 @@ func TestPrepareAttemptForConsumeSkipsTerminalStates(t *testing.T) {
 		t.Fatalf("Admit() error = %v", err)
 	}
 
-	record, epoch, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(time.Second))
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(time.Second))
 	if err != nil {
 		t.Fatalf("PrepareAttemptForConsume(first) error = %v", err)
 	}
-	if !shouldProcess || epoch <= 0 || record == nil {
-		t.Fatalf("expected first prepare to claim, got shouldProcess=%t epoch=%d record=%+v", shouldProcess, epoch, record)
+	if !shouldProcess || record == nil {
+		t.Fatalf("expected first prepare to claim, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := store.FinalizeSuccess(ctx, record, epoch, []int64{880001}, now.Add(2*time.Second)); err != nil {
+	if err := store.FinalizeSuccess(ctx, record, []int64{880001}, now.Add(2*time.Second)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 
-	record, epoch, shouldProcess, err = store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(3*time.Second))
+	record, shouldProcess, err = store.PrepareAttemptForConsume(ctx, showTimeID, orderNumber, now.Add(3*time.Second))
 	if err != nil {
 		t.Fatalf("PrepareAttemptForConsume(after success) error = %v", err)
 	}
 	if shouldProcess {
-		t.Fatalf("expected success state to skip processing, got shouldProcess=true epoch=%d record=%+v", epoch, record)
+		t.Fatalf("expected success state to skip processing, got shouldProcess=true record=%+v", record)
 	}
 	if record == nil || record.State != rush.AttemptStateSuccess {
 		t.Fatalf("expected success record, got %+v", record)

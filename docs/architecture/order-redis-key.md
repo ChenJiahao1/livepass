@@ -43,6 +43,8 @@ Order Rush 实际涉及
     - quota:<ticketCategoryId>
 - consumer 消费开始只查/改：
     - attempt:<orderNumber>
+    - 处理权由 `PrepareAttemptForConsume` 执行的 `ACCEPTED -> PROCESSING` 原子状态变更保证
+    - 不再使用 `ClaimProcessing` 或 `processing_epoch`
 - consumer 落单成功会涉及：
     - attempt:<orderNumber>
     - user_active:<userId>
@@ -86,12 +88,9 @@ Program Seat Ledger 实际涉及
     - stock:{st:<showTimeId>}:<ticketCategoryId>
     - available:{st:<showTimeId>}:<ticketCategoryId>
     - frozen:{st:<showTimeId>}:<ticketCategoryId>:<freezeToken>
+    - 请求入参是确定性 `freezeToken` + 显式 `freezeExpireTime`
 - 如果 ledger 未就绪，可能额外写：
     - loading:{st:<showTimeId>}:<ticketCategoryId>
-- consumer 锁座成功后，落 metadata 会额外写：
-    - freeze:meta:<freezeToken>
-    - freeze:req:<requestNo>
-    - freeze:index:{st:<showTimeId>}:<ticketCategoryId>
 - consumer 落单成功到此为止：
     - frozen:<freezeToken> 保留
     - sold 不写
@@ -99,15 +98,4 @@ Program Seat Ledger 实际涉及
     - stock
     - available
     - frozen:<freezeToken>
-    - freeze:meta:<freezeToken>（做 fencing 校验）
-    - 然后再更新 freeze:meta / freeze:req，并从 freeze:index 移除
 - 锁座主流程入口：services/program-rpc/internal/logic/auto_assign_and_freeze_seats_logic.go:44
-
-Seat Freeze Meta Key
-
-- 这一组也是本链路必须补上的，前面你的清单里还没列全
-- livepass:program:seat-ledger:freeze:meta:<freezeToken> string(json)
-- livepass:program:seat-ledger:freeze:req:<requestNo> string
-- livepass:program:seat-ledger:freeze:index:{st:<showTimeId>}:<ticketCategoryId> zset
-- requestNo 在落单 consumer 里通常是 <orderNumber>-<processingEpoch>
-- metadata 读写定义：services/program-rpc/internal/seatcache/seat_freeze_metadata.go:65

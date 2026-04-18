@@ -239,14 +239,14 @@ attempt hash 建议仅保留与受理和结果有关的字段，例如：
 - `token_fingerprint`
 - `state`
 - `reason_code`
-- `processing_epoch`
-- `freeze_token`
+- `sale_window_end_at`
+- `show_end_at`
 - `created_at`
 - `accepted_at`
 - `processing_started_at`
 - `finished_at`
-- `last_error_code`
-- `last_error_at`
+- `last_transition_at`
+- `publish_attempts`
 
 建议删除只服务于旧超时状态机的字段，例如：
 

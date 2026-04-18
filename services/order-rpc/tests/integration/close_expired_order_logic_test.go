@@ -84,14 +84,14 @@ func TestCloseExpiredOrderFinalizesCommittedAttemptAsClosedReleased(t *testing.T
 	if err != nil {
 		t.Fatalf("AttemptStore.Get() error = %v", err)
 	}
-	claimed, epoch, err := store.ClaimProcessing(ctx, orderNumber, now.Add(time.Millisecond))
+	record, shouldProcess, err := store.PrepareAttemptForConsume(ctx, programID, orderNumber, now.Add(time.Millisecond))
 	if err != nil {
-		t.Fatalf("ClaimProcessing() error = %v", err)
+		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
-	if !claimed || epoch <= 0 {
-		t.Fatalf("expected claim processing success, got claimed=%t epoch=%d", claimed, epoch)
+	if !shouldProcess || record == nil {
+		t.Fatalf("expected claim processing success, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := store.FinalizeSuccess(ctx, record, epoch, []int64{512}, now.Add(2*time.Millisecond)); err != nil {
+	if err := store.FinalizeSuccess(ctx, record, []int64{512}, now.Add(2*time.Millisecond)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 

@@ -9,9 +9,6 @@ var (
 	//go:embed mark_attempt_queued.lua
 	markAttemptQueuedScript string
 
-	//go:embed claim_processing.lua
-	claimProcessingScript string
-
 	//go:embed prepare_attempt_for_consume.lua
 	prepareAttemptForConsumeScript string
 

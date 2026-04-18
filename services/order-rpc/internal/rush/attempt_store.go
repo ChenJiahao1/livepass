@@ -408,62 +408,12 @@ func (s *AttemptStore) MarkQueued(ctx context.Context, orderNumber int64, now ti
 	return nil
 }
 
-func (s *AttemptStore) ClaimProcessing(ctx context.Context, orderNumber int64, now time.Time) (claimed bool, epoch int64, err error) {
+func (s *AttemptStore) PrepareAttemptForConsume(ctx context.Context, showTimeID, orderNumber int64, now time.Time) (*AttemptRecord, bool, error) {
 	if s == nil || s.redis == nil {
-		return false, 0, xerr.ErrInternal
-	}
-	if orderNumber <= 0 {
-		return false, 0, xerr.ErrInvalidParam
-	}
-	if now.IsZero() {
-		now = time.Now()
-	}
-
-	attemptKey, err := s.resolveAttemptRecordKey(ctx, orderNumber)
-	if err != nil {
-		return false, 0, err
-	}
-
-	result, err := s.redis.EvalCtx(
-		ctx,
-		claimProcessingScript,
-		[]string{attemptKey},
-		now.UnixMilli(),
-		s.inFlightTTLSeconds,
-	)
-	if err != nil {
-		return false, 0, err
-	}
-
-	values, err := parseEvalArray(result)
-	if err != nil {
-		return false, 0, err
-	}
-	if len(values) < 2 {
-		return false, 0, fmt.Errorf("unexpected claim processing result length: %d", len(values))
-	}
-
-	statusCode, err := parseEvalInt64(values[0])
-	if err != nil {
-		return false, 0, err
-	}
-	epoch, err = parseEvalInt64(values[1])
-	if err != nil {
-		return false, 0, err
-	}
-	if statusCode < 0 {
-		return false, 0, xerr.ErrOrderNotFound
-	}
-
-	return statusCode == 1, epoch, nil
-}
-
-func (s *AttemptStore) PrepareAttemptForConsume(ctx context.Context, showTimeID, orderNumber int64, now time.Time) (*AttemptRecord, int64, bool, error) {
-	if s == nil || s.redis == nil {
-		return nil, 0, false, xerr.ErrInternal
+		return nil, false, xerr.ErrInternal
 	}
 	if showTimeID <= 0 || orderNumber <= 0 {
-		return nil, 0, false, xerr.ErrInvalidParam
+		return nil, false, xerr.ErrInvalidParam
 	}
 	if now.IsZero() {
 		now = time.Now()
@@ -477,37 +427,33 @@ func (s *AttemptStore) PrepareAttemptForConsume(ctx context.Context, showTimeID,
 		s.inFlightTTLSeconds,
 	)
 	if err != nil {
-		return nil, 0, false, err
+		return nil, false, err
 	}
 
 	values, err := parseEvalArray(result)
 	if err != nil {
-		return nil, 0, false, err
+		return nil, false, err
 	}
 	if len(values) == 1 {
 		statusCode, parseErr := parseEvalInt64(values[0])
 		if parseErr != nil {
-			return nil, 0, false, parseErr
+			return nil, false, parseErr
 		}
 		if statusCode < 0 {
-			return nil, 0, false, xerr.ErrOrderNotFound
+			return nil, false, xerr.ErrOrderNotFound
 		}
 	}
-	if len(values) < 19 {
-		return nil, 0, false, fmt.Errorf("unexpected prepare attempt result length: %d", len(values))
+	if len(values) < 18 {
+		return nil, false, fmt.Errorf("unexpected prepare attempt result length: %d", len(values))
 	}
 
 	shouldProcessCode, err := parseEvalInt64(values[0])
 	if err != nil {
-		return nil, 0, false, err
-	}
-	epoch, err := parseEvalInt64(values[1])
-	if err != nil {
-		return nil, 0, false, err
+		return nil, false, err
 	}
 	record, err := mapPreparedAttemptRecord(values)
 	if err != nil {
-		return nil, 0, false, err
+		return nil, false, err
 	}
 	if record.OrderNumber == 0 {
 		record.OrderNumber = orderNumber
@@ -515,9 +461,8 @@ func (s *AttemptStore) PrepareAttemptForConsume(ctx context.Context, showTimeID,
 	if record.ShowTimeID == 0 {
 		record.ShowTimeID = showTimeID
 	}
-	record.ProcessingEpoch = epoch
 
-	return record, epoch, shouldProcessCode == 1, nil
+	return record, shouldProcessCode == 1, nil
 }
 
 func (s *AttemptStore) FailBeforeProcessing(ctx context.Context, record *AttemptRecord, reason string, now time.Time) (AttemptTransitionOutcome, error) {
@@ -559,11 +504,11 @@ func (s *AttemptStore) FailBeforeProcessing(ctx context.Context, record *Attempt
 	return parseAttemptTransitionOutcome(result)
 }
 
-func (s *AttemptStore) RefreshProcessingLease(ctx context.Context, orderNumber, processingEpoch int64, now time.Time) (bool, error) {
+func (s *AttemptStore) RefreshProcessingLease(ctx context.Context, orderNumber int64, now time.Time) (bool, error) {
 	if s == nil || s.redis == nil {
 		return false, xerr.ErrInternal
 	}
-	if orderNumber <= 0 || processingEpoch <= 0 {
+	if orderNumber <= 0 {
 		return false, xerr.ErrInvalidParam
 	}
 	if now.IsZero() {
@@ -582,7 +527,6 @@ func (s *AttemptStore) RefreshProcessingLease(ctx context.Context, orderNumber, 
 		ctx,
 		refreshProcessingLeaseScript,
 		[]string{attemptKey},
-		processingEpoch,
 		now.UnixMilli(),
 		s.inFlightTTLSeconds,
 	)
@@ -606,9 +550,8 @@ func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecor
 	}
 
 	var (
-		processingEpoch int64 = record.ProcessingEpoch
-		seatIDs         []int64
-		now             time.Time
+		seatIDs []int64
+		now     time.Time
 	)
 	switch len(args) {
 	case 2:
@@ -618,20 +561,6 @@ func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecor
 			return xerr.ErrInvalidParam
 		}
 		now, ok = args[1].(time.Time)
-		if !ok {
-			return xerr.ErrInvalidParam
-		}
-	case 3:
-		var ok bool
-		processingEpoch, ok = args[0].(int64)
-		if !ok {
-			return xerr.ErrInvalidParam
-		}
-		seatIDs, ok = args[1].([]int64)
-		if !ok {
-			return xerr.ErrInvalidParam
-		}
-		now, ok = args[2].(time.Time)
 		if !ok {
 			return xerr.ErrInvalidParam
 		}
@@ -667,7 +596,6 @@ func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecor
 		formatInt64CSV(seatIDs),
 		len(viewerIDs),
 		record.OrderNumber,
-		processingEpoch,
 	)
 	if err != nil {
 		return err
@@ -684,11 +612,11 @@ func (s *AttemptStore) FinalizeSuccess(ctx context.Context, record *AttemptRecor
 	return nil
 }
 
-func (s *AttemptStore) FinalizeFailure(ctx context.Context, record *AttemptRecord, processingEpoch int64, reason string, now time.Time) (AttemptTransitionOutcome, error) {
+func (s *AttemptStore) FinalizeFailure(ctx context.Context, record *AttemptRecord, reason string, now time.Time) (AttemptTransitionOutcome, error) {
 	if s == nil || s.redis == nil {
 		return AttemptStateMissing, xerr.ErrInternal
 	}
-	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 || record.ShowTimeID <= 0 || record.TicketCategoryID <= 0 || processingEpoch <= 0 {
+	if record == nil || record.OrderNumber <= 0 || record.UserID <= 0 || record.ProgramID <= 0 || record.ShowTimeID <= 0 || record.TicketCategoryID <= 0 {
 		return AttemptStateMissing, xerr.ErrInvalidParam
 	}
 	if reason == "" {
@@ -724,7 +652,6 @@ func (s *AttemptStore) FinalizeFailure(ctx context.Context, record *AttemptRecor
 		s.finalStateTTLSeconds,
 		record.TokenFingerprint,
 		len(viewerIDs),
-		processingEpoch,
 	)
 	if err != nil {
 		return AttemptStateMissing, err
@@ -1021,10 +948,6 @@ func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	record.ProcessingEpoch, err = parseFieldInt64(fields, attemptFieldProcessingEpoch)
-	if err != nil {
-		return nil, err
-	}
 	record.PublishAttempts, err = parseFieldInt64(fields, attemptFieldPublishAttempts)
 	if err != nil {
 		return nil, err
@@ -1067,31 +990,31 @@ func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 }
 
 func mapPreparedAttemptRecord(values []any) (*AttemptRecord, error) {
-	state, err := parseEvalString(values[2])
+	state, err := parseEvalString(values[1])
 	if err != nil {
 		return nil, err
 	}
-	orderNumber, err := parseEvalInt64AllowBlank(values[3])
+	orderNumber, err := parseEvalInt64AllowBlank(values[2])
 	if err != nil {
 		return nil, err
 	}
-	userID, err := parseEvalInt64AllowBlank(values[4])
+	userID, err := parseEvalInt64AllowBlank(values[3])
 	if err != nil {
 		return nil, err
 	}
-	programID, err := parseEvalInt64AllowBlank(values[5])
+	programID, err := parseEvalInt64AllowBlank(values[4])
 	if err != nil {
 		return nil, err
 	}
-	showTimeID, err := parseEvalInt64AllowBlank(values[6])
+	showTimeID, err := parseEvalInt64AllowBlank(values[5])
 	if err != nil {
 		return nil, err
 	}
-	ticketCategoryID, err := parseEvalInt64AllowBlank(values[7])
+	ticketCategoryID, err := parseEvalInt64AllowBlank(values[6])
 	if err != nil {
 		return nil, err
 	}
-	viewerIDsRaw, err := parseEvalString(values[8])
+	viewerIDsRaw, err := parseEvalString(values[7])
 	if err != nil {
 		return nil, err
 	}
@@ -1099,43 +1022,43 @@ func mapPreparedAttemptRecord(values []any) (*AttemptRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	ticketCount, err := parseEvalInt64AllowBlank(values[9])
+	ticketCount, err := parseEvalInt64AllowBlank(values[8])
 	if err != nil {
 		return nil, err
 	}
-	tokenFingerprint, err := parseEvalString(values[10])
+	tokenFingerprint, err := parseEvalString(values[9])
 	if err != nil {
 		return nil, err
 	}
-	saleWindowEndAt, err := parsePreparedTime(values[11])
+	saleWindowEndAt, err := parsePreparedTime(values[10])
 	if err != nil {
 		return nil, err
 	}
-	showEndAt, err := parsePreparedTime(values[12])
+	showEndAt, err := parsePreparedTime(values[11])
 	if err != nil {
 		return nil, err
 	}
-	reasonCode, err := parseEvalString(values[13])
+	reasonCode, err := parseEvalString(values[12])
 	if err != nil {
 		return nil, err
 	}
-	acceptedAt, err := parsePreparedTime(values[14])
+	acceptedAt, err := parsePreparedTime(values[13])
 	if err != nil {
 		return nil, err
 	}
-	finishedAt, err := parsePreparedTime(values[15])
+	finishedAt, err := parsePreparedTime(values[14])
 	if err != nil {
 		return nil, err
 	}
-	processingStartedAt, err := parsePreparedTime(values[16])
+	processingStartedAt, err := parsePreparedTime(values[15])
 	if err != nil {
 		return nil, err
 	}
-	createdAt, err := parsePreparedTime(values[17])
+	createdAt, err := parsePreparedTime(values[16])
 	if err != nil {
 		return nil, err
 	}
-	lastTransitionAt, err := parsePreparedTime(values[18])
+	lastTransitionAt, err := parsePreparedTime(values[17])
 	if err != nil {
 		return nil, err
 	}

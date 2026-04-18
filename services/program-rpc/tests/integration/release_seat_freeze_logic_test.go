@@ -29,8 +29,8 @@ func TestReleaseSeatFreezeRestoresStockAndSeats(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st52101-tc62101-o92101-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st52101-tc62101-o92101",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if err != nil {
 		t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -96,8 +96,8 @@ func TestReleaseSeatFreezeRejectsConfirmedFreeze(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st52102-tc62102-o92102-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st52102-tc62102-o92102",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if err != nil {
 		t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)

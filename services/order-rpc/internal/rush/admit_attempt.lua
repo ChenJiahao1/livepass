@@ -95,7 +95,6 @@ redis.call("HSET", KEYS[1],
     "finished_at", 0,
     "publish_attempts", 0,
     "show_end_at", showEndAt,
-    "processing_epoch", 0,
     "created_at", nowUnixMs,
     "last_transition_at", nowUnixMs
 )

@@ -27,7 +27,6 @@ type AttemptRecord struct {
 	FinishedAt      time.Time
 	PublishAttempts int64
 
-	ProcessingEpoch     int64
 	ProcessingStartedAt time.Time
 
 	CreatedAt        time.Time

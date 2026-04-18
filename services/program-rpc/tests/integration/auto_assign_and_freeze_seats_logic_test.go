@@ -30,8 +30,8 @@ func TestAutoAssignAndFreezeSeatsPrefersAdjacentSeats(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st51101-tc61101-o91101-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st51101-tc61101-o91101",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if err != nil {
 		t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -83,8 +83,8 @@ func TestAutoAssignAndFreezeSeatsFallsBackToSortedFirstN(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st51102-tc61102-o91102-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st51102-tc61102-o91102",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if err != nil {
 		t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -127,8 +127,8 @@ func TestAutoAssignAndFreezeSeatsRejectsWhenSeatLedgerMissing(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st51103-tc61103-o91103-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st51103-tc61103-o91103",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected failed precondition, got %v", err)
@@ -162,8 +162,8 @@ func TestAutoAssignAndFreezeSeatsRejectsExistingRequestWhenDBFreezeStateMissing(
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st51104-tc61104-o91104-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st51104-tc61104-o91104",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if err != nil {
 		t.Fatalf("first AutoAssignAndFreezeSeats returned error: %v", err)
@@ -182,8 +182,8 @@ func TestAutoAssignAndFreezeSeatsRejectsExistingRequestWhenDBFreezeStateMissing(
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st51104-tc61104-o91104-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st51104-tc61104-o91104",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected failed precondition when db freeze state missing, got %v", err)

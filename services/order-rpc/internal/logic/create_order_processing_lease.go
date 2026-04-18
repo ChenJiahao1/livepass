@@ -10,12 +10,11 @@ import (
 )
 
 type processingLease struct {
-	epoch int64
-	lost  atomic.Bool
-	stop  func()
+	lost atomic.Bool
+	stop func()
 }
 
-func startProcessingLease(ctx context.Context, store *rush.AttemptStore, orderNumber, epoch int64, interval time.Duration) *processingLease {
+func startProcessingLease(ctx context.Context, store *rush.AttemptStore, orderNumber int64, interval time.Duration) *processingLease {
 	if interval <= 0 {
 		interval = 100 * time.Millisecond
 	}
@@ -25,10 +24,9 @@ func startProcessingLease(ctx context.Context, store *rush.AttemptStore, orderNu
 
 	leaseCtx, cancel := context.WithCancel(ctx)
 	lease := &processingLease{
-		epoch: epoch,
-		stop:  cancel,
+		stop: cancel,
 	}
-	if store == nil || orderNumber <= 0 || epoch <= 0 {
+	if store == nil || orderNumber <= 0 {
 		lease.lost.Store(true)
 		return lease
 	}
@@ -47,7 +45,7 @@ func startProcessingLease(ctx context.Context, store *rush.AttemptStore, orderNu
 			case <-leaseCtx.Done():
 				return
 			case <-ticker.C:
-				refreshed, err := store.RefreshProcessingLease(leaseCtx, orderNumber, epoch, time.Now())
+				refreshed, err := store.RefreshProcessingLease(leaseCtx, orderNumber, time.Now())
 				if err != nil || !refreshed {
 					lease.lost.Store(true)
 					return

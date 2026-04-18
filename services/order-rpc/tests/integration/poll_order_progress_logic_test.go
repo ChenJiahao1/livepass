@@ -165,8 +165,8 @@ func TestPollOrderProgressReturnsReasonCodeWhenAttemptFailed(t *testing.T) {
 	if err := store.MarkQueued(ctx, orderNumber, now); err != nil {
 		t.Fatalf("MarkQueued() error = %v", err)
 	}
-	if _, _, err := store.ClaimProcessing(ctx, orderNumber, now.Add(time.Millisecond)); err != nil {
-		t.Fatalf("ClaimProcessing() error = %v", err)
+	if _, _, err := store.PrepareAttemptForConsume(ctx, programID, orderNumber, now.Add(time.Millisecond)); err != nil {
+		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
 	record, err := store.Get(ctx, orderNumber)
 	if err != nil {

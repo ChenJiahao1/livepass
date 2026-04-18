@@ -40,8 +40,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st51001-tc61001-o91001-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st51001-tc61001-o91001",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -69,7 +69,7 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			t.Fatalf("expected 1 seat to remain available in db before payment confirm")
 		}
 
-		if resp.FreezeToken != "freeze-st51001-tc61001-o91001-e1" {
+		if resp.FreezeToken != "freeze-st51001-tc61001-o91001" {
 			t.Fatalf("expected explicit freeze token, got %q", resp.FreezeToken)
 		}
 	})
@@ -93,8 +93,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st51006-tc61006-o91006-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st51006-tc61006-o91006",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -129,8 +129,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st51002-tc61002-o91002-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st51002-tc61002-o91002",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("first AutoAssignAndFreezeSeats returned error: %v", err)
@@ -140,8 +140,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st51002-tc61002-o91002-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st51002-tc61002-o91002",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("second AutoAssignAndFreezeSeats returned error: %v", err)
@@ -175,8 +175,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st51004-tc61004-o91004-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st51004-tc61004-o91004",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if status.Code(err) != codes.FailedPrecondition {
 			t.Fatalf("expected failed precondition, got %v", err)
@@ -203,8 +203,8 @@ func TestAutoAssignAndFreezeSeats(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st51005-tc61005-o91005-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st51005-tc61005-o91005",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if status.Code(err) != codes.NotFound {
 			t.Fatalf("expected not found, got %v", err)
@@ -368,8 +368,8 @@ func TestReleaseSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st52001-tc62001-o92001-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st52001-tc62001-o92001",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -413,8 +413,8 @@ func TestReleaseSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st52002-tc62002-o92002-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st52002-tc62002-o92002",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -459,8 +459,8 @@ func TestConcurrentSeatFreezeDoesNotOverlap(t *testing.T) {
 	)
 
 	requests := []*pb.AutoAssignAndFreezeSeatsReq{
-		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, FreezeToken: "freeze-st53001-tc63001-o93011-e1", FreezeSeconds: 900},
-		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, FreezeToken: "freeze-st53001-tc63001-o93012-e1", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, FreezeToken: "freeze-st53001-tc63001-o93011", FreezeExpireTime: "2026-12-31 18:00:00"},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryID, Count: 2, FreezeToken: "freeze-st53001-tc63001-o93012", FreezeExpireTime: "2026-12-31 18:00:00"},
 	}
 
 	for _, req := range requests {
@@ -542,8 +542,8 @@ func TestConcurrentSeatFreezeUsesDifferentHotspotKeysPerTicketCategory(t *testin
 		errs []error
 	)
 	requests := []*pb.AutoAssignAndFreezeSeatsReq{
-		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, FreezeToken: "freeze-st53002-tc63011-o93021-e1", FreezeSeconds: 900},
-		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, FreezeToken: "freeze-st53002-tc63012-o93022-e1", FreezeSeconds: 900},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDOne, Count: 1, FreezeToken: "freeze-st53002-tc63011-o93021", FreezeExpireTime: "2026-12-31 18:00:00"},
+		{ShowTimeId: programID, TicketCategoryId: ticketCategoryIDTwo, Count: 1, FreezeToken: "freeze-st53002-tc63012-o93022", FreezeExpireTime: "2026-12-31 18:00:00"},
 	}
 
 	for _, req := range requests {

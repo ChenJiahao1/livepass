@@ -3491,7 +3491,7 @@ type AutoAssignAndFreezeSeatsReq struct {
 	TicketCategoryId int64                  `protobuf:"varint,2,opt,name=ticketCategoryId,proto3" json:"ticketCategoryId,omitempty"`
 	Count            int64                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
 	FreezeToken      string                 `protobuf:"bytes,4,opt,name=freezeToken,proto3" json:"freezeToken,omitempty"`
-	FreezeSeconds    int64                  `protobuf:"varint,5,opt,name=freezeSeconds,proto3" json:"freezeSeconds,omitempty"`
+	FreezeExpireTime string                 `protobuf:"bytes,5,opt,name=freezeExpireTime,proto3" json:"freezeExpireTime,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -3554,11 +3554,11 @@ func (x *AutoAssignAndFreezeSeatsReq) GetFreezeToken() string {
 	return ""
 }
 
-func (x *AutoAssignAndFreezeSeatsReq) GetFreezeSeconds() int64 {
+func (x *AutoAssignAndFreezeSeatsReq) GetFreezeExpireTime() string {
 	if x != nil {
-		return x.FreezeSeconds
+		return x.FreezeExpireTime
 	}
-	return 0
+	return ""
 }
 
 type AutoAssignAndFreezeSeatsResp struct {
@@ -4863,15 +4863,15 @@ const file_program_proto_rawDesc = "" +
 	"\x1cperAccountLimitPurchaseCount\x18\x0e \x01(\x03R\x1cperAccountLimitPurchaseCount\x12*\n" +
 	"\x10permitChooseSeat\x18\x0f \x01(\x03R\x10permitChooseSeat\x12,\n" +
 	"\x11chooseSeatExplain\x18\x10 \x01(\tR\x11chooseSeatExplain\x12^\n" +
-	"\x14ticketCategoryVoList\x18\x11 \x03(\v2*.program.ProgramPreorderTicketCategoryInfoR\x14ticketCategoryVoList\"\xc7\x01\n" +
+	"\x14ticketCategoryVoList\x18\x11 \x03(\v2*.program.ProgramPreorderTicketCategoryInfoR\x14ticketCategoryVoList\"\xcd\x01\n" +
 	"\x1bAutoAssignAndFreezeSeatsReq\x12\x1e\n" +
 	"\n" +
 	"showTimeId\x18\x01 \x01(\x03R\n" +
 	"showTimeId\x12*\n" +
 	"\x10ticketCategoryId\x18\x02 \x01(\x03R\x10ticketCategoryId\x12\x14\n" +
 	"\x05count\x18\x03 \x01(\x03R\x05count\x12 \n" +
-	"\vfreezeToken\x18\x04 \x01(\tR\vfreezeToken\x12$\n" +
-	"\rfreezeSeconds\x18\x05 \x01(\x03R\rfreezeSeconds\"\x89\x01\n" +
+	"\vfreezeToken\x18\x04 \x01(\tR\vfreezeToken\x12*\n" +
+	"\x10freezeExpireTime\x18\x05 \x01(\tR\x10freezeExpireTime\"\x89\x01\n" +
 	"\x1cAutoAssignAndFreezeSeatsResp\x12 \n" +
 	"\vfreezeToken\x18\x01 \x01(\tR\vfreezeToken\x12\x1e\n" +
 	"\n" +

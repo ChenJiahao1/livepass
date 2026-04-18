@@ -61,13 +61,11 @@ func TestFinalizeFailureRetriesWhenScriptErrorLeavesProcessingOwner(t *testing.T
 	record := &rush.AttemptRecord{
 		OrderNumber:      91001,
 		State:            rush.AttemptStateProcessing,
-		ProcessingEpoch:  3,
 		TicketCategoryID: 40001,
 	}
 	latest := &rush.AttemptRecord{
 		OrderNumber:      91001,
 		State:            rush.AttemptStateProcessing,
-		ProcessingEpoch:  3,
 		TicketCategoryID: 40001,
 	}
 

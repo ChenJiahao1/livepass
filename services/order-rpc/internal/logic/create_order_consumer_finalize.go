@@ -33,6 +33,5 @@ func shouldRetryFinalizeFailure(record, latest *rush.AttemptRecord, err error) b
 	}
 
 	return latest.OrderNumber == record.OrderNumber &&
-		latest.State == rush.AttemptStateProcessing &&
-		latest.ProcessingEpoch == record.ProcessingEpoch
+		latest.State == rush.AttemptStateProcessing
 }

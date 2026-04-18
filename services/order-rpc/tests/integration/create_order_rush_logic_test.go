@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	orderevent "livepass/services/order-rpc/internal/event"
 	logicpkg "livepass/services/order-rpc/internal/logic"
 	"livepass/services/order-rpc/internal/rush"
 	"livepass/services/order-rpc/internal/svc"
 	"livepass/services/order-rpc/pb"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInline(t *testing.T) {
@@ -248,18 +248,14 @@ func TestCreateOrderRushCreatesNewOrderNumberAfterClosedOrderReleaseWithNewToken
 		t.Fatalf("expected first order number %d, got %d", baseClaims.OrderNumber, firstResp.GetOrderNumber())
 	}
 
-	record, err := svcCtx.AttemptStore.Get(ctx, baseClaims.OrderNumber)
+	record, shouldProcess, err := svcCtx.AttemptStore.PrepareAttemptForConsume(ctx, baseClaims.ShowTimeID, baseClaims.OrderNumber, time.Now().Add(time.Millisecond))
 	if err != nil {
-		t.Fatalf("AttemptStore.Get(first) error = %v", err)
+		t.Fatalf("PrepareAttemptForConsume() error = %v", err)
 	}
-	claimed, epoch, err := svcCtx.AttemptStore.ClaimProcessing(ctx, baseClaims.OrderNumber, time.Now().Add(time.Millisecond))
-	if err != nil {
-		t.Fatalf("ClaimProcessing() error = %v", err)
+	if !shouldProcess || record == nil {
+		t.Fatalf("expected claim success, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if !claimed || epoch <= 0 {
-		t.Fatalf("expected claim success, got claimed=%t epoch=%d", claimed, epoch)
-	}
-	if err := svcCtx.AttemptStore.FinalizeSuccess(ctx, record, epoch, []int64{70101}, time.Now().Add(2*time.Millisecond)); err != nil {
+	if err := svcCtx.AttemptStore.FinalizeSuccess(ctx, record, []int64{70101}, time.Now().Add(2*time.Millisecond)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 
@@ -393,7 +389,7 @@ func TestCreateOrderReturnsOrderNumberWhenKafkaHandoffFailsButConsumerAlreadyCla
 		claimed  bool
 	)
 	producer.sendFunc = func(_ context.Context, _ string, _ []byte) error {
-		claimed, _, claimErr = svcCtx.AttemptStore.ClaimProcessing(context.Background(), claims.OrderNumber, time.Now())
+		_, claimed, claimErr = svcCtx.AttemptStore.PrepareAttemptForConsume(context.Background(), claims.ShowTimeID, claims.OrderNumber, time.Now())
 		return context.DeadlineExceeded
 	}
 
@@ -402,7 +398,7 @@ func TestCreateOrderReturnsOrderNumberWhenKafkaHandoffFailsButConsumerAlreadyCla
 		PurchaseToken: mustIssueRushPurchaseToken(t, svcCtx, claims),
 	})
 	if claimErr != nil {
-		t.Fatalf("ClaimProcessing() error = %v", claimErr)
+		t.Fatalf("PrepareAttemptForConsume() error = %v", claimErr)
 	}
 	if !claimed {
 		t.Fatalf("expected consumer to claim processing before fail-before-processing")

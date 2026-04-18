@@ -31,8 +31,8 @@ func TestAutoAssignAndFreezeSeatsPersistsFrozenSeatsBeforePaymentConfirm(t *test
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st53101-tc63101-o93101-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st53101-tc63101-o93101",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if err != nil {
 		t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -77,8 +77,8 @@ func TestConfirmSeatFreezeMovesSeatsToSoldLedger(t *testing.T) {
 		ShowTimeId:       programID,
 		TicketCategoryId: ticketCategoryID,
 		Count:            2,
-		FreezeToken:      "freeze-st53102-tc63102-o93102-e1",
-		FreezeSeconds:    900,
+		FreezeToken:      "freeze-st53102-tc63102-o93102",
+		FreezeExpireTime: "2026-12-31 18:00:00",
 	})
 	if err != nil {
 		t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -134,8 +134,8 @@ func TestConfirmSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st53001-tc63001-o93001-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st53001-tc63001-o93001",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -174,8 +174,8 @@ func TestConfirmSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            1,
-			FreezeToken:      "freeze-st53003-tc63003-o93003-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st53003-tc63003-o93003",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)
@@ -213,8 +213,8 @@ func TestConfirmSeatFreeze(t *testing.T) {
 			ShowTimeId:       programID,
 			TicketCategoryId: ticketCategoryID,
 			Count:            2,
-			FreezeToken:      "freeze-st53004-tc63004-o93004-e1",
-			FreezeSeconds:    900,
+			FreezeToken:      "freeze-st53004-tc63004-o93004",
+			FreezeExpireTime: "2026-12-31 18:00:00",
 		})
 		if err != nil {
 			t.Fatalf("AutoAssignAndFreezeSeats returned error: %v", err)

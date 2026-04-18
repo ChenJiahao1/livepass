@@ -57,38 +57,35 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	if showTimeID <= 0 {
 		showTimeID = orderEvent.ProgramID
 	}
-	attempt, processingEpoch, shouldProcess, err := l.prepareAttemptForConsume(showTimeID, orderEvent.OrderNumber, now)
+	attempt, shouldProcess, err := l.prepareAttemptForConsume(showTimeID, orderEvent.OrderNumber, now)
 	if err != nil {
-		if errors.Is(err, xerr.ErrOrderNotFound) && hasEmbeddedOrderCreateSnapshots(orderEvent) {
-			shouldProcess = true
-		} else if errors.Is(err, xerr.ErrOrderNotFound) {
+		if errors.Is(err, xerr.ErrOrderNotFound) {
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 	if !shouldProcess {
 		return nil
 	}
 
 	var lease *processingLease
-	if attempt != nil && processingEpoch > 0 {
-		lease = startProcessingLease(l.ctx, l.svcCtx.AttemptStore, attempt.OrderNumber, processingEpoch, processingLeaseInterval(l.svcCtx))
+	if attempt != nil {
+		lease = startProcessingLease(l.ctx, l.svcCtx.AttemptStore, attempt.OrderNumber, processingLeaseInterval(l.svcCtx))
 		defer lease.stop()
 	}
 
 	if existing, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, orderEvent.OrderNumber); err == nil && existing != nil {
-		l.finalizeSuccess(attempt, processingEpoch, extractSeatIDs(orderEvent.SeatSnapshot), now, lease)
+		l.finalizeSuccess(attempt, extractSeatIDs(orderEvent.SeatSnapshot), now, lease)
 		return nil
 	} else if err != nil && !errors.Is(err, model.ErrNotFound) {
 		return err
 	}
 
-	enrichedEvent, freezeResp, err := l.buildConsumerOrderEvent(orderEvent, attempt, processingEpoch, occurredAt)
+	enrichedEvent, freezeResp, err := l.buildConsumerOrderEvent(orderEvent, occurredAt)
 	if err != nil {
 		var freezeErr *seatFreezeError
 		if errors.As(err, &freezeErr) && isTerminalSeatFreezeError(freezeErr.err) {
-			return l.finalizeFailure(attempt, processingEpoch, rush.AttemptReasonSeatExhausted, "", "")
+			return l.finalizeFailure(attempt, rush.AttemptReasonSeatExhausted, "", "")
 		}
 		return err
 	}
@@ -127,12 +124,12 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 	})
 	if err != nil {
 		if isGuardConflictErr(err) {
-			return l.finalizeFailure(attempt, processingEpoch, rush.AttemptReasonAlreadyHasActiveOrder, writeModels.order.FreezeToken, orderCreateGuardConflictReleaseReason)
+			return l.finalizeFailure(attempt, rush.AttemptReasonAlreadyHasActiveOrder, writeModels.order.FreezeToken, orderCreateGuardConflictReleaseReason)
 		}
-		return l.resolveOrderPersistFailure(orderEvent.OrderNumber, attempt, processingEpoch, extractSeatIDs(enrichedEvent.SeatSnapshot), freezeResp, err, now, lease)
+		return l.resolveOrderPersistFailure(orderEvent.OrderNumber, attempt, extractSeatIDs(enrichedEvent.SeatSnapshot), freezeResp, err, now, lease)
 	}
 
-	l.finalizeSuccess(attempt, processingEpoch, extractSeatIDs(enrichedEvent.SeatSnapshot), now, lease)
+	l.finalizeSuccess(attempt, extractSeatIDs(enrichedEvent.SeatSnapshot), now, lease)
 	return nil
 }
 
@@ -188,15 +185,15 @@ func isDuplicateOrderNumberErr(err error) bool {
 	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
 }
 
-func (l *CreateOrderConsumerLogic) prepareAttemptForConsume(showTimeID, orderNumber int64, now time.Time) (*rush.AttemptRecord, int64, bool, error) {
+func (l *CreateOrderConsumerLogic) prepareAttemptForConsume(showTimeID, orderNumber int64, now time.Time) (*rush.AttemptRecord, bool, error) {
 	if l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
-		return nil, 0, false, xerr.ErrInternal
+		return nil, false, xerr.ErrInternal
 	}
 
 	return l.svcCtx.AttemptStore.PrepareAttemptForConsume(l.ctx, showTimeID, orderNumber, now)
 }
 
-func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *orderevent.OrderCreateEvent, attempt *rush.AttemptRecord, processingEpoch int64, occurredAt time.Time) (*orderevent.OrderCreateEvent, *programrpc.AutoAssignAndFreezeSeatsResp, error) {
+func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *orderevent.OrderCreateEvent, occurredAt time.Time) (*orderevent.OrderCreateEvent, *programrpc.AutoAssignAndFreezeSeatsResp, error) {
 	if hasEmbeddedOrderCreateSnapshots(orderEvent) {
 		return orderEvent, nil, nil
 	}
@@ -222,11 +219,8 @@ func (l *CreateOrderConsumerLogic) buildConsumerOrderEvent(orderEvent *ordereven
 		ShowTimeId:       showTimeID,
 		TicketCategoryId: orderEvent.TicketCategoryID,
 		Count:            orderEvent.TicketCount,
-		FreezeToken:      buildSeatFreezeToken(showTimeID, orderEvent.TicketCategoryID, orderEvent.OrderNumber, processingEpoch),
-		FreezeSeconds:    durationToFreezeSeconds(l.svcCtx.Config.Order.CloseAfter),
-	}
-	if attempt == nil || processingEpoch <= 0 {
-		freezeReq.FreezeToken = buildSeatFreezeToken(showTimeID, orderEvent.TicketCategoryID, orderEvent.OrderNumber, 1)
+		FreezeToken:      buildSeatFreezeToken(showTimeID, orderEvent.TicketCategoryID, orderEvent.OrderNumber, 0),
+		FreezeExpireTime: buildFreezeExpireTime(preorder.GetShowTime(), occurredAt, l.svcCtx.Config.Order.CloseAfter),
 	}
 	freezeResp, err := l.freezeSeatsWithRetry(freezeReq)
 	if err != nil {
@@ -275,28 +269,26 @@ func (e *seatFreezeError) Unwrap() error {
 	return e.err
 }
 
-func durationToFreezeSeconds(value time.Duration) int64 {
-	if value <= 0 {
-		value = 15 * time.Minute
-	}
-
-	seconds := value / time.Second
-	if value%time.Second != 0 {
-		seconds++
-	}
-	if seconds <= 0 {
-		return 1
-	}
-
-	return int64(seconds)
+func buildSeatFreezeToken(showTimeID, ticketCategoryID, orderNumber, _ int64) string {
+	return seatfreeze.FormatToken(showTimeID, ticketCategoryID, orderNumber)
 }
 
-func buildSeatFreezeToken(showTimeID, ticketCategoryID, orderNumber, processingEpoch int64) string {
-	if processingEpoch <= 0 {
-		processingEpoch = 1
+func buildFreezeExpireTime(showTimeRaw string, now time.Time, closeAfter time.Duration) string {
+	if now.IsZero() {
+		now = time.Now()
+	}
+	if closeAfter <= 0 {
+		closeAfter = 15 * time.Minute
 	}
 
-	return seatfreeze.FormatToken(showTimeID, ticketCategoryID, orderNumber, processingEpoch)
+	expireAt := now.Add(closeAfter)
+	if showTimeRaw != "" {
+		if showTime, err := parseOrderTime(showTimeRaw); err == nil && showTime.Before(expireAt) {
+			expireAt = showTime
+		}
+	}
+
+	return formatOrderTime(expireAt)
 }
 
 func isTerminalSeatFreezeError(err error) bool {
@@ -384,24 +376,24 @@ func isSeatFreezeTimeout(err error) bool {
 	return status.Code(err) == codes.DeadlineExceeded
 }
 
-func (l *CreateOrderConsumerLogic) finalizeSuccess(attempt *rush.AttemptRecord, processingEpoch int64, seatIDs []int64, now time.Time, lease *processingLease) {
-	if attempt == nil || processingEpoch <= 0 || l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
+func (l *CreateOrderConsumerLogic) finalizeSuccess(attempt *rush.AttemptRecord, seatIDs []int64, now time.Time, lease *processingLease) {
+	if attempt == nil || l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
 		return
 	}
 	if lease != nil && lease.lost.Load() {
 		return
 	}
-	if err := l.svcCtx.AttemptStore.FinalizeSuccess(l.ctx, attempt, processingEpoch, seatIDs, now); err != nil {
-		l.Errorf("finalize rush attempt success failed, orderNumber=%d epoch=%d err=%v", attempt.OrderNumber, processingEpoch, err)
+	if err := l.svcCtx.AttemptStore.FinalizeSuccess(l.ctx, attempt, seatIDs, now); err != nil {
+		l.Errorf("finalize rush attempt success failed, orderNumber=%d err=%v", attempt.OrderNumber, err)
 	}
 }
 
-func (l *CreateOrderConsumerLogic) finalizeFailure(attempt *rush.AttemptRecord, processingEpoch int64, reason, freezeToken, releaseReason string) error {
-	if attempt == nil || processingEpoch <= 0 || l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
+func (l *CreateOrderConsumerLogic) finalizeFailure(attempt *rush.AttemptRecord, reason, freezeToken, releaseReason string) error {
+	if attempt == nil || l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
 		return nil
 	}
 
-	outcome, err := l.svcCtx.AttemptStore.FinalizeFailure(l.ctx, attempt, processingEpoch, reason, time.Now())
+	outcome, err := l.svcCtx.AttemptStore.FinalizeFailure(l.ctx, attempt, reason, time.Now())
 	if err != nil {
 		latest, getErr := l.svcCtx.AttemptStore.Get(l.ctx, attempt.OrderNumber)
 		if getErr == nil && shouldRetryFinalizeFailure(attempt, latest, err) {
@@ -427,7 +419,6 @@ func (l *CreateOrderConsumerLogic) finalizeFailure(attempt *rush.AttemptRecord, 
 func (l *CreateOrderConsumerLogic) resolveOrderPersistFailure(
 	orderNumber int64,
 	attempt *rush.AttemptRecord,
-	processingEpoch int64,
 	seatIDs []int64,
 	freezeResp *programrpc.AutoAssignAndFreezeSeatsResp,
 	persistErr error,
@@ -439,7 +430,7 @@ func (l *CreateOrderConsumerLogic) resolveOrderPersistFailure(
 	}
 
 	if order, err := l.svcCtx.OrderRepository.FindOrderByNumber(l.ctx, orderNumber); err == nil && order != nil {
-		l.finalizeSuccess(attempt, processingEpoch, seatIDs, now, lease)
+		l.finalizeSuccess(attempt, seatIDs, now, lease)
 		return nil
 	} else if err != nil && !errors.Is(err, model.ErrNotFound) {
 		return persistErr
@@ -449,7 +440,7 @@ func (l *CreateOrderConsumerLogic) resolveOrderPersistFailure(
 	if freezeResp != nil {
 		freezeToken = freezeResp.GetFreezeToken()
 	}
-	if err := l.finalizeFailure(attempt, processingEpoch, orderCreatePersistFailureReason, freezeToken, orderCreatePersistFailureReason); err != nil {
+	if err := l.finalizeFailure(attempt, orderCreatePersistFailureReason, freezeToken, orderCreatePersistFailureReason); err != nil {
 		return err
 	}
 

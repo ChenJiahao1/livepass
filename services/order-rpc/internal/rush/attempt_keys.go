@@ -20,7 +20,6 @@ const (
 	attemptFieldAcceptedAt        = "accepted_at"
 	attemptFieldFinishedAt        = "finished_at"
 	attemptFieldPublishAttempts   = "publish_attempts"
-	attemptFieldProcessingEpoch   = "processing_epoch"
 	attemptFieldProcessingStartAt = "processing_started_at"
 	attemptFieldCreatedAt         = "created_at"
 	attemptFieldTransitionAt      = "last_transition_at"

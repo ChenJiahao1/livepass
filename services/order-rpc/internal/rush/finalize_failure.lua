@@ -15,7 +15,6 @@
 -- 4: final attempt ttl seconds
 -- 5: token_fingerprint
 -- 6: viewer_count
--- 7: expected processing epoch
 
 if redis.call("EXISTS", KEYS[1]) == 0 then
     return "state_missing"
@@ -29,12 +28,6 @@ if state == "SUCCESS" then
     return "already_succeeded"
 end
 if state ~= "PROCESSING" then
-    return "lost_ownership"
-end
-
-local currentEpoch = tonumber(redis.call("HGET", KEYS[1], "processing_epoch") or "0")
-local expectedEpoch = tonumber(ARGV[7]) or 0
-if expectedEpoch <= 0 or currentEpoch ~= expectedEpoch then
     return "lost_ownership"
 end
 

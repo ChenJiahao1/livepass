@@ -375,7 +375,7 @@ message AutoAssignAndFreezeSeatsReq {
   int64 ticketCategoryId = 2;
   int64 count = 3;
   string freezeToken = 4;
-  int64 freezeSeconds = 5;
+  string freezeExpireTime = 5;
 }
 
 message AutoAssignAndFreezeSeatsResp {

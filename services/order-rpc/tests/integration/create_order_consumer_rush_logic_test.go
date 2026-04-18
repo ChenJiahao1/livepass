@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"livepass/pkg/seatfreeze"
 	"livepass/pkg/xerr"
 	orderevent "livepass/services/order-rpc/internal/event"
@@ -14,8 +16,6 @@ import (
 	"livepass/services/order-rpc/pb"
 	programrpc "livepass/services/program-rpc/programrpc"
 	userrpc "livepass/services/user-rpc/userrpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestCreateOrderConsumerPersistsOrderFromRushEvent(t *testing.T) {
@@ -103,7 +103,7 @@ func TestCreateOrderConsumerPersistsOrderFromRushEvent(t *testing.T) {
 	if record.State != rush.AttemptStateSuccess {
 		t.Fatalf("expected attempt state success, got %+v", record)
 	}
-	expectedFreezeToken := seatfreeze.FormatToken(programID, ticketCategoryID, resp.GetOrderNumber(), record.ProcessingEpoch)
+	expectedFreezeToken := seatfreeze.FormatToken(programID, ticketCategoryID, resp.GetOrderNumber())
 	if programRPC.lastAutoAssignAndFreezeSeatsReq.GetFreezeToken() != expectedFreezeToken {
 		t.Fatalf("expected freezeToken %s, got %+v", expectedFreezeToken, programRPC.lastAutoAssignAndFreezeSeatsReq)
 	}

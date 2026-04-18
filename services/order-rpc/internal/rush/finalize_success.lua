@@ -13,7 +13,6 @@
 -- 4: seat ids csv
 -- 5: viewer_count
 -- 6: order_number
--- 7: expected processing epoch
 
 if redis.call("EXISTS", KEYS[1]) == 0 then
     return "state_missing"
@@ -26,18 +25,7 @@ end
 if state == "FAILED" then
     return "already_failed"
 end
-if state ~= "PROCESSING" and state ~= "ACCEPTED" then
-    return "lost_ownership"
-end
-
-local expectedEpoch = tonumber(ARGV[7]) or 0
-if state == "PROCESSING" and expectedEpoch > 0 then
-    local currentEpoch = tonumber(redis.call("HGET", KEYS[1], "processing_epoch") or "0")
-    if currentEpoch ~= expectedEpoch then
-        return "lost_ownership"
-    end
-end
-if state == "ACCEPTED" and expectedEpoch > 0 then
+if state ~= "PROCESSING" then
     return "lost_ownership"
 end
 

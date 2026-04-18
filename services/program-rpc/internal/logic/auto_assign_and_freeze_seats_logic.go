@@ -53,10 +53,9 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 	unlock := ensureSeatFreezeLocker(l.svcCtx).Lock(seatFreezeLockKey(in.GetShowTimeId(), in.GetTicketCategoryId()))
 	defer unlock()
 
-	now := time.Now()
 	var reservedSeats []seatcache.Seat
 
-	showTime, err := l.svcCtx.DProgramShowTimeModel.FindOne(l.ctx, in.GetShowTimeId())
+	_, err := l.svcCtx.DProgramShowTimeModel.FindOne(l.ctx, in.GetShowTimeId())
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, mapAutoAssignSeatError(xerr.ErrProgramShowTimeNotFound)
@@ -105,7 +104,11 @@ func (l *AutoAssignAndFreezeSeatsLogic) AutoAssignAndFreezeSeats(in *pb.AutoAssi
 	}
 
 	selectedSeats := toSeatCandidatesFromLedger(reservedSeats)
-	expireTime := calculateFreezeExpireTime(now, showTime, in.GetFreezeSeconds())
+	expireTime, err := parseFreezeExpireTime(in.GetFreezeExpireTime())
+	if err != nil {
+		_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetShowTimeId(), in.GetTicketCategoryId(), in.GetFreezeToken())
+		return nil, mapAutoAssignSeatError(xerr.ErrInvalidParam)
+	}
 	if err := l.persistFrozenSeatsToDB(in.GetShowTimeId(), seatCandidateIDs(selectedSeats), in.GetFreezeToken(), expireTime); err != nil {
 		_ = seatStore.ReleaseFrozenSeats(context.Background(), in.GetShowTimeId(), in.GetTicketCategoryId(), in.GetFreezeToken())
 		return nil, mapAutoAssignSeatError(err)
@@ -196,18 +199,17 @@ func validateFrozenSeatsPersistedInDB(ctx context.Context, seatModel model.DSeat
 	return expireTime, nil
 }
 
-func calculateFreezeExpireTime(now time.Time, showTime *model.DProgramShowTime, freezeSeconds int64) time.Time {
-	seconds := freezeSeconds
-	if seconds <= 0 {
-		seconds = 900
+func parseFreezeExpireTime(value string) (time.Time, error) {
+	if value == "" {
+		return time.Time{}, xerr.ErrInvalidParam
 	}
 
-	expireTime := now.Add(time.Duration(seconds) * time.Second)
-	if showTime != nil && showTime.ShowTime.Before(expireTime) {
-		return showTime.ShowTime
+	expireTime, err := time.ParseInLocation(programDateTimeLayout, value, time.Local)
+	if err != nil || expireTime.IsZero() {
+		return time.Time{}, xerr.ErrInvalidParam
 	}
 
-	return expireTime
+	return expireTime, nil
 }
 
 func findTicketCategory(ticketCategories []*model.DTicketCategory, ticketCategoryId int64) (*model.DTicketCategory, bool) {

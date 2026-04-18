@@ -10,15 +10,12 @@ if redis.call("EXISTS", KEYS[1]) == 0 then
 end
 
 local state = redis.call("HGET", KEYS[1], "state") or ""
-local currentEpoch = tonumber(redis.call("HGET", KEYS[1], "processing_epoch") or "0")
 local shouldProcess = 0
 
 if state == "ACCEPTED" then
-    currentEpoch = currentEpoch + 1
     state = "PROCESSING"
     redis.call("HSET", KEYS[1],
         "state", state,
-        "processing_epoch", currentEpoch,
         "processing_started_at", ARGV[1],
         "last_transition_at", ARGV[1]
     )
@@ -31,7 +28,6 @@ end
 
 return {
     shouldProcess,
-    currentEpoch,
     state,
     redis.call("HGET", KEYS[1], "order_number") or "",
     redis.call("HGET", KEYS[1], "user_id") or "",
