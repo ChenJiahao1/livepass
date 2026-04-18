@@ -71,7 +71,7 @@ func (l *CreateOrderConsumerLogic) Consume(body []byte) error {
 
 	var lease *processingLease
 	if attempt != nil {
-		lease = startProcessingLease(l.ctx, l.svcCtx.AttemptStore, attempt.OrderNumber, processingLeaseInterval(l.svcCtx))
+		lease = startProcessingLease(l.ctx, l.svcCtx.AttemptStore, attempt.ShowTimeID, attempt.OrderNumber, processingLeaseInterval(l.svcCtx))
 		defer lease.stop()
 	}
 
@@ -383,7 +383,7 @@ func (l *CreateOrderConsumerLogic) finalizeFailure(attempt *rush.AttemptRecord, 
 
 	outcome, err := l.svcCtx.AttemptStore.FinalizeFailure(l.ctx, attempt, reason, time.Now())
 	if err != nil {
-		latest, getErr := l.svcCtx.AttemptStore.Get(l.ctx, attempt.OrderNumber)
+		latest, getErr := l.svcCtx.AttemptStore.GetByShowTimeAndOrderNumber(l.ctx, attempt.ShowTimeID, attempt.OrderNumber)
 		if getErr == nil && shouldRetryFinalizeFailure(attempt, latest, err) {
 			return err
 		}

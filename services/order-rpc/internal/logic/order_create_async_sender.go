@@ -49,7 +49,7 @@ func failPendingAttemptAfterAsyncSendError(ctx context.Context, svcCtx *svc.Serv
 		logger = logx.WithContext(ctx)
 	}
 
-	record, err := svcCtx.AttemptStore.GetByShowTime(ctx, item.showTimeID, item.orderNumber)
+	record, err := svcCtx.AttemptStore.GetByShowTimeAndOrderNumber(ctx, item.showTimeID, item.orderNumber)
 	if err != nil {
 		logger.Errorf("load attempt after async kafka send failed, orderNumber=%d err=%v", item.orderNumber, err)
 		return

@@ -13,15 +13,18 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-func syncClosedRushAttempt(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64, now time.Time) error {
+func syncClosedRushAttempt(ctx context.Context, svcCtx *svc.ServiceContext, showTimeID, orderNumber int64, now time.Time) error {
 	if svcCtx == nil || svcCtx.AttemptStore == nil {
+		return nil
+	}
+	if showTimeID <= 0 {
 		return nil
 	}
 	if now.IsZero() {
 		now = time.Now()
 	}
 
-	record, err := svcCtx.AttemptStore.Get(ctx, orderNumber)
+	record, err := svcCtx.AttemptStore.GetByShowTimeAndOrderNumber(ctx, showTimeID, orderNumber)
 	if err != nil {
 		if errors.Is(err, xerr.ErrOrderNotFound) {
 			return nil

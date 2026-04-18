@@ -37,7 +37,6 @@ return {
     redis.call("HGET", KEYS[1], "ticket_category_id") or "",
     redis.call("HGET", KEYS[1], "viewer_ids") or "",
     redis.call("HGET", KEYS[1], "ticket_count") or "",
-    redis.call("HGET", KEYS[1], "token_fingerprint") or "",
     redis.call("HGET", KEYS[1], "sale_window_end_at") or "",
     redis.call("HGET", KEYS[1], "show_end_at") or "",
     redis.call("HGET", KEYS[1], "reason_code") or "",

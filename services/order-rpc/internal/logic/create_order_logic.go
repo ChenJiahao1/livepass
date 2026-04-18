@@ -65,14 +65,13 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		ViewerIDs:        append([]int64(nil), claims.TicketUserIDs...),
 		TicketCount:      claims.TicketCount,
 		SaleWindowEndAt:  time.Unix(claims.SaleWindowEndAt, 0),
-		TokenFingerprint: claims.TokenFingerprint,
 		ShowEndAt:        time.Unix(claims.ShowEndAt, 0),
 		Now:              now,
 	})
 	if err != nil {
 		if isUnknownAdmissionResult(err) {
 			l.Errorf("admit attempt unknown result, orderNumber=%d err=%v", claims.OrderNumber, err)
-			return &pb.CreateOrderResp{OrderNumber: claims.OrderNumber}, nil
+			return &pb.CreateOrderResp{OrderNumber: claims.OrderNumber, ShowTimeId: claims.ShowTimeID}, nil
 		}
 		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
@@ -84,7 +83,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	if admission.Decision == rush.AdmitDecisionReused {
-		return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber}, nil
+		return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber, ShowTimeId: claims.ShowTimeID}, nil
 	}
 
 	event, err := buildAttemptCreateEvent(admission.OrderNumber, claims, now)
@@ -103,7 +102,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		reasonAt:    now,
 	})
 
-	return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber}, nil
+	return &pb.CreateOrderResp{OrderNumber: admission.OrderNumber, ShowTimeId: claims.ShowTimeID}, nil
 }
 
 func mapAdmissionRejectCode(code int64) error {

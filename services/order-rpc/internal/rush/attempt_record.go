@@ -19,7 +19,6 @@ type AttemptRecord struct {
 	TicketCount      int64
 	SaleWindowEndAt  time.Time
 	ShowEndAt        time.Time
-	TokenFingerprint string
 
 	State      string
 	ReasonCode string
