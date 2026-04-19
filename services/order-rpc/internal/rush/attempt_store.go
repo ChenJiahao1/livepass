@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"livepass/pkg/xerr"
@@ -82,22 +81,6 @@ func (s *AttemptStore) SetQuotaAvailable(ctx context.Context, showTimeID, ticket
 	}
 
 	return s.redis.HsetCtx(
-		ctx,
-		quotaAvailableKey(s.prefix, showTimeID),
-		strconv.FormatInt(ticketCategoryID, 10),
-		strconv.FormatInt(available, 10),
-	)
-}
-
-func (s *AttemptStore) SetQuotaAvailableIfAbsent(ctx context.Context, showTimeID, ticketCategoryID, available int64) (bool, error) {
-	if s == nil || s.redis == nil {
-		return false, xerr.ErrInternal
-	}
-	if showTimeID <= 0 || ticketCategoryID <= 0 || available < 0 {
-		return false, xerr.ErrInvalidParam
-	}
-
-	return s.redis.HsetnxCtx(
 		ctx,
 		quotaAvailableKey(s.prefix, showTimeID),
 		strconv.FormatInt(ticketCategoryID, 10),
@@ -657,59 +640,6 @@ func (s *AttemptStore) FinalizeClosedOrder(ctx context.Context, record *AttemptR
 	return parseAttemptTransitionOutcome(result)
 }
 
-func (s *AttemptStore) ScanOrderNumbers(ctx context.Context, limit int64) ([]int64, error) {
-	if s == nil || s.redis == nil {
-		return nil, xerr.ErrInternal
-	}
-	if limit <= 0 {
-		limit = 100
-	}
-
-	pattern := fmt.Sprintf("%s:attempt:*", s.prefix)
-	var (
-		cursor uint64
-		keys   []string
-	)
-	for {
-		batch, nextCursor, err := s.redis.ScanCtx(ctx, cursor, pattern, limit)
-		if err != nil {
-			return nil, err
-		}
-		keys = append(keys, batch...)
-		if int64(len(keys)) >= limit || nextCursor == 0 {
-			break
-		}
-		cursor = nextCursor
-	}
-	if int64(len(keys)) > limit {
-		keys = keys[:limit]
-	}
-
-	orderNumbers := make([]int64, 0, len(keys))
-	seen := make(map[int64]struct{}, len(keys))
-	for _, key := range keys {
-		idx := strings.LastIndexByte(key, ':')
-		if idx < 0 || idx == len(key)-1 {
-			continue
-		}
-		orderNumber, err := strconv.ParseInt(key[idx+1:], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := seen[orderNumber]; ok {
-			continue
-		}
-		seen[orderNumber] = struct{}{}
-		orderNumbers = append(orderNumbers, orderNumber)
-	}
-
-	sort.Slice(orderNumbers, func(i, j int) bool {
-		return orderNumbers[i] < orderNumbers[j]
-	})
-
-	return orderNumbers, nil
-}
-
 func mapAttemptRecord(fields map[string]string) (*AttemptRecord, error) {
 	record := &AttemptRecord{
 		State:      fields[attemptFieldState],
@@ -909,28 +839,6 @@ func (s *AttemptStore) resolveAttemptRecordKey(ctx context.Context, orderNumber 
 	return "", xerr.ErrOrderNotFound
 }
 
-func (s *AttemptStore) deleteKeysByPattern(ctx context.Context, pattern string) error {
-	if pattern == "" {
-		return xerr.ErrInvalidParam
-	}
-
-	var cursor uint64
-	for {
-		keys, nextCursor, err := s.redis.ScanCtx(ctx, cursor, pattern, 128)
-		if err != nil {
-			return err
-		}
-		if len(keys) > 0 {
-			if _, err := s.redis.DelCtx(ctx, keys...); err != nil {
-				return err
-			}
-		}
-		if nextCursor == 0 {
-			return nil
-		}
-		cursor = nextCursor
-	}
-}
 
 func computeAttemptRecordTTLSeconds(now, saleWindowEndAt time.Time, fallback int) int {
 	if fallback <= 0 {
