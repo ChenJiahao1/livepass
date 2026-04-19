@@ -28,6 +28,18 @@ def test_prompt_loader_loads_coordinator_template():
     assert "coordinator" in prompt.lower()
 
 
+def test_order_specialist_prompt_mentions_autonomous_tool_usage():
+    content = PromptLoader().render(
+        "order_specialist",
+        selected_order_id=None,
+        current_user_id=1001,
+    )
+
+    assert "不要编造订单" in content
+    assert "缺少事实时优先调用工具确认" in content
+    assert "写操作工具在真正执行前会被人工确认" in content
+
+
 def test_supervisor_decision_schema_accepts_finish():
     decision = SupervisorDecision.model_validate({"next_agent": "finish"})
     assert decision.next_agent == "finish"
