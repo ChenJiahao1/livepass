@@ -18,6 +18,7 @@ set -euo pipefail
 #   --force-restart   先停止脚本管理的服务，再重新启动
 #   --detach          启动完成后立即退出，不保活父脚本
 #   --skip-infra-check 跳过基础设施拉起与检查
+#   --perf            使用压测配置启动已有 perf 配置的 Go 服务
 #   -h, --help        查看完整帮助
 #
 # 常用示例：
@@ -25,6 +26,7 @@ set -euo pipefail
 #   bash scripts/deploy/start_backend.sh --force-restart
 #   bash scripts/deploy/start_backend.sh --only-agents --force-restart
 #   bash scripts/deploy/start_backend.sh --detach
+#   bash scripts/deploy/start_backend.sh --perf --force-restart
 #
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
@@ -36,6 +38,7 @@ CHECK_INFRA="${CHECK_INFRA:-1}"
 ONLY_AGENTS="${ONLY_AGENTS:-0}"
 FORCE_RESTART="${FORCE_RESTART:-0}"
 DETACH="${DETACH:-0}"
+START_PROFILE="${START_PROFILE:-default}"
 
 STARTED_SERVICE_NAMES=()
 STARTED_SERVICE_PORTS=()
@@ -95,6 +98,9 @@ parse_args() {
       --detach)
         DETACH=1
         ;;
+      --perf)
+        START_PROFILE=perf
+        ;;
       -h|--help)
         cat <<'EOF'
 Usage: bash scripts/deploy/start_backend.sh [options]
@@ -106,6 +112,7 @@ Options:
   --only-agents       only start agents-related services and dependencies
   --force-restart     stop managed services first, then start again
   --detach            exit after startup, do not keep supervisor alive
+  --perf              start Go services with perf yaml configs when available
   -h, --help          show this help message
 
 Environment:
@@ -115,6 +122,7 @@ Environment:
   ONLY_AGENTS=0|1
   FORCE_RESTART=0|1
   DETACH=0|1
+  START_PROFILE=default|perf
   LOG_DIR=/abs/path
   PID_DIR=/abs/path
 EOF
@@ -130,6 +138,19 @@ EOF
 
 ensure_dirs() {
   mkdir -p "${LOG_DIR}" "${PID_DIR}"
+}
+
+config_for() {
+  local default_config="$1"
+  local perf_config="${2:-}"
+
+  if [[ "${START_PROFILE}" == "perf" && -n "${perf_config}" ]]; then
+    [[ -f "${REPO_ROOT}/${perf_config}" ]] || fail "perf config not found: ${perf_config}"
+    printf '%s' "${perf_config}"
+    return
+  fi
+
+  printf '%s' "${default_config}"
 }
 
 register_started_service() {
@@ -540,26 +561,52 @@ monitor_services() {
 }
 
 start_core_services() {
-  start_service "user-rpc" 8080 "services/user-rpc/user.go" "go run services/user-rpc/user.go -f services/user-rpc/etc/user.yaml"
-  start_service "program-rpc" 8083 "services/program-rpc/program.go" "go run services/program-rpc/program.go -f services/program-rpc/etc/program.yaml"
-  start_service "pay-rpc" 8084 "services/pay-rpc/pay.go" "go run services/pay-rpc/pay.go -f services/pay-rpc/etc/pay.yaml"
-  start_service "order-rpc" 8082 "services/order-rpc/order.go" "go run services/order-rpc/order.go -f services/order-rpc/etc/order.yaml"
+  local user_rpc_config
+  local program_rpc_config
+  local pay_rpc_config
+  local order_rpc_config
+  local user_api_config
+  local program_api_config
+  local order_api_config
+  local pay_api_config
+
+  user_rpc_config="$(config_for "services/user-rpc/etc/user.yaml" "services/user-rpc/etc/user.perf.yaml")"
+  program_rpc_config="$(config_for "services/program-rpc/etc/program.yaml" "services/program-rpc/etc/program.perf.yaml")"
+  pay_rpc_config="$(config_for "services/pay-rpc/etc/pay.yaml" "services/pay-rpc/etc/pay.perf.yaml")"
+  order_rpc_config="$(config_for "services/order-rpc/etc/order.yaml" "services/order-rpc/etc/order.perf.yaml")"
+  user_api_config="$(config_for "services/user-api/etc/user-api.yaml" "services/user-api/etc/user-api.perf.yaml")"
+  program_api_config="$(config_for "services/program-api/etc/program-api.yaml" "services/program-api/etc/program-api.perf.yaml")"
+  order_api_config="$(config_for "services/order-api/etc/order-api.yaml" "services/order-api/etc/order-api.perf.yaml")"
+  pay_api_config="$(config_for "services/pay-api/etc/pay-api.yaml" "services/pay-api/etc/pay-api.perf.yaml")"
+
+  start_service "user-rpc" 8080 "services/user-rpc/user.go" "go run services/user-rpc/user.go -f ${user_rpc_config}"
+  start_service "program-rpc" 8083 "services/program-rpc/program.go" "go run services/program-rpc/program.go -f ${program_rpc_config}"
+  start_service "pay-rpc" 8084 "services/pay-rpc/pay.go" "go run services/pay-rpc/pay.go -f ${pay_rpc_config}"
+  start_service "order-rpc" 8082 "services/order-rpc/order.go" "go run services/order-rpc/order.go -f ${order_rpc_config}"
 
   start_service "order-close-worker" 0 "jobs/order-close/cmd/worker/main.go|order-close-worker.yaml" "go run jobs/order-close/cmd/worker/main.go -f jobs/order-close/etc/order-close-worker.yaml"
   start_service "order-close-dispatcher" 0 "jobs/order-close/cmd/dispatcher/main.go|order-close-dispatcher.yaml" "go run jobs/order-close/cmd/dispatcher/main.go -f jobs/order-close/etc/order-close-dispatcher.yaml"
   start_service "rush-inventory-preheat-worker" 0 "jobs/rush-inventory-preheat/cmd/worker/main.go|rush-inventory-preheat-worker.yaml" "go run jobs/rush-inventory-preheat/cmd/worker/main.go -f jobs/rush-inventory-preheat/etc/rush-inventory-preheat-worker.yaml"
   start_service "rush-inventory-preheat-dispatcher" 0 "jobs/rush-inventory-preheat/cmd/dispatcher/main.go|rush-inventory-preheat-dispatcher.yaml" "go run jobs/rush-inventory-preheat/cmd/dispatcher/main.go -f jobs/rush-inventory-preheat/etc/rush-inventory-preheat-dispatcher.yaml"
 
-  start_service "user-api" 8888 "services/user-api/user.go" "go run services/user-api/user.go -f services/user-api/etc/user-api.yaml"
-  start_service "program-api" 8889 "services/program-api/program.go" "go run services/program-api/program.go -f services/program-api/etc/program-api.yaml"
-  start_service "order-api" 8890 "services/order-api/order.go" "go run services/order-api/order.go -f services/order-api/etc/order-api.yaml"
-  start_service "pay-api" 8892 "services/pay-api/pay.go" "go run services/pay-api/pay.go -f services/pay-api/etc/pay-api.yaml"
+  start_service "user-api" 8888 "services/user-api/user.go" "go run services/user-api/user.go -f ${user_api_config}"
+  start_service "program-api" 8889 "services/program-api/program.go" "go run services/program-api/program.go -f ${program_api_config}"
+  start_service "order-api" 8890 "services/order-api/order.go" "go run services/order-api/order.go -f ${order_api_config}"
+  start_service "pay-api" 8892 "services/pay-api/pay.go" "go run services/pay-api/pay.go -f ${pay_api_config}"
 }
 
 start_agents_related_services() {
-  start_service "user-rpc" 8080 "services/user-rpc/user.go" "go run services/user-rpc/user.go -f services/user-rpc/etc/user.yaml"
-  start_service "program-rpc" 8083 "services/program-rpc/program.go" "go run services/program-rpc/program.go -f services/program-rpc/etc/program.yaml"
-  start_service "order-rpc" 8082 "services/order-rpc/order.go" "go run services/order-rpc/order.go -f services/order-rpc/etc/order.yaml"
+  local user_rpc_config
+  local program_rpc_config
+  local order_rpc_config
+
+  user_rpc_config="$(config_for "services/user-rpc/etc/user.yaml" "services/user-rpc/etc/user.perf.yaml")"
+  program_rpc_config="$(config_for "services/program-rpc/etc/program.yaml" "services/program-rpc/etc/program.perf.yaml")"
+  order_rpc_config="$(config_for "services/order-rpc/etc/order.yaml" "services/order-rpc/etc/order.perf.yaml")"
+
+  start_service "user-rpc" 8080 "services/user-rpc/user.go" "go run services/user-rpc/user.go -f ${user_rpc_config}"
+  start_service "program-rpc" 8083 "services/program-rpc/program.go" "go run services/program-rpc/program.go -f ${program_rpc_config}"
+  start_service "order-rpc" 8082 "services/order-rpc/order.go" "go run services/order-rpc/order.go -f ${order_rpc_config}"
   start_optional_services
 }
 
@@ -577,7 +624,11 @@ start_optional_services() {
 }
 
 start_gateway() {
-  start_service "gateway-api" 8081 "services/gateway-api/gateway.go" "go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.yaml"
+  local gateway_api_config
+
+  gateway_api_config="$(config_for "services/gateway-api/etc/gateway-api.yaml" "services/gateway-api/etc/gateway-api.perf.yaml")"
+
+  start_service "gateway-api" 8081 "services/gateway-api/gateway.go" "go run services/gateway-api/gateway.go -f ${gateway_api_config}"
 }
 
 print_summary() {
@@ -592,6 +643,7 @@ print_summary() {
 [start-backend] logs: ${LOG_DIR}
 [start-backend] pids: ${PID_DIR}
 [start-backend] mode: $(if [[ "${DETACH}" == "1" ]]; then echo detach; else echo foreground-supervisor; fi)
+[start-backend] profile: ${START_PROFILE}
 [start-backend] check ports with:
 ss -ltnp | grep -E '${port_pattern}'
 EOF
@@ -611,6 +663,9 @@ main() {
   trap 'exit 0' INT TERM
 
   parse_args "$@"
+  if [[ "${START_PROFILE}" != "default" && "${START_PROFILE}" != "perf" ]]; then
+    fail "START_PROFILE must be default or perf"
+  fi
   if [[ "${ONLY_AGENTS}" == "1" && "${START_AGENTS}" != "1" ]]; then
     fail "--only-agents cannot be combined with --skip-agents"
   fi

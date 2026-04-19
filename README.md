@@ -102,6 +102,9 @@ bash scripts/deploy/start_backend.sh --only-agents
 
 # 启动完成后立即退出，保留旧的“只拉起进程不保活脚本”行为
 bash scripts/deploy/start_backend.sh --detach
+
+# 使用压测配置启动已有 perf 配置的 Go 服务
+bash scripts/deploy/start_backend.sh --perf --force-restart
 ```
 
 如需重建运行数据，请使用独立脚本：
@@ -247,12 +250,12 @@ go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.y
 - 每用户随机 `1-3` 张
 - 超卖竞争模型
 
-### 1. 使用压测网关配置启动
+### 1. 使用压测配置启动
 
-压测模式只在 `gateway-api.perf.yaml` 中开启，用于允许压测头部直接注入 `userId`，不影响默认开发配置。
+压测模式通过一键启动脚本的 `--perf` 参数开启，会将已有 `*.perf.yaml` 的 Go 服务统一切到压测配置；当前包括 `gateway/user/program/order/pay` 的 API/RPC 服务。未提供 perf 配置的 Job、MCP 与 agents 继续使用默认配置。
 
 ```bash
-go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.perf.yaml
+bash scripts/deploy/start_backend.sh --perf --force-restart
 ```
 
 ### 2. 准备压测数据集
