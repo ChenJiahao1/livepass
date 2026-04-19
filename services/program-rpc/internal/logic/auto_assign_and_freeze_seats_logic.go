@@ -222,21 +222,6 @@ func findTicketCategory(ticketCategories []*model.DTicketCategory, ticketCategor
 	return nil, false
 }
 
-func toSeatCandidates(seats []*model.DSeat) []seatCandidate {
-	resp := make([]seatCandidate, 0, len(seats))
-	for _, seat := range seats {
-		resp = append(resp, seatCandidate{
-			ID:               seat.Id,
-			TicketCategoryID: seat.TicketCategoryId,
-			RowCode:          seat.RowCode,
-			ColCode:          seat.ColCode,
-			Price:            seat.Price,
-		})
-	}
-
-	return resp
-}
-
 func toSeatCandidatesFromLedger(seats []seatcache.Seat) []seatCandidate {
 	resp := make([]seatCandidate, 0, len(seats))
 	for _, seat := range seats {
@@ -297,17 +282,6 @@ func (l *AutoAssignAndFreezeSeatsLogic) persistFrozenSeatsToDB(showTimeID int64,
 		}
 
 		return seatModel.BatchFreezeByShowTimeAndIDs(ctx, session, showTimeID, seatIDs, freezeToken, expireTime)
-	})
-}
-
-func (l *AutoAssignAndFreezeSeatsLogic) rollbackFrozenSeatsInDB(showTimeID int64, freezeToken string) error {
-	if freezeToken == "" {
-		return nil
-	}
-
-	return l.svcCtx.SqlConn.TransactCtx(context.Background(), func(ctx context.Context, session sqlx.Session) error {
-		seatModel := model.NewDSeatModel(sqlx.NewSqlConnFromSession(session))
-		return seatModel.ReleaseByFreezeToken(ctx, session, freezeToken)
 	})
 }
 

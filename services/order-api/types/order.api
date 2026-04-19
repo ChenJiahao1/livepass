@@ -17,10 +17,12 @@ type (
 
 	CreateOrderResp {
 		OrderNumber int64 `json:"orderNumber"`
+		ShowTimeID int64 `json:"showTimeId"`
 	}
 
 	PollOrderReq {
 		OrderNumber int64 `json:"orderNumber"`
+		ShowTimeID int64 `json:"showTimeId"`
 	}
 
 	PollOrderResp {
@@ -113,6 +115,7 @@ type (
 
 	OrderCacheReq {
 		OrderNumber int64 `json:"orderNumber"`
+		ShowTimeID int64 `json:"showTimeId"`
 	}
 
 	OrderCacheResp {

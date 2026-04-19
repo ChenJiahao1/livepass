@@ -37,13 +37,15 @@ func TestGetOrderCacheReturnsOrderNumberWhenAttemptProcessing(t *testing.T) {
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
 	}
 
-	resp, err := logicpkg.NewGetOrderCacheLogic(ctx, svcCtx).GetOrderCache(&pb.GetOrderCacheReq{OrderNumber: orderNumber})
+	resp, err := logicpkg.NewGetOrderCacheLogic(ctx, svcCtx).GetOrderCache(&pb.GetOrderCacheReq{
+		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
+	})
 	if err != nil {
 		t.Fatalf("GetOrderCache() error = %v", err)
 	}
@@ -90,7 +92,10 @@ func TestGetOrderCacheReturnsEmptyWhenAttemptMissingButDBOrderExists(t *testing.
 	}
 
 	l := logicpkg.NewGetOrderCacheLogic(ctx, svcCtx)
-	resp, err := l.GetOrderCache(&pb.GetOrderCacheReq{OrderNumber: orderNumber})
+	resp, err := l.GetOrderCache(&pb.GetOrderCacheReq{
+		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
+	})
 	if err != nil {
 		t.Fatalf("GetOrderCache() error = %v", err)
 	}
@@ -104,11 +109,14 @@ func TestGetOrderCacheReturnsEmptyWhenAttemptAndDBMissing(t *testing.T) {
 	resetOrderDomainState(t)
 
 	ctx := context.Background()
-	_, _, _, _, orderNumbers := nextRushTestIDs()
+	_, programID, _, _, orderNumbers := nextRushTestIDs()
 	orderNumber := orderNumbers[0]
 
 	l := logicpkg.NewGetOrderCacheLogic(ctx, svcCtx)
-	resp, err := l.GetOrderCache(&pb.GetOrderCacheReq{OrderNumber: orderNumber})
+	resp, err := l.GetOrderCache(&pb.GetOrderCacheReq{
+		OrderNumber: orderNumber,
+		ShowTimeId:  programID,
+	})
 	if err != nil {
 		t.Fatalf("GetOrderCache() error = %v", err)
 	}

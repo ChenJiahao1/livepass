@@ -248,6 +248,7 @@ func (x *CreateOrderReq) GetPurchaseToken() string {
 type CreateOrderResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderNumber   int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
+	ShowTimeId    int64                  `protobuf:"varint,2,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -289,10 +290,18 @@ func (x *CreateOrderResp) GetOrderNumber() int64 {
 	return 0
 }
 
+func (x *CreateOrderResp) GetShowTimeId() int64 {
+	if x != nil {
+		return x.ShowTimeId
+	}
+	return 0
+}
+
 type PollOrderProgressReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        int64                  `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
 	OrderNumber   int64                  `protobuf:"varint,2,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
+	ShowTimeId    int64                  `protobuf:"varint,3,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -337,6 +346,13 @@ func (x *PollOrderProgressReq) GetUserId() int64 {
 func (x *PollOrderProgressReq) GetOrderNumber() int64 {
 	if x != nil {
 		return x.OrderNumber
+	}
+	return 0
+}
+
+func (x *PollOrderProgressReq) GetShowTimeId() int64 {
+	if x != nil {
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -792,6 +808,7 @@ func (x *GetOrderServiceViewReq) GetOrderNumber() int64 {
 type GetOrderCacheReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderNumber   int64                  `protobuf:"varint,1,opt,name=orderNumber,proto3" json:"orderNumber,omitempty"`
+	ShowTimeId    int64                  `protobuf:"varint,2,opt,name=showTimeId,proto3" json:"showTimeId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -829,6 +846,13 @@ func (*GetOrderCacheReq) Descriptor() ([]byte, []int) {
 func (x *GetOrderCacheReq) GetOrderNumber() int64 {
 	if x != nil {
 		return x.OrderNumber
+	}
+	return 0
+}
+
+func (x *GetOrderCacheReq) GetShowTimeId() int64 {
+	if x != nil {
+		return x.ShowTimeId
 	}
 	return 0
 }
@@ -2217,12 +2241,18 @@ const file_order_proto_rawDesc = "" +
 	"\rpurchaseToken\x18\x01 \x01(\tR\rpurchaseToken\"N\n" +
 	"\x0eCreateOrderReq\x12\x16\n" +
 	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12$\n" +
-	"\rpurchaseToken\x18\x02 \x01(\tR\rpurchaseToken\"3\n" +
+	"\rpurchaseToken\x18\x02 \x01(\tR\rpurchaseToken\"S\n" +
 	"\x0fCreateOrderResp\x12 \n" +
-	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\"P\n" +
+	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x02 \x01(\x03R\n" +
+	"showTimeId\"p\n" +
 	"\x14PollOrderProgressReq\x12\x16\n" +
 	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12 \n" +
-	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\"\x8f\x01\n" +
+	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x03 \x01(\x03R\n" +
+	"showTimeId\"\x8f\x01\n" +
 	"\x15PollOrderProgressResp\x12 \n" +
 	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12 \n" +
 	"\vorderStatus\x18\x02 \x01(\x03R\vorderStatus\x12\x12\n" +
@@ -2266,9 +2296,12 @@ const file_order_proto_rawDesc = "" +
 	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\"R\n" +
 	"\x16GetOrderServiceViewReq\x12\x16\n" +
 	"\x06userId\x18\x01 \x01(\x03R\x06userId\x12 \n" +
-	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\"4\n" +
+	"\vorderNumber\x18\x02 \x01(\x03R\vorderNumber\"T\n" +
 	"\x10GetOrderCacheReq\x12 \n" +
-	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\")\n" +
+	"\vorderNumber\x18\x01 \x01(\x03R\vorderNumber\x12\x1e\n" +
+	"\n" +
+	"showTimeId\x18\x02 \x01(\x03R\n" +
+	"showTimeId\")\n" +
 	"\x11GetOrderCacheResp\x12\x14\n" +
 	"\x05cache\x18\x01 \x01(\tR\x05cache\"\xba\x03\n" +
 	"\x14OrderServiceViewResp\x12 \n" +

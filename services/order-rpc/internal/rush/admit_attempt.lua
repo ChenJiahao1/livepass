@@ -1,11 +1,10 @@
 -- KEYS:
 -- 1: attempt record key(hash)
--- 2: user active key(string)
--- 3: user inflight key(string)
--- 4: quota available key(string)
--- 5: user fingerprint index(hash)
--- 6..(5+viewer_count): viewer active keys(string)
--- remaining: viewer inflight keys(string)
+-- 2: user active hash key(field=user_id,value=order_number)
+-- 3: user inflight hash key(field=user_id,value=order_number)
+-- 4: viewer active hash key(field=viewer_id,value=order_number)
+-- 5: viewer inflight hash key(field=viewer_id,value=order_number)
+-- 6: quota hash key(field=ticket_category_id,value=available)
 --
 -- ARGV:
 -- 1: order_number
@@ -14,14 +13,13 @@
 -- 4: show_time_id
 -- 5: ticket_category_id
 -- 6: ticket_count
--- 7: token_fingerprint
--- 8: sale_window_end_at(unix ms)
--- 9: show_end_at(unix ms)
--- 10: now(unix ms)
--- 11: inflight ttl seconds
--- 12: accepted attempt ttl seconds
+-- 7: sale_window_end_at(unix ms)
+-- 8: show_end_at(unix ms)
+-- 9: now(unix ms)
+-- 10: inflight ttl seconds
+-- 11: pending attempt ttl seconds
+-- 12: projection ttl seconds
 -- 13: viewer ids csv
--- 14: viewer_count
 
 local orderNo = ARGV[1]
 local userID = ARGV[2]
@@ -29,55 +27,60 @@ local programID = ARGV[3]
 local showTimeID = ARGV[4]
 local ticketCategoryID = ARGV[5]
 local ticketCount = tonumber(ARGV[6]) or 0
-local tokenFingerprint = ARGV[7]
-local saleWindowEndAt = ARGV[8]
-local showEndAt = ARGV[9]
-local nowUnixMs = ARGV[10]
-local inFlightTTL = tonumber(ARGV[11]) or 0
-local acceptedAttemptTTL = tonumber(ARGV[12]) or 0
+local saleWindowEndAt = ARGV[7]
+local showEndAt = ARGV[8]
+local nowUnixMs = ARGV[9]
+local inFlightTTL = tonumber(ARGV[10]) or 0
+local pendingAttemptTTL = tonumber(ARGV[11]) or 0
+local projectionTTL = tonumber(ARGV[12]) or 0
 local viewerIDsCSV = ARGV[13] or ""
-local viewerCount = tonumber(ARGV[14]) or 0
-local viewerActiveStart = 6
-local viewerActiveEnd = viewerActiveStart + viewerCount - 1
-local viewerInflightStart = viewerActiveEnd + 1
 
-if tokenFingerprint ~= "" then
-    local reusedOrderNo = redis.call("HGET", KEYS[5], tokenFingerprint)
-    if reusedOrderNo and reusedOrderNo ~= "" then
-        return {2, reusedOrderNo, 0}
+local function csv_values(csv)
+    local values = {}
+    for value in string.gmatch(csv, "([^,]+)") do
+        table.insert(values, value)
     end
+    return values
 end
 
-local activeOrderNo = redis.call("GET", KEYS[2])
+if redis.call("EXISTS", KEYS[1]) == 1 then
+    return {2, redis.call("HGET", KEYS[1], "order_number") or orderNo, 0}
+end
+
+local activeOrderNo = redis.call("HGET", KEYS[2], userID)
 if activeOrderNo and activeOrderNo ~= "" then
     return {0, activeOrderNo, 1001}
 end
 
-for idx = viewerActiveStart, viewerActiveEnd do
-    local viewerActiveOrderNo = redis.call("GET", KEYS[idx])
+local viewerIDs = csv_values(viewerIDsCSV)
+for _, viewerID in ipairs(viewerIDs) do
+    local viewerActiveOrderNo = redis.call("HGET", KEYS[4], viewerID)
     if viewerActiveOrderNo and viewerActiveOrderNo ~= "" then
         return {0, viewerActiveOrderNo, 1002}
     end
 end
 
-local existingOrderNo = redis.call("GET", KEYS[3])
+local existingOrderNo = redis.call("HGET", KEYS[3], userID)
 if existingOrderNo and existingOrderNo ~= "" then
     return {0, existingOrderNo, 1001}
 end
 
-for idx = viewerInflightStart, #KEYS do
-    local viewerInflightOrderNo = redis.call("GET", KEYS[idx])
+for _, viewerID in ipairs(viewerIDs) do
+    local viewerInflightOrderNo = redis.call("HGET", KEYS[5], viewerID)
     if viewerInflightOrderNo and viewerInflightOrderNo ~= "" then
         return {0, viewerInflightOrderNo, 1002}
     end
 end
 
-local quota = tonumber(redis.call("GET", KEYS[4]) or "")
+local quota = tonumber(redis.call("HGET", KEYS[6], ticketCategoryID) or "")
 if (not quota) or quota < ticketCount then
     return {0, 0, 1003}
 end
 
-redis.call("DECRBY", KEYS[4], ticketCount)
+redis.call("HINCRBY", KEYS[6], ticketCategoryID, -ticketCount)
+if projectionTTL > 0 then
+    redis.call("EXPIRE", KEYS[6], projectionTTL)
+end
 
 redis.call("HSET", KEYS[1],
     "order_number", orderNo,
@@ -88,32 +91,25 @@ redis.call("HSET", KEYS[1],
     "viewer_ids", viewerIDsCSV,
     "ticket_count", ticketCount,
     "sale_window_end_at", saleWindowEndAt,
-    "token_fingerprint", tokenFingerprint,
-    "state", "ACCEPTED",
+    "state", "PENDING",
     "reason_code", "",
     "accepted_at", nowUnixMs,
     "finished_at", 0,
-    "publish_attempts", 0,
     "show_end_at", showEndAt,
     "created_at", nowUnixMs,
     "last_transition_at", nowUnixMs
 )
-if acceptedAttemptTTL > 0 then
-    redis.call("EXPIRE", KEYS[1], acceptedAttemptTTL)
+if pendingAttemptTTL > 0 then
+    redis.call("EXPIRE", KEYS[1], pendingAttemptTTL)
 end
 
+redis.call("HSET", KEYS[3], userID, orderNo)
+for _, viewerID in ipairs(viewerIDs) do
+    redis.call("HSET", KEYS[5], viewerID, orderNo)
+end
 if inFlightTTL > 0 then
-    redis.call("SETEX", KEYS[3], inFlightTTL, orderNo)
-    for idx = viewerInflightStart, #KEYS do
-        redis.call("SETEX", KEYS[idx], inFlightTTL, orderNo)
-    end
-end
-
-if tokenFingerprint ~= "" then
-    redis.call("HSET", KEYS[5], tokenFingerprint, orderNo)
-    if acceptedAttemptTTL > 0 then
-        redis.call("EXPIRE", KEYS[5], acceptedAttemptTTL)
-    end
+    redis.call("EXPIRE", KEYS[3], inFlightTTL)
+    redis.call("EXPIRE", KEYS[5], inFlightTTL)
 end
 
 return {1, orderNo, 0}

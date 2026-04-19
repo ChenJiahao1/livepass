@@ -214,7 +214,6 @@ func TestCancelOrderDoesNotDoubleReleaseClosedAttempt(t *testing.T) {
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
@@ -231,7 +230,7 @@ func TestCancelOrderDoesNotDoubleReleaseClosedAttempt(t *testing.T) {
 	if !shouldProcess || record == nil {
 		t.Fatalf("expected claim processing success, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := store.FinalizeSuccess(ctx, record, []int64{501}, now.Add(2*time.Millisecond)); err != nil {
+	if err := store.FinalizeSuccess(ctx, record, now.Add(2*time.Millisecond)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 

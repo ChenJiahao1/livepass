@@ -96,6 +96,7 @@ func TestPollOrderProgressReturnsInternalWithoutAttemptStore(t *testing.T) {
 	_, err := NewPollOrderProgressLogic(context.Background(), nil).PollOrderProgress(&pb.PollOrderProgressReq{
 		UserId:      3001,
 		OrderNumber: 9001,
+		ShowTimeId:  10001,
 	})
 	if status.Code(err) != codes.Internal {
 		t.Fatalf("expected internal, got %v", err)

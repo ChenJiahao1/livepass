@@ -19,8 +19,8 @@ type orderProgressProjection struct {
 	ReasonCode  string
 }
 
-func projectOrderProgress(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64, now time.Time) (*orderProgressProjection, error) {
-	if orderNumber <= 0 {
+func projectOrderProgress(ctx context.Context, svcCtx *svc.ServiceContext, showTimeID, orderNumber int64, now time.Time) (*orderProgressProjection, error) {
+	if showTimeID <= 0 || orderNumber <= 0 {
 		return nil, xerr.ErrInvalidParam
 	}
 	if svcCtx == nil || svcCtx.AttemptStore == nil {
@@ -30,7 +30,7 @@ func projectOrderProgress(ctx context.Context, svcCtx *svc.ServiceContext, order
 		now = time.Now()
 	}
 
-	record, err := svcCtx.AttemptStore.Get(ctx, orderNumber)
+	record, err := svcCtx.AttemptStore.GetByShowTimeAndOrderNumber(ctx, showTimeID, orderNumber)
 	switch {
 	case err == nil:
 		status, done, mapErr := rush.MapAttemptRecordToPoll(record, now)
@@ -58,11 +58,7 @@ func projectOrderProgress(ctx context.Context, svcCtx *svc.ServiceContext, order
 
 func projectOrderProgressFromDB(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber int64) (*orderProgressProjection, error) {
 	if svcCtx == nil || svcCtx.OrderRepository == nil {
-		return &orderProgressProjection{
-			OrderNumber: orderNumber,
-			OrderStatus: rush.PollOrderStatusFailed,
-			Done:        true,
-		}, nil
+		return nil, xerr.ErrInternal
 	}
 
 	order, err := svcCtx.OrderRepository.FindOrderByNumber(ctx, orderNumber)

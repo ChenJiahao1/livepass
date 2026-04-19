@@ -30,6 +30,7 @@ func NewGetOrderCacheLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Get
 func (l *GetOrderCacheLogic) GetOrderCache(req *types.OrderCacheReq) (resp *types.OrderCacheResp, err error) {
 	rpcResp, err := l.svcCtx.OrderRpc.GetOrderCache(l.ctx, &orderrpc.GetOrderCacheReq{
 		OrderNumber: req.OrderNumber,
+		ShowTimeId:  req.ShowTimeID,
 	})
 	if err != nil {
 		return nil, err

@@ -72,10 +72,10 @@ func TestCloseExpiredOrderFinalizesCommittedAttemptAsClosedReleased(t *testing.T
 		OrderNumber:      orderNumber,
 		UserID:           userID,
 		ProgramID:        programID,
+		ShowTimeID:       programID,
 		TicketCategoryID: ticketCategoryID,
 		ViewerIDs:        viewerIDs,
 		TicketCount:      1,
-		TokenFingerprint: rush.BuildTokenFingerprint(orderNumber, userID, programID, ticketCategoryID, viewerIDs, "express", "paper"),
 		Now:              now,
 	}); err != nil {
 		t.Fatalf("Admit() error = %v", err)
@@ -91,7 +91,7 @@ func TestCloseExpiredOrderFinalizesCommittedAttemptAsClosedReleased(t *testing.T
 	if !shouldProcess || record == nil {
 		t.Fatalf("expected claim processing success, got shouldProcess=%t record=%+v", shouldProcess, record)
 	}
-	if err := store.FinalizeSuccess(ctx, record, []int64{512}, now.Add(2*time.Millisecond)); err != nil {
+	if err := store.FinalizeSuccess(ctx, record, now.Add(2*time.Millisecond)); err != nil {
 		t.Fatalf("FinalizeSuccess() error = %v", err)
 	}
 

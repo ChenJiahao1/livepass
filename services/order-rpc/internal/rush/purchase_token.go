@@ -4,11 +4,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 )
@@ -33,7 +31,6 @@ type PurchaseTokenClaims struct {
 	DistributionMode string  `json:"distributionMode,omitempty"`
 	TakeTicketMode   string  `json:"takeTicketMode,omitempty"`
 	ExpireAt         int64   `json:"expireAt"`
-	TokenFingerprint string  `json:"tokenFingerprint"`
 }
 
 type PurchaseTokenCodec struct {
@@ -150,18 +147,6 @@ func (c *PurchaseTokenCodec) normalizeClaims(claims PurchaseTokenClaims) (Purcha
 	if claims.ShowEndAt == 0 {
 		claims.ShowEndAt = claims.SaleWindowEndAt
 	}
-	if claims.TokenFingerprint == "" {
-		claims.TokenFingerprint = BuildTokenFingerprint(
-			claims.OrderNumber,
-			claims.UserID,
-			claims.ShowTimeID,
-			claims.TicketCategoryID,
-			claims.TicketUserIDs,
-			claims.DistributionMode,
-			claims.TakeTicketMode,
-		)
-	}
-
 	return claims, nil
 }
 
@@ -169,36 +154,4 @@ func (c *PurchaseTokenCodec) sign(payload []byte) []byte {
 	mac := hmac.New(sha256.New, c.secret)
 	_, _ = mac.Write(payload)
 	return mac.Sum(nil)
-}
-
-func BuildTokenFingerprint(
-	orderNumber, userID, showTimeID, ticketCategoryID int64,
-	ticketUserIDs []int64,
-	distributionMode, takeTicketMode string,
-) string {
-	sortedTicketUserIDs := append([]int64(nil), ticketUserIDs...)
-	sort.Slice(sortedTicketUserIDs, func(i, j int) bool {
-		return sortedTicketUserIDs[i] < sortedTicketUserIDs[j]
-	})
-
-	payload, _ := json.Marshal(struct {
-		OrderNumber      int64   `json:"orderNumber"`
-		UserID           int64   `json:"userId"`
-		ShowTimeID       int64   `json:"showTimeId"`
-		TicketCategoryID int64   `json:"ticketCategoryId"`
-		TicketUserIDs    []int64 `json:"ticketUserIds"`
-		DistributionMode string  `json:"distributionMode,omitempty"`
-		TakeTicketMode   string  `json:"takeTicketMode,omitempty"`
-	}{
-		OrderNumber:      orderNumber,
-		UserID:           userID,
-		ShowTimeID:       showTimeID,
-		TicketCategoryID: ticketCategoryID,
-		TicketUserIDs:    sortedTicketUserIDs,
-		DistributionMode: distributionMode,
-		TakeTicketMode:   takeTicketMode,
-	})
-	sum := sha256.Sum256(payload)
-
-	return hex.EncodeToString(sum[:])
 }

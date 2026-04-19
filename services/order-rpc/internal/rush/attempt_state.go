@@ -1,7 +1,7 @@
 package rush
 
 const (
-	AttemptStateAccepted   = "ACCEPTED"
+	AttemptStatePending    = "PENDING"
 	AttemptStateProcessing = "PROCESSING"
 	AttemptStateSuccess    = "SUCCESS"
 	AttemptStateFailed     = "FAILED"
@@ -9,8 +9,6 @@ const (
 
 const (
 	AttemptReasonOrderCommitted        = "ORDER_COMMITTED"
-	AttemptReasonUserHoldConflict      = "USER_HOLD_CONFLICT"
-	AttemptReasonViewerHoldConflict    = "VIEWER_HOLD_CONFLICT"
 	AttemptReasonQuotaExhausted        = "QUOTA_EXHAUSTED"
 	AttemptReasonSeatExhausted         = "SEAT_EXHAUSTED"
 	AttemptReasonClosedOrderReleased   = "CLOSED_ORDER_RELEASED"
@@ -19,7 +17,6 @@ const (
 
 const (
 	PollOrderStatusProcessing int64 = 1
-	PollOrderStatusVerifying  int64 = 2
 	PollOrderStatusSuccess    int64 = 3
 	PollOrderStatusFailed     int64 = 4
 )

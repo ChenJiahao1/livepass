@@ -40,8 +40,8 @@ func TestPurchaseTokenRoundTrip(t *testing.T) {
 	if claims.OrderNumber != 91001 || claims.UserID != 3001 || claims.ProgramID != 10001 || claims.ShowTimeID != 20001 {
 		t.Fatalf("unexpected claims: %+v", claims)
 	}
-	if claims.TicketCount != 2 || claims.TokenFingerprint == "" {
-		t.Fatalf("expected ticket count and fingerprint, got %+v", claims)
+	if claims.TicketCount != 2 {
+		t.Fatalf("expected normalized ticket count, got %+v", claims)
 	}
 	if claims.SaleWindowEndAt != base.Add(30*time.Minute).Unix() || claims.ShowEndAt != base.Add(2*time.Hour).Unix() {
 		t.Fatalf("unexpected window claims: %+v", claims)
@@ -134,21 +134,18 @@ func TestPurchaseTokenVerifyReturnsNormalizedClaims(t *testing.T) {
 	if claims.TicketCount != 2 {
 		t.Fatalf("expected normalized ticket count 2, got %d", claims.TicketCount)
 	}
-	if claims.TokenFingerprint == "" {
-		t.Fatalf("expected normalized token fingerprint, got empty")
-	}
 	if claims.ShowTimeID != 20001 {
 		t.Fatalf("expected normalized show time claims without generation, got %+v", claims)
 	}
 }
 
-func TestPurchaseTokenFingerprintDiffersAcrossOrderNumbers(t *testing.T) {
+func TestPurchaseTokenRoundTripDoesNotEmitTokenFingerprint(t *testing.T) {
 	codec, err := NewPurchaseTokenCodec("test-secret", 2*time.Minute)
 	if err != nil {
 		t.Fatalf("NewPurchaseTokenCodec returned error: %v", err)
 	}
 
-	firstToken, err := codec.Issue(PurchaseTokenClaims{
+	token, err := codec.Issue(PurchaseTokenClaims{
 		OrderNumber:      91001,
 		UserID:           3001,
 		ProgramID:        10001,
@@ -159,34 +156,10 @@ func TestPurchaseTokenFingerprintDiffersAcrossOrderNumbers(t *testing.T) {
 		TakeTicketMode:   "paper",
 	})
 	if err != nil {
-		t.Fatalf("Issue(first) returned error: %v", err)
-	}
-	secondToken, err := codec.Issue(PurchaseTokenClaims{
-		OrderNumber:      91002,
-		UserID:           3001,
-		ProgramID:        10001,
-		ShowTimeID:       20001,
-		TicketCategoryID: 40001,
-		TicketUserIDs:    []int64{702, 701},
-		DistributionMode: "express",
-		TakeTicketMode:   "paper",
-	})
-	if err != nil {
-		t.Fatalf("Issue(second) returned error: %v", err)
+		t.Fatalf("Issue returned error: %v", err)
 	}
 
-	firstClaims, err := codec.Verify(firstToken)
-	if err != nil {
-		t.Fatalf("Verify(first) returned error: %v", err)
-	}
-	secondClaims, err := codec.Verify(secondToken)
-	if err != nil {
-		t.Fatalf("Verify(second) returned error: %v", err)
-	}
-
-	if firstClaims.TokenFingerprint == secondClaims.TokenFingerprint {
-		t.Fatalf("expected different fingerprints for different order numbers, got %q", firstClaims.TokenFingerprint)
-	}
+	assertTokenPayloadHasNoFingerprint(t, token)
 }
 
 func TestPurchaseTokenVerifyIgnoresLegacyGenerationPayload(t *testing.T) {
@@ -231,5 +204,25 @@ func assertTokenPayloadHasNoGeneration(t *testing.T, token string) {
 	}
 	if _, ok := decoded["generation"]; ok {
 		t.Fatalf("expected token payload without generation, got %s", string(payload))
+	}
+}
+
+func assertTokenPayloadHasNoFingerprint(t *testing.T, token string) {
+	t.Helper()
+
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		t.Fatalf("unexpected token format: %q", token)
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		t.Fatalf("DecodeString returned error: %v", err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		t.Fatalf("Unmarshal returned error: %v", err)
+	}
+	if _, ok := decoded["tokenFingerprint"]; ok {
+		t.Fatalf("expected token payload without tokenFingerprint, got %s", string(payload))
 	}
 }

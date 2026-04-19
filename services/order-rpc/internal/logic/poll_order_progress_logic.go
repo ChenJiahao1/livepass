@@ -28,14 +28,14 @@ func NewPollOrderProgressLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *PollOrderProgressLogic) PollOrderProgress(in *pb.PollOrderProgressReq) (*pb.PollOrderProgressResp, error) {
-	if in == nil || in.GetUserId() <= 0 || in.GetOrderNumber() <= 0 {
+	if in == nil || in.GetUserId() <= 0 || in.GetOrderNumber() <= 0 || in.GetShowTimeId() <= 0 {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 	if l.svcCtx == nil || l.svcCtx.AttemptStore == nil {
 		return nil, status.Error(codes.Internal, xerr.ErrInternal.Error())
 	}
 
-	projection, err := projectOrderProgress(l.ctx, l.svcCtx, in.GetOrderNumber(), time.Now())
+	projection, err := projectOrderProgress(l.ctx, l.svcCtx, in.GetShowTimeId(), in.GetOrderNumber(), time.Now())
 	if err != nil {
 		return nil, mapOrderError(err)
 	}

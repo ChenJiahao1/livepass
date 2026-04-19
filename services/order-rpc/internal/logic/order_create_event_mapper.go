@@ -19,19 +19,6 @@ type orderWriteModels struct {
 	delayTaskRows []*model.DDelayTaskOutbox
 }
 
-func MapEventToOrderModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*model.DOrder, []*model.DOrderTicketUser, error) {
-	return mapEventToOrderModels(orderEvent, now)
-}
-
-func mapEventToOrderModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*model.DOrder, []*model.DOrderTicketUser, error) {
-	writeModels, err := mapEventToOrderWriteModels(orderEvent, now)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return writeModels.order, writeModels.orderTickets, nil
-}
-
 func mapEventToOrderWriteModels(orderEvent *orderevent.OrderCreateEvent, now time.Time) (*orderWriteModels, error) {
 	if orderEvent == nil {
 		return nil, xerr.ErrInternal

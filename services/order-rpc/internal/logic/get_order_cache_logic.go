@@ -30,7 +30,7 @@ func NewGetOrderCacheLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Get
 }
 
 func (l *GetOrderCacheLogic) GetOrderCache(in *pb.GetOrderCacheReq) (*pb.GetOrderCacheResp, error) {
-	if in.GetOrderNumber() <= 0 {
+	if in.GetOrderNumber() <= 0 || in.GetShowTimeId() <= 0 {
 		return nil, status.Error(codes.InvalidArgument, xerr.ErrInvalidParam.Error())
 	}
 
@@ -38,7 +38,7 @@ func (l *GetOrderCacheLogic) GetOrderCache(in *pb.GetOrderCacheReq) (*pb.GetOrde
 		return &pb.GetOrderCacheResp{}, nil
 	}
 
-	projection, err := projectOrderProgress(l.ctx, l.svcCtx, in.GetOrderNumber(), time.Now())
+	projection, err := projectOrderProgress(l.ctx, l.svcCtx, in.GetShowTimeId(), in.GetOrderNumber(), time.Now())
 	if err != nil {
 		return &pb.GetOrderCacheResp{}, nil
 	}

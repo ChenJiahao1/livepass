@@ -101,9 +101,6 @@ func primeRushRuntimeByShowTime(ctx context.Context, svcCtx *svc.ServiceContext,
 	if err := svcCtx.AttemptStore.ClearViewerInflightByShowTime(ctx, resolvedShowTimeID); err != nil {
 		return err
 	}
-	if err := svcCtx.AttemptStore.ClearFingerprintByShowTime(ctx, resolvedShowTimeID); err != nil {
-		return err
-	}
 	if err := svcCtx.AttemptStore.ClearQuotaByShowTime(ctx, resolvedShowTimeID); err != nil {
 		return err
 	}

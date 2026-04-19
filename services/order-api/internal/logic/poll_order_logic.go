@@ -40,6 +40,7 @@ func (l *PollOrderLogic) PollOrder(req *types.PollOrderReq) (resp *types.PollOrd
 	rpcResp, err := l.svcCtx.OrderRpc.PollOrderProgress(l.ctx, &orderrpc.PollOrderProgressReq{
 		UserId:      userID,
 		OrderNumber: req.OrderNumber,
+		ShowTimeId:  req.ShowTimeID,
 	})
 	if err != nil {
 		return nil, err

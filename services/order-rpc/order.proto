@@ -28,11 +28,13 @@ message CreateOrderReq {
 
 message CreateOrderResp {
   int64 orderNumber = 1;
+  int64 showTimeId = 2;
 }
 
 message PollOrderProgressReq {
   int64 userId = 1;
   int64 orderNumber = 2;
+  int64 showTimeId = 3;
 }
 
 message PollOrderProgressResp {
@@ -84,6 +86,7 @@ message GetOrderServiceViewReq {
 
 message GetOrderCacheReq {
   int64 orderNumber = 1;
+  int64 showTimeId = 2;
 }
 
 message GetOrderCacheResp {

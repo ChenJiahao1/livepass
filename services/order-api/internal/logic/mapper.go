@@ -22,6 +22,7 @@ func mapCreateOrderResp(resp *orderrpc.CreateOrderResp) *types.CreateOrderResp {
 
 	return &types.CreateOrderResp{
 		OrderNumber: resp.OrderNumber,
+		ShowTimeID:  resp.ShowTimeId,
 	}
 }
 

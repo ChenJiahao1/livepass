@@ -8,33 +8,32 @@ import (
 func TestMapAttemptRecordToPollMapsAcceptedAndProcessingToProcessing(t *testing.T) {
 	now := time.Date(2026, 4, 5, 18, 0, 0, 0, time.Local)
 
+	for _, state := range []string{AttemptStatePending, AttemptStateProcessing} {
+		t.Run(state, func(t *testing.T) {
+			status, done, err := MapAttemptRecordToPoll(&AttemptRecord{
+				OrderNumber: 91001,
+				UserID:      92001,
+				State:       state,
+			}, now)
+			if err != nil {
+				t.Fatalf("MapAttemptRecordToPoll(%s) error = %v", state, err)
+			}
+			if status != PollOrderStatusProcessing || done {
+				t.Fatalf("expected queueing for %s, got status=%d done=%t", state, status, done)
+			}
+		})
+	}
+}
+
+func TestMapAttemptRecordToPollMapsSuccessAndFailedToTerminalStates(t *testing.T) {
+	now := time.Date(2026, 4, 5, 18, 0, 0, 0, time.Local)
+
 	tests := []struct {
 		name       string
 		record     *AttemptRecord
-		now        time.Time
 		wantStatus int64
 		wantDone   bool
 	}{
-		{
-			name: "accepted is processing",
-			record: &AttemptRecord{
-				OrderNumber: 91001,
-				State:       AttemptStateAccepted,
-			},
-			now:        now,
-			wantStatus: PollOrderStatusProcessing,
-			wantDone:   false,
-		},
-		{
-			name: "processing is processing",
-			record: &AttemptRecord{
-				OrderNumber: 91002,
-				State:       AttemptStateProcessing,
-			},
-			now:        now,
-			wantStatus: PollOrderStatusProcessing,
-			wantDone:   false,
-		},
 		{
 			name: "success is success",
 			record: &AttemptRecord{
@@ -42,7 +41,6 @@ func TestMapAttemptRecordToPollMapsAcceptedAndProcessingToProcessing(t *testing.
 				State:       AttemptStateSuccess,
 				ReasonCode:  AttemptReasonOrderCommitted,
 			},
-			now:        now,
 			wantStatus: PollOrderStatusSuccess,
 			wantDone:   true,
 		},
@@ -53,7 +51,6 @@ func TestMapAttemptRecordToPollMapsAcceptedAndProcessingToProcessing(t *testing.
 				State:       AttemptStateFailed,
 				ReasonCode:  AttemptReasonQuotaExhausted,
 			},
-			now:        now,
 			wantStatus: PollOrderStatusFailed,
 			wantDone:   true,
 		},
@@ -61,7 +58,7 @@ func TestMapAttemptRecordToPollMapsAcceptedAndProcessingToProcessing(t *testing.
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotStatus, gotDone, err := MapAttemptRecordToPoll(tt.record, tt.now)
+			gotStatus, gotDone, err := MapAttemptRecordToPoll(tt.record, now)
 			if err != nil {
 				t.Fatalf("MapAttemptRecordToPoll() error = %v", err)
 			}

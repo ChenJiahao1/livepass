@@ -5,14 +5,15 @@
 -- 1: now(unix ms)
 -- 2: processing ttl seconds
 
-if redis.call("EXISTS", KEYS[1]) == 0 then
-    return {-1}
+local ttl = redis.call("TTL", KEYS[1])
+if ttl <= 0 then
+    return {ttl}
 end
 
 local state = redis.call("HGET", KEYS[1], "state") or ""
 local shouldProcess = 0
 
-if state == "ACCEPTED" then
+if state == "PENDING" then
     state = "PROCESSING"
     redis.call("HSET", KEYS[1],
         "state", state,
@@ -36,7 +37,6 @@ return {
     redis.call("HGET", KEYS[1], "ticket_category_id") or "",
     redis.call("HGET", KEYS[1], "viewer_ids") or "",
     redis.call("HGET", KEYS[1], "ticket_count") or "",
-    redis.call("HGET", KEYS[1], "token_fingerprint") or "",
     redis.call("HGET", KEYS[1], "sale_window_end_at") or "",
     redis.call("HGET", KEYS[1], "show_end_at") or "",
     redis.call("HGET", KEYS[1], "reason_code") or "",

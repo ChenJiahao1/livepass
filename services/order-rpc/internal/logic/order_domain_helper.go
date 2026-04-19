@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"livepass/pkg/xerr"
 	"livepass/services/order-rpc/internal/model"
 	"livepass/services/order-rpc/internal/repeatguard"
@@ -16,9 +19,6 @@ import (
 	payrpc "livepass/services/pay-rpc/payrpc"
 	programrpc "livepass/services/program-rpc/programrpc"
 	userrpc "livepass/services/user-rpc/userrpc"
-	"github.com/zeromicro/go-zero/core/logx"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -32,11 +32,6 @@ const (
 
 	orderDateTimeLayout = "2006-01-02 15:04:05"
 )
-
-type orderSnapshotBundle struct {
-	order        *model.DOrder
-	orderTickets []*model.DOrderTicketUser
-}
 
 func validateCreateOrderReq(in *pb.CreateOrderReq) error {
 	if in.GetUserId() <= 0 || in.GetPurchaseToken() == "" {
@@ -60,29 +55,6 @@ func validateUserShowTimeReq(userID, showTimeID int64) error {
 	}
 
 	return nil
-}
-
-func buildOrderSnapshotBundle(
-	in *pb.CreateOrderReq,
-	preorder *programrpc.ProgramPreorderInfo,
-	userResp *userrpc.GetUserAndTicketUserListResp,
-	freezeResp *programrpc.AutoAssignAndFreezeSeatsResp,
-	now time.Time,
-	closeAfter time.Duration,
-) (*orderSnapshotBundle, error) {
-	orderEvent, err := buildOrderCreateEvent(generateOrderNumberForUser(in.GetUserId(), now), in, preorder, userResp, freezeResp, now, closeAfter)
-	if err != nil {
-		return nil, err
-	}
-	order, orderTickets, err := mapEventToOrderModels(orderEvent, now)
-	if err != nil {
-		return nil, err
-	}
-
-	return &orderSnapshotBundle{
-		order:        order,
-		orderTickets: orderTickets,
-	}, nil
 }
 
 func validateRequestedTicketUsers(userResp *userrpc.GetUserAndTicketUserListResp, userID int64, requestedIDs []int64) error {
@@ -263,7 +235,7 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		return false, xerr.ErrOrderNotFound
 	}
 	if order.OrderStatus == orderStatusCancelled {
-		if err := syncClosedRushAttempt(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
+		if err := syncClosedRushAttempt(ctx, svcCtx, order.ShowTimeId, order.OrderNumber, time.Now()); err != nil {
 			logx.WithContext(ctx).Errorf("sync closed rush attempt failed, orderNumber=%d err=%v", order.OrderNumber, err)
 		}
 		return false, nil
@@ -284,7 +256,7 @@ func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderN
 		return false, err
 	}
 	if changed {
-		if err := syncClosedRushAttempt(ctx, svcCtx, order.OrderNumber, time.Now()); err != nil {
+		if err := syncClosedRushAttempt(ctx, svcCtx, order.ShowTimeId, order.OrderNumber, time.Now()); err != nil {
 			logx.WithContext(ctx).Errorf("sync closed rush attempt failed, orderNumber=%d err=%v", order.OrderNumber, err)
 		}
 	}
@@ -393,10 +365,6 @@ func lockOrderStatusGuard(ctx context.Context, svcCtx *svc.ServiceContext, order
 	}
 
 	return unlock, nil
-}
-
-func generateOrderNumberForUser(userID int64, now time.Time) int64 {
-	return defaultOrderNumberGenerator.Next(userID, now)
 }
 
 func mapPayOrderResp(order *model.DOrder, payBill *payrpc.GetPayBillResp) *pb.PayOrderResp {

@@ -223,8 +223,8 @@ go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.y
 - `user-rpc`、`program-rpc`、`order-rpc`、`pay-rpc` 默认注册到本地 `etcd`
 - `gateway-api` 是统一外部入口，负责把 HTTP 请求转发到各域 API 或 `agents`
 - `agents` 的运行态支持 `GET /agent/runs/{runId}/events?after=` 回放 run 事件，并对 `resume/cancel` 重试保持接口级幂等
-- `/order/create` 采用 `accept + async` 模式：Redis admission 成功后立即返回 `orderNumber`，异步 consumer 再完成锁座、写单与 guard 落库
-- `/order/poll` 优先读取 Redis 中的 rush attempt 投影，并在非终态时回查 MySQL 是否已出现未支付订单
+- `/order/create` 采用 `accept + async` 模式：Redis admission 成功后立即返回 `orderNumber`；Kafka 由进程内异步任务发送，producer 失败只通过 `PENDING -> FAILED` CAS 尝试回补
+- `/order/poll` 在 TTL 期间优先读取 Redis attempt；attempt miss 时查 MySQL by `orderNumber`，DB 有单为成功，DB 无单为失败
 - `jobs/order-close/cmd/worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单
 - `jobs/order-close/cmd/dispatcher` 负责扫描 `d_delay_task_outbox(order.close_timeout)`，补发延迟任务到 Asynq；真正的业务关闭仍只走 `order-rpc.CloseExpiredOrder`
 - `gateway-api` 已启用 `Telemetry`；若要得到完整链路，需要给下游 API/RPC 同步补齐 `Telemetry`
