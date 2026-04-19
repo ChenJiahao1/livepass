@@ -8,6 +8,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableLambda
 from langchain_core.tools import StructuredTool
 from pydantic import Field
+from app.shared.runtime_constants import AGENT_ORDER
 
 
 class ScriptedChatModel(BaseChatModel):
@@ -90,9 +91,9 @@ class StubRegistry:
         return list(self.tools_by_toolset.get(toolset, []))
 
     async def get_provider_tools(self, server_name: str) -> list:
-        if server_name == "order":
+        if server_name == AGENT_ORDER:
             combined = [
-                *self.tools_by_toolset.get("order", []),
+                *self.tools_by_toolset.get(AGENT_ORDER, []),
                 *self.tools_by_toolset.get("refund", []),
             ]
             deduped: dict[str, Any] = {}

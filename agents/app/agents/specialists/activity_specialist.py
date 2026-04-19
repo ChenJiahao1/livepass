@@ -2,11 +2,12 @@
 
 from app.agents.base import BaseSpecialistAgent
 from app.graph.state import ConversationState
+from app.shared.runtime_constants import AGENT_ACTIVITY
 
 
 class ActivityAgent(BaseSpecialistAgent):
-    agent_name = "activity"
-    toolset = "activity"
+    agent_name = AGENT_ACTIVITY
+    toolset = AGENT_ACTIVITY
     prompt_template = "activity_specialist"
 
     async def handle(self, state: ConversationState) -> dict[str, object]:

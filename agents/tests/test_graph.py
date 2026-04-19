@@ -35,6 +35,15 @@ def test_conversation_state_accepts_cross_turn_fields():
     assert state["current_user_id"] == 3001
 
 
+def test_runtime_constants_are_exported_for_agent_and_route_names():
+    from app.shared.runtime_constants import AGENT_ACTIVITY, AGENT_ORDER, INTENT_UNKNOWN, NEXT_AGENT_FINISH
+
+    assert AGENT_ACTIVITY == "activity"
+    assert AGENT_ORDER == "order"
+    assert NEXT_AGENT_FINISH == "finish"
+    assert INTENT_UNKNOWN == "unknown"
+
+
 def test_graph_orchestration_is_split_into_stable_modules():
     graph_dir = Path("app/graph")
 

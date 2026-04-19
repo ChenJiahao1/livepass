@@ -15,15 +15,17 @@ from app.integrations.mcp.execution_context import ToolExecutionContext
 from app.integrations.mcp.interceptor import MCPToolInterceptor
 from app.integrations.mcp.tool_policies import (
     SUPPORTED_TOOLSETS,
+    TOOLSET_ACTIVITY,
     TOOLSET_ACCESS_POLICIES,
+    TOOLSET_ORDER,
     TOOLSET_TOOL_NAMES,
     ToolAccessPolicy,
     get_tool_access_policy,
 )
 
 TOOLSET_PROVIDER = {
-    "order": "order",
-    "activity": "activity",
+    TOOLSET_ORDER: TOOLSET_ORDER,
+    TOOLSET_ACTIVITY: TOOLSET_ACTIVITY,
 }
 
 
@@ -101,12 +103,12 @@ class MCPToolRegistry:
 
     def _build_connections(self) -> dict[str, dict[str, Any]]:
         return {
-            "activity": {
+            TOOLSET_ACTIVITY: {
                 "transport": "streamable_http",
                 "url": self.settings.activity_mcp_endpoint,
                 "headers": {"X-Internal-Caller": "agents"},
             },
-            "order": {
+            TOOLSET_ORDER: {
                 "transport": "streamable_http",
                 "url": self.settings.order_mcp_endpoint,
                 "headers": {"X-Internal-Caller": "agents"},

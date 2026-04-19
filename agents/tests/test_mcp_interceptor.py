@@ -10,6 +10,7 @@ from langgraph.types import Command
 from app.shared.errors import ApiError
 from app.integrations.mcp.execution_context import ToolExecutionContext
 from app.integrations.mcp.interceptor import MCPToolInterceptor, get_tool_execution_policy
+from app.integrations.mcp.tool_policies import TOOLSET_ORDER
 
 
 class _TimeoutTool:
@@ -70,13 +71,13 @@ def _context() -> ToolExecutionContext:
 
 
 def test_refund_order_policy_requires_hitl():
-    policy = get_tool_execution_policy("order", "refund_order")
+    policy = get_tool_execution_policy(TOOLSET_ORDER, "refund_order")
 
     assert policy.requires_hitl is True
 
 
 def test_preview_refund_order_policy_does_not_require_hitl():
-    policy = get_tool_execution_policy("order", "preview_refund_order")
+    policy = get_tool_execution_policy(TOOLSET_ORDER, "preview_refund_order")
 
     assert policy.requires_hitl is False
 
@@ -87,7 +88,7 @@ async def test_interceptor_passes_payload_without_injecting_runtime_meta():
     interceptor = MCPToolInterceptor()
 
     result = await interceptor.invoke(
-        server_name="order",
+        server_name=TOOLSET_ORDER,
         tool_name="preview_refund_order",
         payload={"order_id": "ORD-10001"},
         context=_context(),
@@ -109,7 +110,7 @@ async def test_interceptor_maps_timeout_to_stable_api_error():
 
     with pytest.raises(ApiError) as exc_info:
         await interceptor.invoke(
-            server_name="order",
+            server_name=TOOLSET_ORDER,
             tool_name="preview_refund_order",
             payload={"order_id": "ORD-10001"},
             context=_context(),
@@ -125,7 +126,7 @@ async def test_interceptor_maps_missing_tool_to_stable_api_error():
 
     with pytest.raises(ApiError) as exc_info:
         await interceptor.invoke(
-            server_name="order",
+            server_name=TOOLSET_ORDER,
             tool_name="preview_refund_order",
             payload={"order_id": "ORD-10001"},
             context=_context(),
@@ -141,7 +142,7 @@ async def test_interceptor_maps_bad_response_to_stable_api_error():
 
     with pytest.raises(ApiError) as exc_info:
         await interceptor.invoke(
-            server_name="order",
+            server_name=TOOLSET_ORDER,
             tool_name="preview_refund_order",
             payload={"order_id": "ORD-10001"},
             context=_context(),
@@ -157,7 +158,7 @@ async def test_interceptor_maps_execution_error_to_stable_api_error():
 
     with pytest.raises(ApiError) as exc_info:
         await interceptor.invoke(
-            server_name="order",
+            server_name=TOOLSET_ORDER,
             tool_name="preview_refund_order",
             payload={"order_id": "ORD-10001"},
             context=_context(),
@@ -174,7 +175,7 @@ async def test_interceptor_interrupts_refund_order_before_side_effect_and_resume
 
     async def _node(_state: dict):
         result = await interceptor.invoke(
-            server_name="order",
+            server_name=TOOLSET_ORDER,
             tool_name="refund_order",
             payload={"order_id": "ORD-10001", "reason": "用户发起退款"},
             context=_context(),
@@ -211,7 +212,7 @@ async def test_interceptor_edit_uses_edited_values_for_write_tool():
 
     async def _node(_state: dict):
         result = await interceptor.invoke(
-            server_name="order",
+            server_name=TOOLSET_ORDER,
             tool_name="refund_order",
             payload={"order_id": "ORD-10001", "reason": "用户发起退款"},
             context=_context(),

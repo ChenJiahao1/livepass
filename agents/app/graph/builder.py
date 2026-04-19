@@ -11,6 +11,7 @@ from app.graph.nodes import (
 )
 from app.graph.routing import next_from_coordinator, next_from_supervisor
 from app.graph.state import ConversationState, GraphContext
+from app.shared.runtime_constants import AGENT_ACTIVITY, AGENT_ORDER
 
 
 def build_graph_app(*, checkpointer=None):
@@ -18,8 +19,8 @@ def build_graph_app(*, checkpointer=None):
     builder.add_node("prepare_turn", prepare_turn_node)
     builder.add_node("coordinator", coordinator_node)
     builder.add_node("supervisor", supervisor_node)
-    builder.add_node("activity", activity_node)
-    builder.add_node("order", order_node)
+    builder.add_node(AGENT_ACTIVITY, activity_node)
+    builder.add_node(AGENT_ORDER, order_node)
 
     builder.add_edge(START, "prepare_turn")
     builder.add_edge("prepare_turn", "coordinator")
@@ -35,11 +36,11 @@ def build_graph_app(*, checkpointer=None):
         "supervisor",
         next_from_supervisor,
         {
-            "activity": "activity",
-            "order": "order",
+            AGENT_ACTIVITY: AGENT_ACTIVITY,
+            AGENT_ORDER: AGENT_ORDER,
             END: END,
         },
     )
-    builder.add_edge("activity", "supervisor")
-    builder.add_edge("order", "supervisor")
+    builder.add_edge(AGENT_ACTIVITY, "supervisor")
+    builder.add_edge(AGENT_ORDER, "supervisor")
     return builder.compile(checkpointer=checkpointer)

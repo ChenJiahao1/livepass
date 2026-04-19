@@ -12,6 +12,7 @@ from app.agents.specialists.activity_specialist import ActivityAgent
 from app.agents.specialists.order_specialist import OrderAgent
 from app.agents.supervisor import SupervisorAgent
 from app.graph.state import ConversationState, GraphContext
+from app.shared.runtime_constants import AGENT_ACTIVITY, AGENT_ORDER
 
 
 def prepare_turn_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
@@ -101,13 +102,13 @@ def supervisor_node(state: ConversationState, runtime: Runtime[GraphContext]) ->
 async def activity_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
     agent = ActivityAgent(registry=runtime.context.get("registry"), llm=require_context(runtime, "llm"))
     result = await agent.handle(hydrate_state(state, runtime))
-    return map_specialist_result(state, result, "activity")
+    return map_specialist_result(state, result, AGENT_ACTIVITY)
 
 
 async def order_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
     agent = OrderAgent(registry=runtime.context.get("registry"), llm=require_context(runtime, "llm"))
     result = await agent.handle(hydrate_state(state, runtime))
-    return map_specialist_result(state, result, "order")
+    return map_specialist_result(state, result, AGENT_ORDER)
 
 
 def hydrate_state(state: ConversationState, runtime: Runtime[GraphContext]) -> ConversationState:

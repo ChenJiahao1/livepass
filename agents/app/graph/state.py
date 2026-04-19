@@ -4,8 +4,9 @@ from typing import Any, Literal
 
 from langgraph.graph import MessagesState
 from typing_extensions import NotRequired, TypedDict
+from app.shared.runtime_constants import AGENT_ACTIVITY, AGENT_ORDER, INTENT_UNKNOWN, NEXT_AGENT_FINISH
 
-Intent = Literal["activity", "order", "unknown"]
+Intent = Literal[AGENT_ACTIVITY, AGENT_ORDER, INTENT_UNKNOWN]
 
 
 class ConversationState(MessagesState):
@@ -16,7 +17,7 @@ class ConversationState(MessagesState):
 
     route: NotRequired[Intent | None]
     coordinator_action: NotRequired[Literal["respond", "clarify", "delegate"]]
-    next_agent: NotRequired[Literal["activity", "order", "finish"]]
+    next_agent: NotRequired[Literal[AGENT_ACTIVITY, AGENT_ORDER, NEXT_AGENT_FINISH]]
     business_ready: NotRequired[bool]
     delegated: NotRequired[bool]
     reply: NotRequired[str]

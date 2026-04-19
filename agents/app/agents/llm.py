@@ -6,6 +6,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
 from app.shared.config import Settings, get_settings
+from app.shared.runtime_constants import AGENT_ACTIVITY, AGENT_ORDER, NEXT_AGENT_FINISH
 
 
 class CoordinatorDecision(BaseModel):
@@ -17,7 +18,7 @@ class CoordinatorDecision(BaseModel):
 
 
 class SupervisorDecision(BaseModel):
-    next_agent: Literal["activity", "order", "finish"]
+    next_agent: Literal[AGENT_ACTIVITY, AGENT_ORDER, NEXT_AGENT_FINISH]
     selected_order_id: str | None = None
     reason: str = ""
 

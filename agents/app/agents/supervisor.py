@@ -5,6 +5,7 @@ from langchain_core.messages.utils import convert_to_messages
 
 from app.agents.llm import SupervisorDecision
 from app.shared.prompt_loader import PromptLoader
+from app.shared.runtime_constants import SPECIALIST_AGENT_NAMES
 from app.graph.state import ConversationState
 
 
@@ -25,7 +26,7 @@ class SupervisorAgent:
             [SystemMessage(content=system_prompt), *convert_to_messages(state.get("messages", []))]
         )
         route = state.get("route")
-        if decision.next_agent in {"activity", "order"}:
+        if decision.next_agent in SPECIALIST_AGENT_NAMES:
             route = decision.next_agent
         elif route is None:
             specialist_result = state.get("specialist_result") or {}
