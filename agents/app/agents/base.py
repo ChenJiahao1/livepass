@@ -13,7 +13,7 @@ ORDER_ID_PATTERN = re.compile(r"(ORD-\d{1,}|\d{4,})", re.IGNORECASE)
 REFUND_KEYWORDS = ("退款", "退票", "退单", "refund")
 
 
-class ToolCallingAgent:
+class BaseSpecialistAgent:
     agent_name = ""
     toolset = ""
     prompt_template = ""

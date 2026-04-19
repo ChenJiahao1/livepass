@@ -1,10 +1,10 @@
 """Order specialist agent."""
 
-from app.agents.base import ToolCallingAgent
+from app.agents.base import BaseSpecialistAgent
 from app.graph.state import ConversationState
 
 
-class OrderAgent(ToolCallingAgent):
+class OrderAgent(BaseSpecialistAgent):
     agent_name = "order"
     toolset = "order"
     prompt_template = "order_specialist"

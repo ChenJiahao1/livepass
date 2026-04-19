@@ -12,3 +12,9 @@ def test_new_agent_runtime_packages_importable():
     import app.integrations.storage  # noqa: F401
     import app.runs.execution  # noqa: F401
     import app.shared  # noqa: F401
+
+
+def test_base_specialist_agent_exported():
+    from app.agents.base import BaseSpecialistAgent
+
+    assert BaseSpecialistAgent is not None

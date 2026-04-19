@@ -1,10 +1,10 @@
 """Activity specialist agent."""
 
-from app.agents.base import ToolCallingAgent
+from app.agents.base import BaseSpecialistAgent
 from app.graph.state import ConversationState
 
 
-class ActivityAgent(ToolCallingAgent):
+class ActivityAgent(BaseSpecialistAgent):
     agent_name = "activity"
     toolset = "activity"
     prompt_template = "activity_specialist"
