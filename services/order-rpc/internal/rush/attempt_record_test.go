@@ -49,7 +49,7 @@ func TestMapAttemptRecordToPollMapsSuccessAndFailedToTerminalStates(t *testing.T
 			record: &AttemptRecord{
 				OrderNumber: 91004,
 				State:       AttemptStateFailed,
-				ReasonCode:  "QUOTA_EXHAUSTED",
+				ReasonCode:  AttemptReasonQuotaExhausted,
 			},
 			wantStatus: PollOrderStatusFailed,
 			wantDone:   true,

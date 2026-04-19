@@ -9,6 +9,7 @@ const (
 
 const (
 	AttemptReasonOrderCommitted        = "ORDER_COMMITTED"
+	AttemptReasonQuotaExhausted        = "QUOTA_EXHAUSTED"
 	AttemptReasonSeatExhausted         = "SEAT_EXHAUSTED"
 	AttemptReasonClosedOrderReleased   = "CLOSED_ORDER_RELEASED"
 	AttemptReasonAlreadyHasActiveOrder = "ALREADY_HAS_ACTIVE_ORDER"
