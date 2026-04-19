@@ -58,12 +58,12 @@ function classifyFailure(responseBody) {
   return 'business_failure';
 }
 
-function pollUntilDone(orderNumber, userId) {
+function pollUntilDone(orderNumber, userId, showTimeId) {
   const startedAt = Date.now();
   while (Date.now() - startedAt <= POLL_TIMEOUT_MS) {
     const resp = http.post(
       `${BASE_URL}/order/poll`,
-      JSON.stringify({ orderNumber }),
+      JSON.stringify({ orderNumber, showTimeId }),
       { headers: headersForUser(userId), tags: { endpoint: 'order_poll' } },
     );
 
@@ -108,7 +108,7 @@ export default function () {
 
   createOrderSuccessRate.add(true);
   createOrderSuccessCount.add(1);
-  pollUntilDone(body.orderNumber, row.userId);
+  pollUntilDone(body.orderNumber, row.userId, row.showTimeId);
 }
 
 export function handleSummary(data) {

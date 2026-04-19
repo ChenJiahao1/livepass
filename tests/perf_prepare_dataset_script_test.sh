@@ -63,6 +63,8 @@ assert_contains "${VERIFY_SCRIPT_PATH}" 'seat_status = 3'
 
 assert_contains "${K6_SCRIPT_PATH}" '/order/create'
 assert_contains "${K6_SCRIPT_PATH}" '/order/poll'
+assert_contains "${K6_SCRIPT_PATH}" 'JSON.stringify({ orderNumber, showTimeId })'
+assert_contains "${K6_SCRIPT_PATH}" 'pollUntilDone(body.orderNumber, row.userId, row.showTimeId)'
 assert_contains "${K6_SCRIPT_PATH}" 'handleSummary'
 
 assert_contains "${SUMMARY_LIB_PATH}" 'successRate'
