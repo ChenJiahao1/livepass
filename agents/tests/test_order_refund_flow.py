@@ -1,4 +1,5 @@
 import pytest
+from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from app.graph.builder import build_graph_app
@@ -19,15 +20,33 @@ async def run_graph_turns(*, messages: list[str], registry, llm) -> dict:
 
 
 @pytest.mark.anyio
-async def test_graph_lists_orders_before_refund_submit():
-    calls: list[str] = []
-    payloads: list[dict] = []
+async def test_order_lane_can_complete_with_tool_agent_reply(monkeypatch):
+    captured: dict[str, object] = {}
 
-    async def _list_user_orders(*, user_id: int):
-        calls.append("list_user_orders")
-        payloads.append({"user_id": user_id})
+    class _FakeCreatedAgent:
+        async def ainvoke(self, payload):
+            captured["payload"] = payload
+            return {"messages": [AIMessage(content="已通过通用 agent 处理")]}
+
+    def _fake_create_agent(*, model, tools, system_prompt, name):
+        captured["tool_names"] = [tool.name for tool in tools]
+        captured["system_prompt"] = system_prompt
+        captured["name"] = name
+        return _FakeCreatedAgent()
+
+    async def _list_user_orders(user_id: int):
         return {"orders": [{"order_id": "ORD-1", "status": "PAID"}]}
 
+    async def _get_order_detail_for_service(order_id: str, user_id: int | None = None):
+        return {"order_id": order_id, "status": "PAID"}
+
+    async def _preview_refund_order(order_id: str, user_id: int | None = None):
+        return {"order_id": order_id, "allow_refund": True, "refund_amount": "100", "refund_percent": 100}
+
+    async def _refund_order(order_id: str, reason: str, user_id: int | None = None):
+        return {"order_id": order_id, "accepted": True, "refund_amount": "100"}
+
+    monkeypatch.setattr("app.agents.base.create_agent", _fake_create_agent)
     registry = StubRegistry(
         tools_by_toolset={
             "order": [
@@ -35,39 +54,12 @@ async def test_graph_lists_orders_before_refund_submit():
                     name="list_user_orders",
                     description="list user orders",
                     coroutine=_list_user_orders,
-                )
-            ]
-        }
-    )
-    llm = ScriptedChatModel(
-        structured_responses=[
-            {"action": "delegate", "reply": "", "selected_order_id": None, "business_ready": True, "reason": "refund"},
-            {"next_agent": "order", "selected_order_id": None, "reason": "list first"},
-        ]
-    )
-
-    result = await run_graph_turns(messages=["我要退款"], registry=registry, llm=llm)
-
-    assert "订单" in result["final_reply"]
-    assert calls == ["list_user_orders"]
-    assert payloads == [{"user_id": 1001}]
-
-
-@pytest.mark.anyio
-async def test_order_specialist_handles_refund_tools_inside_order_lane():
-    calls: list[str] = []
-
-    async def _preview_refund_order(order_id: str, user_id: int | None = None):
-        calls.append("preview_refund_order")
-        return {"order_id": order_id, "allow_refund": True, "refund_amount": "100", "refund_percent": 100}
-
-    async def _refund_order(order_id: str, reason: str, user_id: int | None = None):
-        calls.append("refund_order")
-        return {"order_id": order_id, "accepted": True, "refund_amount": "100"}
-
-    registry = StubRegistry(
-        tools_by_toolset={
-            "order": [
+                ),
+                build_async_tool(
+                    name="get_order_detail_for_service",
+                    description="get order detail",
+                    coroutine=_get_order_detail_for_service,
+                ),
                 build_async_tool(
                     name="preview_refund_order",
                     description="preview refund",
@@ -90,5 +82,12 @@ async def test_order_specialist_handles_refund_tools_inside_order_lane():
 
     result = await run_graph_turns(messages=["ORD-1 可以退款吗"], registry=registry, llm=llm)
 
-    assert calls == ["preview_refund_order", "refund_order"]
-    assert "已提交退款" in result["final_reply"]
+    assert result["final_reply"] == "已通过通用 agent 处理"
+    assert captured["name"] == "order"
+    assert captured["tool_names"] == [
+        "list_user_orders",
+        "get_order_detail_for_service",
+        "preview_refund_order",
+        "refund_order",
+    ]
+    assert "current_user_id" in str(captured["system_prompt"])

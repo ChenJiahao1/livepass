@@ -1,49 +1,83 @@
 import pytest
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from app.agents.specialists.order_specialist import OrderAgent
 from tests.fakes import StubRegistry, build_async_tool
 
 
 @pytest.mark.anyio
-async def test_order_agent_lists_user_orders_before_detail_lookup():
-    received_payloads: list[dict] = []
+async def test_base_specialist_agent_run_tool_agent_wires_tools_prompt_and_messages(monkeypatch):
+    captured: dict[str, object] = {}
 
-    async def _list_user_orders(*, user_id: int):
-        received_payloads.append({"user_id": user_id})
-        return {"orders": [{"order_id": "ORD-1", "status": "PAID"}]}
+    class _FakeCreatedAgent:
+        async def ainvoke(self, payload):
+            captured["payload"] = payload
+            return {"messages": [AIMessage(content="已处理")]}
+
+    def _fake_create_agent(*, model, tools, system_prompt, name):
+        captured["model"] = model
+        captured["tool_names"] = [tool.name for tool in tools]
+        captured["system_prompt"] = system_prompt
+        captured["name"] = name
+        return _FakeCreatedAgent()
 
     registry = StubRegistry(
         tools_by_toolset={
             "order": [
+                build_async_tool(name="list_user_orders", description="list user orders", coroutine=lambda *, user_id: None),
                 build_async_tool(
-                    name="list_user_orders",
-                    description="list user orders",
-                    coroutine=_list_user_orders,
-                )
+                    name="get_order_detail_for_service",
+                    description="get order detail",
+                    coroutine=lambda *, order_id, user_id=None: None,
+                ),
+                build_async_tool(
+                    name="preview_refund_order",
+                    description="preview refund",
+                    coroutine=lambda *, order_id, user_id=None: None,
+                ),
+                build_async_tool(
+                    name="refund_order",
+                    description="submit refund",
+                    coroutine=lambda *, order_id, reason, user_id=None: None,
+                ),
             ]
         }
     )
-    result = await OrderAgent(registry=registry, llm=object()).handle(
-        {"messages": [HumanMessage(content="帮我查订单")], "current_user_id": 1001}
-    )
+    state = {"messages": [HumanMessage(content="帮我看看订单处理情况")]}
+    llm = object()
 
-    assert "订单" in result["reply"]
-    assert received_payloads == [{"user_id": 1001}]
+    monkeypatch.setattr("app.agents.base.create_agent", _fake_create_agent)
+
+    result = await OrderAgent(registry=registry, llm=llm).handle(state)
+
+    assert result["reply"] == "已处理"
+    assert captured["model"] is llm
+    assert captured["name"] == "order"
+    assert captured["payload"] == {"messages": state["messages"]}
+    assert captured["tool_names"] == [
+        "list_user_orders",
+        "get_order_detail_for_service",
+        "preview_refund_order",
+        "refund_order",
+    ]
+    assert "selected_order_id" in str(captured["system_prompt"])
 
 
 @pytest.mark.anyio
-async def test_order_agent_handles_refund_preview_and_submit_tools():
+async def test_order_agent_uses_generic_tool_agent_flow_without_hardcoded_refund_branch(monkeypatch):
     calls: list[str] = []
 
+    async def _fake_run_tool_agent(self, state):
+        calls.append("run_tool_agent")
+        return {"reply": "已处理", "final_reply": "已处理", "messages": [AIMessage(content="已处理")]}
+
     async def _preview_refund_order(order_id: str, user_id: int | None = None):
-        calls.append("preview_refund_order")
-        return {"order_id": order_id, "allow_refund": True, "refund_amount": "100", "refund_percent": 100}
+        return {"order_id": order_id, "allow_refund": True, "refund_amount": "100"}
 
     async def _refund_order(order_id: str, reason: str, user_id: int | None = None):
-        calls.append("refund_order")
         return {"order_id": order_id, "accepted": True, "refund_amount": "100"}
 
+    monkeypatch.setattr(OrderAgent, "run_tool_agent", _fake_run_tool_agent)
     registry = StubRegistry(
         tools_by_toolset={
             "order": [
@@ -56,13 +90,14 @@ async def test_order_agent_handles_refund_preview_and_submit_tools():
                     name="refund_order",
                     description="submit refund",
                     coroutine=_refund_order,
-                )
+                ),
             ]
         }
     )
+
     result = await OrderAgent(registry=registry, llm=object()).handle(
-        {"messages": [HumanMessage(content="ORD-1 可以退款吗")], "selected_order_id": "ORD-1", "current_user_id": 1001}
+        {"messages": [HumanMessage(content="帮我退款 ORD-1")], "selected_order_id": "ORD-1", "current_user_id": 1001}
     )
 
-    assert calls == ["preview_refund_order", "refund_order"]
-    assert "已提交退款" in result["reply"]
+    assert calls == ["run_tool_agent"]
+    assert result["reply"] == "已处理"
