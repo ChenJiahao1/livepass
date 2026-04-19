@@ -17,6 +17,7 @@ const POLL_TIMEOUT_MS = Number(__ENV.POLL_TIMEOUT_MS || 10000);
 const DATASET = loadDataset(DATASET_PATH);
 
 export const options = {
+  summaryTrendStats: ['avg', 'p(95)', 'p(99)'],
   scenarios: {
     rush_create_order: {
       executor: 'shared-iterations',

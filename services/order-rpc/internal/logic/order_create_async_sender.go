@@ -25,6 +25,7 @@ func dispatchOrderCreateEventAsync(svcCtx *svc.ServiceContext, logger logx.Logge
 
 	payload := append([]byte(nil), item.body...)
 	go func() {
+		sendStartedAt := time.Now()
 		sendCtx := context.Background()
 		cancel := func() {}
 		if timeout := svcCtx.Config.Kafka.ProducerTimeout; timeout > 0 {
@@ -33,6 +34,14 @@ func dispatchOrderCreateEventAsync(svcCtx *svc.ServiceContext, logger logx.Logge
 		defer cancel()
 
 		if err := svcCtx.OrderCreateProducer.Send(sendCtx, item.key, payload); err != nil {
+			logger.Errorw(
+				createOrderAsyncSendFailureLogContent,
+				logx.Field("orderNumber", item.orderNumber),
+				logx.Field("showTimeId", item.showTimeID),
+				logx.Field("reasonCode", mapAsyncKafkaSendReason(err)),
+				logx.Field("sendMs", time.Since(sendStartedAt).Milliseconds()),
+				logx.Field("error", err.Error()),
+			)
 			failPendingAttemptAfterAsyncSendError(context.Background(), svcCtx, logger, item, err)
 		}
 	}()

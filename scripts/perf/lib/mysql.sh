@@ -30,15 +30,18 @@ perf_mysql_sum_matching_tables() {
   local table_like="$2"
   local where_clause="$3"
   local total=0
+  local table_names=()
   local table_name
   local count
 
-  while IFS= read -r table_name; do
+  mapfile -t table_names < <(perf_mysql_query "${db}" "SELECT table_name FROM information_schema.tables WHERE table_schema = '${db}' AND table_name LIKE '${table_like}' ORDER BY table_name")
+
+  for table_name in "${table_names[@]}"; do
     [[ -n "${table_name}" ]] || continue
     count="$(perf_mysql_query "${db}" "SELECT COUNT(*) FROM \`${table_name}\` WHERE ${where_clause}")"
     count="${count:-0}"
     total=$((total + count))
-  done < <(perf_mysql_query "${db}" "SELECT table_name FROM information_schema.tables WHERE table_schema = '${db}' AND table_name LIKE '${table_like}' ORDER BY table_name")
+  done
 
   printf '%s\n' "${total}"
 }

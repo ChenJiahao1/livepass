@@ -344,3 +344,11 @@ JWT=<user-jwt> bash scripts/acceptance/agent_threads.sh
 - `API` 保持薄层，避免回流核心业务逻辑
 - `Gateway` 只做入口、路由与横切能力，不承载业务规则
 - 新增 go-zero 服务时，遵循 `services/*-api/` 与 `services/*-rpc/` 的目录规范
+
+
+• 最新这组直压 gRPC CreateOrder 的接口指标是：
+
+  - avg = 217.0165 ms，见 tmp/perf/results/rush-rpc-2000-20260419132812/summary.json:12
+  - p95 = 403 ms，见 tmp/perf/results/rush-rpc-2000-20260419132812/summary.json:10
+  - p99 = 419.03 ms，见 tmp/perf/results/rush-rpc-2000-20260419132812/summary.json:11
+  - window_qps = 5347.5936，见 tmp/perf/results/rush-rpc-2000-20260419132812/order_rpc_qps.json:6
