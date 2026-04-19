@@ -76,7 +76,7 @@ ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
 - 当前仅保留两个业务 specialist：`activity` 与 `order`。
 - 业务工具通过 Go MCP server 提供：`activity` 走 `program-mcp`，订单查询与退款相关工具统一走 `order-mcp`。
 - LangGraph checkpoint 仍写入 Redis，但只作为内部运行状态，不对外暴露。
-- 高风险工具通过 MCP interceptor 触发 `interrupt()`，当前 `refund_order` 走工具级 HITL，恢复链路统一使用 `Command(resume=...)`。
+- 写操作工具通过 MCP interceptor 按执行策略触发 `interrupt()`，恢复链路统一使用 `Command(resume=...)`。
 - 线程、消息、运行读模型写入 MySQL `livepass_agents`。
 - 当前消息内容块仅支持 `text`；`image/file` 仅保留协议扩展位，暂不接受实际输入。
 - Redis ownership 已切换为 `threadId -> userId`。

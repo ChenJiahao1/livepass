@@ -2,7 +2,7 @@ import pytest
 
 from app.shared.config import Settings
 from app.integrations.mcp.execution_context import ToolExecutionContext
-from app.integrations.mcp.registry import MCPToolRegistry
+from app.integrations.mcp.registry import MCPToolRegistry, TOOLSET_ACCESS_POLICIES, TOOLSET_TOOL_NAMES
 
 
 def test_registry_points_order_toolset_to_go_provider():
@@ -20,6 +20,14 @@ def test_registry_points_order_toolset_to_go_provider():
     assert registry.connections["order"]["url"] == "http://127.0.0.1:9082/message"
     assert registry.connections["order"]["headers"]["X-Internal-Caller"] == "agents"
     assert set(registry.connections) == {"activity", "order"}
+
+
+def test_order_toolset_policies_cover_all_registered_tools():
+    assert set(TOOLSET_ACCESS_POLICIES["order"]) == TOOLSET_TOOL_NAMES["order"]
+
+
+def test_order_write_tools_are_explicitly_marked_for_hitl():
+    assert TOOLSET_ACCESS_POLICIES["order"]["refund_order"].mode == "write"
 
 
 class _FakeTool:
