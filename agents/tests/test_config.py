@@ -11,7 +11,6 @@ def test_shared_and_integrations_modules_exist():
     assert Path("app/integrations/mcp/registry.py").is_file()
     assert Path("app/integrations/mcp/interceptor.py").is_file()
     assert Path("app/integrations/mcp/execution_context.py").is_file()
-    assert Path("app/integrations/knowledge/service.py").is_file()
     assert Path("app/integrations/storage/mysql.py").is_file()
     assert Path("app/integrations/storage/redis.py").is_file()
     assert Path("app/agents/llm.py").is_file()
@@ -27,7 +26,6 @@ def test_settings_exposes_customer_runtime_fields(monkeypatch):
     settings = get_settings()
 
     assert settings.max_tool_steps == 3
-    assert settings.lightrag_base_url == "http://127.0.0.1:9621"
     assert settings.checkpoint_key_prefix == "agents:langgraph"
 
     get_settings.cache_clear()

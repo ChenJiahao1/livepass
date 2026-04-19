@@ -17,9 +17,8 @@ class CoordinatorDecision(BaseModel):
 
 
 class SupervisorDecision(BaseModel):
-    next_agent: Literal["activity", "order", "refund", "handoff", "knowledge", "finish"]
+    next_agent: Literal["activity", "order", "finish"]
     selected_order_id: str | None = None
-    need_handoff: bool = False
     reason: str = ""
 
 

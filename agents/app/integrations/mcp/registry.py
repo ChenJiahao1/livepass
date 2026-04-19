@@ -14,14 +14,12 @@ from app.shared.ids import new_tool_call_id
 from app.integrations.mcp.execution_context import ToolExecutionContext
 from app.integrations.mcp.interceptor import MCPToolInterceptor
 
-SUPPORTED_TOOLSETS = ("activity", "order", "refund")
+SUPPORTED_TOOLSETS = ("activity", "order")
 TOOLSET_TOOL_NAMES = {
-    "order": {"list_user_orders", "get_order_detail_for_service"},
-    "refund": {"preview_refund_order", "refund_order"},
+    "order": {"list_user_orders", "get_order_detail_for_service", "preview_refund_order", "refund_order"},
 }
 TOOLSET_PROVIDER = {
     "order": "order",
-    "refund": "order",
     "activity": "activity",
 }
 

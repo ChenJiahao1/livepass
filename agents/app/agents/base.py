@@ -10,6 +10,7 @@ from app.shared.prompt_loader import PromptLoader
 from app.graph.state import ConversationState
 
 ORDER_ID_PATTERN = re.compile(r"(ORD-\d{1,}|\d{4,})", re.IGNORECASE)
+REFUND_KEYWORDS = ("退款", "退票", "退单", "refund")
 
 
 class ToolCallingAgent:
@@ -51,7 +52,6 @@ class ToolCallingAgent:
         state: ConversationState,
         *,
         reply: str,
-        need_handoff: bool = False,
         status: str = "completed",
         completed: bool = True,
         result_summary: str | None = None,
@@ -59,14 +59,12 @@ class ToolCallingAgent:
         messages: list[Any] | None = None,
         selected_order_id: str | None = None,
         selected_program_id: str | None = None,
-        last_refund_preview: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "reply": reply,
             "final_reply": reply,
             "current_agent": self.agent_name,
             "status": status,
-            "need_handoff": need_handoff,
             "completed": completed,
             "result_summary": result_summary or reply,
             "selected_order_id": selected_order_id if selected_order_id is not None else state.get("selected_order_id"),
@@ -77,8 +75,6 @@ class ToolCallingAgent:
         }
         if specialist_result is not None:
             payload["specialist_result"] = specialist_result
-        if last_refund_preview is not None:
-            payload["last_refund_preview"] = last_refund_preview
         return payload
 
     def find_tool(self, tools: list, *names: str):
@@ -103,17 +99,15 @@ class ToolCallingAgent:
     def extract_order_id(self, state: ConversationState) -> str | None:
         if state.get("selected_order_id"):
             return str(state["selected_order_id"])
-        preview = state.get("last_refund_preview") or {}
-        if preview.get("order_id"):
-            return str(preview["order_id"])
-        refund_preview = state.get("refund_preview") or {}
-        if refund_preview.get("order_id"):
-            return str(refund_preview["order_id"])
         message = self.latest_user_message(state)
         match = ORDER_ID_PATTERN.search(message)
         if not match:
             return None
         return match.group(1).upper()
+
+    def is_refund_request(self, state: ConversationState) -> bool:
+        message = self.latest_user_message(state)
+        return any(keyword in message.lower() for keyword in REFUND_KEYWORDS)
 
     def extract_reply(self, result: dict[str, Any]) -> str:
         messages = result.get("messages", [])

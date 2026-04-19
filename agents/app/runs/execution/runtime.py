@@ -29,13 +29,11 @@ class AgentRuntimeService:
         agent_runtime,
         registry,
         llm,
-        knowledge_service=None,
         interrupt_bridge: InterruptBridge | None = None,
     ) -> None:
         self.agent_runtime = agent_runtime
         self.registry = registry
         self.llm = llm
-        self.knowledge_service = knowledge_service
         self.interrupt_bridge = interrupt_bridge or InterruptBridge()
 
     async def invoke(self, *, user_id: int, thread_id: str, user_text: str) -> AgentRuntimeResult:
@@ -45,7 +43,6 @@ class AgentRuntimeService:
             context={
                 "registry": self.registry,
                 "llm": self.llm,
-                "knowledge_service": self.knowledge_service,
                 "current_user_id": user_id,
             },
         )
@@ -53,7 +50,6 @@ class AgentRuntimeService:
         metadata = {
             "routeSource": result.get("route_source", "rule"),
             "specialist": result.get("current_agent"),
-            "needHandoff": bool(result.get("need_handoff")),
         }
         return AgentRuntimeResult(reply=reply, metadata=metadata, raw_result=result)
 
@@ -118,7 +114,6 @@ class AgentRuntimeService:
         context = {
             "registry": registry,
             "llm": self.llm,
-            "knowledge_service": self.knowledge_service,
             "current_user_id": user_id,
         }
         if hasattr(self.agent_runtime, "invoke"):
@@ -153,7 +148,6 @@ class AgentRuntimeService:
             context = {
                 "registry": registry,
                 "llm": self.llm,
-                "knowledge_service": self.knowledge_service,
                 "current_user_id": run.user_id,
             }
             async for mode, chunk in self.agent_runtime.astream(
@@ -257,7 +251,6 @@ class AgentRuntimeService:
                 metadata={
                     "routeSource": result.get("route_source", "rule"),
                     "specialist": result.get("current_agent"),
-                    "needHandoff": bool(result.get("need_handoff")),
                 },
             )
         tool_call = result.get("tool_call")

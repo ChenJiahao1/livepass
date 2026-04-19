@@ -42,7 +42,7 @@ async def test_graph_lists_orders_before_refund_submit():
     llm = ScriptedChatModel(
         structured_responses=[
             {"action": "delegate", "reply": "", "selected_order_id": None, "business_ready": True, "reason": "refund"},
-            {"next_agent": "order", "selected_order_id": None, "need_handoff": False, "reason": "list first"},
+            {"next_agent": "order", "selected_order_id": None, "reason": "list first"},
         ]
     )
 
@@ -54,20 +54,29 @@ async def test_graph_lists_orders_before_refund_submit():
 
 
 @pytest.mark.anyio
-async def test_refund_flow_emits_human_approval_interrupt_instead_of_pending_confirmation():
+async def test_order_specialist_handles_refund_tools_inside_order_lane():
     calls: list[str] = []
 
     async def _preview_refund_order(order_id: str, user_id: int | None = None):
         calls.append("preview_refund_order")
         return {"order_id": order_id, "allow_refund": True, "refund_amount": "100", "refund_percent": 100}
 
+    async def _refund_order(order_id: str, reason: str, user_id: int | None = None):
+        calls.append("refund_order")
+        return {"order_id": order_id, "accepted": True, "refund_amount": "100"}
+
     registry = StubRegistry(
         tools_by_toolset={
-            "refund": [
+            "order": [
                 build_async_tool(
                     name="preview_refund_order",
                     description="preview refund",
                     coroutine=_preview_refund_order,
+                ),
+                build_async_tool(
+                    name="refund_order",
+                    description="submit refund",
+                    coroutine=_refund_order,
                 )
             ]
         }
@@ -75,16 +84,11 @@ async def test_refund_flow_emits_human_approval_interrupt_instead_of_pending_con
     llm = ScriptedChatModel(
         structured_responses=[
             {"action": "delegate", "reply": "", "selected_order_id": "ORD-1", "business_ready": True, "reason": "preview"},
-            {"next_agent": "refund", "selected_order_id": "ORD-1", "need_handoff": False, "reason": "preview"},
-            {"next_agent": "finish", "selected_order_id": "ORD-1", "need_handoff": False, "reason": "pause"},
+            {"next_agent": "order", "selected_order_id": "ORD-1", "reason": "refund via order"},
         ]
     )
 
     result = await run_graph_turns(messages=["ORD-1 可以退款吗"], registry=registry, llm=llm)
-    interrupts = result.get("__interrupt__")
 
-    assert calls == ["preview_refund_order"]
-    assert interrupts
-    assert interrupts[0].value["toolName"] == "human_approval"
-    assert interrupts[0].value["args"]["action"] == "refund_order"
-    assert "pending_confirmation" not in result
+    assert calls == ["preview_refund_order", "refund_order"]
+    assert "已提交退款" in result["final_reply"]

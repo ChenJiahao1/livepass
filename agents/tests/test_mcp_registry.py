@@ -19,7 +19,7 @@ def test_registry_points_order_toolset_to_go_provider():
     assert registry.connections["order"]["transport"] == "streamable_http"
     assert registry.connections["order"]["url"] == "http://127.0.0.1:9082/message"
     assert registry.connections["order"]["headers"]["X-Internal-Caller"] == "agents"
-    assert "handoff" not in registry.connections
+    assert set(registry.connections) == {"activity", "order"}
 
 
 class _FakeTool:
@@ -117,7 +117,7 @@ async def test_bound_registry_wraps_tools_with_runtime_context():
         tool_call_id_factory=lambda: "tool_generated_001",
     )
 
-    tools = await bound_registry.get_tools("refund")
+    tools = await bound_registry.get_tools("order")
     tool = next(tool for tool in tools if tool.name == "preview_refund_order")
 
     result = await tool.ainvoke({"order_id": "ORD-10001"})

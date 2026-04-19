@@ -9,9 +9,8 @@ def test_supervisor_routes_refund_request():
         llm=ScriptedChatModel(
             structured_responses=[
                 {
-                    "next_agent": "refund",
+                    "next_agent": "order",
                     "selected_order_id": None,
-                    "need_handoff": False,
                     "reason": "refund request",
                 }
             ]
@@ -20,5 +19,5 @@ def test_supervisor_routes_refund_request():
 
     result = agent.handle({"messages": [HumanMessage(content="我要退款")]})
 
-    assert result["next_agent"] == "refund"
-    assert result["route"] == "refund"
+    assert result["next_agent"] == "order"
+    assert result["route"] == "order"

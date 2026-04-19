@@ -25,7 +25,7 @@ class SupervisorAgent:
             [SystemMessage(content=system_prompt), *convert_to_messages(state.get("messages", []))]
         )
         route = state.get("route")
-        if decision.next_agent in {"activity", "order", "refund", "handoff", "knowledge"}:
+        if decision.next_agent in {"activity", "order"}:
             route = decision.next_agent
         elif route is None:
             specialist_result = state.get("specialist_result") or {}
@@ -37,6 +37,5 @@ class SupervisorAgent:
             "route": route,
             "reply": "",
             "trace": [f"route:{route}"] if decision.next_agent != "finish" else [],
-            "need_handoff": decision.need_handoff,
             "selected_order_id": decision.selected_order_id,
         }

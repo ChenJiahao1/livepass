@@ -48,7 +48,6 @@ class FakeRuntime:
             "reply": f"已处理：{user_text}",
             "final_reply": f"已处理：{user_text}",
             "current_agent": "order",
-            "need_handoff": False,
             "route_source": "rule",
         }
 
@@ -82,15 +81,13 @@ class PauseRuntime:
             return {
                 "reply": "恢复后不应继续执行",
                 "final_reply": "恢复后不应继续执行",
-                "current_agent": "refund",
-                "need_handoff": False,
+                "current_agent": "order",
                 "route_source": "rule",
             }
         return {
             "reply": "",
             "final_reply": "",
-            "current_agent": "refund",
-            "need_handoff": False,
+            "current_agent": "order",
             "route_source": "rule",
             "tool_call": {
                 "toolName": "human_approval",

@@ -29,7 +29,6 @@ def test_conversation_state_accepts_cross_turn_fields():
         "last_intent": "unknown",
         "selected_order_id": "ORD-10001",
         "current_user_id": 3001,
-        "need_handoff": False,
     }
 
     assert state["selected_order_id"] == "ORD-10001"
@@ -43,7 +42,7 @@ def test_graph_orchestration_is_split_into_stable_modules():
     assert (graph_dir / "routing.py").is_file()
     assert (graph_dir / "nodes.py").is_file()
     assert (graph_dir / "state.py").is_file()
-    assert (graph_dir / "subgraphs" / "refund.py").is_file()
+    assert not (graph_dir / "subgraphs" / "refund.py").exists()
     assert not Path("app/graph.py").exists()
     assert not Path("app/state.py").exists()
 
@@ -62,7 +61,6 @@ def test_graph_can_finish_after_coordinator_and_supervisor():
             {
                 "next_agent": "finish",
                 "selected_order_id": None,
-                "need_handoff": False,
                 "reason": "finish immediately",
             },
         ]

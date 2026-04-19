@@ -9,8 +9,6 @@ from langgraph.runtime import Runtime
 
 from app.agents.coordinator import CoordinatorAgent
 from app.agents.specialists.activity_specialist import ActivityAgent
-from app.agents.specialists.handoff_specialist import HandoffAgent
-from app.agents.specialists.knowledge_specialist import KnowledgeAgent
 from app.agents.specialists.order_specialist import OrderAgent
 from app.agents.supervisor import SupervisorAgent
 from app.graph.state import ConversationState, GraphContext
@@ -25,16 +23,10 @@ def prepare_turn_node(state: ConversationState, runtime: Runtime[GraphContext]) 
         "business_ready": False,
         "delegated": False,
         "specialist_result": None,
-        "need_handoff": False,
         "trace": [],
         "current_agent": None,
         "final_reply": "",
         "reply": "",
-        "pending_human_action": None,
-        "human_decision": None,
-        "refund_preview": None,
-        "refund_result": None,
-        "refund_rejected": False,
     }
     if not state.get("current_user_id") and runtime.context.get("current_user_id"):
         payload["current_user_id"] = runtime.context["current_user_id"]
@@ -56,7 +48,6 @@ def coordinator_node(state: ConversationState, runtime: Runtime[GraphContext]) -
         "trace": result["trace"],
         "specialist_result": None,
         "next_agent": None,
-        "need_handoff": False,
     }
     if result["action"] == "delegate":
         return base_state
@@ -79,17 +70,6 @@ def supervisor_node(state: ConversationState, runtime: Runtime[GraphContext]) ->
     specialist_result = hydrated.get("specialist_result") or {}
     if specialist_result.get("completed"):
         route = hydrated.get("route") or specialist_result.get("agent") or hydrated.get("last_intent", "unknown")
-        if hydrated.get("need_handoff") or specialist_result.get("need_handoff"):
-            return {
-                "current_agent": "supervisor",
-                "next_agent": "handoff",
-                "route": "handoff",
-                "last_intent": "handoff",
-                "trace": [*hydrated.get("trace", []), "route:handoff"],
-                "selected_order_id": hydrated.get("selected_order_id"),
-                "need_handoff": True,
-                "current_user_id": current_user_id,
-            }
         return {
             "current_agent": "supervisor",
             "next_agent": "finish",
@@ -97,7 +77,6 @@ def supervisor_node(state: ConversationState, runtime: Runtime[GraphContext]) ->
             "last_intent": route,
             "trace": hydrated.get("trace", []),
             "selected_order_id": hydrated.get("selected_order_id"),
-            "need_handoff": False,
             "current_user_id": current_user_id,
             "reply": hydrated.get("reply", ""),
             "final_reply": hydrated.get("final_reply", ""),
@@ -111,7 +90,6 @@ def supervisor_node(state: ConversationState, runtime: Runtime[GraphContext]) ->
         "last_intent": result["route"],
         "trace": [*hydrated.get("trace", []), *result["trace"]],
         "selected_order_id": result.get("selected_order_id") or hydrated.get("selected_order_id"),
-        "need_handoff": result["need_handoff"],
         "current_user_id": current_user_id,
     }
     if result["next_agent"] == "finish":
@@ -130,18 +108,6 @@ async def order_node(state: ConversationState, runtime: Runtime[GraphContext]) -
     agent = OrderAgent(registry=runtime.context.get("registry"), llm=require_context(runtime, "llm"))
     result = await agent.handle(hydrate_state(state, runtime))
     return map_specialist_result(state, result, "order")
-
-
-async def handoff_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
-    agent = HandoffAgent(registry=None, llm=runtime.context.get("llm"))
-    result = await agent.handle(hydrate_state(state, runtime))
-    return map_specialist_result(state, result, "handoff")
-
-
-async def knowledge_node(state: ConversationState, runtime: Runtime[GraphContext]) -> dict[str, Any]:
-    agent = KnowledgeAgent(service=runtime.context.get("knowledge_service"))
-    result = await agent.handle(hydrate_state(state, runtime))
-    return map_specialist_result(state, result, "knowledge")
 
 
 def hydrate_state(state: ConversationState, runtime: Runtime[GraphContext]) -> ConversationState:
@@ -168,14 +134,10 @@ def map_specialist_result(state: ConversationState, result: dict[str, Any], agen
         "trace": [*state.get("trace", []), *result.get("trace", [])],
         "selected_order_id": result.get("selected_order_id") or state.get("selected_order_id"),
         "selected_program_id": result.get("selected_program_id") or state.get("selected_program_id"),
-        "need_handoff": result.get("need_handoff", False),
         "specialist_result": {
             "agent": agent_name,
             "completed": result.get("completed", False),
-            "need_handoff": result.get("need_handoff", False),
             "result_summary": result.get("result_summary", reply),
         },
     }
-    if result.get("last_refund_preview") is not None:
-        payload["last_refund_preview"] = result["last_refund_preview"]
     return payload

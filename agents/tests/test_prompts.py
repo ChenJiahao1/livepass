@@ -11,9 +11,6 @@ def test_prompt_files_align_with_role_filenames():
         "supervisor.md",
         "activity_specialist.md",
         "order_specialist.md",
-        "refund_specialist.md",
-        "handoff_specialist.md",
-        "knowledge_specialist.md",
     }
 
     assert {path.name for path in prompt_dir.glob("*.md")} == expected_names
@@ -32,7 +29,7 @@ def test_prompt_loader_loads_coordinator_template():
 
 
 def test_supervisor_decision_schema_accepts_finish():
-    decision = SupervisorDecision.model_validate({"next_agent": "finish", "need_handoff": False})
+    decision = SupervisorDecision.model_validate({"next_agent": "finish"})
     assert decision.next_agent == "finish"
 
 

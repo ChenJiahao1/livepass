@@ -31,7 +31,6 @@ class FakeAgentRuntime:
             **state_payload,
             "final_reply": f"已处理：{message}",
             "current_agent": "order",
-            "need_handoff": False,
             "route_source": "rule",
         }
 

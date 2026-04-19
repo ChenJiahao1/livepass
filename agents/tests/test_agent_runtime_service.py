@@ -107,7 +107,6 @@ async def test_invoke_passes_integer_current_user_id_into_runtime_context():
         {
             "registry": service.registry,
             "llm": service.llm,
-            "knowledge_service": None,
             "current_user_id": 3001,
         }
     ]
@@ -144,7 +143,6 @@ async def test_invoke_run_passes_integer_user_id_to_registry_and_runtime_context
         {
             "registry": registry,
             "llm": service.llm,
-            "knowledge_service": None,
             "current_user_id": 3001,
         }
     ]

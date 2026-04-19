@@ -4,7 +4,7 @@ from langgraph.graph import END
 
 from app.graph.state import ConversationState
 
-SPECIALIST_AGENTS = {"activity", "order", "refund", "handoff", "knowledge"}
+SPECIALIST_AGENTS = {"activity", "order"}
 
 
 def next_from_coordinator(state: ConversationState) -> str:

@@ -41,16 +41,17 @@ uv run uvicorn app.api.app:app --reload
 ```text
 app/
   api/             FastAPI app、routes、schemas、dependencies
-  graph/           graph builder / nodes / routing / state / subgraphs
+  graph/           graph builder / nodes / routing / state
   agents/          coordinator / supervisor / llm / specialists / tools
   runs/            run 资源模型、仓储、事件、tool call、execution
   conversations/   threads / messages
-  integrations/    mcp / knowledge / storage
+  integrations/    mcp / storage
   shared/          config / errors / ids / cursor / prompt_loader
 prompts/
   coordinator.md
   supervisor.md
-  *_specialist.md
+  activity_specialist.md
+  order_specialist.md
 ```
 
 ## 关键环境变量
@@ -59,8 +60,6 @@ prompts/
 OPENAI_API_KEY=
 OPENAI_BASE_URL=
 OPENAI_MODEL=gpt-4.1-mini
-LIGHTRAG_BASE_URL=http://127.0.0.1:9621
-LIGHTRAG_API_KEY=
 REDIS_URL=redis://127.0.0.1:6379/0
 AGENTS_MYSQL_HOST=127.0.0.1
 AGENTS_MYSQL_PORT=3306
@@ -74,10 +73,10 @@ ORDER_MCP_ENDPOINT=http://127.0.0.1:9082/message
 
 ## 运行时说明
 
-- 业务工具通过 Go MCP server 提供：`activity` 走 `program-mcp`，`order/refund` 走 `order-mcp`。
-- `handoff` 当前不再通过 MCP 执行，仅在编排层保留 TODO 占位。
+- 当前仅保留两个业务 specialist：`activity` 与 `order`。
+- 业务工具通过 Go MCP server 提供：`activity` 走 `program-mcp`，订单查询与退款相关工具统一走 `order-mcp`。
 - LangGraph checkpoint 仍写入 Redis，但只作为内部运行状态，不对外暴露。
-- 退款 HITL 中断走图内 `interrupt()` / `Command(resume=...)` 恢复链路，不再额外维护 executor 手写退款分支。
+- 高风险工具通过 MCP interceptor 触发 `interrupt()`，当前 `refund_order` 走工具级 HITL，恢复链路统一使用 `Command(resume=...)`。
 - 线程、消息、运行读模型写入 MySQL `livepass_agents`。
 - 当前消息内容块仅支持 `text`；`image/file` 仅保留协议扩展位，暂不接受实际输入。
 - Redis ownership 已切换为 `threadId -> userId`。

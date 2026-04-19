@@ -5,7 +5,7 @@ from typing import Any, Literal
 from langgraph.graph import MessagesState
 from typing_extensions import NotRequired, TypedDict
 
-Intent = Literal["activity", "order", "refund", "handoff", "knowledge", "unknown"]
+Intent = Literal["activity", "order", "unknown"]
 
 
 class ConversationState(MessagesState):
@@ -13,22 +13,14 @@ class ConversationState(MessagesState):
     selected_program_id: NotRequired[str | None]
     selected_order_id: NotRequired[str | None]
     current_user_id: NotRequired[int | None]
-    last_refund_preview: NotRequired[dict[str, Any] | None]
-    refund_preview: NotRequired[dict[str, Any] | None]
-    pending_human_action: NotRequired[dict[str, Any] | None]
-    human_decision: NotRequired[dict[str, Any] | None]
-    refund_result: NotRequired[dict[str, Any] | None]
-    refund_rejected: NotRequired[bool]
-    need_handoff: NotRequired[bool]
 
     route: NotRequired[Intent | None]
     coordinator_action: NotRequired[Literal["respond", "clarify", "delegate"]]
-    next_agent: NotRequired[Literal["activity", "order", "refund", "handoff", "knowledge", "finish"]]
+    next_agent: NotRequired[Literal["activity", "order", "finish"]]
     business_ready: NotRequired[bool]
     delegated: NotRequired[bool]
     reply: NotRequired[str]
     specialist_result: NotRequired[dict[str, Any] | None]
-    status: NotRequired[str]
     trace: NotRequired[list[str]]
     current_agent: NotRequired[str]
     final_reply: NotRequired[str]
