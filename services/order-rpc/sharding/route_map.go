@@ -75,13 +75,6 @@ func NewRouteMap(version string, entries []RouteEntry) (*RouteMap, error) {
 	return snapshot, nil
 }
 
-func (m *RouteMap) CurrentVersion() string {
-	if m == nil {
-		return ""
-	}
-	return m.currentVersion
-}
-
 func (m *RouteMap) RouteByLogicSlot(logicSlot int) (Route, error) {
 	return m.RouteByVersionAndSlot(m.currentVersion, logicSlot)
 }
