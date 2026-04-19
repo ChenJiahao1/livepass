@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	OrderRpc_CreatePurchaseToken_FullMethodName              = "/order.OrderRpc/CreatePurchaseToken"
 	OrderRpc_CreateOrder_FullMethodName                      = "/order.OrderRpc/CreateOrder"
+	OrderRpc_PerfCreateOrder_FullMethodName                  = "/order.OrderRpc/PerfCreateOrder"
 	OrderRpc_PollOrderProgress_FullMethodName                = "/order.OrderRpc/PollOrderProgress"
 	OrderRpc_ListOrders_FullMethodName                       = "/order.OrderRpc/ListOrders"
 	OrderRpc_GetOrder_FullMethodName                         = "/order.OrderRpc/GetOrder"
@@ -43,6 +44,7 @@ const (
 type OrderRpcClient interface {
 	CreatePurchaseToken(ctx context.Context, in *CreatePurchaseTokenReq, opts ...grpc.CallOption) (*CreatePurchaseTokenResp, error)
 	CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
+	PerfCreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*PerfCreateOrderResp, error)
 	PollOrderProgress(ctx context.Context, in *PollOrderProgressReq, opts ...grpc.CallOption) (*PollOrderProgressResp, error)
 	ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 	GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
@@ -81,6 +83,16 @@ func (c *orderRpcClient) CreateOrder(ctx context.Context, in *CreateOrderReq, op
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateOrderResp)
 	err := c.cc.Invoke(ctx, OrderRpc_CreateOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderRpcClient) PerfCreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*PerfCreateOrderResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PerfCreateOrderResp)
+	err := c.cc.Invoke(ctx, OrderRpc_PerfCreateOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -233,6 +245,7 @@ func (c *orderRpcClient) PrimeRushRuntime(ctx context.Context, in *PrimeRushRunt
 type OrderRpcServer interface {
 	CreatePurchaseToken(context.Context, *CreatePurchaseTokenReq) (*CreatePurchaseTokenResp, error)
 	CreateOrder(context.Context, *CreateOrderReq) (*CreateOrderResp, error)
+	PerfCreateOrder(context.Context, *CreateOrderReq) (*PerfCreateOrderResp, error)
 	PollOrderProgress(context.Context, *PollOrderProgressReq) (*PollOrderProgressResp, error)
 	ListOrders(context.Context, *ListOrdersReq) (*ListOrdersResp, error)
 	GetOrder(context.Context, *GetOrderReq) (*OrderDetailInfo, error)
@@ -262,6 +275,9 @@ func (UnimplementedOrderRpcServer) CreatePurchaseToken(context.Context, *CreateP
 }
 func (UnimplementedOrderRpcServer) CreateOrder(context.Context, *CreateOrderReq) (*CreateOrderResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateOrder not implemented")
+}
+func (UnimplementedOrderRpcServer) PerfCreateOrder(context.Context, *CreateOrderReq) (*PerfCreateOrderResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method PerfCreateOrder not implemented")
 }
 func (UnimplementedOrderRpcServer) PollOrderProgress(context.Context, *PollOrderProgressReq) (*PollOrderProgressResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method PollOrderProgress not implemented")
@@ -358,6 +374,24 @@ func _OrderRpc_CreateOrder_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OrderRpcServer).CreateOrder(ctx, req.(*CreateOrderReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderRpc_PerfCreateOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateOrderReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderRpcServer).PerfCreateOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderRpc_PerfCreateOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderRpcServer).PerfCreateOrder(ctx, req.(*CreateOrderReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -628,6 +662,10 @@ var OrderRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateOrder",
 			Handler:    _OrderRpc_CreateOrder_Handler,
+		},
+		{
+			MethodName: "PerfCreateOrder",
+			Handler:    _OrderRpc_PerfCreateOrder_Handler,
 		},
 		{
 			MethodName: "PollOrderProgress",

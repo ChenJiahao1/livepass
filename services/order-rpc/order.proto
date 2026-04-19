@@ -31,6 +31,18 @@ message CreateOrderResp {
   int64 showTimeId = 2;
 }
 
+message PerfCreateOrderResp {
+  int64 orderNumber = 1;
+  int64 showTimeId = 2;
+  string result = 3;
+  string reasonCode = 4;
+  int64 rejectCode = 5;
+  string grpcCode = 6;
+  int64 purchaseTokenVerifyMs = 7;
+  int64 redisAdmitMs = 8;
+  int64 asyncDispatchScheduleMs = 9;
+}
+
 message PollOrderProgressReq {
   int64 userId = 1;
   int64 orderNumber = 2;
@@ -234,6 +246,7 @@ message PrimeRushRuntimeReq {
 service OrderRpc {
   rpc CreatePurchaseToken(CreatePurchaseTokenReq) returns (CreatePurchaseTokenResp);
   rpc CreateOrder(CreateOrderReq) returns (CreateOrderResp);
+  rpc PerfCreateOrder(CreateOrderReq) returns (PerfCreateOrderResp);
   rpc PollOrderProgress(PollOrderProgressReq) returns (PollOrderProgressResp);
   rpc ListOrders(ListOrdersReq) returns (ListOrdersResp);
   rpc GetOrder(GetOrderReq) returns (OrderDetailInfo);

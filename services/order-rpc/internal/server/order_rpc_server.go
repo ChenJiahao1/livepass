@@ -33,6 +33,11 @@ func (s *OrderRpcServer) CreateOrder(ctx context.Context, in *pb.CreateOrderReq)
 	return l.CreateOrder(in)
 }
 
+func (s *OrderRpcServer) PerfCreateOrder(ctx context.Context, in *pb.CreateOrderReq) (*pb.PerfCreateOrderResp, error) {
+	l := logic.NewPerfCreateOrderLogic(ctx, s.svcCtx)
+	return l.PerfCreateOrder(in)
+}
+
 func (s *OrderRpcServer) PollOrderProgress(ctx context.Context, in *pb.PollOrderProgressReq) (*pb.PollOrderProgressResp, error) {
 	l := logic.NewPollOrderProgressLogic(ctx, s.svcCtx)
 	return l.PollOrderProgress(in)

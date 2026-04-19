@@ -39,6 +39,7 @@ type (
 	PayCheckResp                         = pb.PayCheckResp
 	PayOrderReq                          = pb.PayOrderReq
 	PayOrderResp                         = pb.PayOrderResp
+	PerfCreateOrderResp                  = pb.PerfCreateOrderResp
 	PollOrderProgressReq                 = pb.PollOrderProgressReq
 	PollOrderProgressResp                = pb.PollOrderProgressResp
 	PreviewRefundOrderReq                = pb.PreviewRefundOrderReq
@@ -50,6 +51,7 @@ type (
 	OrderRpc interface {
 		CreatePurchaseToken(ctx context.Context, in *CreatePurchaseTokenReq, opts ...grpc.CallOption) (*CreatePurchaseTokenResp, error)
 		CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
+		PerfCreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*PerfCreateOrderResp, error)
 		PollOrderProgress(ctx context.Context, in *PollOrderProgressReq, opts ...grpc.CallOption) (*PollOrderProgressResp, error)
 		ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 		GetOrder(ctx context.Context, in *GetOrderReq, opts ...grpc.CallOption) (*OrderDetailInfo, error)
@@ -85,6 +87,11 @@ func (m *defaultOrderRpc) CreatePurchaseToken(ctx context.Context, in *CreatePur
 func (m *defaultOrderRpc) CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error) {
 	client := pb.NewOrderRpcClient(m.cli.Conn())
 	return client.CreateOrder(ctx, in, opts...)
+}
+
+func (m *defaultOrderRpc) PerfCreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*PerfCreateOrderResp, error) {
+	client := pb.NewOrderRpcClient(m.cli.Conn())
+	return client.PerfCreateOrder(ctx, in, opts...)
 }
 
 func (m *defaultOrderRpc) PollOrderProgress(ctx context.Context, in *PollOrderProgressReq, opts ...grpc.CallOption) (*PollOrderProgressResp, error) {

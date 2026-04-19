@@ -93,6 +93,59 @@ func TestCreateOrderRushReturnsPreAllocatedOrderNumberAndDoesNotFreezeSeatsInlin
 	}
 }
 
+func TestPerfCreateOrderReturnsPreAllocatedOrderNumberAndStageMetrics(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+
+	producer, ok := svcCtx.OrderCreateProducer.(*fakeOrderCreateProducer)
+	if !ok {
+		t.Fatalf("expected fake order create producer, got %T", svcCtx.OrderCreateProducer)
+	}
+
+	ctx := context.Background()
+	userID, programID, ticketCategoryID, viewerIDs, orderNumbers := nextRushTestIDs()
+	showTimeID := programID + 110
+	claims := rush.PurchaseTokenClaims{
+		OrderNumber:      orderNumbers[0],
+		UserID:           userID,
+		ProgramID:        programID,
+		ShowTimeID:       showTimeID,
+		TicketCategoryID: ticketCategoryID,
+		TicketUserIDs:    viewerIDs[:1],
+		TicketCount:      1,
+		SaleWindowEndAt:  time.Now().Add(30 * time.Minute).Unix(),
+		ShowEndAt:        time.Now().Add(2 * time.Hour).Unix(),
+		DistributionMode: "express",
+		TakeTicketMode:   "paper",
+		ExpireAt:         time.Now().Add(2 * time.Minute).Unix(),
+	}
+	token := mustIssueRushPurchaseToken(t, svcCtx, claims)
+	if err := svcCtx.AttemptStore.SetQuotaAvailable(ctx, claims.ShowTimeID, claims.TicketCategoryID, 4); err != nil {
+		t.Fatalf("SetQuotaAvailable() error = %v", err)
+	}
+
+	resp, err := logicpkg.NewPerfCreateOrderLogic(ctx, svcCtx).PerfCreateOrder(&pb.CreateOrderReq{
+		UserId:        claims.UserID,
+		PurchaseToken: token,
+	})
+	if err != nil {
+		t.Fatalf("PerfCreateOrder() error = %v", err)
+	}
+	if resp.GetOrderNumber() != claims.OrderNumber {
+		t.Fatalf("expected order number %d, got %d", claims.OrderNumber, resp.GetOrderNumber())
+	}
+	if resp.GetShowTimeId() != claims.ShowTimeID {
+		t.Fatalf("expected show time %d, got %d", claims.ShowTimeID, resp.GetShowTimeId())
+	}
+	if resp.GetResult() != "success" || resp.GetReasonCode() != "async_dispatch_scheduled" {
+		t.Fatalf("unexpected perf result metadata: %+v", resp)
+	}
+	if resp.GetPurchaseTokenVerifyMs() < 0 || resp.GetRedisAdmitMs() < 0 || resp.GetAsyncDispatchScheduleMs() < 0 {
+		t.Fatalf("expected non-negative stage metrics: %+v", resp)
+	}
+	waitOrderCreateSendCalls(t, producer, 1)
+}
+
 func TestCreateOrderRushDoesNotEnqueueVerifyTaskAfterAdmission(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
