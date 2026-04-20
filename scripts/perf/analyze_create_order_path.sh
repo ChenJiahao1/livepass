@@ -18,7 +18,6 @@ MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-livepass_order}"
 
 [[ -n "${RESULT_DIR}" ]] || perf_fail "usage: bash scripts/perf/analyze_create_order_path.sh <result-dir>"
 [[ -f "${RESULT_DIR}/summary.json" ]] || perf_fail "summary not found: ${RESULT_DIR}/summary.json"
-[[ -f "${RESULT_DIR}/timing.json" ]] || perf_fail "timing not found: ${RESULT_DIR}/timing.json"
 
 perf_require_cmd jq
 perf_require_cmd python3
@@ -43,20 +42,6 @@ sum_regex_tables() {
 
   printf '%s\n' "${total}"
 }
-
-summary_count="$(jq '.createSuccessCount + .businessFailureCount + .inventoryInsufficientCount' "${RESULT_DIR}/summary.json")"
-
-jq -n \
-  --argjson count "${summary_count}" \
-  --slurpfile timing "${RESULT_DIR}/timing.json" \
-  '{
-    count: $count,
-    startEpoch: $timing[0].startEpoch,
-    endEpoch: $timing[0].endEpoch,
-    elapsedSeconds: $timing[0].elapsedSeconds,
-    qpsByClientElapsed: (if $timing[0].elapsedSeconds > 0 then ($count / $timing[0].elapsedSeconds) else 0 end)
-  }' \
-  > "${RESULT_DIR}/client_qps.json"
 
 if [[ -f "${ORDER_RPC_LOG_FILE}" ]]; then
   python3 - "${ORDER_RPC_LOG_FILE}" "${RESULT_DIR}/order_rpc_qps.json" <<'PY'

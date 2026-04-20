@@ -99,17 +99,9 @@ main() {
   OUTPUT_DIR="${DATASET_DIR}" \
   bash "${ROOT_DIR}/scripts/perf/prepare_rush_perf_dataset.sh"
 
-  local start_iso start_epoch
-  start_iso="$(date --iso-8601=seconds)"
-  start_epoch="$(date +%s.%N)"
-
   perf_log "run gRPC PerfCreateOrder perf"
   (
-    local end_iso end_epoch
-
     cd "${RESULT_DIR}"
-    printf 'start_iso=%s\n' "${start_iso}"
-    printf 'start_epoch=%s\n' "${start_epoch}"
 
     DATASET_PATH="${DATASET_DIR}/users.json" \
     ORDER_RPC_TARGET="${ORDER_RPC_TARGET}" \
@@ -117,17 +109,6 @@ main() {
     ITERATIONS="${ITERATIONS}" \
     MAX_DURATION="${MAX_DURATION}" \
     k6 run "${ROOT_DIR}/tests/perf/rush_create_order_rpc.js"
-
-    end_iso="$(date --iso-8601=seconds)"
-    end_epoch="$(date +%s.%N)"
-    printf 'end_iso=%s\n' "${end_iso}"
-    printf 'end_epoch=%s\n' "${end_epoch}"
-
-    jq -n \
-      --argjson startEpoch "${start_epoch}" \
-      --argjson endEpoch "${end_epoch}" \
-      '{startEpoch: $startEpoch, endEpoch: $endEpoch, elapsedSeconds: ($endEpoch - $startEpoch)}' \
-      > "${RESULT_DIR}/timing.json"
   ) | tee "${RESULT_DIR}/k6.stdout.log"
 
   bash "${ROOT_DIR}/scripts/perf/analyze_create_order_path.sh" "${RESULT_DIR}"

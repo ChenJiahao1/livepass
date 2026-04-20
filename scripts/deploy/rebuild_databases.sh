@@ -19,6 +19,7 @@ set -euo pipefail
 #   KAFKA_CONTAINER              Kafka 容器名，默认 docker-compose-kafka-1
 #   KAFKA_TOPICS                 需要重建的 Topic，逗号分隔
 #   KAFKA_TOPIC_PARTITIONS       Topic 分区数，默认 5
+#   KAFKA_TOPIC_DELETE_TIMEOUT_SECONDS  等待 Topic 删除完成的秒数，默认 30
 #
 # 常用示例：
 #   bash scripts/deploy/rebuild_databases.sh
@@ -44,6 +45,7 @@ KAFKA_CONTAINER="${KAFKA_CONTAINER:-docker-compose-kafka-1}"
 KAFKA_TOPICS="${KAFKA_TOPICS:-ticketing.attempt.command.v1}"
 KAFKA_TOPIC_PARTITIONS="${KAFKA_TOPIC_PARTITIONS:-5}"
 KAFKA_REPLICATION_FACTOR="${KAFKA_REPLICATION_FACTOR:-1}"
+KAFKA_TOPIC_DELETE_TIMEOUT_SECONDS="${KAFKA_TOPIC_DELETE_TIMEOUT_SECONDS:-30}"
 
 log() {
   printf '[rebuild-databases] %s\n' "$*"
@@ -108,6 +110,27 @@ flush_redis() {
   docker exec "${REDIS_CONTAINER}" redis-cli -n "${REDIS_DB}" FLUSHDB >/dev/null
 }
 
+kafka_topic_exists() {
+  local topic="$1"
+
+  docker exec "${KAFKA_CONTAINER}" /opt/kafka/bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list \
+    | grep -Fx "${topic}" >/dev/null
+}
+
+wait_for_kafka_topic_deleted() {
+  local topic="$1"
+  local i
+
+  for ((i = 0; i < KAFKA_TOPIC_DELETE_TIMEOUT_SECONDS; i++)); do
+    if ! kafka_topic_exists "${topic}"; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  fail "kafka topic delete timeout: ${topic}"
+}
+
 recreate_kafka_topics() {
   local raw_topic topic
 
@@ -118,8 +141,9 @@ recreate_kafka_topics() {
 
     log "recreate kafka topic: ${topic}"
     docker exec "${KAFKA_CONTAINER}" /opt/kafka/bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --delete --topic "${topic}" >/dev/null 2>&1 || true
-    sleep 1
+    wait_for_kafka_topic_deleted "${topic}"
     docker exec "${KAFKA_CONTAINER}" /opt/kafka/bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --create --if-not-exists --topic "${topic}" --partitions "${KAFKA_TOPIC_PARTITIONS}" --replication-factor "${KAFKA_REPLICATION_FACTOR}" >/dev/null
+    docker exec "${KAFKA_CONTAINER}" /opt/kafka/bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --describe --topic "${topic}" >/dev/null
   done
 }
 
