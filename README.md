@@ -351,4 +351,4 @@ JWT=<user-jwt> bash scripts/acceptance/agent_threads.sh
   - avg = 217.0165 ms，见 tmp/perf/results/rush-rpc-2000-20260419132812/summary.json:12
   - p95 = 403 ms，见 tmp/perf/results/rush-rpc-2000-20260419132812/summary.json:10
   - p99 = 419.03 ms，见 tmp/perf/results/rush-rpc-2000-20260419132812/summary.json:11
-  - window_qps = 5347.5936，见 tmp/perf/results/rush-rpc-2000-20260419132812/order_rpc_qps.json:6
+  - client_request_window_qps = 6349.2063，见 tmp/perf/results/rush-rpc-2000-20260420103837/client_request_window_qps.json:1

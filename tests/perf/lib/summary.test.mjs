@@ -71,3 +71,37 @@ test('handlePerfSummary 在无 poll 指标时仍输出 create 聚合', () => {
     asyncDispatchScheduleP99: 9,
   });
 });
+
+test('handlePerfSummary 输出客户端请求窗口 QPS', () => {
+  const result = handlePerfSummary({
+    metrics: {
+      create_order_duration: {
+        values: {
+          count: 2,
+          avg: 50,
+          'p(95)': 60,
+          'p(99)': 70,
+        },
+      },
+      client_request_start_epoch_ms: {
+        values: {
+          min: 1000,
+        },
+      },
+      client_response_end_epoch_ms: {
+        values: {
+          max: 1500,
+        },
+      },
+    },
+  }, { datasetSize: 2 });
+
+  const clientQps = JSON.parse(result['client_request_window_qps.json']);
+  assert.deepEqual(clientQps, {
+    count: 2,
+    firstRequestStartEpochMs: 1000,
+    lastResponseEndEpochMs: 1500,
+    requestWindowSeconds: 0.5,
+    qpsByClientRequestWindow: 4,
+  });
+});

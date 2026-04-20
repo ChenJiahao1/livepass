@@ -7,7 +7,6 @@ source "${ROOT_DIR}/scripts/perf/lib/common.sh"
 source "${ROOT_DIR}/scripts/perf/lib/mysql.sh"
 
 RESULT_DIR="${1:-}"
-ORDER_RPC_LOG_FILE="${ORDER_RPC_LOG_FILE:-${ROOT_DIR}/.codex/runlogs/order-rpc.log}"
 SHOW_TIME_ID="${SHOW_TIME_ID:-30001}"
 TICKET_CATEGORY_ID="${TICKET_CATEGORY_ID:-40001}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-docker-compose-mysql-1}"
@@ -20,7 +19,6 @@ MYSQL_DB_ORDER="${MYSQL_DB_ORDER:-livepass_order}"
 [[ -f "${RESULT_DIR}/summary.json" ]] || perf_fail "summary not found: ${RESULT_DIR}/summary.json"
 
 perf_require_cmd jq
-perf_require_cmd python3
 
 sum_regex_tables() {
   local db="$1"
@@ -42,66 +40,6 @@ sum_regex_tables() {
 
   printf '%s\n' "${total}"
 }
-
-if [[ -f "${ORDER_RPC_LOG_FILE}" ]]; then
-  python3 - "${ORDER_RPC_LOG_FILE}" "${RESULT_DIR}/order_rpc_qps.json" <<'PY'
-import json
-import sys
-from datetime import datetime
-
-log_file = sys.argv[1]
-output_file = sys.argv[2]
-target = "create order perf stage"
-
-timestamps = []
-with open(log_file, "r", encoding="utf-8") as fh:
-    for line in fh:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            item = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if item.get("content") != target:
-            continue
-        ts = item.get("@timestamp")
-        if not ts:
-            continue
-        timestamps.append(datetime.fromisoformat(ts))
-
-payload = {
-    "count": len(timestamps),
-    "firstRequestAt": None,
-    "lastResponseAt": None,
-    "responseWindowSeconds": 0,
-    "qpsByResponseWindow": 0,
-}
-
-if timestamps:
-    first_ts = min(timestamps)
-    last_ts = max(timestamps)
-    elapsed = (last_ts - first_ts).total_seconds()
-    payload.update({
-        "firstRequestAt": first_ts.isoformat(),
-        "lastResponseAt": last_ts.isoformat(),
-        "responseWindowSeconds": elapsed,
-        "qpsByResponseWindow": (len(timestamps) / elapsed) if elapsed > 0 else len(timestamps),
-    })
-
-with open(output_file, "w", encoding="utf-8") as fh:
-    json.dump(payload, fh, ensure_ascii=False, indent=2)
-    fh.write("\n")
-PY
-else
-  jq -n \
-    '{count: 0, firstRequestAt: null, lastResponseAt: null, responseWindowSeconds: 0, qpsByResponseWindow: 0}' \
-    > "${RESULT_DIR}/order_rpc_qps.json"
-fi
-
-jq -n \
-  '{count: 0, firstRequestAt: null, firstResponseAt: null, lastResponseAt: null, requestToLastResponseSeconds: 0, responseWindowSeconds: 0, qpsByRequestToLastResponse: 0, qpsByResponseWindow: 0}' \
-  > "${RESULT_DIR}/gateway_qps.json"
 
 seat_available="$(perf_mysql_query "${MYSQL_DB_PROGRAM}" "SELECT COUNT(*) FROM d_seat WHERE show_time_id = ${SHOW_TIME_ID} AND ticket_category_id = ${TICKET_CATEGORY_ID} AND seat_status = 1 AND status = 1" || echo 0)"
 seat_frozen="$(perf_mysql_query "${MYSQL_DB_PROGRAM}" "SELECT COUNT(*) FROM d_seat WHERE show_time_id = ${SHOW_TIME_ID} AND ticket_category_id = ${TICKET_CATEGORY_ID} AND seat_status = 2 AND status = 1" || echo 0)"

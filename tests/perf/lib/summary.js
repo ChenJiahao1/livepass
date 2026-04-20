@@ -22,6 +22,20 @@ function metricTrend(data, name, field) {
   return data.metrics[name].values[field] || 0;
 }
 
+function buildClientRequestWindowQps(data, count) {
+  const firstRequestStartEpochMs = metricTrend(data, 'client_request_start_epoch_ms', 'min');
+  const lastResponseEndEpochMs = metricTrend(data, 'client_response_end_epoch_ms', 'max');
+  const requestWindowSeconds = (lastResponseEndEpochMs - firstRequestStartEpochMs) / 1000;
+
+  return {
+    count,
+    firstRequestStartEpochMs,
+    lastResponseEndEpochMs,
+    requestWindowSeconds: requestWindowSeconds > 0 ? requestWindowSeconds : 0,
+    qpsByClientRequestWindow: requestWindowSeconds > 0 ? count / requestWindowSeconds : 0,
+  };
+}
+
 export function handlePerfSummary(data, context = {}) {
   const createSuccessCount = metricCount(data, 'create_order_success_count');
   const pollSuccessCount = metricCount(data, 'poll_success_count');
@@ -55,8 +69,18 @@ export function handlePerfSummary(data, context = {}) {
     asyncDispatchScheduleP99: metricTrend(data, 'async_dispatch_schedule_duration', 'p(99)'),
   };
 
-  return {
+  const result = {
     stdout: `${JSON.stringify(summary, null, 2)}\n`,
     'summary.json': JSON.stringify(summary, null, 2),
   };
+
+  if (
+    data.metrics.client_request_start_epoch_ms &&
+    data.metrics.client_response_end_epoch_ms
+  ) {
+    const clientRequestWindowQps = buildClientRequestWindowQps(data, createTotal);
+    result['client_request_window_qps.json'] = JSON.stringify(clientRequestWindowQps, null, 2);
+  }
+
+  return result;
 }

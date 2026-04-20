@@ -13,7 +13,7 @@ const PROTO_FILE = __ENV.PROTO_FILE || 'services/order-rpc/order.proto';
 const DATASET = buildGrpcDataset(loadDataset(DATASET_PATH));
 
 export const options = {
-  summaryTrendStats: ['avg', 'p(95)', 'p(99)'],
+  summaryTrendStats: ['avg', 'min', 'max', 'p(95)', 'p(99)'],
   scenarios: {
     rush_create_order_rpc: {
       executor: 'shared-iterations',
@@ -33,6 +33,8 @@ client.load([PROTO_IMPORT_PATH], PROTO_FILE);
 let connected = false;
 
 const createOrderDuration = new Trend('create_order_duration');
+const clientRequestStartEpochMs = new Trend('client_request_start_epoch_ms');
+const clientResponseEndEpochMs = new Trend('client_response_end_epoch_ms');
 const purchaseTokenVerifyDuration = new Trend('purchase_token_verify_duration');
 const redisAdmitDuration = new Trend('redis_admit_duration');
 const asyncDispatchScheduleDuration = new Trend('async_dispatch_schedule_duration');
@@ -71,12 +73,15 @@ export default function () {
 
   const row = DATASET[exec.scenario.iterationInTest % DATASET.length];
   const startedAt = Date.now();
+  clientRequestStartEpochMs.add(startedAt);
   const response = client.invoke('order.OrderRpc/PerfCreateOrder', {
     userId: row.userId,
     purchaseToken: row.purchaseToken,
   });
+  const endedAt = Date.now();
+  clientResponseEndEpochMs.add(endedAt);
 
-  createOrderDuration.add(Date.now() - startedAt);
+  createOrderDuration.add(endedAt - startedAt);
 
   if (response.status !== grpc.StatusOK) {
     createOrderSuccessRate.add(false);

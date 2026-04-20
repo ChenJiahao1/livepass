@@ -43,10 +43,17 @@ assert_contains "${SCRIPT_PATH}" 'final_state_immediate.json'
 assert_contains "${SCRIPT_PATH}" 'wait_for_final_state_converged'
 assert_not_contains "${SCRIPT_PATH}" 'timing.json'
 assert_contains "tests/perf/rush_create_order_rpc.js" "order.OrderRpc/PerfCreateOrder"
+assert_contains "tests/perf/rush_create_order_rpc.js" "client_request_start_epoch_ms"
+assert_contains "tests/perf/rush_create_order_rpc.js" "client_response_end_epoch_ms"
+assert_contains "tests/perf/rush_create_order_rpc.js" "summaryTrendStats: ['avg', 'min', 'max', 'p(95)', 'p(99)']"
+assert_contains "tests/perf/lib/summary.js" "client_request_window_qps.json"
 assert_not_contains "${ANALYZE_SCRIPT_PATH}" 'timing not found'
 assert_not_contains "${ANALYZE_SCRIPT_PATH}" 'timing.json'
 assert_not_contains "${ANALYZE_SCRIPT_PATH}" 'client_qps.json'
 assert_not_contains "${ANALYZE_SCRIPT_PATH}" 'qpsByClientElapsed'
+assert_not_contains "${ANALYZE_SCRIPT_PATH}" 'order_rpc_qps.json'
+assert_not_contains "${ANALYZE_SCRIPT_PATH}" 'qpsByResponseWindow'
+assert_not_contains "${ANALYZE_SCRIPT_PATH}" 'gateway_qps.json'
 assert_contains "${ANALYZE_SCRIPT_PATH}" "'^d_order_[0-9]+$'"
 assert_contains "${ANALYZE_SCRIPT_PATH}" "'^d_order_ticket_user_[0-9]+$'"
 assert_contains "${ANALYZE_SCRIPT_PATH}" "'^d_order_user_guard$'"
