@@ -15,7 +15,7 @@ set -euo pipefail
 #   --import-sql      启动前强制重新导入 SQL
 #   --skip-agents     跳过 MCP 与 agents
 #   --only-agents     只启动 agents 相关链路
-#   --force-restart   先停止脚本管理的服务，再重新启动
+#   --force-restart   先停止脚本管理的服务，再重新启动，并重置对应服务日志
 #   --detach          启动完成后立即退出，不保活父脚本
 #   --skip-infra-check 跳过基础设施拉起与检查
 #   --perf            使用压测配置启动已有 perf 配置的 Go 服务
@@ -110,7 +110,7 @@ Options:
   --skip-agents       do not start order MCP server and agents service
   --skip-infra-check  skip docker infrastructure bootstrap and checks
   --only-agents       only start agents-related services and dependencies
-  --force-restart     stop managed services first, then start again
+  --force-restart     stop managed services first, then start again with fresh service logs
   --detach            exit after startup, do not keep supervisor alive
   --perf              start Go services with perf yaml configs when available
   -h, --help          show this help message
@@ -381,6 +381,13 @@ run_logged_command() {
   fi
 }
 
+truncate_log_file() {
+  local log_file="$1"
+
+  mkdir -p "$(dirname "${log_file}")"
+  : > "${log_file}"
+}
+
 stop_service() {
   local name="$1"
   local port="$2"
@@ -495,6 +502,7 @@ start_service() {
   fi
 
   log "starting ${name}"
+  truncate_log_file "${log_file}"
   nohup bash -lc "cd '${REPO_ROOT}' && ${cmd}" >"${log_file}" 2>&1 < /dev/null &
   pid=$!
   printf '%s\n' "${pid}" > "${pid_file}"
