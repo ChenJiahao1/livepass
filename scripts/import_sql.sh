@@ -34,13 +34,15 @@ PROGRAM_SQL_FILES=(
   "sql/program/dev_seed.sql"
 )
 
+# `sql/order/sharding/` 仅放真正分表 schema；
+# `sql/order/` 放未分表、但跟随订单分片库部署的公共表。
 ORDER_SQL_FILES=(
   "sql/order/sharding/d_order_shards.sql"
   "sql/order/sharding/d_order_ticket_user_shards.sql"
-  "sql/order/sharding/d_order_user_guard.sql"
-  "sql/order/sharding/d_order_viewer_guard.sql"
-  "sql/order/sharding/d_order_seat_guard.sql"
-  "sql/order/sharding/d_delay_task_outbox.sql"
+  "sql/order/d_order_user_guard.sql"
+  "sql/order/d_order_viewer_guard.sql"
+  "sql/order/d_order_seat_guard.sql"
+  "sql/order/d_delay_task_outbox.sql"
 )
 
 PAY_SQL_FILES=(

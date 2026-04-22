@@ -29,7 +29,7 @@ main() {
   seat_sold_count="$(perf_mysql_query "${MYSQL_DB_PROGRAM}" "SELECT COUNT(*) FROM d_seat WHERE show_time_id = ${SHOW_TIME_ID} AND ticket_category_id = ${TICKET_CATEGORY_ID} AND seat_status = 3 AND status = 1")"
   ticket_category_total="$(perf_mysql_query "${MYSQL_DB_PROGRAM}" "SELECT total_number FROM d_ticket_category WHERE id = ${TICKET_CATEGORY_ID} AND show_time_id = ${SHOW_TIME_ID} AND status = 1 LIMIT 1")"
   ticket_category_remain="$(perf_mysql_query "${MYSQL_DB_PROGRAM}" "SELECT remain_number FROM d_ticket_category WHERE id = ${TICKET_CATEGORY_ID} AND show_time_id = ${SHOW_TIME_ID} AND status = 1 LIMIT 1")"
-  seat_guard_count="$(perf_mysql_sum_matching_tables "${MYSQL_DB_ORDER}" "d_order_seat_guard%" "show_time_id = ${SHOW_TIME_ID} AND status = 1")"
+  seat_guard_count="$(perf_mysql_sum_matching_tables "${MYSQL_DB_ORDER}" "d_order_seat_guard" "show_time_id = ${SHOW_TIME_ID} AND status = 1")"
   order_ticket_count="$(perf_mysql_sum_matching_tables "${MYSQL_DB_ORDER}" "d_order_ticket_user%" "show_time_id = ${SHOW_TIME_ID} AND status = 1")"
   expected_sold_count=$((ticket_category_total - ticket_category_remain))
 

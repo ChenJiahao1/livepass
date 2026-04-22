@@ -210,7 +210,7 @@ func resetOrderCloseDelayTaskOutbox(t *testing.T) {
 	db := openOrderCloseTestDB(t)
 	defer db.Close()
 
-	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "sql/order/sharding/d_delay_task_outbox.sql"))
+	content, err := os.ReadFile(filepath.Join(orderCloseProjectRoot(t), "sql/order/d_delay_task_outbox.sql"))
 	if err != nil {
 		t.Fatalf("ReadFile(d_delay_task_outbox.sql) error = %v", err)
 	}

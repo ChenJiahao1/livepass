@@ -219,9 +219,9 @@ cleanup_order_runtime() {
   local patterns=(
     '^d_order(_[0-9]+)?$'
     '^d_order_ticket_user(_[0-9]+)?$'
-    '^d_order_user_guard(_[0-9]+)?$'
-    '^d_order_viewer_guard(_[0-9]+)?$'
-    '^d_order_seat_guard(_[0-9]+)?$'
+    '^d_order_user_guard$'
+    '^d_order_viewer_guard$'
+    '^d_order_seat_guard$'
   )
   local pattern
 

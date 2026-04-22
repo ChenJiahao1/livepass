@@ -171,6 +171,11 @@ MYSQL_DB_AGENTS=livepass_agents \
 bash scripts/import_sql.sh
 ```
 
+其中 `sql/order` 目录约定为：
+
+- `sql/order/sharding/`：仅存放真正按表后缀分表的 schema，例如 `d_order_*`、`d_order_ticket_user_*`
+- `sql/order/`：存放未分表、但随订单分片库一并部署的 schema，例如 `d_order_user_guard`、`d_order_viewer_guard`、`d_order_seat_guard`、`d_delay_task_outbox`
+
 ## 运行测试
 
 Go 服务与作业：
@@ -322,7 +327,7 @@ bash scripts/perf/verify_rush_perf_result.sh
 - 票档总库存
 - 票档剩余库存
 - `seat_status = 3` 的已售座位数
-- `d_order_seat_guard*` 聚合数量
+- `d_order_seat_guard` 数量
 - `d_order_ticket_user*` 聚合数量
 
 可执行脚本：

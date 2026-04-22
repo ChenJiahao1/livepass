@@ -405,9 +405,9 @@ func resetOrderRepositoryStateForDataSources(t *testing.T, dataSources ...string
 		for _, relativePath := range []string{
 			"sql/order/sharding/d_order_shards.sql",
 			"sql/order/sharding/d_order_ticket_user_shards.sql",
-			"sql/order/sharding/d_order_user_guard.sql",
-			"sql/order/sharding/d_order_viewer_guard.sql",
-			"sql/order/sharding/d_order_seat_guard.sql",
+			"sql/order/d_order_user_guard.sql",
+			"sql/order/d_order_viewer_guard.sql",
+			"sql/order/d_order_seat_guard.sql",
 		} {
 			execRepositorySQLFile(t, db, relativePath)
 		}
