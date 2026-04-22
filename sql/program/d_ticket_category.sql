@@ -1,16 +1,16 @@
 DROP TABLE IF EXISTS `d_ticket_category`;
 CREATE TABLE `d_ticket_category` (
-  `id` bigint NOT NULL COMMENT 'primary key',
-  `program_id` bigint NOT NULL COMMENT 'program id',
-  `show_time_id` bigint NOT NULL COMMENT 'show time id',
-  `introduce` varchar(256) NOT NULL COMMENT 'ticket category introduction',
-  `price` decimal(10,0) NOT NULL COMMENT 'price',
-  `total_number` bigint NOT NULL COMMENT 'total ticket number',
-  `remain_number` bigint NOT NULL COMMENT 'remaining ticket number',
-  `create_time` datetime NOT NULL COMMENT 'created at',
-  `edit_time` datetime NOT NULL COMMENT 'updated at',
-  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 active, 0 deleted',
+  `id` bigint NOT NULL COMMENT '主键',
+  `program_id` bigint NOT NULL COMMENT '节目编号',
+  `show_time_id` bigint NOT NULL COMMENT '场次编号',
+  `introduce` varchar(256) NOT NULL COMMENT '票档说明',
+  `price` decimal(10,0) NOT NULL COMMENT '票档价格',
+  `total_number` bigint NOT NULL COMMENT '票档总票数',
+  `remain_number` bigint NOT NULL COMMENT '票档余票数',
+  `create_time` datetime NOT NULL COMMENT '创建时间',
+  `edit_time` datetime NOT NULL COMMENT '更新时间',
+  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '数据状态：1正常 0删除',
   PRIMARY KEY (`id`),
   KEY `idx_program_id` (`program_id`),
   KEY `idx_show_time_id` (`show_time_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='ticket categories';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='票档表';

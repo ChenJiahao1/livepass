@@ -1,12 +1,15 @@
+-- 初始化节目分类基础数据。
 INSERT INTO `d_program_category` (`id`, `parent_id`, `name`, `type`, `create_time`, `edit_time`, `status`) VALUES
   (1, 0, '演唱会', 1, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),
   (2, 0, '话剧歌剧', 1, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),
   (11, 1, 'livehouse', 2, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),
   (12, 2, '话剧', 2, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
 
+-- 初始化示例节目分组数据。
 INSERT INTO `d_program_group` (`id`, `program_json`, `recent_show_time`, `create_time`, `edit_time`, `status`) VALUES
   (20001, '[{"programId":10001,"areaId":2,"areaIdName":"北京"}]', '2026-12-31 19:30:00', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
 
+-- 初始化示例节目主数据。
 INSERT INTO `d_program` (
   `id`, `program_group_id`, `prime`, `area_id`, `program_category_id`, `parent_program_category_id`,
   `title`, `actor`, `place`, `item_picture`, `pre_sell`, `pre_sell_instruction`, `important_notice`, `detail`,
@@ -33,16 +36,19 @@ INSERT INTO `d_program` (
   '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1
 );
 
+-- 初始化示例场次数据。
 INSERT INTO `d_program_show_time` (
   `id`, `program_id`, `show_time`, `show_day_time`, `show_week_time`,
   `show_end_time`, `create_time`, `edit_time`, `status`
 ) VALUES
   (30001, 10001, '2026-12-31 19:30:00', '2026-12-31 00:00:00', '周四', '2026-12-31 22:00:00', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
 
+-- 初始化示例票档数据。
 INSERT INTO `d_ticket_category` (`id`, `program_id`, `show_time_id`, `introduce`, `price`, `total_number`, `remain_number`, `create_time`, `edit_time`, `status`) VALUES
   (40001, 10001, 30001, '普通票', 299, 100, 100, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1),
   (40002, 10001, 30001, 'VIP票', 599, 80, 80, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 1);
 
+-- 初始化普通票座位数据。
 INSERT INTO `d_seat` (
   `id`, `program_id`, `show_time_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
   `freeze_token`, `freeze_expire_time`, `create_time`, `edit_time`, `status`
@@ -69,6 +75,7 @@ SELECT
   1
 FROM `seq`;
 
+-- 初始化贵宾票座位数据。
 INSERT INTO `d_seat` (
   `id`, `program_id`, `show_time_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
   `freeze_token`, `freeze_expire_time`, `create_time`, `edit_time`, `status`

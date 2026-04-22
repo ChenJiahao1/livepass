@@ -1,3 +1,4 @@
+-- 初始化测试用户数据。
 INSERT INTO `d_user` (
   `id`, `name`, `rel_name`, `mobile`, `gender`, `password`, `email_status`, `email`,
   `rel_authentication_status`, `id_number`, `address`, `edit_time`, `status`
@@ -6,5 +7,6 @@ INSERT INTO `d_user` (
   0, NULL, NULL, NOW(), 1
 );
 
+-- 初始化用户手机号映射数据。
 INSERT INTO `d_user_mobile` (`id`, `user_id`, `mobile`, `edit_time`, `status`) VALUES
 (10001, 10001, '13800000000', NOW(), 1);
