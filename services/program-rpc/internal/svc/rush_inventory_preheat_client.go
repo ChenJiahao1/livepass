@@ -2,11 +2,11 @@ package svc
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"livepass/jobs/rush-inventory-preheat/taskdef"
+	"livepass/pkg/delaytask"
 	"livepass/pkg/xid"
 	"livepass/services/program-rpc/internal/config"
 
@@ -53,16 +53,20 @@ func (c *outboxRushInventoryPreheatClient) EnqueueWithConn(ctx context.Context, 
 	_, err = conn.ExecCtx(
 		ctx,
 		`INSERT INTO d_delay_task_outbox (
-			id, task_type, task_key, payload, execute_at, published_status, publish_attempts,
-			last_publish_error, published_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, 0, 0, '', ?, ?, ?, 1)
+			id, task_type, task_key, payload, execute_at, task_status, publish_attempts,
+			consume_attempts, last_publish_error, last_consume_error, published_time,
+			processed_time, create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, 0, 0, '', '', NULL, NULL, ?, ?, 1)
 		ON DUPLICATE KEY UPDATE
 			payload = VALUES(payload),
 			execute_at = VALUES(execute_at),
-			published_status = 0,
+			task_status = VALUES(task_status),
 			publish_attempts = 0,
+			consume_attempts = 0,
 			last_publish_error = '',
+			last_consume_error = '',
 			published_time = NULL,
+			processed_time = NULL,
 			edit_time = VALUES(edit_time),
 			status = 1`,
 		xid.New(),
@@ -70,7 +74,7 @@ func (c *outboxRushInventoryPreheatClient) EnqueueWithConn(ctx context.Context, 
 		message.Key,
 		string(message.Payload),
 		message.ExecuteAt,
-		sql.NullTime{},
+		delaytask.OutboxTaskStatusPending,
 		now,
 		now,
 	)

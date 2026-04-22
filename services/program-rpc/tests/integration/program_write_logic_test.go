@@ -536,11 +536,46 @@ func TestCreateProgramShowTimeWritesRushInventoryPreheatDelayTaskOutbox(t *testi
 	}
 
 	expectedOpenTime := time.Date(2026, 12, 31, 18, 0, 0, 0, time.Local)
+	taskKey := taskdef.TaskKey(10001, expectedOpenTime)
 	requireProgramDelayTaskOutbox(
 		t,
 		svcCtx.Config.MySQL.DataSource,
 		taskdef.TaskTypeRushInventoryPreheat,
-		taskdef.TaskKey(10001, expectedOpenTime),
+		taskKey,
+		"2026-12-31 17:55:00",
+	)
+
+	db := openProgramTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+	mustExecProgramSQL(
+		t,
+		db,
+		`UPDATE d_delay_task_outbox
+		SET task_status = 3, publish_attempts = 5, consume_attempts = 2,
+			last_consume_error = 'preheat failed', published_time = ?,
+			processed_time = ?, edit_time = ?
+		WHERE task_key = ?`,
+		time.Now(),
+		time.Now(),
+		time.Now(),
+		taskKey,
+	)
+
+	_, err = l.CreateProgramShowTime(&pb.ProgramShowTimeAddReq{
+		ProgramId:    10001,
+		ShowTime:     "2027-01-01 19:35:00",
+		ShowDayTime:  "2027-01-01 00:00:00",
+		ShowWeekTime: "周五",
+		ShowEndTime:  "2027-01-01 22:35:00",
+	})
+	if err != nil {
+		t.Fatalf("second CreateProgramShowTime returned error: %v", err)
+	}
+	requireProgramDelayTaskOutbox(
+		t,
+		svcCtx.Config.MySQL.DataSource,
+		taskdef.TaskTypeRushInventoryPreheat,
+		taskKey,
 		"2026-12-31 17:55:00",
 	)
 }

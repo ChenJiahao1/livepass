@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"livepass/jobs/rush-inventory-preheat/internal/dispatch"
+	"livepass/jobs/rush-inventory-preheat/internal/outbox"
 	"livepass/jobs/rush-inventory-preheat/taskdef"
 	"livepass/pkg/delaytask"
 	"livepass/pkg/xmysql"
@@ -33,7 +34,7 @@ func (f *fakeDelayTaskPublisher) Publish(_ context.Context, message delaytask.Me
 	return f.err
 }
 
-func TestDispatcherMarksPublishedAfterPublish(t *testing.T) {
+func TestRunOnceMarksPublished(t *testing.T) {
 	resetRushInventoryPreheatDelayTaskOutbox(t)
 
 	expectedOpenTime := time.Date(2026, time.April, 13, 16, 5, 0, 0, time.Local)
@@ -50,7 +51,7 @@ func TestDispatcherMarksPublishedAfterPublish(t *testing.T) {
 	})
 
 	publisher := &fakeDelayTaskPublisher{}
-	logic := dispatch.NewRunOnceLogic(context.Background(), dispatch.NewMysqlStore(map[string]sqlx.SqlConn{
+	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"program-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testRushInventoryPreheatMySQLDataSource)),
 	}), publisher, 10)
 
@@ -62,8 +63,11 @@ func TestDispatcherMarksPublishedAfterPublish(t *testing.T) {
 	}
 
 	row := findDelayTaskOutboxRow(t, 101)
-	if row.PublishedStatus != 1 {
-		t.Fatalf("published_status = %d, want 1", row.PublishedStatus)
+	if row.TaskStatus != delaytask.OutboxTaskStatusPublished {
+		t.Fatalf("task_status = %d, want %d", row.TaskStatus, delaytask.OutboxTaskStatusPublished)
+	}
+	if row.PublishAttempts != 1 {
+		t.Fatalf("publish_attempts = %d, want 1", row.PublishAttempts)
 	}
 	if !row.PublishedTime.Valid {
 		t.Fatalf("expected published_time to be set")
@@ -87,7 +91,7 @@ func TestDispatcherTreatsDuplicateTaskConflictAsSuccess(t *testing.T) {
 	})
 
 	publisher := &fakeDelayTaskPublisher{err: asynq.ErrTaskIDConflict}
-	logic := dispatch.NewRunOnceLogic(context.Background(), dispatch.NewMysqlStore(map[string]sqlx.SqlConn{
+	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"program-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testRushInventoryPreheatMySQLDataSource)),
 	}), publisher, 10)
 
@@ -96,8 +100,8 @@ func TestDispatcherTreatsDuplicateTaskConflictAsSuccess(t *testing.T) {
 	}
 
 	row := findDelayTaskOutboxRow(t, 201)
-	if row.PublishedStatus != 1 {
-		t.Fatalf("published_status = %d, want 1", row.PublishedStatus)
+	if row.TaskStatus != delaytask.OutboxTaskStatusPublished {
+		t.Fatalf("task_status = %d, want %d", row.TaskStatus, delaytask.OutboxTaskStatusPublished)
 	}
 }
 
@@ -118,7 +122,7 @@ func TestDispatcherMarksPublishFailed(t *testing.T) {
 	})
 
 	publisher := &fakeDelayTaskPublisher{err: fmt.Errorf("redis unavailable")}
-	logic := dispatch.NewRunOnceLogic(context.Background(), dispatch.NewMysqlStore(map[string]sqlx.SqlConn{
+	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"program-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testRushInventoryPreheatMySQLDataSource)),
 	}), publisher, 10)
 
@@ -127,8 +131,8 @@ func TestDispatcherMarksPublishFailed(t *testing.T) {
 	}
 
 	row := findDelayTaskOutboxRow(t, 301)
-	if row.PublishedStatus != 0 {
-		t.Fatalf("published_status = %d, want 0", row.PublishedStatus)
+	if row.TaskStatus != delaytask.OutboxTaskStatusFailed {
+		t.Fatalf("task_status = %d, want %d", row.TaskStatus, delaytask.OutboxTaskStatusFailed)
 	}
 	if row.PublishAttempts != 1 {
 		t.Fatalf("publish_attempts = %d, want 1", row.PublishAttempts)
@@ -138,20 +142,96 @@ func TestDispatcherMarksPublishFailed(t *testing.T) {
 	}
 }
 
+func TestDispatcherRepublishesPublishedAndFailedButSkipsProcessed(t *testing.T) {
+	resetRushInventoryPreheatDelayTaskOutbox(t)
+
+	expectedOpenTime := time.Date(2026, time.April, 13, 16, 20, 0, 0, time.Local)
+	message1, err := taskdef.NewMessage(94001, expectedOpenTime, 5*time.Minute)
+	if err != nil {
+		t.Fatalf("NewMessage returned error: %v", err)
+	}
+	message2, err := taskdef.NewMessage(94002, expectedOpenTime, 5*time.Minute)
+	if err != nil {
+		t.Fatalf("NewMessage returned error: %v", err)
+	}
+	message3, err := taskdef.NewMessage(94003, expectedOpenTime, 5*time.Minute)
+	if err != nil {
+		t.Fatalf("NewMessage returned error: %v", err)
+	}
+
+	seedDelayTaskOutboxRow(t, delayTaskOutboxFixture{
+		ID:              401,
+		TaskType:        message1.Type,
+		TaskKey:         message1.Key,
+		Payload:         string(message1.Payload),
+		ExecuteAt:       message1.ExecuteAt,
+		TaskStatus:      delaytask.OutboxTaskStatusPublished,
+		PublishAttempts: 1,
+	})
+	seedDelayTaskOutboxRow(t, delayTaskOutboxFixture{
+		ID:              402,
+		TaskType:        message2.Type,
+		TaskKey:         message2.Key,
+		Payload:         string(message2.Payload),
+		ExecuteAt:       message2.ExecuteAt,
+		TaskStatus:      delaytask.OutboxTaskStatusFailed,
+		PublishAttempts: 2,
+	})
+	seedDelayTaskOutboxRow(t, delayTaskOutboxFixture{
+		ID:              403,
+		TaskType:        message3.Type,
+		TaskKey:         message3.Key,
+		Payload:         string(message3.Payload),
+		ExecuteAt:       message3.ExecuteAt,
+		TaskStatus:      delaytask.OutboxTaskStatusProcessed,
+		PublishAttempts: 3,
+	})
+
+	publisher := &fakeDelayTaskPublisher{}
+	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
+		"program-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testRushInventoryPreheatMySQLDataSource)),
+	}), publisher, 10)
+
+	if err := logic.Run(taskdef.TaskTypeRushInventoryPreheat); err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if len(publisher.messages) != 2 {
+		t.Fatalf("publisher messages = %d, want 2", len(publisher.messages))
+	}
+
+	published := findDelayTaskOutboxRow(t, 401)
+	if published.TaskStatus != delaytask.OutboxTaskStatusPublished || published.PublishAttempts != 2 {
+		t.Fatalf("published row = %+v, want status=published attempts=2", published)
+	}
+	failed := findDelayTaskOutboxRow(t, 402)
+	if failed.TaskStatus != delaytask.OutboxTaskStatusPublished || failed.PublishAttempts != 3 {
+		t.Fatalf("failed row = %+v, want status=published attempts=3", failed)
+	}
+	processed := findDelayTaskOutboxRow(t, 403)
+	if processed.TaskStatus != delaytask.OutboxTaskStatusProcessed || processed.PublishAttempts != 3 {
+		t.Fatalf("processed row = %+v, want unchanged", processed)
+	}
+}
+
 type delayTaskOutboxFixture struct {
-	ID        int64
-	TaskType  string
-	TaskKey   string
-	Payload   string
-	ExecuteAt time.Time
+	ID              int64
+	TaskType        string
+	TaskKey         string
+	Payload         string
+	ExecuteAt       time.Time
+	TaskStatus      int64
+	PublishAttempts int64
 }
 
 type delayTaskOutboxRow struct {
 	ID               int64
-	PublishedStatus  int64
+	TaskStatus       int64
 	PublishAttempts  int64
 	LastPublishError string
 	PublishedTime    sql.NullTime
+	ConsumeAttempts  int64
+	LastConsumeError string
+	ProcessedTime    sql.NullTime
 }
 
 func resetRushInventoryPreheatDelayTaskOutbox(t *testing.T) {
@@ -181,16 +261,23 @@ func seedDelayTaskOutboxRow(t *testing.T, fixture delayTaskOutboxFixture) {
 	db := openRushInventoryPreheatTestDB(t)
 	defer db.Close()
 
+	taskStatus := fixture.TaskStatus
+	if taskStatus == 0 {
+		taskStatus = delaytask.OutboxTaskStatusPending
+	}
 	_, err := db.Exec(
 		`INSERT INTO d_delay_task_outbox (
-			id, task_type, task_key, payload, execute_at, published_status, publish_attempts,
-			last_publish_error, published_time, create_time, edit_time, status
-		) VALUES (?, ?, ?, ?, ?, 0, 0, '', NULL, ?, ?, 1)`,
+			id, task_type, task_key, payload, execute_at, task_status, publish_attempts,
+			consume_attempts, last_publish_error, last_consume_error, published_time, processed_time,
+			create_time, edit_time, status
+		) VALUES (?, ?, ?, ?, ?, ?, ?, 0, '', '', NULL, NULL, ?, ?, 1)`,
 		fixture.ID,
 		fixture.TaskType,
 		fixture.TaskKey,
 		fixture.Payload,
 		fixture.ExecuteAt,
+		taskStatus,
+		fixture.PublishAttempts,
 		fixture.ExecuteAt,
 		fixture.ExecuteAt,
 	)
@@ -207,10 +294,20 @@ func findDelayTaskOutboxRow(t *testing.T, id int64) delayTaskOutboxRow {
 
 	var row delayTaskOutboxRow
 	err := db.QueryRow(
-		`SELECT id, published_status, publish_attempts, last_publish_error, published_time
+		`SELECT id, task_status, publish_attempts, last_publish_error, published_time,
+			consume_attempts, last_consume_error, processed_time
 		FROM d_delay_task_outbox WHERE id = ? LIMIT 1`,
 		id,
-	).Scan(&row.ID, &row.PublishedStatus, &row.PublishAttempts, &row.LastPublishError, &row.PublishedTime)
+	).Scan(
+		&row.ID,
+		&row.TaskStatus,
+		&row.PublishAttempts,
+		&row.LastPublishError,
+		&row.PublishedTime,
+		&row.ConsumeAttempts,
+		&row.LastConsumeError,
+		&row.ProcessedTime,
+	)
 	if err != nil {
 		t.Fatalf("query delay task outbox row error: %v", err)
 	}

@@ -230,6 +230,11 @@ go run services/gateway-api/gateway.go -f services/gateway-api/etc/gateway-api.y
 - `/order/poll` 在 TTL 期间优先读取 Redis attempt；attempt miss 时查 MySQL by `orderNumber`，DB 有单为成功，DB 无单为失败
 - `jobs/order-close/cmd/worker` 负责消费 Asynq 延迟任务，并调用 `order-rpc.CloseExpiredOrder` 推进超时关单
 - `jobs/order-close/cmd/dispatcher` 负责扫描 `d_delay_task_outbox(order.close_timeout)`，补发延迟任务到 Asynq；真正的业务关闭仍只走 `order-rpc.CloseExpiredOrder`
+- `order.close_timeout` 与 `program.rush_inventory_preheat` 共用 outbox 生命周期：`pending(0) -> published(1) -> processed(3)`，失败进入 `failed(4)` 后可由 dispatcher 补投
+- `publish_attempts` 表示投递总次数，首次投递和补投都会递增；日志通过 `is_republish` 区分首次投递与补投
+- `consume_attempts` 表示 worker 实际消费尝试次数；成功收敛和失败记录都会递增，用于定位 DB 事实是否已经完成
+- `order.close_timeout` 以订单库为事实源：先在订单库事务内关闭订单、删除 guard 并把 outbox 标记为 `processed`，提交后再 best-effort 释放座位冻结
+- `program.rush_inventory_preheat` 以运行态预热完成为前置条件：先执行 `PrimeRushRuntime` 和 `PrimeSeatLedger`，再在节目库事务内写预热完成态并把 outbox 标记为 `processed`
 - `gateway-api` 已启用 `Telemetry`；若要得到完整链路，需要给下游 API/RPC 同步补齐 `Telemetry`
 
 ## 验收与联调

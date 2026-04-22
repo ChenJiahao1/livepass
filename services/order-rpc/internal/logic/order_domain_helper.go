@@ -214,6 +214,20 @@ func mapOrderError(err error) error {
 	}
 }
 
+func logDelayTaskConsumeTransition(logger logx.Logger, taskType, taskKey string, fromStatus, toStatus, consumeAttempts int64) {
+	if logger == nil || consumeAttempts <= 0 {
+		return
+	}
+
+	logger.Infow("delay_task_consume_state_transition",
+		logx.Field("task_type", taskType),
+		logx.Field("task_key", taskKey),
+		logx.Field("from_status", fromStatus),
+		logx.Field("to_status", toStatus),
+		logx.Field("consume_attempts", consumeAttempts),
+	)
+}
+
 func cancelOrderWithLock(ctx context.Context, svcCtx *svc.ServiceContext, orderNumber, userID int64, requireOwner bool, releaseReason string) (bool, error) {
 	if orderNumber <= 0 {
 		return false, xerr.ErrInvalidParam

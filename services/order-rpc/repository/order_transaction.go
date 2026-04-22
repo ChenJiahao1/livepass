@@ -70,6 +70,10 @@ func (t *singleOrderTx) InsertDelayTasks(ctx context.Context, rows []*model.DDel
 	return t.delayTaskModel.InsertBatch(ctx, t.session, rows)
 }
 
+func (t *singleOrderTx) MarkDelayTaskProcessed(ctx context.Context, taskType, taskKey string, processedAt time.Time) (int64, int64, error) {
+	return t.delayTaskModel.MarkProcessed(ctx, t.session, taskType, taskKey, processedAt)
+}
+
 func (t *singleOrderTx) DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error {
 	if err := t.userGuardModel.DeleteByOrderNumber(ctx, t.session, orderNumber); err != nil {
 		return err

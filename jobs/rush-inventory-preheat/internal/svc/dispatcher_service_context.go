@@ -2,7 +2,7 @@ package svc
 
 import (
 	"livepass/jobs/rush-inventory-preheat/internal/config"
-	"livepass/jobs/rush-inventory-preheat/internal/dispatch"
+	"livepass/jobs/rush-inventory-preheat/internal/outbox"
 	"livepass/pkg/delaytask"
 	"livepass/pkg/xmysql"
 
@@ -12,14 +12,14 @@ import (
 
 type DispatcherServiceContext struct {
 	Config    config.DispatcherConfig
-	Store     dispatch.Store
+	Store     outbox.Store
 	Publisher delaytask.Publisher
 }
 
 func NewDispatcherServiceContext(c config.DispatcherConfig) *DispatcherServiceContext {
 	return &DispatcherServiceContext{
 		Config:    c,
-		Store:     dispatch.NewMysqlStore(newShardMysqlConns(c.Shards)),
+		Store:     outbox.NewMysqlStore(newShardMysqlConns(c.Shards)),
 		Publisher: newDelayTaskPublisher(c.Asynq),
 	}
 }

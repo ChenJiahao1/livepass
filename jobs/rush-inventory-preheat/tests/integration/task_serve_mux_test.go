@@ -27,10 +27,18 @@ func (f *fakeWorkerShowTimeStore) ListByProgramID(_ context.Context, programID i
 	return f.listResp, f.listErr
 }
 
-func (f *fakeWorkerShowTimeStore) MarkInventoryPreheatedByProgram(_ context.Context, programID int64, _ time.Time, _ time.Time) (bool, error) {
+func (f *fakeWorkerShowTimeStore) MarkInventoryPreheatedByProgramAndTaskProcessed(_ context.Context, programID int64, _ time.Time, _, _ string, _ time.Time) (bool, int64, int64, error) {
 	f.markCalls++
 	f.lastProgramID = programID
-	return true, nil
+	return true, 1, 1, nil
+}
+
+func (f *fakeWorkerShowTimeStore) MarkTaskProcessed(_ context.Context, _, _ string, _ time.Time) (int64, int64, error) {
+	return 1, 1, nil
+}
+
+func (f *fakeWorkerShowTimeStore) MarkTaskConsumeFailed(_ context.Context, _, _ string, _ time.Time, _ string) (int64, int64, error) {
+	return 1, 1, nil
 }
 
 type fakeWorkerOrderRPC struct {

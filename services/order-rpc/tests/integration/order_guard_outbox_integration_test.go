@@ -9,12 +9,16 @@ import (
 	"testing"
 	"time"
 
+	closeTaskDef "livepass/jobs/order-close/taskdef"
+	"livepass/pkg/delaytask"
+	"livepass/pkg/xid"
 	orderevent "livepass/services/order-rpc/internal/event"
 	logicpkg "livepass/services/order-rpc/internal/logic"
 	"livepass/services/order-rpc/internal/model"
 	"livepass/services/order-rpc/internal/rush"
 	"livepass/services/order-rpc/internal/svc"
 	"livepass/services/order-rpc/pb"
+	"livepass/services/order-rpc/repository"
 	"livepass/services/order-rpc/sharding"
 	programrpc "livepass/services/program-rpc/programrpc"
 	userrpc "livepass/services/user-rpc/userrpc"
@@ -100,7 +104,7 @@ func TestCloseExpiredOrderDeletesGuards(t *testing.T) {
 	requireOrderGuardDeleted(t, svcCtx.Config.MySQL.DataSource, seatGuardTable, orderNumber)
 }
 
-func TestCreateOrderWritesDelayTaskOutbox(t *testing.T) {
+func TestCloseExpiredOrderWritesPendingOutbox(t *testing.T) {
 	svcCtx, _, _, _ := newOrderTestServiceContext(t)
 	resetOrderDomainState(t)
 	rebindOrderTestAttemptStore(t, svcCtx)
@@ -118,6 +122,69 @@ func TestCreateOrderWritesDelayTaskOutbox(t *testing.T) {
 	}
 
 	requireDelayTaskOutbox(t, svcCtx.Config.MySQL.DataSource, "d_delay_task_outbox", orderNumber, "2026-04-05 11:25:00")
+}
+
+func TestCloseExpiredOrderOutboxDuplicateScheduleResetsPending(t *testing.T) {
+	svcCtx, _, _, _ := newOrderTestServiceContext(t)
+	resetOrderDomainState(t)
+	rebindOrderTestAttemptStore(t, svcCtx)
+
+	orderNumber := sharding.BuildOrderNumber(3001, time.Date(2026, time.April, 5, 11, 20, 0, 0, time.UTC), 1, 4)
+	event := testOrderCreateEvent(orderNumber, "2026-04-05 11:20:00", "2026-04-05 11:35:00")
+	body, err := event.Marshal()
+	if err != nil {
+		t.Fatalf("event.Marshal returned error: %v", err)
+	}
+
+	admitTestOrderCreateEvent(t, svcCtx, event)
+	if err := logicpkg.NewCreateOrderConsumerLogic(context.Background(), svcCtx).Consume(body); err != nil {
+		t.Fatalf("Consume returned error: %v", err)
+	}
+
+	db := openOrderTestDB(t, svcCtx.Config.MySQL.DataSource)
+	defer db.Close()
+
+	taskKey := closeTaskDef.TaskKey(orderNumber)
+	mustExecOrderSQL(
+		t,
+		db,
+		`UPDATE d_delay_task_outbox
+		SET task_status = ?, consume_attempts = 3, last_consume_error = 'worker failed',
+			published_time = ?, processed_time = ?, edit_time = ?
+		WHERE task_key = ?`,
+		delaytask.OutboxTaskStatusProcessed,
+		time.Now(),
+		time.Now(),
+		time.Now(),
+		taskKey,
+	)
+
+	now := time.Now()
+	if err := svcCtx.OrderRepository.TransactByOrderNumber(context.Background(), orderNumber, func(ctx context.Context, tx repository.OrderTx) error {
+		return tx.InsertDelayTasks(ctx, []*model.DDelayTaskOutbox{
+			{
+				Id:               xid.New(),
+				TaskType:         closeTaskDef.TaskTypeCloseTimeout,
+				TaskKey:          taskKey,
+				Payload:          `{"orderNumber":` + fmt.Sprint(orderNumber) + `}`,
+				ExecuteAt:        time.Date(2026, time.April, 5, 11, 40, 0, 0, time.Local),
+				TaskStatus:       delaytask.OutboxTaskStatusPending,
+				PublishAttempts:  0,
+				ConsumeAttempts:  0,
+				LastPublishError: "",
+				LastConsumeError: "",
+				PublishedTime:    sql.NullTime{},
+				ProcessedTime:    sql.NullTime{},
+				CreateTime:       now,
+				EditTime:         now,
+				Status:           1,
+			},
+		})
+	}); err != nil {
+		t.Fatalf("duplicate InsertDelayTasks returned error: %v", err)
+	}
+
+	requireDelayTaskOutbox(t, svcCtx.Config.MySQL.DataSource, "d_delay_task_outbox", orderNumber, "2026-04-05 11:40:00")
 }
 
 func TestCreateOrderGuardsRejectDuplicateSeatAcrossOrderSuffixes(t *testing.T) {
@@ -518,12 +585,17 @@ func requireDelayTaskOutbox(t *testing.T, dataSource, table string, orderNumber 
 		taskKey         string
 		payload         string
 		gotExecuteAt    time.Time
-		publishedStatus int64
+		taskStatus      int64
+		publishAttempts int64
+		consumeAttempts int64
+		lastConsumeErr  string
+		publishedTime   sql.NullTime
+		processedTime   sql.NullTime
 	)
 	err := db.QueryRow(
-		"SELECT task_type, task_key, payload, execute_at, published_status FROM "+table+" WHERE task_key = ? LIMIT 1",
+		"SELECT task_type, task_key, payload, execute_at, task_status, publish_attempts, consume_attempts, last_consume_error, published_time, processed_time FROM "+table+" WHERE task_key = ? LIMIT 1",
 		fmt.Sprintf("order.close_timeout:%d", orderNumber),
-	).Scan(&taskType, &taskKey, &payload, &gotExecuteAt, &publishedStatus)
+	).Scan(&taskType, &taskKey, &payload, &gotExecuteAt, &taskStatus, &publishAttempts, &consumeAttempts, &lastConsumeErr, &publishedTime, &processedTime)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			t.Fatalf("delay task outbox row not found for orderNumber=%d", orderNumber)
@@ -537,8 +609,23 @@ func requireDelayTaskOutbox(t *testing.T, dataSource, table string, orderNumber 
 	if taskKey != fmt.Sprintf("order.close_timeout:%d", orderNumber) {
 		t.Fatalf("task_key = %s, want order.close_timeout:%d", taskKey, orderNumber)
 	}
-	if publishedStatus != 0 {
-		t.Fatalf("published_status = %d, want 0", publishedStatus)
+	if taskStatus != delaytask.OutboxTaskStatusPending {
+		t.Fatalf("task_status = %d, want %d", taskStatus, delaytask.OutboxTaskStatusPending)
+	}
+	if publishAttempts != 0 {
+		t.Fatalf("publish_attempts = %d, want 0", publishAttempts)
+	}
+	if consumeAttempts != 0 {
+		t.Fatalf("consume_attempts = %d, want 0", consumeAttempts)
+	}
+	if lastConsumeErr != "" {
+		t.Fatalf("last_consume_error = %q, want empty", lastConsumeErr)
+	}
+	if publishedTime.Valid {
+		t.Fatalf("published_time = %v, want NULL", publishedTime.Time)
+	}
+	if processedTime.Valid {
+		t.Fatalf("processed_time = %v, want NULL", processedTime.Time)
 	}
 
 	var decoded map[string]int64

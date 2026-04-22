@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"livepass/jobs/order-close/taskdef"
+	"livepass/pkg/delaytask"
 	"livepass/pkg/xid"
 	"livepass/services/order-rpc/internal/model"
 )
@@ -21,10 +22,13 @@ func newCloseTimeoutDelayTaskRow(now time.Time, orderNumber int64, executeAt tim
 		TaskKey:          taskdef.TaskKey(orderNumber),
 		Payload:          string(payload),
 		ExecuteAt:        executeAt,
-		PublishedStatus:  0,
+		TaskStatus:       delaytask.OutboxTaskStatusPending,
 		PublishAttempts:  0,
+		ConsumeAttempts:  0,
 		LastPublishError: "",
+		LastConsumeError: "",
 		PublishedTime:    sql.NullTime{},
+		ProcessedTime:    sql.NullTime{},
 		CreateTime:       now,
 		EditTime:         now,
 		Status:           1,

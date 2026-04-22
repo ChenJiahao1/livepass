@@ -26,7 +26,9 @@ type ShowTimeRecord struct {
 
 type ShowTimeStore interface {
 	ListByProgramID(ctx context.Context, programID int64) ([]*ShowTimeRecord, error)
-	MarkInventoryPreheatedByProgram(ctx context.Context, programID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error)
+	MarkInventoryPreheatedByProgramAndTaskProcessed(ctx context.Context, programID int64, expectedOpenTime time.Time, taskType, taskKey string, updatedAt time.Time) (bool, int64, int64, error)
+	MarkTaskProcessed(ctx context.Context, taskType, taskKey string, processedAt time.Time) (int64, int64, error)
+	MarkTaskConsumeFailed(ctx context.Context, taskType, taskKey string, failedAt time.Time, consumeErr string) (int64, int64, error)
 }
 
 type OrderPreheatRPC interface {
@@ -107,23 +109,118 @@ func (s *mysqlShowTimeStore) ListByProgramID(ctx context.Context, programID int6
 	}
 }
 
-func (s *mysqlShowTimeStore) MarkInventoryPreheatedByProgram(ctx context.Context, programID int64, expectedOpenTime time.Time, updatedAt time.Time) (bool, error) {
-	result, err := s.conn.ExecCtx(
-		ctx,
-		"update `d_program` set `inventory_preheat_status` = 2, `edit_time` = ? where `id` = ? and `status` = 1 and `rush_sale_open_time` = ?",
-		updatedAt,
-		programID,
-		expectedOpenTime,
+func (s *mysqlShowTimeStore) MarkInventoryPreheatedByProgramAndTaskProcessed(ctx context.Context, programID int64, expectedOpenTime time.Time, taskType, taskKey string, updatedAt time.Time) (bool, int64, int64, error) {
+	var (
+		updated         bool
+		fromStatus      int64
+		consumeAttempts int64
+		found           bool
 	)
+	err := s.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		conn := sqlx.NewSqlConnFromSession(session)
+		result, err := conn.ExecCtx(
+			ctx,
+			"update `d_program` set `inventory_preheat_status` = 2, `edit_time` = ? where `id` = ? and `status` = 1 and `rush_sale_open_time` = ?",
+			updatedAt,
+			programID,
+			expectedOpenTime,
+		)
+		if err != nil {
+			return err
+		}
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		updated = rowsAffected > 0
+		fromStatus, consumeAttempts, found, err = getOutboxConsumeState(ctx, conn, taskType, taskKey)
+		if err != nil {
+			return err
+		}
+		_, err = conn.ExecCtx(
+			ctx,
+			"update `d_delay_task_outbox` set `task_status` = 3, `consume_attempts` = `consume_attempts` + 1, `last_consume_error` = '', `processed_time` = ?, `edit_time` = ? where `task_type` = ? and `task_key` = ? and `status` = 1",
+			updatedAt,
+			updatedAt,
+			taskType,
+			taskKey,
+		)
+		return err
+	})
 	if err != nil {
-		return false, err
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return false, err
+		return false, 0, 0, err
 	}
 
-	return rowsAffected > 0, nil
+	if found {
+		consumeAttempts++
+	}
+	return updated, fromStatus, consumeAttempts, nil
+}
+
+func (s *mysqlShowTimeStore) MarkTaskProcessed(ctx context.Context, taskType, taskKey string, processedAt time.Time) (int64, int64, error) {
+	fromStatus, consumeAttempts, found, err := getOutboxConsumeState(ctx, s.conn, taskType, taskKey)
+	if err != nil {
+		return 0, 0, err
+	}
+	_, err = s.conn.ExecCtx(
+		ctx,
+		"update `d_delay_task_outbox` set `task_status` = 3, `consume_attempts` = `consume_attempts` + 1, `last_consume_error` = '', `processed_time` = ?, `edit_time` = ? where `task_type` = ? and `task_key` = ? and `status` = 1",
+		processedAt,
+		processedAt,
+		taskType,
+		taskKey,
+	)
+	if err != nil {
+		return 0, 0, err
+	}
+	if found {
+		consumeAttempts++
+	}
+	return fromStatus, consumeAttempts, nil
+}
+
+func (s *mysqlShowTimeStore) MarkTaskConsumeFailed(ctx context.Context, taskType, taskKey string, failedAt time.Time, consumeErr string) (int64, int64, error) {
+	fromStatus, consumeAttempts, found, err := getOutboxConsumeState(ctx, s.conn, taskType, taskKey)
+	if err != nil {
+		return 0, 0, err
+	}
+	_, err = s.conn.ExecCtx(
+		ctx,
+		"update `d_delay_task_outbox` set `task_status` = 4, `consume_attempts` = `consume_attempts` + 1, `last_consume_error` = ?, `edit_time` = ? where `task_type` = ? and `task_key` = ? and `status` = 1",
+		consumeErr,
+		failedAt,
+		taskType,
+		taskKey,
+	)
+	if err != nil {
+		return 0, 0, err
+	}
+	if found {
+		consumeAttempts++
+	}
+	return fromStatus, consumeAttempts, nil
+}
+
+func getOutboxConsumeState(ctx context.Context, conn sqlx.SqlConn, taskType, taskKey string) (int64, int64, bool, error) {
+	var row struct {
+		TaskStatus      int64 `db:"task_status"`
+		ConsumeAttempts int64 `db:"consume_attempts"`
+	}
+	err := conn.QueryRowCtx(
+		ctx,
+		&row,
+		"select `task_status`, `consume_attempts` from `d_delay_task_outbox` where `task_type` = ? and `task_key` = ? and `status` = 1 limit 1",
+		taskType,
+		taskKey,
+	)
+	switch {
+	case err == nil:
+		return row.TaskStatus, row.ConsumeAttempts, true, nil
+	case errors.Is(err, sqlx.ErrNotFound), errors.Is(err, sql.ErrNoRows):
+		return 0, 0, false, nil
+	default:
+		return 0, 0, false, err
+	}
 }
 
 func (a *orderRPCPrimeAdapter) PrimeRushRuntime(ctx context.Context, in *orderrpc.PrimeRushRuntimeReq) (*orderrpc.BoolResp, error) {

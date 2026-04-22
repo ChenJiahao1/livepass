@@ -18,6 +18,7 @@ type OrderTx interface {
 	InsertViewerGuards(ctx context.Context, guards []*model.DOrderViewerGuard) error
 	InsertSeatGuards(ctx context.Context, guards []*model.DOrderSeatGuard) error
 	InsertDelayTasks(ctx context.Context, rows []*model.DDelayTaskOutbox) error
+	MarkDelayTaskProcessed(ctx context.Context, taskType, taskKey string, processedAt time.Time) (int64, int64, error)
 	DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error
 	FindOrderByNumberForUpdate(ctx context.Context, orderNumber int64) (*model.DOrder, error)
 	UpdateCancelStatus(ctx context.Context, orderNumber int64, cancelTime time.Time) error
