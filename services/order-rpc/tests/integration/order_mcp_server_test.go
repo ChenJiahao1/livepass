@@ -262,6 +262,10 @@ func (tx *fakeMCPOrderTx) InsertDelayTasks(ctx context.Context, rows []*model.DD
 	return nil
 }
 
+func (tx *fakeMCPOrderTx) MarkDelayTaskProcessed(ctx context.Context, taskType, taskKey string, processedAt time.Time) (int64, int64, error) {
+	return 1, 1, nil
+}
+
 func (tx *fakeMCPOrderTx) DeleteGuardsByOrderNumber(ctx context.Context, orderNumber int64) error {
 	return nil
 }

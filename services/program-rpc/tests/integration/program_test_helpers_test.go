@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"livepass/pkg/delaytask"
 	"livepass/pkg/xid"
 	"livepass/pkg/xmysql"
 	"livepass/pkg/xredis"
@@ -598,13 +599,31 @@ func requireProgramDelayTaskOutbox(t *testing.T, dataSource, taskType, taskKey, 
 	var actualTaskType string
 	var actualTaskKey string
 	var actualExecuteAt string
+	var taskStatus int64
+	var publishAttempts int64
+	var consumeAttempts int64
+	var lastConsumeErr string
+	var publishedTime sql.NullTime
+	var processedTime sql.NullTime
 	err := db.QueryRow(
-		`SELECT task_type, task_key, DATE_FORMAT(execute_at, '%Y-%m-%d %H:%i:%s')
+		`SELECT task_type, task_key, DATE_FORMAT(execute_at, '%Y-%m-%d %H:%i:%s'),
+			task_status, publish_attempts, consume_attempts, last_consume_error,
+			published_time, processed_time
 		FROM d_delay_task_outbox
 		WHERE task_key = ?
 		LIMIT 1`,
 		taskKey,
-	).Scan(&actualTaskType, &actualTaskKey, &actualExecuteAt)
+	).Scan(
+		&actualTaskType,
+		&actualTaskKey,
+		&actualExecuteAt,
+		&taskStatus,
+		&publishAttempts,
+		&consumeAttempts,
+		&lastConsumeErr,
+		&publishedTime,
+		&processedTime,
+	)
 	if err == sql.ErrNoRows {
 		t.Fatalf("delay task outbox row not found for task_key=%s", taskKey)
 	}
@@ -620,6 +639,24 @@ func requireProgramDelayTaskOutbox(t *testing.T, dataSource, taskType, taskKey, 
 	}
 	if actualExecuteAt != executeAt {
 		t.Fatalf("expected execute_at %s, got %s", executeAt, actualExecuteAt)
+	}
+	if taskStatus != delaytask.OutboxTaskStatusPending {
+		t.Fatalf("expected task_status %d, got %d", delaytask.OutboxTaskStatusPending, taskStatus)
+	}
+	if publishAttempts != 0 {
+		t.Fatalf("expected publish_attempts 0, got %d", publishAttempts)
+	}
+	if consumeAttempts != 0 {
+		t.Fatalf("expected consume_attempts 0, got %d", consumeAttempts)
+	}
+	if lastConsumeErr != "" {
+		t.Fatalf("expected empty last_consume_error, got %q", lastConsumeErr)
+	}
+	if publishedTime.Valid {
+		t.Fatalf("expected published_time NULL, got %v", publishedTime.Time)
+	}
+	if processedTime.Valid {
+		t.Fatalf("expected processed_time NULL, got %v", processedTime.Time)
 	}
 }
 

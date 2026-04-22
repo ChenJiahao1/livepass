@@ -12,6 +12,7 @@ import (
 	programrpc "livepass/services/program-rpc/programrpc"
 
 	"github.com/hibiken/asynq"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 const rushInventoryPreheatTimeLayout = "2006-01-02 15:04:05"
@@ -36,11 +37,12 @@ func (l *RushInventoryPreheatTaskLogic) Handle(ctx context.Context, task *asynq.
 	if l.svcCtx == nil || l.svcCtx.ShowTimeStore == nil || l.svcCtx.OrderRpc == nil || l.svcCtx.ProgramRpc == nil {
 		return asynq.SkipRetry
 	}
+	taskKey := taskdef.TaskKey(payload.ProgramId, expectedOpenTime)
 
 	showTimes, err := l.svcCtx.ShowTimeStore.ListByProgramID(ctx, payload.ProgramId)
 	if err != nil {
 		if errors.Is(err, xerr.ErrProgramShowTimeNotFound) {
-			return nil
+			return markRushInventoryPreheatProcessed(ctx, l.svcCtx.ShowTimeStore, taskKey, "program_show_time_not_found")
 		}
 		return err
 	}
@@ -51,27 +53,75 @@ func (l *RushInventoryPreheatTaskLogic) Handle(ctx context.Context, task *asynq.
 			continue
 		}
 		if showTime.RushSaleOpenTime.Time.Format(rushInventoryPreheatTimeLayout) != expectedOpenTime.Format(rushInventoryPreheatTimeLayout) {
-			return nil
+			return markRushInventoryPreheatProcessed(ctx, l.svcCtx.ShowTimeStore, taskKey, "rush_open_time_mismatch")
 		}
 		matchedShowTimeIDs = append(matchedShowTimeIDs, showTime.ID)
 	}
 	if len(matchedShowTimeIDs) == 0 {
-		return nil
+		return markRushInventoryPreheatProcessed(ctx, l.svcCtx.ShowTimeStore, taskKey, "no_matched_show_time")
 	}
 
 	if _, err := l.svcCtx.OrderRpc.PrimeRushRuntime(ctx, &orderrpc.PrimeRushRuntimeReq{
 		ProgramId: payload.ProgramId,
 	}); err != nil {
-		return err
+		return markRushInventoryPreheatFailed(ctx, l.svcCtx.ShowTimeStore, taskKey, err)
 	}
 	for _, showTimeID := range matchedShowTimeIDs {
 		if _, err := l.svcCtx.ProgramRpc.PrimeSeatLedger(ctx, &programrpc.PrimeSeatLedgerReq{
 			ShowTimeId: showTimeID,
 		}); err != nil {
-			return err
+			return markRushInventoryPreheatFailed(ctx, l.svcCtx.ShowTimeStore, taskKey, err)
 		}
 	}
 
-	_, err = l.svcCtx.ShowTimeStore.MarkInventoryPreheatedByProgram(ctx, payload.ProgramId, expectedOpenTime, time.Now())
+	_, fromStatus, consumeAttempts, err := l.svcCtx.ShowTimeStore.MarkInventoryPreheatedByProgramAndTaskProcessed(
+		ctx,
+		payload.ProgramId,
+		expectedOpenTime,
+		taskdef.TaskTypeRushInventoryPreheat,
+		taskKey,
+		time.Now(),
+	)
+	if err == nil {
+		logx.WithContext(ctx).Infow("delay_task_consume_state_transition",
+			logx.Field("task_type", taskdef.TaskTypeRushInventoryPreheat),
+			logx.Field("task_key", taskKey),
+			logx.Field("from_status", fromStatus),
+			logx.Field("to_status", 3),
+			logx.Field("consume_attempts", consumeAttempts),
+		)
+	}
 	return err
+}
+
+func markRushInventoryPreheatProcessed(ctx context.Context, store svc.ShowTimeStore, taskKey, reason string) error {
+	fromStatus, consumeAttempts, err := store.MarkTaskProcessed(ctx, taskdef.TaskTypeRushInventoryPreheat, taskKey, time.Now())
+	if err != nil {
+		return err
+	}
+	logx.WithContext(ctx).Infow("delay_task_consume_state_transition",
+		logx.Field("task_type", taskdef.TaskTypeRushInventoryPreheat),
+		logx.Field("task_key", taskKey),
+		logx.Field("from_status", fromStatus),
+		logx.Field("to_status", 3),
+		logx.Field("consume_attempts", consumeAttempts),
+		logx.Field("reason", reason),
+	)
+	return nil
+}
+
+func markRushInventoryPreheatFailed(ctx context.Context, store svc.ShowTimeStore, taskKey string, consumeErr error) error {
+	fromStatus, consumeAttempts, err := store.MarkTaskConsumeFailed(ctx, taskdef.TaskTypeRushInventoryPreheat, taskKey, time.Now(), consumeErr.Error())
+	if err != nil {
+		return err
+	}
+	logx.WithContext(ctx).Errorw("delay_task_consume_state_transition_failed",
+		logx.Field("task_type", taskdef.TaskTypeRushInventoryPreheat),
+		logx.Field("task_key", taskKey),
+		logx.Field("from_status", fromStatus),
+		logx.Field("to_status", 4),
+		logx.Field("consume_attempts", consumeAttempts),
+		logx.Field("error", consumeErr.Error()),
+	)
+	return consumeErr
 }
