@@ -20,9 +20,8 @@ type AsynqConfig struct {
 }
 
 type Config struct {
-	Interval  time.Duration            `json:",default=5s"`
-	BatchSize int64                    `json:",default=200"`
-	Shards    map[string]xmysql.Config `json:",optional"`
-	Asynq     AsynqConfig
-	OrderRpc  zrpc.RpcClientConf
+	Interval time.Duration            `json:",default=1m"`
+	Shards   map[string]xmysql.Config `json:",optional"`
+	Asynq    AsynqConfig
+	OrderRpc zrpc.RpcClientConf
 }

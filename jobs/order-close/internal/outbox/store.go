@@ -28,7 +28,7 @@ type Task struct {
 }
 
 type Store interface {
-	ListDispatchableByTaskType(ctx context.Context, taskType string, limit int64) ([]Task, error)
+	ListDispatchableByTaskType(ctx context.Context, taskType string) ([]Task, error)
 	MarkPublished(ctx context.Context, ref TaskRef, publishedAt time.Time) error
 	MarkPublishFailed(ctx context.Context, ref TaskRef, failedAt time.Time, publishErr string) error
 }
@@ -62,8 +62,8 @@ func NewMysqlStore(conns map[string]sqlx.SqlConn) Store {
 	return &mysqlStore{conns: conns}
 }
 
-func (s *mysqlStore) ListDispatchableByTaskType(ctx context.Context, taskType string, limit int64) ([]Task, error) {
-	if s == nil || len(s.conns) == 0 || limit <= 0 {
+func (s *mysqlStore) ListDispatchableByTaskType(ctx context.Context, taskType string) ([]Task, error) {
+	if s == nil || len(s.conns) == 0 {
 		return nil, nil
 	}
 
@@ -73,15 +73,14 @@ func (s *mysqlStore) ListDispatchableByTaskType(ctx context.Context, taskType st
 	}
 	sort.Strings(dbKeys)
 
-	items := make([]Task, 0, limit)
+	items := make([]Task, 0)
 	for _, dbKey := range dbKeys {
 		var rows []delayTaskOutboxRow
 		err := s.conns[dbKey].QueryRowsCtx(
 			ctx,
 			&rows,
-			"SELECT `id`, `task_type`, `task_key`, `payload`, `execute_at`, `task_status`, `publish_attempts` FROM `d_delay_task_outbox` WHERE `task_status` IN (0, 1, 4) AND `task_type` = ? AND `status` = 1 ORDER BY `id` ASC LIMIT ?",
+			"SELECT `id`, `task_type`, `task_key`, `payload`, `execute_at`, `task_status`, `publish_attempts` FROM `d_delay_task_outbox` WHERE `task_status` IN (0, 1, 4) AND `task_type` = ? AND `status` = 1 ORDER BY `id` ASC",
 			taskType,
-			limit,
 		)
 		switch {
 		case err == nil:
@@ -113,9 +112,6 @@ func (s *mysqlStore) ListDispatchableByTaskType(ctx context.Context, taskType st
 		}
 		return items[i].Ref.ID < items[j].Ref.ID
 	})
-	if int64(len(items)) > limit {
-		items = items[:limit]
-	}
 	return items, nil
 }
 

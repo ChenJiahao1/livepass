@@ -33,11 +33,11 @@ func TestDefaultOrderCloseConfigUsesCompensationCadence(t *testing.T) {
 	}
 	text := string(content)
 
-	if !strings.Contains(text, "Interval: 5s") {
-		t.Fatalf("expected Interval: 5s, content=%s", text)
+	if !strings.Contains(text, "Interval: 1m") {
+		t.Fatalf("expected Interval: 1m, content=%s", text)
 	}
-	if !strings.Contains(text, "BatchSize: 200") {
-		t.Fatalf("expected BatchSize: 200, content=%s", text)
+	if strings.Contains(text, "BatchSize:") {
+		t.Fatalf("expected BatchSize to be removed, content=%s", text)
 	}
 	if !strings.Contains(text, "Queue: order_close") {
 		t.Fatalf("expected Queue: order_close, content=%s", text)

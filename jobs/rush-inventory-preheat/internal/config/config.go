@@ -20,10 +20,9 @@ type AsynqConfig struct {
 }
 
 type DispatcherConfig struct {
-	Interval   time.Duration `json:",default=5s"`
-	BatchSize  int64         `json:",default=200"`
-	Shards     map[string]xmysql.Config `json:",optional"`
-	Asynq      AsynqConfig
+	Interval time.Duration            `json:",default=1m"`
+	Shards   map[string]xmysql.Config `json:",optional"`
+	Asynq    AsynqConfig
 }
 
 type WorkerConfig struct {

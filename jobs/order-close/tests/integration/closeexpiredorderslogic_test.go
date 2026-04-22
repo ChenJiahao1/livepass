@@ -47,7 +47,7 @@ func TestDispatcherMarksPublishedAfterPublish(t *testing.T) {
 	publisher := &fakeDelayTaskPublisher{}
 	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"order-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testOrderCloseMySQLDataSource)),
-	}), publisher, 10)
+	}), publisher)
 
 	if err := logic.Run(taskTypeCloseTimeout); err != nil {
 		t.Fatalf("Run returned error: %v", err)
@@ -82,7 +82,7 @@ func TestDispatcherTreatsDuplicateTaskConflictAsSuccess(t *testing.T) {
 	publisher := &fakeDelayTaskPublisher{err: asynq.ErrTaskIDConflict}
 	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"order-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testOrderCloseMySQLDataSource)),
-	}), publisher, 10)
+	}), publisher)
 
 	if err := logic.Run(taskTypeCloseTimeout); err != nil {
 		t.Fatalf("Run returned error: %v", err)
@@ -108,7 +108,7 @@ func TestDispatcherMarksPublishFailed(t *testing.T) {
 	publisher := &fakeDelayTaskPublisher{err: fmt.Errorf("redis unavailable")}
 	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"order-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testOrderCloseMySQLDataSource)),
-	}), publisher, 10)
+	}), publisher)
 
 	if err := logic.Run(taskTypeCloseTimeout); err != nil {
 		t.Fatalf("Run returned error: %v", err)
@@ -161,7 +161,7 @@ func TestDispatcherRepublishesPublishedAndFailedButSkipsProcessed(t *testing.T) 
 	publisher := &fakeDelayTaskPublisher{}
 	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"order-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testOrderCloseMySQLDataSource)),
-	}), publisher, 10)
+	}), publisher)
 
 	if err := logic.Run(taskTypeCloseTimeout); err != nil {
 		t.Fatalf("Run returned error: %v", err)

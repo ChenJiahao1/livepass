@@ -19,11 +19,8 @@ func TestLoadRushInventoryPreheatDispatcherConfigUsesShardStorage(t *testing.T) 
 		t.Fatalf("load %s: %v", configFile, err)
 	}
 
-	if c.Interval != 5*time.Second {
-		t.Fatalf("expected interval 5s, got %s", c.Interval)
-	}
-	if c.BatchSize != 200 {
-		t.Fatalf("expected batch size 200, got %d", c.BatchSize)
+	if c.Interval != time.Minute {
+		t.Fatalf("expected interval 1m, got %s", c.Interval)
 	}
 	if len(c.Shards) != 1 {
 		t.Fatalf("expected exactly one shard config, got %d", len(c.Shards))

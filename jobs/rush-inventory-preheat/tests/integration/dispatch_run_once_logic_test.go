@@ -53,7 +53,7 @@ func TestRunOnceMarksPublished(t *testing.T) {
 	publisher := &fakeDelayTaskPublisher{}
 	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"program-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testRushInventoryPreheatMySQLDataSource)),
-	}), publisher, 10)
+	}), publisher)
 
 	if err := logic.Run(taskdef.TaskTypeRushInventoryPreheat); err != nil {
 		t.Fatalf("Run returned error: %v", err)
@@ -93,7 +93,7 @@ func TestDispatcherTreatsDuplicateTaskConflictAsSuccess(t *testing.T) {
 	publisher := &fakeDelayTaskPublisher{err: asynq.ErrTaskIDConflict}
 	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"program-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testRushInventoryPreheatMySQLDataSource)),
-	}), publisher, 10)
+	}), publisher)
 
 	if err := logic.Run(taskdef.TaskTypeRushInventoryPreheat); err != nil {
 		t.Fatalf("Run returned error: %v", err)
@@ -124,7 +124,7 @@ func TestDispatcherMarksPublishFailed(t *testing.T) {
 	publisher := &fakeDelayTaskPublisher{err: fmt.Errorf("redis unavailable")}
 	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"program-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testRushInventoryPreheatMySQLDataSource)),
-	}), publisher, 10)
+	}), publisher)
 
 	if err := logic.Run(taskdef.TaskTypeRushInventoryPreheat); err != nil {
 		t.Fatalf("Run returned error: %v", err)
@@ -190,7 +190,7 @@ func TestDispatcherRepublishesPublishedAndFailedButSkipsProcessed(t *testing.T) 
 	publisher := &fakeDelayTaskPublisher{}
 	logic := dispatch.NewRunOnceLogic(context.Background(), outbox.NewMysqlStore(map[string]sqlx.SqlConn{
 		"program-db-0": sqlx.NewMysql(xmysql.WithLocalTime(testRushInventoryPreheatMySQLDataSource)),
-	}), publisher, 10)
+	}), publisher)
 
 	if err := logic.Run(taskdef.TaskTypeRushInventoryPreheat); err != nil {
 		t.Fatalf("Run returned error: %v", err)

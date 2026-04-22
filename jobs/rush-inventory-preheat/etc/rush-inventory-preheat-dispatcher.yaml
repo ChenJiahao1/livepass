@@ -1,5 +1,4 @@
-Interval: 5s
-BatchSize: 200
+Interval: 1m
 Shards:
   program-db-0:
     DataSource: root:123456@tcp(127.0.0.1:3306)/livepass_program?parseTime=true

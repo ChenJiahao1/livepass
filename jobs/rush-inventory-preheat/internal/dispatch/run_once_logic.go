@@ -15,16 +15,14 @@ type RunOnceLogic struct {
 	ctx       context.Context
 	store     outbox.Store
 	publisher delaytask.Publisher
-	batchSize int64
 	logx.Logger
 }
 
-func NewRunOnceLogic(ctx context.Context, store outbox.Store, publisher delaytask.Publisher, batchSize int64) *RunOnceLogic {
+func NewRunOnceLogic(ctx context.Context, store outbox.Store, publisher delaytask.Publisher) *RunOnceLogic {
 	return &RunOnceLogic{
 		ctx:       ctx,
 		store:     store,
 		publisher: publisher,
-		batchSize: batchSize,
 		Logger:    logx.WithContext(ctx),
 	}
 }
@@ -37,7 +35,7 @@ func (l *RunOnceLogic) Run(taskType string) error {
 		return fmt.Errorf("delay task publisher is not configured")
 	}
 
-	records, err := l.store.ListDispatchableByTaskType(l.ctx, taskType, l.batchSize)
+	records, err := l.store.ListDispatchableByTaskType(l.ctx, taskType)
 	if err != nil {
 		return err
 	}

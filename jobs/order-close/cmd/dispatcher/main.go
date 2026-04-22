@@ -29,7 +29,7 @@ func main() {
 	defer stop()
 
 	serviceContext := svc.NewDispatcherServiceContext(c)
-	runner := dispatch.NewRunOnceLogic(ctx, serviceContext.Store, serviceContext.Publisher, c.BatchSize)
+	runner := dispatch.NewRunOnceLogic(ctx, serviceContext.Store, serviceContext.Publisher)
 	ticker := time.NewTicker(c.Interval)
 	defer ticker.Stop()
 
@@ -37,7 +37,7 @@ func main() {
 		logx.WithContext(ctx).Errorf("initial order-close dispatcher run failed: %v", err)
 	}
 
-	fmt.Printf("Starting order-close dispatcher, interval=%s batchSize=%d\n", c.Interval, c.BatchSize)
+	fmt.Printf("Starting order-close dispatcher, interval=%s\n", c.Interval)
 	for {
 		select {
 		case <-ctx.Done():
