@@ -2,58 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
-from langgraph.types import interrupt
-
-from app.agents.tools.human_tools import build_human_approval_interrupt
 from app.shared.errors import ApiError, ApiErrorCode
 from app.integrations.mcp.execution_context import ToolExecutionContext
-from app.integrations.mcp.tool_policies import get_tool_access_policy
-
-
-@dataclass(frozen=True)
-class ToolExecutionPolicy:
-    requires_hitl: bool = False
-    title: str | None = None
-    risk_level: str = "medium"
-    description_builder: Callable[[Mapping[str, Any]], str] | None = None
-
-
-def build_refund_description(payload: Mapping[str, Any]) -> str:
-    order_id = str(payload.get("order_id") or payload.get("orderId") or "").strip()
-    if order_id:
-        return f"订单 {order_id} 将提交退款，请确认后继续。"
-    return "将提交退款，请确认后继续。"
-
-
-DEFAULT_TOOL_EXECUTION_POLICY = ToolExecutionPolicy()
-DEFAULT_WRITE_TOOL_EXECUTION_POLICY = ToolExecutionPolicy(
-    requires_hitl=True,
-    title="写操作前确认",
-    risk_level="medium",
-)
-TOOL_EXECUTION_POLICIES = {
-    "refund_order": ToolExecutionPolicy(
-        requires_hitl=True,
-        title="退款前确认",
-        risk_level="medium",
-        description_builder=build_refund_description,
-    ),
-}
-
-
-def get_tool_execution_policy(toolset: str, tool_name: str) -> ToolExecutionPolicy:
-    policy = TOOL_EXECUTION_POLICIES.get(tool_name)
-    if policy is not None:
-        return policy
-
-    access_policy = get_tool_access_policy(toolset, tool_name)
-    if access_policy is not None and access_policy.mode == "write":
-        return DEFAULT_WRITE_TOOL_EXECUTION_POLICY
-    return DEFAULT_TOOL_EXECUTION_POLICY
 
 
 class MCPToolInterceptor:
@@ -77,13 +29,6 @@ class MCPToolInterceptor:
                 details={"serverName": server_name, "toolName": tool_name},
             )
         request_payload = self._inject_context(payload=payload, context=context)
-        request_payload = self._apply_human_interrupt_if_required(
-            toolset=server_name,
-            tool_name=tool_name,
-            payload=request_payload,
-        )
-        if request_payload.pop("__cancelled_by_human__", False):
-            return request_payload
         try:
             coroutine = tool.ainvoke(request_payload)
             if self.timeout_seconds is not None:
@@ -122,77 +67,6 @@ class MCPToolInterceptor:
     def _inject_context(self, *, payload: dict[str, Any], context: ToolExecutionContext) -> dict[str, Any]:
         del context
         return dict(payload)
-
-    def _apply_human_interrupt_if_required(
-        self,
-        *,
-        toolset: str,
-        tool_name: str,
-        payload: dict[str, Any],
-    ) -> dict[str, Any]:
-        policy = get_tool_execution_policy(toolset, tool_name)
-        if not policy.requires_hitl:
-            return payload
-
-        description = (
-            policy.description_builder(payload)
-            if policy.description_builder
-            else "该工具会执行写操作，请确认后继续。"
-        )
-        interrupt_payload = build_human_approval_interrupt(
-            action=tool_name,
-            args={
-                "orderId": str(payload.get("order_id") or payload.get("orderId") or ""),
-                "values": dict(payload),
-            },
-            request={
-                "title": policy.title or "操作前确认",
-                "description": description,
-                "riskLevel": policy.risk_level,
-                "allowedActions": ["approve", "reject", "edit"],
-            },
-        )
-        decision = interrupt(
-            {
-                "toolName": interrupt_payload.tool_name,
-                "args": dict(interrupt_payload.args),
-                "request": dict(interrupt_payload.request),
-            }
-        )
-        return self._payload_after_human_decision(original=payload, decision=decision)
-
-    def _payload_after_human_decision(self, *, original: dict[str, Any], decision: Any) -> dict[str, Any]:
-        if not isinstance(decision, Mapping):
-            return self._cancelled_payload(reason="invalid_resume_payload")
-        if isinstance(decision.get("decisions"), list) and decision["decisions"]:
-            first = decision["decisions"][0]
-            if not isinstance(first, Mapping):
-                return self._cancelled_payload(reason="invalid_resume_payload")
-            decision_type = str(first.get("type") or "").strip()
-            if decision_type == "approve":
-                return original
-            if decision_type == "edit":
-                edited_action = first.get("edited_action")
-                if not isinstance(edited_action, Mapping):
-                    return self._cancelled_payload(reason="invalid_resume_payload")
-                args = edited_action.get("args")
-                return dict(args) if isinstance(args, Mapping) else {}
-            return self._cancelled_payload(reason=str(first.get("message") or "human_rejected"))
-
-        action = str(decision.get("action") or "").strip()
-        if action == "approve":
-            return original
-        if action == "edit":
-            values = decision.get("values")
-            return dict(values) if isinstance(values, Mapping) else {}
-        return self._cancelled_payload(reason=str(decision.get("reason") or "human_rejected"))
-
-    def _cancelled_payload(self, *, reason: str) -> dict[str, Any]:
-        return {
-            "__cancelled_by_human__": True,
-            "cancelled": True,
-            "reason": reason,
-        }
 
     def _normalize_result(self, *, result: Any, server_name: str, tool_name: str) -> Any:
         normalized = self._coerce_result(result)

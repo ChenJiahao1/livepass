@@ -3,13 +3,10 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.graph import END, START, StateGraph
-from langgraph.types import Command
 
 from app.shared.errors import ApiError
 from app.integrations.mcp.execution_context import ToolExecutionContext
-from app.integrations.mcp.interceptor import MCPToolInterceptor, get_tool_execution_policy
+from app.integrations.mcp.interceptor import MCPToolInterceptor
 from app.integrations.mcp.tool_policies import TOOLSET_ORDER
 
 
@@ -68,18 +65,6 @@ def _context() -> ToolExecutionContext:
         run_id="run_001",
         tool_call_id="tool_001",
     )
-
-
-def test_refund_order_policy_requires_hitl():
-    policy = get_tool_execution_policy(TOOLSET_ORDER, "refund_order")
-
-    assert policy.requires_hitl is True
-
-
-def test_preview_refund_order_policy_does_not_require_hitl():
-    policy = get_tool_execution_policy(TOOLSET_ORDER, "preview_refund_order")
-
-    assert policy.requires_hitl is False
 
 
 @pytest.mark.anyio
@@ -169,88 +154,17 @@ async def test_interceptor_maps_execution_error_to_stable_api_error():
 
 
 @pytest.mark.anyio
-async def test_interceptor_interrupts_refund_order_before_side_effect_and_resumes_on_approve():
+async def test_interceptor_executes_write_tool_without_human_interrupt():
     tool = _RefundTool()
     interceptor = MCPToolInterceptor()
 
-    async def _node(_state: dict):
-        result = await interceptor.invoke(
-            server_name=TOOLSET_ORDER,
-            tool_name="refund_order",
-            payload={"order_id": "ORD-10001", "reason": "用户发起退款"},
-            context=_context(),
-            tool=tool,
-        )
-        return {"result": result}
-
-    builder = StateGraph(dict)
-    builder.add_node("submit_refund", _node)
-    builder.add_edge(START, "submit_refund")
-    builder.add_edge("submit_refund", END)
-    graph = builder.compile(checkpointer=InMemorySaver())
-    config = {"configurable": {"thread_id": "hitl-refund-order"}}
-
-    interrupted = await graph.ainvoke({}, config=config)
-    payload = interrupted["__interrupt__"][0].value
-
-    assert tool.calls == []
-    assert payload["toolName"] == "human_approval"
-    assert payload["args"]["action"] == "refund_order"
-    assert payload["args"]["values"] == {"order_id": "ORD-10001", "reason": "用户发起退款"}
-    assert payload["request"]["allowedActions"] == ["approve", "reject", "edit"]
-
-    resumed = await graph.ainvoke(Command(resume={"decisions": [{"type": "approve"}]}), config=config)
-
-    assert tool.calls == [{"order_id": "ORD-10001", "reason": "用户发起退款"}]
-    assert resumed["result"]["accepted"] is True
-
-
-@pytest.mark.anyio
-async def test_interceptor_edit_uses_edited_values_for_write_tool():
-    tool = _RefundTool()
-    interceptor = MCPToolInterceptor()
-
-    async def _node(_state: dict):
-        result = await interceptor.invoke(
-            server_name=TOOLSET_ORDER,
-            tool_name="refund_order",
-            payload={"order_id": "ORD-10001", "reason": "用户发起退款"},
-            context=_context(),
-            tool=tool,
-        )
-        return {"result": result}
-
-    builder = StateGraph(dict)
-    builder.add_node("submit_refund", _node)
-    builder.add_edge(START, "submit_refund")
-    builder.add_edge("submit_refund", END)
-    graph = builder.compile(checkpointer=InMemorySaver())
-    config = {"configurable": {"thread_id": "hitl-refund-edit"}}
-
-    interrupted = await graph.ainvoke({}, config=config)
-    payload = interrupted["__interrupt__"][0].value
-
-    assert tool.calls == []
-    assert payload["args"]["action"] == "refund_order"
-
-    resumed = await graph.ainvoke(
-        Command(
-            resume={
-                "decisions": [
-                    {
-                        "type": "edit",
-                        "edited_action": {
-                            "args": {
-                                "order_id": "ORD-10001",
-                                "reason": "人工修改后的退款原因",
-                            }
-                        },
-                    }
-                ]
-            }
-        ),
-        config=config,
+    result = await interceptor.invoke(
+        server_name=TOOLSET_ORDER,
+        tool_name="refund_order",
+        payload={"order_id": "ORD-10001", "reason": "用户发起退款"},
+        context=_context(),
+        tool=tool,
     )
 
-    assert tool.calls == [{"order_id": "ORD-10001", "reason": "人工修改后的退款原因"}]
-    assert resumed["result"]["accepted"] is True
+    assert tool.calls == [{"order_id": "ORD-10001", "reason": "用户发起退款"}]
+    assert result["accepted"] is True
