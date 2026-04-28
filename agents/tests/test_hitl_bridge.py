@@ -5,6 +5,7 @@ import pytest
 from app.runs.interrupt_models import HumanInterruptPayload
 from app.shared.errors import ApiError, ApiErrorCode
 from app.runs.execution.interrupt_bridge import InterruptBridge
+from app.runs.tool_call_contract import build_human_request
 from app.runs.tool_call_models import TOOL_CALL_STATUS_WAITING_HUMAN, ToolCallRecord
 from app.runs.tool_call_repository import InMemoryToolCallRepository
 
@@ -44,6 +45,16 @@ def test_interrupt_bridge_projects_approval_payload_to_human_tool_contract():
             "allowedActions": ["approve", "reject", "edit"],
         },
     }
+
+
+def test_human_input_request_kind_is_input():
+    payload = build_human_request(
+        tool_name="human_input",
+        request={"title": "选择订单", "description": "请选择", "allowedActions": ["edit", "reject"]},
+    )
+
+    assert payload["kind"] == "input"
+    assert payload["allowedActions"] == ["edit", "reject"]
 
 
 def test_bridge_rejects_second_waiting_human_tool_call_in_same_run():
