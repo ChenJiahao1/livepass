@@ -17,5 +17,7 @@ assert_contains() {
 
 bash -n "${SCRIPT_PATH}"
 assert_contains 'IMPORT_DOMAINS="${IMPORT_DOMAINS:-user,program,order,pay,agents}"'
+assert_contains '"sql/order/dev_seed.sql"'
+assert_contains '"sql/pay/dev_seed.sql"'
 
 printf '[import-sql-script-test] ok\n'

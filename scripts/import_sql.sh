@@ -43,11 +43,13 @@ ORDER_SQL_FILES=(
   "sql/order/d_order_viewer_guard.sql"
   "sql/order/d_order_seat_guard.sql"
   "sql/order/d_delay_task_outbox.sql"
+  "sql/order/dev_seed.sql"
 )
 
 PAY_SQL_FILES=(
   "sql/pay/d_pay_bill.sql"
   "sql/pay/d_refund_bill.sql"
+  "sql/pay/dev_seed.sql"
 )
 
 AGENTS_SQL_FILES=(

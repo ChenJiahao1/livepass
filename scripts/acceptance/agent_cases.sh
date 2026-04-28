@@ -10,11 +10,11 @@ agent_case_order() {
 }
 
 agent_case_refund_preview() {
-  printf '%s\n' "订单 93001 可以退款吗"
+  printf '%s\n' "订单 43509738860707840 可以退款吗"
 }
 
 agent_case_refund_submit() {
-  printf '%s\n' "帮我退款订单 93001"
+  printf '%s\n' "帮我退款订单 43509738860707840"
 }
 
 agent_case_handoff() {

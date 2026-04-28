@@ -75,6 +75,21 @@ SELECT
   1
 FROM `seq`;
 
+-- 为测试用户预置已支付订单占用的普通票座位，用于智能客服退款冒烟。
+UPDATE `d_seat`
+SET
+  `seat_status` = 3,
+  `freeze_token` = 'dev-paid-order-10001',
+  `freeze_expire_time` = '2026-04-28 14:15:00',
+  `edit_time` = '2026-04-28 14:00:00'
+WHERE `id` IN (50001, 50002);
+
+UPDATE `d_ticket_category`
+SET
+  `remain_number` = 98,
+  `edit_time` = '2026-04-28 14:00:00'
+WHERE `id` = 40001;
+
 -- 初始化贵宾票座位数据。
 INSERT INTO `d_seat` (
   `id`, `program_id`, `show_time_id`, `ticket_category_id`, `row_code`, `col_code`, `seat_type`, `price`, `seat_status`,
