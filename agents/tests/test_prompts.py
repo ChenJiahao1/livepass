@@ -28,6 +28,20 @@ def test_prompt_loader_loads_coordinator_template():
     assert "coordinator" in prompt.lower()
 
 
+def test_coordinator_prompt_uses_delegate_without_business_ready():
+    prompt = PromptLoader().render(
+        "coordinator",
+        selected_order_id=None,
+        last_intent="unknown",
+        current_user_id=3001,
+    )
+
+    assert "business_ready" not in prompt
+    assert "delegated" not in prompt
+    assert '"delegate"' in prompt
+    assert "缺订单号不阻止" in prompt
+
+
 def test_order_specialist_prompt_mentions_autonomous_tool_usage():
     content = PromptLoader().render(
         "order_specialist",
@@ -50,8 +64,9 @@ def test_coordinator_decision_schema_accepts_delegate():
         {
             "action": "delegate",
             "reply": "",
+            "route": "order",
             "selected_order_id": None,
-            "business_ready": True,
+            "selected_program_id": None,
             "reason": "user asked to check orders",
         }
     )
