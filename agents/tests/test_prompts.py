@@ -49,9 +49,18 @@ def test_order_specialist_prompt_mentions_autonomous_tool_usage():
         current_user_id=1001,
     )
 
-    assert "不要编造订单" in content
+    assert "不编造订单" in content
     assert "缺少事实时优先调用工具确认" in content
     assert "写操作工具在真正执行前会被人工确认" in content
+
+
+def test_order_prompt_describes_refund_wrapper_contract():
+    prompt = PromptLoader().render("order_specialist", selected_order_id=None, current_user_id=3001)
+
+    assert "human_input" in prompt
+    assert "preview_refund_order" in prompt
+    assert "refund_order 是复合写工具" in prompt
+    assert "不要自行先后强制编排 preview_refund_order -> refund_order" not in prompt
 
 
 def test_supervisor_decision_schema_accepts_finish():
