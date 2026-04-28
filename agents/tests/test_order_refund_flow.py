@@ -2,6 +2,7 @@ import pytest
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
+from app.agents.tools import build_human_input_tool
 from app.graph.builder import build_graph_app
 from tests.fakes import ScriptedChatModel, StubRegistry, build_async_tool
 
@@ -69,14 +70,22 @@ async def test_order_lane_can_complete_with_tool_agent_reply(monkeypatch):
                     name="refund_order",
                     description="submit refund",
                     coroutine=_refund_order,
-                )
+                ),
+                build_human_input_tool(),
             ]
         }
     )
     llm = ScriptedChatModel(
         structured_responses=[
-            {"action": "delegate", "reply": "", "selected_order_id": "ORD-1", "business_ready": True, "reason": "preview"},
-            {"next_agent": "order", "selected_order_id": "ORD-1", "reason": "refund via order"},
+            {
+                "action": "delegate",
+                "reply": "",
+                "route": "order",
+                "selected_order_id": "ORD-1",
+                "selected_program_id": None,
+                "reason": "preview",
+            },
+            {"next_agent": "order", "reason": "refund via order"},
         ]
     )
 
@@ -89,5 +98,6 @@ async def test_order_lane_can_complete_with_tool_agent_reply(monkeypatch):
         "get_order_detail_for_service",
         "preview_refund_order",
         "refund_order",
+        "human_input",
     ]
     assert "current_user_id" in str(captured["system_prompt"])

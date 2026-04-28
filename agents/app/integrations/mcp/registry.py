@@ -9,6 +9,7 @@ from typing import Any
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
+from app.agents.tools import build_human_input_tool, wrap_tools_with_hitl_policies
 from app.shared.config import Settings, get_settings
 from app.shared.ids import new_tool_call_id
 from app.integrations.mcp.execution_context import ToolExecutionContext
@@ -165,9 +166,19 @@ class BoundMCPToolRegistry:
         provider_name = TOOLSET_PROVIDER.get(toolset, toolset)
         tools = await self.get_provider_tools(provider_name)
         allowed_tool_names = TOOLSET_TOOL_NAMES.get(toolset)
-        if not allowed_tool_names:
-            return tools
-        return [tool for tool in tools if tool.name in allowed_tool_names]
+        if allowed_tool_names:
+            tools = [tool for tool in tools if tool.name in allowed_tool_names]
+        if toolset == TOOLSET_ORDER:
+            tools = wrap_tools_with_hitl_policies(
+                tools=tools,
+                invoke_tool=lambda tool_name, payload: self.invoke(
+                    server_name=provider_name,
+                    tool_name=tool_name,
+                    payload=payload,
+                ),
+            )
+            tools.append(build_human_input_tool())
+        return tools
 
     async def invoke(self, *, server_name: str, tool_name: str, payload: dict[str, Any]) -> Any:
         return await self._registry.invoke(

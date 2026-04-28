@@ -1,6 +1,7 @@
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
+from app.agents.tools import build_human_input_tool
 from app.agents.specialists.order_specialist import OrderAgent
 from tests.fakes import StubRegistry, build_async_tool
 
@@ -40,6 +41,7 @@ async def test_base_specialist_agent_run_tool_agent_wires_tools_prompt_and_messa
                     description="submit refund",
                     coroutine=lambda *, order_id, reason, user_id=None: None,
                 ),
+                build_human_input_tool(),
             ]
         }
     )
@@ -59,6 +61,7 @@ async def test_base_specialist_agent_run_tool_agent_wires_tools_prompt_and_messa
         "get_order_detail_for_service",
         "preview_refund_order",
         "refund_order",
+        "human_input",
     ]
     assert "selected_order_id" in str(captured["system_prompt"])
 
