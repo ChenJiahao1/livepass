@@ -18,8 +18,8 @@
 - 当前项目仍处于开发阶段，尚未上线；进行接口、字段、返回结构、提示词协议或文档说明调整时，默认以当前实现和当前需求为准，不需要兼容旧接口、旧字段、旧格式或历史遗留协议，除非用户明确提出兼容要求。
 - 涉及 Go 或 go-zero 服务开发时，必须使用 `zero-skills`。
 - 开发 `agents` 模块时，若任务不涉及 Go 开发（如 Python 代码、提示词、工具编排、文档等），则不要求使用 `zero-skills`。
-- 当前对应前端项目路径：`/home/chenjiahao/code/project/damai-web`。
-- 涉及前后端联调、接口契约或页面行为时，默认这是当前 `damai-web` 对应的后端工程。
+- 当前对应前端项目路径：`/home/chenjiahao/code/project/livepass-web`。
+- 涉及前后端联调、接口契约或页面行为时，默认这是当前 `livepass-web` 对应的后端工程。
 
 ## 架构约束
 
