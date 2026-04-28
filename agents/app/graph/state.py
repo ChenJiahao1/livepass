@@ -16,14 +16,12 @@ class ConversationState(MessagesState):
     current_user_id: NotRequired[int | None]
 
     route: NotRequired[Intent | None]
-    coordinator_action: NotRequired[Literal["respond", "clarify", "delegate"]]
-    next_agent: NotRequired[Literal[AGENT_ACTIVITY, AGENT_ORDER, NEXT_AGENT_FINISH]]
-    business_ready: NotRequired[bool]
-    delegated: NotRequired[bool]
+    coordinator_action: NotRequired[Literal["respond", "delegate"]]
+    next_agent: NotRequired[Literal[AGENT_ACTIVITY, AGENT_ORDER, NEXT_AGENT_FINISH] | None]
     reply: NotRequired[str]
     specialist_result: NotRequired[dict[str, Any] | None]
     trace: NotRequired[list[str]]
-    current_agent: NotRequired[str]
+    current_agent: NotRequired[str | None]
     final_reply: NotRequired[str]
 
 

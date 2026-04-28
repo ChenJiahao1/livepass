@@ -11,8 +11,9 @@ def test_coordinator_responds_to_smalltalk():
                 {
                     "action": "respond",
                     "reply": "你好，这里是票务客服。",
+                    "route": "unknown",
                     "selected_order_id": None,
-                    "business_ready": False,
+                    "selected_program_id": None,
                     "reason": "smalltalk",
                 }
             ]
@@ -32,9 +33,10 @@ def test_coordinator_delegates_business_request():
                 {
                     "action": "delegate",
                     "reply": "",
+                    "route": "order",
                     "selected_order_id": None,
-                    "business_ready": True,
-                    "reason": "business request is ready",
+                    "selected_program_id": None,
+                    "reason": "business request",
                 }
             ]
         )
@@ -43,4 +45,5 @@ def test_coordinator_delegates_business_request():
     result = agent.handle({"messages": [HumanMessage(content="帮我查订单")]})
 
     assert result["action"] == "delegate"
-    assert result["business_ready"] is True
+    assert result["route"] == "order"
+    assert "business_ready" not in result
