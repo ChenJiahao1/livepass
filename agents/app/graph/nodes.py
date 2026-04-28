@@ -21,8 +21,6 @@ def prepare_turn_node(state: ConversationState, runtime: Runtime[GraphContext]) 
         "route": None,
         "coordinator_action": None,
         "next_agent": None,
-        "business_ready": False,
-        "delegated": False,
         "specialist_result": None,
         "trace": [],
         "current_agent": None,
@@ -42,9 +40,9 @@ def coordinator_node(state: ConversationState, runtime: Runtime[GraphContext]) -
     result = CoordinatorAgent(llm=llm).handle(hydrated)
     base_state: dict[str, Any] = {
         "coordinator_action": result["action"],
-        "business_ready": result["business_ready"],
-        "delegated": result["action"] == "delegate",
+        "route": result.get("route"),
         "selected_order_id": result.get("selected_order_id"),
+        "selected_program_id": result.get("selected_program_id"),
         "current_user_id": current_user_id,
         "trace": result["trace"],
         "specialist_result": None,

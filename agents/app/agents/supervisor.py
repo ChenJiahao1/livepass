@@ -38,5 +38,5 @@ class SupervisorAgent:
             "route": route,
             "reply": "",
             "trace": [f"route:{route}"] if decision.next_agent != "finish" else [],
-            "selected_order_id": decision.selected_order_id,
+            "selected_order_id": state.get("selected_order_id"),
         }

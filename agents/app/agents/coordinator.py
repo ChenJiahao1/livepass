@@ -27,8 +27,9 @@ class CoordinatorAgent:
             "agent": "coordinator",
             "action": decision.action,
             "reply": decision.reply,
+            "route": decision.route,
             "trace": [f"coordinator:{decision.action}"],
             "selected_order_id": decision.selected_order_id,
-            "business_ready": decision.business_ready,
+            "selected_program_id": decision.selected_program_id,
             "reason": decision.reason,
         }
