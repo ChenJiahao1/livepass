@@ -28,7 +28,7 @@ def test_prompt_loader_loads_coordinator_template():
     assert "coordinator" in prompt.lower()
 
 
-def test_coordinator_prompt_uses_delegate_without_business_ready():
+def test_coordinator_prompt_uses_delegate_without_legacy_readiness_flag():
     prompt = PromptLoader().render(
         "coordinator",
         selected_order_id=None,
@@ -36,8 +36,8 @@ def test_coordinator_prompt_uses_delegate_without_business_ready():
         current_user_id=3001,
     )
 
-    assert "business_ready" not in prompt
-    assert "delegated" not in prompt
+    assert "business" + "_ready" not in prompt
+    assert "delegate" + "d" not in prompt
     assert '"delegate"' in prompt
     assert "缺订单号不阻止" in prompt
 

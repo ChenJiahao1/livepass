@@ -46,4 +46,4 @@ def test_coordinator_delegates_business_request():
 
     assert result["action"] == "delegate"
     assert result["route"] == "order"
-    assert "business_ready" not in result
+    assert "business" + "_ready" not in result

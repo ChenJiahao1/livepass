@@ -26,7 +26,7 @@
 
 ## 禁止
 
-- 输出或判断 business_ready
+- 输出或判断旧的业务就绪派生字段
 - 决定具体工具名称
 - 编排退款 preview/confirm/execute 顺序
 

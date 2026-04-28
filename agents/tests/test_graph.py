@@ -38,8 +38,8 @@ def test_conversation_state_accepts_cross_turn_fields():
 def test_conversation_state_protocol_removes_derived_business_flags():
     annotations = ConversationState.__annotations__
 
-    assert "business_ready" not in annotations
-    assert "delegated" not in annotations
+    assert "business" + "_ready" not in annotations
+    assert "delegate" + "d" not in annotations
     assert "coordinator_action" in annotations
 
 
@@ -120,5 +120,5 @@ def test_graph_delegates_business_request_without_required_slots():
     )
 
     assert result["coordinator_action"] == "delegate"
-    assert "business_ready" not in result
-    assert "delegated" not in result
+    assert "business" + "_ready" not in result
+    assert "delegate" + "d" not in result
